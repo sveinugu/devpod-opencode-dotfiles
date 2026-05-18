@@ -19,8 +19,8 @@ RUN curl https://pyenv.run | zsh \
     && echo 'eval "$(pyenv init -)"' >> ~/.zshrc \
     && sudo chsh -s /usr/bin/zsh vscode
 
-# Pre-install Opencode
-RUN curl -fsSL https://opencode.ai/install | zsh
+# Install OpenCode binary directly to a global path
+RUN curl -fsSL https://opencode.ai | BINDIR=/usr/local/bin sh
 
 # Unbuffered Python outputs for e.g. Kubernetes
 ENV PYTHONUNBUFFERED=1

@@ -133,6 +133,11 @@ alias ll="ls -alh"
 
 zstyle ':omz:update' mode disabled
 
+# Initialize OpenCode
+if command -v opencode &> /dev/null; then
+    eval "$(opencode init zsh)"
+fi
+
 # Auto-Rehash & Venv Hooks
 autoload -U add-zsh-hook
 
