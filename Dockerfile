@@ -15,17 +15,16 @@ ENV PYENV_ROOT="/home/vscode/.pyenv"
 ENV PATH="$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH"
 ENV SHELL="/usr/bin/zsh"
 
-
-# Install pyenv and set ZSH as default shell for the user
-RUN curl https://pyenv.run | zsh \
-    && echo 'eval "$(pyenv init -)"' >> ~/.zshrc \
-    && sudo chsh -s /usr/bin/zsh vscode
-
 # Set the existing non-root 'ubuntu' user as the default user
 USER vscode
 
 # Set the working directory to the user's home folder
 WORKDIR /home/vscode
+
+# Install pyenv and set ZSH as default shell for the user
+RUN curl https://pyenv.run | zsh \
+    && echo 'eval "$(pyenv init -)"' >> ~/.zshrc \
+    && sudo chsh -s /usr/bin/zsh vscode
 
 # Create the .ssh directory
 RUN mkdir -p /home/vscode/.ssh
