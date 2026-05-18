@@ -11,14 +11,14 @@ RUN apt-get update \
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Pre-install Opencode
-RUN curl -fsSL https://opencode.ai | bash
+RUN curl -fsSL https://opencode.ai/install | zsh
 
 # Permanent pyenv environment
 ENV PYENV_ROOT="$HOME/.pyenv"
 ENV PATH="$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH"
 
 # Install pyenv and set ZSH as default shell for the user
-RUN curl https://pyenv.run | bash \
+RUN curl https://pyenv.run | zsh \
     && echo 'eval "$(pyenv init -)"' >> ~/.zshrc \
     && sudo chsh -s /usr/bin/zsh vscode
 
