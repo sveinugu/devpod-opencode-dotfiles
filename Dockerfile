@@ -33,10 +33,10 @@ RUN mkdir -p /home/vscode/.ssh
 # This is important to be able to mount the OpenCode auth on docker run
 #    -v ~/.local/share/opencode/auth.json:/home/vscode/.local/share/opencode/auth.json
 RUN mkdir -p /home/vscode/.local/share/opencode \
-    &amp;&amp; chown -R vscode:vscode /home/vscode/.local/share/opencode
+    && chown -R vscode:vscode /home/vscode/.local/share/opencode
 
 RUN mkdir -p /home/vscode/.config/opencode \
-    &amp;&amp; chown -R vscode:vscode /home/vscode/.config/opencode \
+    && chown -R vscode:vscode /home/vscode/.config/opencode
 
 # Install OpenCode binary directly to a global path
 RUN curl -fsSL https://opencode.ai/install | zsh
