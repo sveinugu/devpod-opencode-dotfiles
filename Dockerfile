@@ -14,7 +14,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 RUN curl -fsSL https://opencode.ai/install | zsh
 
 # Permanent pyenv environment
-ENV PYENV_ROOT="$HOME/.pyenv"
+ENV PYENV_ROOT="/home/vscode/.pyenv"
 ENV PATH="$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH"
 
 # Install pyenv and set ZSH as default shell for the user
