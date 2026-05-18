@@ -1,6 +1,3 @@
-# Run whenever you 'cd' into a directory
-add-zsh-hook chpwd auto_venv
-
 # Fixes https://github.com/ohmyzsh/ohmyzsh/issues/6461
 export ZSH_DISABLE_COMPFIX=true
 
@@ -140,6 +137,9 @@ fi
 
 # Auto-Rehash & Venv Hooks
 autoload -U add-zsh-hook
+
+# Run whenever you 'cd' into a directory
+add-zsh-hook chpwd auto_venv
 
 # Rehash for new binaries
 add-zsh-hook precmd pyenv rehash
