@@ -20,7 +20,7 @@ RUN curl https://pyenv.run | zsh \
     && sudo chsh -s /usr/bin/zsh vscode
 
 # Install OpenCode binary directly to a global path
-RUN curl -fsSL https://opencode.ai | BINDIR=/usr/local/bin sh
+RUN curl -fsSL https://opencode.ai/install | BINDIR=/usr/local/bin sh
 
 # Unbuffered Python outputs for e.g. Kubernetes
 ENV PYTHONUNBUFFERED=1
