@@ -8,7 +8,7 @@ export ZSH_DISABLE_COMPFIX=true
 # export PATH=$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH
 
 # Your Opencode aliases or path additions
-export PATH=$PATH:$HOME/.config/opencode/bin
+export PATH=$HOME/.opencode/bin:$HOME/.config/opencode/bin:$PATH
 
 # Path to your Oh My Zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
