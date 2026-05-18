@@ -10,9 +10,6 @@ RUN apt-get update \
 # Install 'uv' globally
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Pre-install Opencode
-RUN curl -fsSL https://opencode.ai/install | zsh
-
 # Permanent pyenv environment
 ENV PYENV_ROOT="/home/vscode/.pyenv"
 ENV PATH="$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH"
@@ -21,6 +18,9 @@ ENV PATH="$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH"
 RUN curl https://pyenv.run | zsh \
     && echo 'eval "$(pyenv init -)"' >> ~/.zshrc \
     && sudo chsh -s /usr/bin/zsh vscode
+
+# Pre-install Opencode
+RUN curl -fsSL https://opencode.ai/install | zsh
 
 # Unbuffered Python outputs for e.g. Kubernetes
 ENV PYTHONUNBUFFERED=1
