@@ -11,7 +11,8 @@ mkdir -p ~/.config
 
 # Symlink your OpenCode folder from the repo to the expected location
 # -s = symlink, -f = force, -n = treat folder symlink as a file
-ln -sfn $(pwd)/opencode ~/.config/opencode
+rm -rf ~/.config/opencode
+ln -sfn $(pwd)/.config.opencode ~/.config/
 
 echo "✅ Dotfiles applied: .zshrc and OpenCode config linked."
 
