@@ -26,10 +26,6 @@ Responsible for the following "superpowers" skills, as described:
 
 When you delegate work or relay messages between users and subagents, include a one-line resume hint in any prompts/transcripts where a subagent might wait for user input or a session could be exported:
 
-  To resume this session after a restart, reply in chat using: $ses_<session-id> <your reply here>
+  To resume this session after a restart, reply in chat using: $ses_<session-id> <your reply here> (use $$ at the start to send a literal leading $ without triggering resume)
 
-Senior Implementers and other delegation-capable agents SHOULD respect and preserve user-provided resume tokens when relaying messages or performing manual rehydration. Do not strip, alter, or absorb tokens; pass them verbatim to the operator or target subagent when appropriate. Provide a copy button where possible.
-
-## Operator hint (additional)
-
-When performing manual rehydration or relaying a user's message that contains a resume token, always validate authorization first, and preserve the token verbatim in any UI or operator-facing copy. Do not log full message contents by default; log only metadata unless an explicit forensic need is declared and authorized.
+Senior Implementers and other delegation-capable agents SHOULD respect and preserve user-provided resume tokens when relaying messages or performing manual rehydration. Do not strip, alter, or absorb tokens; pass them verbatim to the operator or target subagent when appropriate. Provide a copy button where possible. Always validate authorization before looking up or applying a resume token; for unauthenticated or unauthorized requests, return a generic denial that does not disclose whether a session exists. Do not log full message contents by default; log only metadata unless an explicit forensic need is declared and authorized.

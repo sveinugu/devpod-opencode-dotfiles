@@ -19,6 +19,6 @@ You are responsible for writing and committing spec/design documents.
 
 When this subagent waits for user input or a session is exported, include a one-line resume hint in prompts/transcripts:
 
-  To resume this session after a restart, reply in chat using: $ses_<session-id> <your reply here>
+  To resume this session after a restart, reply in chat using: $ses_<session-id> <your reply here> (use $$ at the start to send a literal leading $ without triggering resume)
 
 Provide a copy button where possible.

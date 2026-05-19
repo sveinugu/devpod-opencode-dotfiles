@@ -50,6 +50,8 @@ When the Maestro delegates work or relays messages between users and subagents, 
 
 The Maestro and other delegation-capable agents (e.g., Senior Implementer) SHOULD respect and preserve user-provided resume tokens when relaying messages or performing manual rehydration. Do not strip, alter, or absorb tokens; pass them verbatim to the operator or target subagent when appropriate. Provide a copy button where possible.
 
+Always validate authorization before looking up or applying a resume token. For unauthenticated or unauthorized requests, return a generic denial that does not disclose whether a session exists.
+
 # On git and GitHub
 - Important: unless informed otherwise by the human partner, Use `git rebase` of the branch on top of `main`/`master` before local `git merge` is carried out for the `finishing-a-development-branch` skill.
 - You are responsible for all GitHub interactions.
