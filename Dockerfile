@@ -11,7 +11,7 @@ RUN apt-get update \
     && curl -fsSL https://nodesource.com | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
     && mkdir -p /etc/apt/extra-sources.list.d \
     && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://nodesource.com nodistro main" | tee /etc/apt/extra-sources.list.d/nodesource.list \
-    && apt-get update && apt-get install -y nodejs \
+    && apt-get update && apt-get install -y nodejs npm \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
 
