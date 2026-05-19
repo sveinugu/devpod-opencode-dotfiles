@@ -21,11 +21,11 @@ install_plugin() {
 }
 
 # Install Theme
-install_plugin "https://github.com" "$ZSH_CUSTOM/themes/typewritten"
+install_plugin "https://github.com/reobin/typewritten" "$ZSH_CUSTOM/themes/typewritten"
 
 # Install Plugins
-install_plugin "https://github.com" "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
-install_plugin "https://github.com" "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
+install_plugin "https://github.com/zsh-users/zsh-syntax-highlighting" "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
+install_plugin "https://github.com/zsh-users/zsh-autosuggestions" "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
 
 # Handle OpenCode config
 # Create the .config directory if it doesn't exist
