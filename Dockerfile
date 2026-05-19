@@ -1,5 +1,21 @@
 FROM mcr.microsoft.com/devcontainers/python:3
 
+# Prevent prompts during installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x
+
+# 1. Install dependencies
+# 2. Add NodeSource GPG key and repository
+# 3. Install Node.js
+RUN apt-get update \
+    && mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://nodesource.com | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
+    && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://nodesource.com nodistro main" | tee /etc/apt/extra-sources.list.d/nodesource.list \
+    && apt-get update && apt-get install -y nodejs \
+    && apt-get clean -y \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install additional packages
 RUN apt-get update \
     && export DEBIAN_FRONTEND=noninteractive \
