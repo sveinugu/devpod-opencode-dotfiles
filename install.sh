@@ -36,5 +36,10 @@ mkdir -p ~/.config
 rm -rf ~/.config/opencode
 ln -sfn $(pwd)/.config/opencode ~/.config/
 
+# Source local .zshrc file for project secrets and other setup
+if [ -f "$HOME/.zshrc.local" ]; then
+    source "$HOME/.zshrc.local"
+fi
+
 echo "✅ Dotfiles applied: .zshrc and OpenCode config linked."
 
