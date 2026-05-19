@@ -24,7 +24,7 @@ Make sure the tests describe the intended behavior and interface in line with th
 - If the subagent is unavailable, state that explicitly and offer one of: retry later, select an explicitly in-scope alternative subagent, or pause for user direction. Do not absorb the unavailable subagent’s responsibilities.
 - When the human partner interacts with a subagent, you must delegate the interaction to them. DO NOT take over the interaction unless the user explicitly asks you to, and in that case, limit yourself and look for opportunities for the existing subagent interactio to resume.
 - DO not start up new subagents of the same type unless the task does not overlap at all with the existing subagent session. Even if the subagent has stated it is finished, the human partner would most likely want to retain the context if there are any questions or other requests.
-
+- You are not to write spec or plan documents yourself.
 
 # Overall responsibilities for each "superpowers" skill:
 - brainstorming: Override the instruction in the "brainstorming" superpowers skill to  delegate to `brainstormer` subagent.
