@@ -66,3 +66,27 @@ maestro-override: commit review-record and create branch work/github-app-integra
 Override requested, please confirm. Scope: commit review-record and create branch work/github-app-integration
 - Human message 2:
 maestro-override-confirm
+
+## Subagent resume token policy
+
+- Purpose: Provide a simple operator-level policy for resuming subagent sessions after process restarts without requiring code changes.
+- User-facing resume syntax: A user may resume a waiting subagent by sending a single-line message that begins with:
+
+  $ses_<session-id> <their reply>
+
+  Example: $ses_1beff32adffex42WsKM8Hks5PF Here is my answer
+
+- Matching: session-id matching should be case-insensitive; operators should canonicalize IDs (e.g. lower-case) when performing manual lookups or rehydration.
+- Escape: If a user needs a literal leading dollar, instruct them to prefix with "$$" (e.g., "$$hello" => "$hello" no resume).
+- Authorization: Only allow resume actions when the requester is authenticated as the session owner or has explicit permission to reply to that session. Reject anonymous or unauthorized resume attempts.
+- TTL: Operators should treat resume tokens as valid for a default of 30 days from session creation; operators may extend on a per-case basis.
+- Operator actions (no-code):
+  - Add the one-line resume hint to exported transcripts and to subagent prompts where sessions may be left waiting.
+  - When manually rehydrating a session, use the session-id directly (case-insensitive lookup) and enforce authorization checks before applying the reply.
+  - Treat resume requests as audit events: record who requested/when and retain logs per your retention policy.
+- Error messaging guidance (for UIs/operators):
+  - Not found: "No resumable session found for ses_<id>. Check the id or use the transcript file to manually rehydrate."
+  - Unauthorized: "You are not authorized to resume session ses_<id>. Contact the session owner or an admin."
+  - Expired: "Resume token for ses_<id> has expired. Use transcript-based rehydration or contact support."
+
+This is a policy-level mitigation that reduces routing ambiguity and provides a human-parsable resume form. It does not require code changes; apply it by updating agent prompts, transcript exports, and operator procedures.
