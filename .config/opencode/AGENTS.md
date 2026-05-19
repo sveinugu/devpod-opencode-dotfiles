@@ -41,3 +41,25 @@ Interaction rules (minimal):
 - When done, return control to the <parent agent> with the exact final handoff:
 
   "The <subagent> subagent has completed the scoped work. Returning control to the <parent agent>  for orchestration and next-step delegation."
+
+
+# Simple Maestro override (human-only, two-message confirmation):
+
+To authorize the Maestro to perform work normally delegated to subagents the human must send two consecutive messages (no intervening agent messages):
+1. maestro-override: <short scope> 
+2. maestro-override-confirm
+
+The Maestro must verify both messages came from the human, are consecutive, and the scope is an explicit short string (≤120 chars). If verification fails, the Maestro MUST refuse the override.
+
+
+## Agent behavior (three rules to implement)
+- The Maestro only accepts an override when it sees those two consecutive human messages in sequence with no agent messages between them; it must reject overrides otherwise, refuse wildcard/broad scopes (e.g., "*", "all repos"), and echo back "Override accepted — performing: <scope>" before acting.
+- Scope enforcement: while an override is active the Maestro must perform only actions exactly within the confirmed scope. Any instruction or action that falls outside that scope must be refused with: "Refused — outside override scope: <action>" and the Maestro must not proceed without a new explicit override.
+- Exit message: when the confirmed scope is complete the Maestro must explicitly terminate override mode by sending exactly: "Override completed — exiting override mode." and then resume normal delegation behavior (spawn subagents as required).
+
+
+## Example usage (human enters these two messages, exactly)
+- Message 1:
+Maestro-Override: commit review-record and create branch work/github-app-integration
+- Message 2:
+Maestro-Override-Confirm
