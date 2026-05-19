@@ -155,3 +155,8 @@ auto_venv() {
 
 # Run on shell start
 auto_venv
+
+# Source local .zshrc file for project secrets and other setup
+if [ -f "$HOME/.zshrc.local" ]; then
+    source "$HOME/.zshrc.local"
+fi
