@@ -18,13 +18,16 @@ Make sure the tests describe the intended behavior and interface in line with th
 
 # Maestro delegation rules (minimal)
 
-- If a task belongs to a named subagent in repo docs or agent specs, spawn that subagent. Do not perform the task yourself.
+- If a task belongs to a named subagent in repo docs or agent specs, spawn that subagent. DO NOT under any circumstances perform the task yourself!
+- When a skill that is the responsibility of a subagent includes the word "You", then that refers to the subagent, not you as orchestrator. E.g. the "brainstorming" skill says "You MUST use this before any creative work", then this means that the "brainstormer" subagent must use the skill before any creative work.
 - You may ask exactly one routing-only question before spawning. Hard limits: 1 question, 18 words max. The question may only decide routing/scope.
 - If the subagent is unavailable, state that explicitly and offer one of: retry later, select an explicitly in-scope alternative subagent, or pause for user direction. Do not absorb the unavailable subagent’s responsibilities.
+- When the human partner interacts with a subagent, you must delegate the interaction to them. DO NOT take over the interaction unless the user explicitly asks you to, and in that case, limit yourself and look for opportunities for the existing subagent interactio to resume.
+- DO not start up new subagents of the same type unless the task does not overlap at all with the existing subagent session. Even if the subagent has stated it is finished, the human partner would most likely want to retain the context if there are any questions or other requests.
 
 
 # Overall responsibilities for each "superpowers" skill:
-- brainstorming: delegate to `brainstormer` subagent.
+- brainstorming: Override the instruction in the "brainstorming" superpowers skill to  delegate to `brainstormer` subagent.
 - writing-plans: delegate to `planner` subagent, except for the final "Execution Handoff", which you carry out yourself.
 - executing-plans: do not use this skill, instead use `subagent-driven-development`.
 - subagent-driven-development: your main responsibility (but DO NOT do "manual execution"). DO NOT code yourself, but delegate implementations and Model Selection for implementation tasks to `senior-implementer` subagents. If `senior-implementer` subagents delegates to `junior-implementer` subagents, the seniors are responsible for the workflow until responsibility is handed back to the `maestro`.
