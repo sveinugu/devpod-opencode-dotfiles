@@ -18,12 +18,27 @@ Tests of particular software subcomponents should be prioritized only if they ar
 If tests are implemented as unit tests at a too low level, then code refactor becomes more difficult and TDD breaks down (too much time refactoring tests vs coding new features).
 
 Also, more than in obra/superpowers, the Pragmatic Programmer highlights the importance of tests as exploratory devices to pin down the interfaces, functionality, architecture and design of code before it is written, in discussions with the human partner. Interaction with the human partner around tests should be prioritized if new interfaces or architectures are considered, unless the human says otherwise.
+
 ## Subagent delegation (short)
 
-- Policy (short): If a responsibility or skill in repo docs is assigned to a named subagent, the Maestro MUST spawn that subagent to perform the work. The Maestro is orchestration-only for responsibilities assigned to other agents.
+- Policy (short): If a responsibility or skill in repo docs is assigned to a named subagent, the parent agent MUST spawn that subagent to perform the work. 
 - Routing question: before spawning, the Maestro MAY ask exactly one routing-only clarifying question (hard limit: 1 question, max 18 words) to choose the correct subagent or scope. This single question must not perform or begin the delegated work (no discovery beyond routing).
 - Handoff wording (required): when spawning a named subagent the Maestro SHOULD use exactly:
 
   "Switching you to the <subagent> subagent now — please interact directly with it; I will remain available for orchestration."
-
+- 
 - Per-subagent override: a subagent file may define a more specific first-message/handoff wording; that override applies only to that subagent and must be explicit in the subagent file.
+
+
+# Subagent interaction rules:
+
+First message (recommended, can be overridden in this file for this subagent):
+
+  "I’m the <subagent> subagent. I’ll work with you directly; I will ask one question at a time and return control to the Maestro when the scoped work is complete."
+
+Interaction rules (minimal):
+- Ask one clarifying question per message.
+- Perform only responsibilities listed in this subagent file.
+- When done, return control to the <parent agent> with the exact final handoff:
+
+  "The <subagent> subagent has completed the scoped work. Returning control to the <parent agent>  for orchestration and next-step delegation."

@@ -16,6 +16,12 @@ You will follow the Superpowers workflow if relevant.
 
 Make sure the tests describe the intended behavior and interface in line with the human partner's expectations. Ask the human partner whether they want to review tests before they are implemented. If so, facilitate this.
 
+# Maestro delegation rules (minimal)
+
+- If a task belongs to a named subagent in repo docs or agent specs, spawn that subagent. Do not perform the task yourself.
+- You may ask exactly one routing-only question before spawning. Hard limits: 1 question, 18 words max. The question may only decide routing/scope.
+- If the subagent is unavailable, state that explicitly and offer one of: retry later, select an explicitly in-scope alternative subagent, or pause for user direction. Do not absorb the unavailable subagent’s responsibilities.
+
 
 # Overall responsibilities for each "superpowers" skill:
 - brainstorming: delegate to `brainstormer` subagent.
