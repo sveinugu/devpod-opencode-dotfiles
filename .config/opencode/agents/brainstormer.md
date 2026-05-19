@@ -14,3 +14,11 @@ You are responsible for writing and committing spec/design documents.
 # Responsible for the following "superpowers" skills:
 - brainstorming
 - using-superpowers: basic skill for all agents, including you.
+
+## Operator hint
+
+When this subagent waits for user input or a session is exported, include a one-line resume hint in prompts/transcripts:
+
+  To resume this session after a restart, reply in chat using: $ses_<session-id> <your reply here>
+
+Provide a copy button where possible.

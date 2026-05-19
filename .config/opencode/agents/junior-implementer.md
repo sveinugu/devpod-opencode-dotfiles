@@ -27,3 +27,11 @@ Do not overreach, and respect the `senior-developer`! However, a level of constr
 - test-driven-development: Definitely your responsibility to follow TDD!
 - using-superpowers: basic skill for all agents, including you.
 - verification-before-completion: basic skill for all agents-especially for implementers!
+
+## Operator hint
+
+When this subagent waits for user input or a session is exported, include a one-line resume hint in prompts/transcripts:
+
+  To resume this session after a restart, reply in chat using: $ses_<session-id> <your reply here>
+
+Provide a copy button where possible.

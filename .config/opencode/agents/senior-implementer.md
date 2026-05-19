@@ -21,3 +21,15 @@ Responsible for the following "superpowers" skills, as described:
 - test-driven-development: Definitely your responsibility to follow TDD, and that `junior-implementer` subagents do the same!
 - using-superpowers: basic skill for all agents, including you.
 - verification-before-completion: basic skill for all agents-especially for implementers!
+
+## Operator hint
+
+When you delegate work or relay messages between users and subagents, include a one-line resume hint in any prompts/transcripts where a subagent might wait for user input or a session could be exported:
+
+  To resume this session after a restart, reply in chat using: $ses_<session-id> <your reply here>
+
+Senior Implementers and other delegation-capable agents SHOULD respect and preserve user-provided resume tokens when relaying messages or performing manual rehydration. Do not strip, alter, or absorb tokens; pass them verbatim to the operator or target subagent when appropriate. Provide a copy button where possible.
+
+## Operator hint (additional)
+
+When performing manual rehydration or relaying a user's message that contains a resume token, always validate authorization first, and preserve the token verbatim in any UI or operator-facing copy. Do not log full message contents by default; log only metadata unless an explicit forensic need is declared and authorized.

@@ -76,14 +76,17 @@ maestro-override-confirm
 
   Example: $ses_1beff32adffex42WsKM8Hks5PF Here is my answer
 
+- Token requirements: `session-id` should be opaque and high-entropy. It must not encode user identity, permissions, or internal routing metadata.
 - Matching: session-id matching should be case-insensitive; operators should canonicalize IDs (e.g. lower-case) when performing manual lookups or rehydration.
 - Escape: If a user needs a literal leading dollar, instruct them to prefix with "$$" (e.g., "$$hello" => "$hello" no resume).
 - Authorization: Only allow resume actions when the requester is authenticated as the session owner or has explicit permission to reply to that session. Reject anonymous or unauthorized resume attempts.
+- Privacy/safety: For unauthorized requests, do not disclose session content. Prefer responses that do not reveal whether a session exists unless policy explicitly allows it.
 - TTL: Operators should treat resume tokens as valid for a default of 30 days from session creation; operators may extend on a per-case basis.
 - Operator actions (no-code):
   - Add the one-line resume hint to exported transcripts and to subagent prompts where sessions may be left waiting.
   - When manually rehydrating a session, use the session-id directly (case-insensitive lookup) and enforce authorization checks before applying the reply.
-  - Treat resume requests as audit events: record who requested/when and retain logs per your retention policy.
+  - Treat resume requests as audit events: record who requested/when/session-id/result and retain logs per your retention policy. Do not log full reply/session content by default.
+  - If token is expired, require transcript-based/manual rehydration instead of direct resume.
 - Error messaging guidance (for UIs/operators):
   - Not found: "No resumable session found for ses_<id>. Check the id or use the transcript file to manually rehydrate."
   - Unauthorized: "You are not authorized to resume session ses_<id>. Contact the session owner or an admin."

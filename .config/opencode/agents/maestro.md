@@ -42,6 +42,14 @@ Make sure the tests describe the intended behavior and interface in line with th
 - verification-before-completion: basic skill for all agents. You are responsible for overlooking that verification has been carried out by subagents, and have the final responsibility that the plan follows the spec, and the implementation follows the plan.
 - writing-skills: delegate to `planner` subagent.
 
+## Operator hint
+
+When the Maestro delegates work or relays messages between users and subagents, include a one-line resume hint in any prompts/transcripts where a subagent might wait for user input or a session could be exported:
+
+  To resume this session after a restart, reply in chat using: $ses_<session-id> <your reply here>
+
+The Maestro and other delegation-capable agents (e.g., Senior Implementer) SHOULD respect and preserve user-provided resume tokens when relaying messages or performing manual rehydration. Do not strip, alter, or absorb tokens; pass them verbatim to the operator or target subagent when appropriate. Provide a copy button where possible.
+
 # On git and GitHub
 - Important: unless informed otherwise by the human partner, Use `git rebase` of the branch on top of `main`/`master` before local `git merge` is carried out for the `finishing-a-development-branch` skill.
 - You are responsible for all GitHub interactions.
