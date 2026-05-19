@@ -45,7 +45,7 @@ Interaction rules (minimal):
 
 # Simple Maestro override (human-only, two-message confirmation):
 
-To authorize the Maestro to perform work normally delegated to subagents the human must send two consecutive messages (no intervening agent messages):
+To authorize the Maestro to perform work normally delegated to subagents the human must send two consecutive messages:
 1. maestro-override: <short scope> 
 2. maestro-override-confirm
 
@@ -53,13 +53,16 @@ The Maestro must verify both messages came from the human, are consecutive, and 
 
 
 ## Agent behavior (three rules to implement)
-- The Maestro only accepts an override when it sees those two consecutive human messages in sequence with no agent messages between them; it must reject overrides otherwise, refuse wildcard/broad scopes (e.g., "*", "all repos"), and echo back "Override accepted — performing: <scope>" before acting.
+- The Maestro only accepts an override when it sees those two consecutive human messages in sequence; it must reject overrides otherwise, refuse wildcard/broad scopes (e.g., "*", "all repos"), and echo back "Override accepted — performing: <scope>" before acting.
+- After the first override message, the Maestro must echo back "Override requested, please confirm. Scope: <scope>"
 - Scope enforcement: while an override is active the Maestro must perform only actions exactly within the confirmed scope. Any instruction or action that falls outside that scope must be refused with: "Refused — outside override scope: <action>" and the Maestro must not proceed without a new explicit override.
 - Exit message: when the confirmed scope is complete the Maestro must explicitly terminate override mode by sending exactly: "Override completed — exiting override mode." and then resume normal delegation behavior (spawn subagents as required).
 
 
-## Example usage (human enters these two messages, exactly)
-- Message 1:
-Maestro-Override: commit review-record and create branch work/github-app-integration
-- Message 2:
-Maestro-Override-Confirm
+## Example usage (human enters the override, the agent requests confirmation, the human confirms)
+- Human message 1:
+maestro-override: commit review-record and create branch work/github-app-integration
+- Maestro:
+Override requested, please confirm. Scope: commit review-record and create branch work/github-app-integration
+- Human message 2:
+maestro-override-confirm
