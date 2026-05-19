@@ -5,9 +5,27 @@
 ln -sf $(pwd)/.zshrc ~/.zshrc
 
 # Install oh-my-zsh theme and plugins
-git clone https://github.com/reobin/typewritten ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/themes/typewritten
-git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
-git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+# Define the custom directory
+ZSH_CUSTOM=${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}
+
+# Function to clone if directory doesn't exist
+install_plugin() {
+    local repo_url=$1
+    local dest_path=$2
+    if [ ! -d "$dest_path" ]; then
+        echo "Installing $(basename "$dest_path")..."
+        git clone "$repo_url" "$dest_path"
+    else
+        echo "$(basename "$dest_path") already installed, skipping."
+    fi
+}
+
+# Install Theme
+install_plugin "https://github.com" "$ZSH_CUSTOM/themes/typewritten"
+
+# Install Plugins
+install_plugin "https://github.com" "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
+install_plugin "https://github.com" "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
 
 # Handle OpenCode config
 # Create the .config directory if it doesn't exist
