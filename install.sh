@@ -2,7 +2,7 @@
 
 # Handle .bashrc
 # Use -f to force overwrite the default devcontainer .zshrc
-ln -sf $(pwd)/.zshrc ~/.zshrc
+ln -sf $HOME/.zshrc ~/.zshrc
 
 # Install oh-my-zsh theme and plugins
 # Define the custom directory
@@ -34,7 +34,10 @@ mkdir -p ~/.config
 # Symlink your OpenCode folder from the repo to the expected location
 # -s = symlink, -f = force, -n = treat folder symlink as a file
 rm -rf ~/.config/opencode
-ln -sfn $(pwd)/.config/opencode ~/.config/
+ln -sfn $HOME/.config/opencode ~/.config/
+
+# Install particular skills using npx
+cd $HOME/.config/opencode && npx -y skills add wondelai/skills/pragmatic-programmer
 
 echo "✅ Dotfiles applied: .zshrc and OpenCode config linked."
 
