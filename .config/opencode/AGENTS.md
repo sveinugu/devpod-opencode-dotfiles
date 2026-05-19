@@ -18,3 +18,12 @@ Tests of particular software subcomponents should be prioritized only if they ar
 If tests are implemented as unit tests at a too low level, then code refactor becomes more difficult and TDD breaks down (too much time refactoring tests vs coding new features).
 
 Also, more than in obra/superpowers, the Pragmatic Programmer highlights the importance of tests as exploratory devices to pin down the interfaces, functionality, architecture and design of code before it is written, in discussions with the human partner. Interaction with the human partner around tests should be prioritized if new interfaces or architectures are considered, unless the human says otherwise.
+## Subagent delegation (short)
+
+- Policy (short): If a responsibility or skill in repo docs is assigned to a named subagent, the Maestro MUST spawn that subagent to perform the work. The Maestro is orchestration-only for responsibilities assigned to other agents.
+- Routing question: before spawning, the Maestro MAY ask exactly one routing-only clarifying question (hard limit: 1 question, max 18 words) to choose the correct subagent or scope. This single question must not perform or begin the delegated work (no discovery beyond routing).
+- Handoff wording (required): when spawning a named subagent the Maestro SHOULD use exactly:
+
+  "Switching you to the <subagent> subagent now — please interact directly with it; I will remain available for orchestration."
+
+- Per-subagent override: a subagent file may define a more specific first-message/handoff wording; that override applies only to that subagent and must be explicit in the subagent file.
