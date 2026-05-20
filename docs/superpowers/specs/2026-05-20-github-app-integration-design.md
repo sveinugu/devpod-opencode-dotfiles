@@ -1,8 +1,8 @@
 # GitHub App integration for opencode agents
 
 Date: 2026-05-20
-Status: Approved design for implementation planning
-Status: Approved for Phase 0 discovery planning when §18.1 unknowns remain; approved for full implementation planning only after those preconditions are resolved.
+Status: Draft design.
+Planning gate: Approved for Phase 0 discovery planning while §18.1 preconditions remain unresolved. Full implementation planning is allowed only after those preconditions are resolved.
 Scope: Agent-initiated GitHub actions across multiple repositories using a single GitHub App identity; webhook-driven automation and OpenCode Companion integration are excluded
 
 ## 1. Summary
@@ -789,6 +789,10 @@ For deny/no-mutation scenarios in this matrix, the test harness should include a
   - **Commands / harness:** run the same request through the local-minting fallback in an isolated DevPod
   - **Expected outcome:** local helper posts the comment successfully and logs the request without leaking key material
   - **Required evidence:** caller/local log with `request_id`, local audit record, and GitHub comment URL or ID with the expected persona marker
+- **Scenario:** persona-format parity across broker-first and local-CSI fallback paths
+  - **Commands / harness:** submit equivalent mutating requests through both the broker-first path and the local-CSI fallback path, then compare the resulting canonical persona markers
+  - **Expected outcome:** both paths produce the same canonical persona marker and preserve audit linkage via `request_id`
+  - **Required evidence:** captured GitHub artifacts from both paths, broker/local audit records tied to `request_id`, and a comparison log showing identical persona markers
 - **Scenario:** replay or duplication attempt detection
   - **Commands / harness:** replay the same mutating request with identical `request_id` and `idempotency_key`
   - **Expected outcome:** broker rejects the replay and logs an anomaly
@@ -857,7 +861,7 @@ These unknowns are recorded explicitly so the implementation plan can separate h
 
 1. Confirm the broker trust model and projected ServiceAccount token claims available in the target DevPod cluster.
 2. If those preconditions are unresolved, write a Phase 0 discovery plan before the full implementation plan.
-3. Define the narrow request contract for read/comment/create PR operations.
+3. Finalize and adopt the v1 request contract defined in §8.1 (ownership assignment and field validation).
 4. Write the implementation plan for the broker-first path and the local CSI fallback path.
 
 ## 20. Trade-offs summary
