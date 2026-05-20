@@ -173,6 +173,151 @@ All agent-facing operations in v1 use a shared structured envelope.
 - Read actions should also follow a broker-authorized and broker-audited path by default.
 - Every mutating request must carry both `request_id` and `idempotency_key` so caller logs, broker audit logs, and GitHub-visible results can be correlated.
 
+#### Action payload schemas (v1)
+
+The following compact schemas define the minimum payload shape for the initial action set.
+
+**`read-pr`**
+
+- `payload.pr_number` — integer, required
+
+Example request:
+
+```json
+{
+  "request_id": "req_01",
+  "repo": "octo-org/demo-repo",
+  "action": "read-pr",
+  "persona": "reviewer",
+  "payload": {
+    "pr_number": 42
+  }
+}
+```
+
+Example response:
+
+```json
+{
+  "request_id": "req_01",
+  "status": "ok",
+  "result": {
+    "number": 42,
+    "title": "Add broker-first auth path",
+    "url": "https://github.com/octo-org/demo-repo/pull/42"
+  }
+}
+```
+
+**`comment-pr`**
+
+- `payload.pr_number` — integer, required
+- `payload.body` — string, required
+- `idempotency_key` — required
+
+Example request:
+
+```json
+{
+  "request_id": "req_02",
+  "repo": "octo-org/demo-repo",
+  "action": "comment-pr",
+  "persona": "reviewer",
+  "idempotency_key": "idem_02",
+  "payload": {
+    "pr_number": 42,
+    "body": "Please tighten the policy wording in section 8."
+  }
+}
+```
+
+Example response:
+
+```json
+{
+  "request_id": "req_02",
+  "status": "ok",
+  "result": {
+    "comment_id": 9001,
+    "url": "https://github.com/octo-org/demo-repo/pull/42#issuecomment-9001"
+  }
+}
+```
+
+**`comment-issue`**
+
+- `payload.issue_number` — integer, required
+- `payload.body` — string, required
+- `idempotency_key` — required
+
+Example request:
+
+```json
+{
+  "request_id": "req_03",
+  "repo": "octo-org/demo-repo",
+  "action": "comment-issue",
+  "persona": "triager",
+  "idempotency_key": "idem_03",
+  "payload": {
+    "issue_number": 17,
+    "body": "Confirming this issue is in scope for the broker-first rollout."
+  }
+}
+```
+
+Example response:
+
+```json
+{
+  "request_id": "req_03",
+  "status": "ok",
+  "result": {
+    "comment_id": 9002,
+    "url": "https://github.com/octo-org/demo-repo/issues/17#issuecomment-9002"
+  }
+}
+```
+
+**`create-pr`**
+
+- `payload.base` — string, required
+- `payload.head` — string, required
+- `payload.title` — string, required
+- `payload.body` — string, required
+- `idempotency_key` — required
+
+Example request:
+
+```json
+{
+  "request_id": "req_04",
+  "repo": "octo-org/demo-repo",
+  "action": "create-pr",
+  "persona": "implementer",
+  "idempotency_key": "idem_04",
+  "payload": {
+    "base": "main",
+    "head": "work/github-app-integration",
+    "title": "Add broker-authoritative GitHub App path",
+    "body": "Implements the broker-first GitHub App design."
+  }
+}
+```
+
+Example response:
+
+```json
+{
+  "request_id": "req_04",
+  "status": "ok",
+  "result": {
+    "number": 43,
+    "url": "https://github.com/octo-org/demo-repo/pull/43"
+  }
+}
+```
+
 ### 8.2 Policy and request validation layer
 
 **Responsibility:** Perform non-authoritative preflight validation of required inputs, supported action types, and obvious request-shape errors before broker submission.
@@ -333,7 +478,7 @@ This same broker-first pattern is the recommended path for read actions so reads
 
 Use only for isolated single-user DevPods, because the private key enters the workspace pod.
 
-### 9.3 Flow C — DevPod receives a very short-lived token (**discouraged exception**)
+### 9.3 Flow C — DevPod receives a token with TTL <= 60 seconds (**discouraged exception**)
 
 **Inputs**
 
@@ -347,7 +492,7 @@ Use only for isolated single-user DevPods, because the private key enters the wo
 1. DevPod authenticates to the broker.
 2. Broker makes the authoritative allow/deny decision for caller, repo, persona, and action.
 3. Broker mints App JWT and installation token.
-4. Broker returns a very short-lived token to the DevPod.
+4. Broker returns a token with TTL <= 60 seconds to the DevPod.
 5. DevPod uses it immediately for the intended GitHub action.
 6. DevPod records the result locally.
 
@@ -356,13 +501,14 @@ Use only for isolated single-user DevPods, because the private key enters the wo
 - Tokens can be copied or logged.
 - Audit trails split across broker and DevPod.
 - Generic tokens are easier to misuse than action-specific endpoints.
-- GitHub installation tokens are not single-use, so short lifetime alone does not fully remove replay or reuse risk.
+- GitHub installation tokens are not single-use; do not assume single-use cryptographic guarantees.
 
 **If used at all**
 
-- TTL must be very short.
+- TTL must be <= 60 seconds.
 - Scope must be minimal.
-- Issuance and use must both be audited and correlated by `request_id`.
+- Issuance and use correlation is required; the broker must log `request_id` at issuance and the client must present `request_id` when using the token.
+- The broker must flag token reuse or delayed use outside the expected action window.
 - Anomaly detection should monitor token issuance frequency, cross-repo reuse patterns, and use outside the expected action window.
 
 ## 10. Auth flows
@@ -565,7 +711,7 @@ The implementation plan should use behavior-focused verification rather than low
 5. Disallowed repo/persona/action combinations are rejected before GitHub mutation.
 6. Broker audit log records the correct persona, repo, action, and result.
 7. Local-minting fallback works only when configured with a valid CSI-mounted key.
-8. Token-return exception path, if implemented, issues very short-lived tokens and records both issuance and use.
+8. Token-return exception path, if implemented, enforces TTL <= 60 seconds and records both issuance and use.
 
 ### 15.2 Failure-path verification
 
@@ -606,6 +752,14 @@ The implementation plan should use behavior-focused verification rather than low
   - **Commands / harness:** run the same request through the local-minting fallback in an isolated DevPod
   - **Expected outcome:** local helper posts the comment successfully and logs the request without leaking key material
   - **Required evidence:** caller/local log with `request_id`, local audit record, and GitHub comment URL or ID with the expected persona marker
+- **Scenario:** replay or duplication attempt detection
+  - **Commands / harness:** replay the same mutating request with identical `request_id` and `idempotency_key`
+  - **Expected outcome:** broker rejects the replay and logs an anomaly
+  - **Required evidence:** broker audit entry showing replay rejection, anomaly alert or equivalent signal, and correlation to the original `request_id`
+- **Scenario:** egress deny enforcement in broker-first mode
+  - **Commands / harness:** from the DevPod, attempt a direct GitHub API call such as `curl https://api.github.com`
+  - **Expected outcome:** network access is blocked or rejected and the bypass attempt is observable
+  - **Required evidence:** network policy logs or firewall logs showing the block plus broker-side audit or monitoring evidence of the attempted bypass path
 
 ## 16. Success criteria
 
@@ -648,7 +802,8 @@ Planning precondition: if the must-decide unknowns in section 18 remain unresolv
 ### 18.2 Can resolve during implementation
 
 1. Exact repository-to-installation mapping model if the GitHub App is installed at org scope with selective repo access.
-2. Exact persona formatting convention for comments and PR bodies.
+
+Persona formatting is no longer an open question; section 8.6 is the source of truth for the canonical persona formatting spec.
 
 These unknowns are recorded explicitly so the implementation plan can separate hard preconditions from normal implementation tasks.
 
