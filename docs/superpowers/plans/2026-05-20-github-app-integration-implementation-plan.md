@@ -12,8 +12,17 @@
 
 This revision keeps the Request Contract v1 wire shape fixed while closing the review-blocking preconditions, adding explicit prod security gates, and extending verification to negative-path TokenReview/OPA behavior, cross-identity idempotency, and broker-path persona output.
 
+## Scope declaration
+
+Broker-first only; local-CSI fallback deferred to follow-up plan.
+
+- This plan covers only the broker-mediated GitHub App integration path.
+- Local-CSI fallback flow is out of scope for this implementation and is deferred - track in follow-up plan.
+
 ## Changelog
 
+- Added a scope declaration that makes this plan broker-first only and defers local-CSI fallback to a follow-up plan.
+- Added Slice X for prod transport/replay/rate-limit/anomaly hardening with explicit failing-test-first tasks, acceptance criteria, and verification rows.
 - Added Slice 0 as a required precondition-closure gate that records the chosen broker deployment boundary, stable-vs-dynamic TokenReview claims, and the Redis-backed M2 dedupe decision before Slice 1 may begin.
 - Added prod security-enforcement tasks and tests for `token_return.enabled` fail-fast behavior, OpenBao-only private-key custody, response no-token-return coverage, and mandatory broker/executor log scanning.
 - Added negative-path auth/policy test specifications for invalid projected ServiceAccount tokens and OPA denies, including required no-mutation and audit-log assertions.
@@ -82,6 +91,38 @@ This revision keeps the Request Contract v1 wire shape fixed while closing the r
 - [ ] Copy these exact decisions into explicit deployment decision docs at `docs/deployment/auth.md`, `docs/deployment/broker_stack.md`, and `docs/deployment/idempotency.md` before implementing later behavior changes (create these docs as Slice 0 artifacts if they do not exist).
 - [ ] Stop and revise the design + plan together if any later slice requires a different broker boundary, claim set, or durable backend.
 - [ ] Do not start Slice 1 until all three decision records above are preserved in code/config/docs touched by the implementation.
+
+### Slice X: Security hardening and prod controls
+
+**Files:**
+- Create: `tests/integration/test_prod_transport_and_runtime_controls.py`
+- Modify: `services/github_app_executor/app/main.py`
+- Modify: `services/github_app_executor/app/security/transport.py`
+- Modify: `services/github_app_executor/app/security/replay.py`
+- Modify: `services/github_app_executor/app/security/rate_limit.py`
+- Modify: `services/github_app_executor/app/audit/log.py`
+- Modify: `services/github_app_executor/app/metrics.py`
+- Modify: `docs/runbooks/github-app-executor.md`
+
+- [ ] **TLS enforcement (failing test first):** Write a failing integration test proving that a plaintext `http://` request to a prod-like mutating endpoint never returns `200`, fails at connection/TLS setup, and emits an audit entry containing `transport-auth-failure`.
+- [ ] Verify the TLS test fails for the expected reason (plaintext transport still reaches the handler, returns `200`, or the audit event is missing).
+- [ ] Implement the minimum prod transport guard needed so mutating endpoints require TLS before request handling and always audit transport authentication failures as `transport-auth-failure`.
+- [ ] **mTLS requirement (failing test first):** Write a failing integration test proving that a prod-like TLS request without a client certificate returns `403` or a transport-auth error, and records an audit event that notes a missing client cert.
+- [ ] Verify the mTLS test fails for the expected reason (request is accepted without a client cert or the missing-cert audit event is absent).
+- [ ] Implement the minimum client-certificate gate needed so prod-like mutating traffic requires mTLS and denies/audits missing client certificates.
+- [ ] **Replay freshness (failing test first):** Write a failing integration test proving that a signed mutating request with a timestamp older than the configured freshness TTL is rejected with `REPLAY_TOO_OLD`, produces no GitHub mutation, and records the stale-timestamp decision.
+- [ ] Verify the freshness test fails for the expected reason (stale timestamps are accepted, the wrong error code is returned, or a mutation still occurs).
+- [ ] Implement the minimum timestamp-window validation needed so stale mutating requests fail closed with `REPLAY_TOO_OLD` before any GitHub side effect.
+- [ ] **Nonce reuse (failing test first):** Write a failing integration test proving that resubmitting the same nonce for the same `idempotency_key` returns `DUPLICATE_NONCE`, performs no extra mutation, and is audited as a duplicate nonce event.
+- [ ] Verify the nonce test fails for the expected reason (duplicate nonces are accepted, the wrong error code is returned, or the audit event is missing).
+- [ ] Implement the minimum nonce ledger/check needed so duplicate nonces are rejected deterministically per authenticated mutating request scope.
+- [ ] **Broker-side mutating rate limits (failing test first):** Write a failing integration/load test proving that sending more than the configured mutating-request limit in a short window yields `429` with `RATE_LIMIT_EXCEEDED`, creates no extra GitHub mutations beyond the allowed budget, and records the broker-side limiter decision.
+- [ ] Verify the rate-limit test fails for the expected reason (all requests are accepted, the wrong error code/status is returned, or extra mutations slip through after the limit is exceeded).
+- [ ] Implement the minimum broker-side mutating rate limiter needed so excess requests are rejected with `429`/`RATE_LIMIT_EXCEEDED` before mutation.
+- [ ] **Anomaly alerting (failing test first):** Write a failing integration test proving that when denied mutating requests exceed the configured threshold within the configured window, the broker exports or logs an `anomaly_denies` signal with the aggregated count.
+- [ ] Verify the anomaly test fails for the expected reason (deny spikes are not aggregated, the signal key is missing, or the exported/logged count is wrong).
+- [ ] Implement the minimum deny-spike counter/export path needed so anomalous deny bursts emit `anomaly_denies` metrics/events without weakening normal request handling.
+- [ ] Re-run the transport/replay/rate-limit/anomaly checks and commit only after the prod controls fail closed, emit the required audit/metric signals, and preserve zero-mutation guarantees on denied requests.
 
 ### Slice 1: Enforce prod security guardrails and external secrecy
 
@@ -175,47 +216,57 @@ This revision keeps the Request Contract v1 wire shape fixed while closing the r
 
 1. **Assertion:** Slice 0 explicitly records the chosen broker stack as `Broker-as-Pod with ingress`, the stable exact TokenReview claims (`aud`, `iss`, namespace, serviceAccount name) plus the dynamic pod-claim shape checks listed above, and the `Redis` M2 dedupe backend choice.
 2. **Assertion:** The plan text states that Slice 1 cannot begin until those three Slice 0 decisions are preserved in the implementation files listed for Slice 0.
+3. **Assertion:** The plan contains the sentence: `Broker-first only; local-CSI fallback deferred to follow-up plan.`
 
 ### Security enforcement
 
-3. **Assertion:** Starting the executor in a prod-like profile with `token_return.enabled=true` exits non-zero before serving requests and emits a config-validation message containing `token_return.enabled must be false in prod`.
-4. **Assertion:** Starting the executor in a prod-like profile resolves the private-key provider to OpenBao; configuring a local PEM path/provider in prod exits non-zero before serving requests and emits a validation message containing `prod profile requires OpenBao private key provider`.
-5. **Assertion:** No external response body exposes top-level keys named `token`, `access_token`, `installation_token`, or `jwt`, and no external response body, captured outbound GitHub request body/metadata, or broker/executor log line contains PEM private-key headers, JWTs matching the `eyJ...` heuristic, or GitHub token prefixes matching `gh[psoau]_...`.
-6. **Assertion:** When broker-first mode is enabled, a workspace pod cannot reach `https://api.github.com/meta` directly; the attempt exits non-zero and produces network-policy deny or iptables reject evidence showing the broker remains the only GitHub egress path.
+4. **Assertion:** Starting the executor in a prod-like profile with `token_return.enabled=true` exits non-zero before serving requests and emits a config-validation message containing `token_return.enabled must be false in prod`.
+5. **Assertion:** Starting the executor in a prod-like profile resolves the private-key provider to OpenBao; configuring a local PEM path/provider in prod exits non-zero before serving requests and emits a validation message containing `prod profile requires OpenBao private key provider`.
+6. **Assertion:** No external response body exposes top-level keys named `token`, `access_token`, `installation_token`, or `jwt`, and no external response body, captured outbound GitHub request body/metadata, or broker/executor log line contains PEM private-key headers, JWTs matching the `eyJ...` heuristic, or GitHub token prefixes matching `gh[psoau]_...`.
+7. **Assertion:** When broker-first mode is enabled, a workspace pod cannot reach `https://api.github.com/meta` directly; the attempt exits non-zero and produces network-policy deny or iptables reject evidence showing the broker remains the only GitHub egress path.
+
+### Security hardening and prod controls
+
+8. **Assertion:** TLS enforcement: starting a client with plaintext (http) to mutating endpoints in prod-like profile results in connection refused or TLS handshake failure; verification command shows non-200 and audit log entry `transport-auth-failure`.
+9. **Assertion:** mTLS requirement: client cert absence leads to 403/error and audit event noting missing client cert.
+10. **Assertion:** Replay freshness: requests older than allowed freshness window (e.g., timestamp older than configurable TTL) are rejected with error code `REPLAY_TOO_OLD` and no GitHub mutation; test simulates stale timestamp.
+11. **Assertion:** Nonce reuse: resubmitting same nonce for same idempotency_key returns `DUPLICATE_NONCE` and is audited.
+12. **Assertion:** Rate limiting: sending >N mutating requests in short window returns 429 with error `RATE_LIMIT_EXCEEDED` and no extra mutations; add a test harness command using seq/curl or k6 simulation snippet (design-level) that asserts rate limiting.
+13. **Assertion:** Anomaly signals: when denied requests spike above threshold X, a metric/event is exported (or logged) with key `anomaly_denies` and count; verification checks metrics endpoint or log contains the event.
 
 ### Contract and auth/policy denials
 
-7. **Assertion:** Every successful external `POST /v1/action` response has top-level keys exactly `request_id`, `status`, and `result`; `status` equals `"ok"`; no top-level `error`, `state`, `replayed`, `token`, or `internal_state` key is present.
-8. **Assertion:** Every successful external `GET /v1/status/{request_id}` response has top-level keys exactly `request_id`, `status`, and `result`; `status` equals `"ok"`; no legacy top-level keys are present.
-9. **Assertion:** Every external error response has top-level keys exactly `request_id`, `status`, and `error`; `status` equals `"error"`; `error` has keys exactly `code`, `message`, `retryable`, and `details`.
-10. **Assertion:** An invalid/expired/wrong-audience projected ServiceAccount token returns `status="error"`, `error.code="INVALID_WORKLOAD_TOKEN"`, produces no GitHub mutation, and writes an audit event containing the `request_id`, the failed TokenReview audience check, and an auth-deny decision.
-11. **Assertion:** A policy-denied request records the stable exact TokenReview claims literally (`aud`, `iss`, namespace, serviceAccount name), validates dynamic pod claims by presence/shape only, and exposes the normalized workload identity without pinning literal pod values.
-12. **Assertion:** A broker-issued policy deny returns `status="error"`, `error.code="POLICY_DENY"`, produces no GitHub mutation, and writes an audit event containing `request_id`, validated workload identity, `decision_source="broker"`, `policy_engine="opa"`, and the OPA policy reason.
+14. **Assertion:** Every successful external `POST /v1/action` response has top-level keys exactly `request_id`, `status`, and `result`; `status` equals `"ok"`; no top-level `error`, `state`, `replayed`, `token`, or `internal_state` key is present.
+15. **Assertion:** Every successful external `GET /v1/status/{request_id}` response has top-level keys exactly `request_id`, `status`, and `result`; `status` equals `"ok"`; no legacy top-level keys are present.
+16. **Assertion:** Every external error response has top-level keys exactly `request_id`, `status`, and `error`; `status` equals `"error"`; `error` has keys exactly `code`, `message`, `retryable`, and `details`.
+17. **Assertion:** An invalid/expired/wrong-audience projected ServiceAccount token returns `status="error"`, `error.code="INVALID_WORKLOAD_TOKEN"`, produces no GitHub mutation, and writes an audit event containing the `request_id`, the failed TokenReview audience check, and an auth-deny decision.
+18. **Assertion:** A policy-denied request records the stable exact TokenReview claims literally (`aud`, `iss`, namespace, serviceAccount name), validates dynamic pod claims by presence/shape only, and exposes the normalized workload identity without pinning literal pod values.
+19. **Assertion:** A broker-issued policy deny returns `status="error"`, `error.code="POLICY_DENY"`, produces no GitHub mutation, and writes an audit event containing `request_id`, validated workload identity, `decision_source="broker"`, `policy_engine="opa"`, and the OPA policy reason.
 
 ### Internal-state labeling
 
-13. **Assertion:** Any non-external diagnostic serializer output that includes internal fields nests them under one top-level `internal_state` object and labels every nested key with `(internal-only)`.
+20. **Assertion:** Any non-external diagnostic serializer output that includes internal fields nests them under one top-level `internal_state` object and labels every nested key with `(internal-only)`.
 
 ### Persona format
 
-14. **Assertion:** Every mutating comment body and PR body emitted by the broker begins with `[Persona: <persona>]` on the first line.
-15. **Assertion:** Every mutating comment body and PR body emitted by the broker ends with `— Posted by persona <persona> via GitHub App`.
-16. **Assertion:** A broker-path end-to-end test that captures the final outbound GitHub request body proves the emitted payload, not just formatter helpers, contains the canonical persona markers.
+21. **Assertion:** Every mutating comment body and PR body emitted by the broker begins with `[Persona: <persona>]` on the first line.
+22. **Assertion:** Every mutating comment body and PR body emitted by the broker ends with `— Posted by persona <persona> via GitHub App`.
+23. **Assertion:** A broker-path end-to-end test that captures the final outbound GitHub request body proves the emitted payload, not just formatter helpers, contains the canonical persona markers.
 
 ### Idempotency
 
-17. **Assertion:** In M1, replaying the same mutating request with the same authenticated workload identity, `repo`, `action`, `request_id`, and `idempotency_key` during one live process returns the original canonical success result and does not create a second GitHub artifact.
-18. **Assertion:** In M1, replaying the same `request_id` and `idempotency_key` with a semantically different payload returns `status="error"`, `error.code="DUPLICATE_PAYLOAD_MISMATCH"`, and creates no additional GitHub artifact.
-19. **Assertion:** In M1, sending the same `request_id` and `idempotency_key` from a different authenticated workload identity does not collide with the original dedupe record; an authorized second identity produces a distinct artifact, while an unauthorized second identity is rejected by policy before mutation.
-20. **Assertion:** In M1, restarting the single replica clears the in-memory dedupe store, and the runbook states that replay protection is limited to the lifetime of that process.
-21. **Assertion:** In M2, replaying the same mutating request on a different replica at any time before 24 hours have elapsed returns the original canonical result and creates no duplicate GitHub artifact.
-22. **Assertion:** In M2, a same-key/different-payload replay submitted within 24 hours returns `DUPLICATE_PAYLOAD_MISMATCH` across replicas.
-23. **Assertion:** M1 and M2 audit logs record first-seen, replay-hit, payload-mismatch, and cross-identity events keyed by `request_id` + `idempotency_key` + validated workload identity.
+24. **Assertion:** In M1, replaying the same mutating request with the same authenticated workload identity, `repo`, `action`, `request_id`, and `idempotency_key` during one live process returns the original canonical success result and does not create a second GitHub artifact.
+25. **Assertion:** In M1, replaying the same `request_id` and `idempotency_key` with a semantically different payload returns `status="error"`, `error.code="DUPLICATE_PAYLOAD_MISMATCH"`, and creates no additional GitHub artifact.
+26. **Assertion:** In M1, sending the same `request_id` and `idempotency_key` from a different authenticated workload identity does not collide with the original dedupe record; an authorized second identity produces a distinct artifact, while an unauthorized second identity is rejected by policy before mutation.
+27. **Assertion:** In M1, restarting the single replica clears the in-memory dedupe store, and the runbook states that replay protection is limited to the lifetime of that process.
+28. **Assertion:** In M2, replaying the same mutating request on a different replica at any time before 24 hours have elapsed returns the original canonical result and creates no duplicate GitHub artifact.
+29. **Assertion:** In M2, a same-key/different-payload replay submitted within 24 hours returns `DUPLICATE_PAYLOAD_MISMATCH` across replicas.
+30. **Assertion:** M1 and M2 audit logs record first-seen, replay-hit, payload-mismatch, and cross-identity events keyed by `request_id` + `idempotency_key` + validated workload identity.
 
 ### Verification matrix items
 
-24. **Assertion:** Every verification-matrix row below names the slice that introduces/owns the referenced test file path.
-25. **Assertion:** `tests/integration/test_prod_security_guards.py`, `tests/e2e/test_no_token_return.py`, `tests/e2e/test_contract_envelope.py`, `tests/integration/test_auth_policy_failures.py`, `tests/e2e/test_health_readiness.py`, `tests/e2e/test_persona_format.py`, `tests/integration/test_internal_state_labeling.py`, `tests/integration/test_m1_idempotency_process_lifetime.py`, and `tests/integration/test_m2_idempotency_retention.py` each pass with exit code `0` when their listed verification commands are run.
+31. **Assertion:** Every verification-matrix row below names the slice that introduces/owns the referenced test file path.
+32. **Assertion:** `tests/integration/test_prod_transport_and_runtime_controls.py`, `tests/integration/test_prod_security_guards.py`, `tests/e2e/test_no_token_return.py`, `tests/e2e/test_contract_envelope.py`, `tests/integration/test_auth_policy_failures.py`, `tests/e2e/test_health_readiness.py`, `tests/e2e/test_persona_format.py`, `tests/integration/test_internal_state_labeling.py`, `tests/integration/test_m1_idempotency_process_lifetime.py`, and `tests/integration/test_m2_idempotency_retention.py` each pass with exit code `0` when their listed verification commands are run.
 
 ## Contract-test specifications
 
@@ -823,6 +874,12 @@ def test_same_key_different_repo_action(m1_live_server, auth_headers):
 
 | Owner slice | Area | Test file path | Command | Expected output |
 | --- | --- | --- | --- | --- |
+| Slice X | TLS enforcement for mutating endpoints | `tests/integration/test_prod_transport_and_runtime_controls.py` | `sh -c "code=$(curl -sS -o /tmp/plain-http.out -w '%{http_code}\n' -H 'Content-Type: application/json' -d '{\"request_id\":\"req_tls_plaintext\",\"repo\":\"octo-org/demo-repo\",\"action\":\"comment-pr\",\"persona\":\"reviewer\",\"idempotency_key\":\"idem_tls_plaintext\",\"payload\":{\"pr_number\":42,\"body\":\"plaintext should fail\"}}' http://127.0.0.1:8443/v1/action 2>/tmp/plain-http.err || true); test \"$code\" != \"200\" && rg -n 'transport-auth-failure' var/log/github-app-executor/audit.log"` | `curl` prints a non-`200` code or fails before HTTP completes; audit log scan prints a `transport-auth-failure` entry and exits `0` |
+| Slice X | mTLS requirement for mutating endpoints | `tests/integration/test_prod_transport_and_runtime_controls.py` | `sh -c "code=$(curl -sk -o /tmp/mtls-missing-cert.out -w '%{http_code}\n' --cacert certs/ca.crt -H 'Content-Type: application/json' -d '{\"request_id\":\"req_mtls_missing_cert\",\"repo\":\"octo-org/demo-repo\",\"action\":\"comment-pr\",\"persona\":\"reviewer\",\"idempotency_key\":\"idem_mtls_missing_cert\",\"payload\":{\"pr_number\":42,\"body\":\"missing cert should fail\"}}' https://127.0.0.1:8443/v1/action 2>/tmp/mtls-missing-cert.err || true); test \"$code\" = \"403\" -o \"$code\" = \"000\" && rg -n 'missing client cert' var/log/github-app-executor/audit.log"` | `curl` prints `403` or transport error code `000`; audit log scan prints a missing-client-cert event and exits `0` |
+| Slice X | Replay freshness stale-timestamp rejection | `tests/integration/test_prod_transport_and_runtime_controls.py` | `pytest tests/integration/test_prod_transport_and_runtime_controls.py::test_stale_timestamp_is_rejected_with_replay_too_old -q -m integration` | Exit `0`; output contains `1 passed` |
+| Slice X | Nonce reuse rejection | `tests/integration/test_prod_transport_and_runtime_controls.py` | `pytest tests/integration/test_prod_transport_and_runtime_controls.py::test_duplicate_nonce_is_rejected_and_audited -q -m integration` | Exit `0`; output contains `1 passed` |
+| Slice X | Broker-side mutating rate limits | `tests/integration/test_prod_transport_and_runtime_controls.py` | `RATE_LIMIT_N=5 sh -c "seq 1 6 | xargs -I{} -P6 curl -sk --cert certs/client.pem --key certs/client-key.pem --cacert certs/ca.crt -o /tmp/rate-limit-{}.json -w '%{http_code}\n' -H 'Content-Type: application/json' -d '{\"request_id\":\"req_rate_limit_{}\",\"repo\":\"octo-org/demo-repo\",\"action\":\"comment-pr\",\"persona\":\"reviewer\",\"idempotency_key\":\"idem_rate_limit_{}\",\"payload\":{\"pr_number\":42,\"body\":\"rate limit check {}\"}}' https://127.0.0.1:8443/v1/action | tee /tmp/rate-limit.codes && grep -q '^429$' /tmp/rate-limit.codes && rg -n 'RATE_LIMIT_EXCEEDED' /tmp/rate-limit-*.json"` | Output includes at least one `429`; at least one response body contains `RATE_LIMIT_EXCEEDED`; command exits `0` only when the limiter trips |
+| Slice X | Anomaly deny-spike signal export | `tests/integration/test_prod_transport_and_runtime_controls.py` | `sh -c "curl -sS http://127.0.0.1:9090/metrics | tee /tmp/github-app.metrics | rg '^anomaly_denies(\{.*\})? [1-9][0-9]*$' || rg -n 'anomaly_denies' var/log/github-app-executor/audit.log"` | Metrics output or log scan prints an `anomaly_denies` line with a positive count and exits `0` |
 | Slice 1 | Prod token-return config guard | `tests/integration/test_prod_security_guards.py` | `pytest tests/integration/test_prod_security_guards.py::test_prod_startup_rejects_token_return_enabled -q -m integration` | Exit `0`; output contains `1 passed` |
 | Slice 1 | Prod OpenBao provider resolution | `tests/integration/test_prod_security_guards.py` | `pytest tests/integration/test_prod_security_guards.py::test_prod_profile_resolves_private_key_provider_to_openbao -q -m integration` | Exit `0`; output contains `1 passed` |
 | Slice 1 | Prod local-PEM rejection | `tests/integration/test_prod_security_guards.py` | `pytest tests/integration/test_prod_security_guards.py::test_prod_profile_rejects_local_pem_private_key_provider -q -m integration` | Exit `0`; output contains `1 passed` |
@@ -843,7 +900,7 @@ def test_same_key_different_repo_action(m1_live_server, auth_headers):
 | Slice 4 | M1 same-process replay | `tests/integration/test_m1_idempotency_process_lifetime.py` | `pytest tests/integration/test_m1_idempotency_process_lifetime.py::test_m1_replay_returns_canonical_result_during_single_process -q -m integration` | Exit `0`; output contains `1 passed` |
 | Slice 4 | M1 cross-identity scope | `tests/integration/test_m1_idempotency_process_lifetime.py` | `pytest tests/integration/test_m1_idempotency_process_lifetime.py::test_m1_same_request_id_and_idempotency_key_do_not_collide_across_workload_identities -q -m integration` | Exit `0`; output contains `1 passed` |
 | Slice 4 | M1 restart limitation | `tests/integration/test_m1_idempotency_process_lifetime.py` | `pytest tests/integration/test_m1_idempotency_process_lifetime.py::test_m1_restart_demonstrates_in_memory_lifetime_limit -q -m integration` | Exit `0`; output contains `1 passed` |
-| M1 idempotency slice | Idempotency scope by repo/action | `tests/integration/test_idempotency_scope.py` | `pytest tests/integration/test_idempotency_scope.py -q -m integration` | Exit `0`; output contains `1 passed` |
+| Slice 4 | Idempotency scope by repo/action | `tests/integration/test_idempotency_scope.py` | `pytest tests/integration/test_idempotency_scope.py -q -m integration` | Exit `0`; output contains `1 passed` |
 | Slice 5 | M2 24h replay retention | `tests/integration/test_m2_idempotency_retention.py` | `pytest tests/integration/test_m2_idempotency_retention.py::test_m2_replay_is_retained_for_24h_across_replicas -q -m integration` | Exit `0`; output contains `1 passed` |
 | Slice 5 | M2 mismatch rejection | `tests/integration/test_m2_idempotency_retention.py` | `pytest tests/integration/test_m2_idempotency_retention.py::test_m2_payload_mismatch_is_rejected_within_24h -q -m integration` | Exit `0`; output contains `1 passed` |
 
