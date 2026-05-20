@@ -8,6 +8,24 @@
     "superpowers@git+https://github.com/obra/superpowers.git",
     "./plugins/copilot-stats.ts"
   ],
+  "permission": {
+    "bash": {
+      "ls *": "allow",
+      "cat *": "allow",
+      "grep *": "allow",
+      "find *": "allow",
+      "git log*": "allow",
+      "git status": "allow",
+      "git diff*": "allow",
+      "git show*": "allow",
+      "git branch": "allow",
+      "git ls-tree": "allow",
+      "git commit*": "ask",
+      "git push*": "deny",
+      "rm *": "deny",
+      "*": "ask"
+    }
+  },
   "agent": {
     "build": {
       "model": "github-copilot/gpt-5-mini"

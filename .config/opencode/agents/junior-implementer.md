@@ -2,6 +2,10 @@
 description: Executes approved implementation work conservatively.
 mode: subagent
 model: github-copilot/gpt-5-mini
+tools:
+  write: true
+  edit: true
+  bash: true
 permission:
   bash: allow
 ---

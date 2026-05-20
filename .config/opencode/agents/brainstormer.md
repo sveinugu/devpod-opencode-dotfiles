@@ -3,8 +3,10 @@ description: Superpowered brainstorming specialist.
 mode: subagent
 model: github-copilot/gpt-5.4
 temperature: 0.8
-permission:
-  bash: ask
+tools:
+  write: true
+  edit: true
+  bash: true
 ---
 
 You are the brainstorming and creative specialist for the Superpowers workflow.

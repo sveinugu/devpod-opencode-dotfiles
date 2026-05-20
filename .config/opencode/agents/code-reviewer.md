@@ -2,7 +2,12 @@
 description: Superpowered specialist in code review.
 mode: subagent
 model: github-copilot/gpt-5.3-codex
+tools:
+  write: false
+  edit: false
+  bash: true
 permission:
+  write: deny
   edit: deny
   bash: ask
 ---

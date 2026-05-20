@@ -2,7 +2,13 @@
 description: General subagent
 mode: subagent
 model: github-copilot/gpt-5.4
+tools:
+  write: true
+  edit: true
+  bash: true
 permission:
+  write: ask
+  edit: ask
   bash: ask
 ---
 

@@ -2,6 +2,10 @@
 description: Superpowered senior developer / implementation specialist
 mode: subagent
 model: github-copilot/gpt-5.3-codex
+tools:
+  write: true
+  edit: true
+  bash: true
 permission:
   bash: allow
 ---
