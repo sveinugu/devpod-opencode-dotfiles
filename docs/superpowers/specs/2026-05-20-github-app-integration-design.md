@@ -124,7 +124,7 @@ The system has five main boundaries: a DevPod-local agent request interface, a n
 
 **Responsibility:** Accept structured GitHub action requests from agents.
 
-**Interface:** Narrow operations such as `read-pr`, `comment-pr`, `comment-issue`, `create-pr` with explicit repo, target, persona, and payload.
+**Interface:** Narrow operations such as `read-pr`, `comment-pr`, `comment-issue`, `create-pr` with explicit repo, target, persona, and payload. Broker-authorized and broker-audited reads are the recommended default path.
 
 **Ownership:** DevPod local.
 
@@ -138,7 +138,7 @@ All agent-facing operations in v1 use a shared structured envelope.
 - `repo` — required repository identifier in `owner/name` form
 - `action` — required action name from the supported v1 action set
 - `persona` — required presentation-layer persona label
-- `caller_identity` — required caller identity as observed by the DevPod-local interface before broker authentication
+- `caller_identity` — optional informational caller label as observed by the DevPod-local interface before broker authentication
 - `payload` — required action-specific body fields
 - `idempotency_key` — required for mutating actions; optional for read-only actions
 
@@ -167,7 +167,10 @@ All agent-facing operations in v1 use a shared structured envelope.
 **Normative rules**
 
 - DevPod-local validation may reject malformed requests before broker submission, but it is not authoritative for mutating-policy decisions.
+- `caller_identity` is informational only and must not be used as an authoritative policy input.
+- Authorization and authoritative audit identity must derive from authenticated workload identity validated by the broker from projected ServiceAccount token claims or equivalent workload identity claims.
 - The external broker is authoritative for all allow/deny decisions on mutating GitHub actions.
+- Read actions should also follow a broker-authorized and broker-audited path by default.
 - Every mutating request must carry both `request_id` and `idempotency_key` so caller logs, broker audit logs, and GitHub-visible results can be correlated.
 
 ### 8.2 Policy and request validation layer
@@ -177,6 +180,8 @@ All agent-facing operations in v1 use a shared structured envelope.
 **Interface:** Input is a structured request; output is reject-for-malformed-input or normalized request-for-broker.
 
 **Ownership:** DevPod local for preflight only; the external broker is authoritative for mutating-policy decisions.
+
+Preflight handling may enrich logs or operator UX, but it must not override broker-derived identity, authorization, or authoritative audit attribution.
 
 ### 8.3 Broker authentication identity
 
@@ -206,9 +211,22 @@ All agent-facing operations in v1 use a shared structured envelope.
 
 **Responsibility:** Embed persona identity into visible payloads and local metadata.
 
-**Interface:** Accept normalized action data and persona label; emit final comment/PR payload.
+**Interface:** Accept normalized action data and persona label; emit final comment/PR payload conforming to the canonical persona formatting spec.
 
 **Ownership:** DevPod local or external broker; recommended at the broker if final payload assembly happens there.
+
+#### Canonical persona formatting spec v1
+
+All visible persona attribution must follow one canonical format so broker-produced and locally formatted payloads stay consistent.
+
+- **Prefix line:** `[Persona: <persona>]`
+- **Signature block:** `— Posted by persona <persona> via GitHub App`
+
+Normative rules:
+
+- Both broker-side and local fallback formatters must emit the same canonical prefix and signature block.
+- The canonical persona marker must appear in all mutating comment bodies and PR bodies created through this integration.
+- If GitHub-visible metadata fields are later added, they must preserve this canonical visible marker rather than replace it.
 
 ### 8.7 Audit log
 
@@ -250,6 +268,8 @@ All agent-facing operations in v1 use a shared structured envelope.
 7. Broker exchanges the JWT for an installation token.
 8. Broker performs the GitHub API call.
 9. Broker returns structured success/failure data.
+
+This same broker-first pattern is the recommended path for read actions so reads remain broker-authorized and broker-audited by default.
 
 **Who holds keys**
 
@@ -328,7 +348,7 @@ Use only for isolated single-user DevPods, because the private key enters the wo
 2. Broker makes the authoritative allow/deny decision for caller, repo, persona, and action.
 3. Broker mints App JWT and installation token.
 4. Broker returns a very short-lived token to the DevPod.
-5. DevPod uses it immediately for one GitHub action.
+5. DevPod uses it immediately for the intended GitHub action.
 6. DevPod records the result locally.
 
 **Why discouraged**
@@ -336,12 +356,14 @@ Use only for isolated single-user DevPods, because the private key enters the wo
 - Tokens can be copied or logged.
 - Audit trails split across broker and DevPod.
 - Generic tokens are easier to misuse than action-specific endpoints.
+- GitHub installation tokens are not single-use, so short lifetime alone does not fully remove replay or reuse risk.
 
 **If used at all**
 
 - TTL must be very short.
 - Scope must be minimal.
-- Issuance and use must both be audited.
+- Issuance and use must both be audited and correlated by `request_id`.
+- Anomaly detection should monitor token issuance frequency, cross-repo reuse patterns, and use outside the expected action window.
 
 ## 10. Auth flows
 
@@ -350,6 +372,7 @@ Use only for isolated single-user DevPods, because the private key enters the wo
 Preferred mechanism: projected ServiceAccount tokens with broker-specific audience.
 
 For mutating actions, broker authorization remains authoritative even if the DevPod-local preflight layer already accepted the request.
+Read actions should also be broker-authorized and broker-audited by default so policy and audit behavior stays consistent across read and write paths.
 
 Broker checks should include:
 
@@ -358,6 +381,8 @@ Broker checks should include:
 - token freshness / expiry
 - namespace, service account, and workload identity claims
 - allowlist mapping from workload identity to allowed repos, personas, and actions
+
+Authoritative identity for authorization and audit must derive from validated workload identity claims, not from caller-supplied labels.
 
 Recommended pattern:
 
@@ -458,6 +483,7 @@ Behavior:
 - Apply broker-side rate limiting for mutating endpoints so one compromised workload cannot flood GitHub or the audit pipeline.
 - Define a minimum GitHub App permission matrix per action using GitHub App permission and installation-auth guidance as the boundary reference: https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/choosing-permissions-for-a-github-app and https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation
 - Require audit alerts for anomalous activity such as denied-policy spikes, unusual repo fan-out from one workload, repeated installation lookup failures, or abnormal mutating volume from one persona.
+- In broker-first mode, deny DevPod direct egress to GitHub APIs by default so workloads cannot bypass broker policy and audit controls.
 
 ### 12.2 Multi-tenant risks
 
@@ -610,6 +636,8 @@ Deferred work:
 - per-persona GitHub identities
 - generalized forge-provider support
 
+Planning precondition: if the must-decide unknowns in section 18 remain unresolved, implementation planning should begin with a Phase 0 discovery plan rather than a full build plan.
+
 ## 18. Remaining unknowns
 
 ### 18.1 Must decide before implementation planning
@@ -627,8 +655,8 @@ These unknowns are recorded explicitly so the implementation plan can separate h
 ## 19. Short next steps
 
 1. Confirm the broker trust model and projected ServiceAccount token claims available in the target DevPod cluster.
-2. Define the narrow request contract for read/comment/create PR operations.
-3. Decide the persona formatting convention for visible GitHub payloads and audit records.
+2. If those preconditions are unresolved, write a Phase 0 discovery plan before the full implementation plan.
+3. Define the narrow request contract for read/comment/create PR operations.
 4. Write the implementation plan for the broker-first path and the local CSI fallback path.
 
 ## 20. Trade-offs summary
