@@ -2,7 +2,7 @@
 
 # Handle .bashrc
 # Use -f to force overwrite the default devcontainer .zshrc
-ln -sf $HOME/.zshrc ~/.zshrc
+ln -sf $HOME/.zshrc ~/dotfiles/.zshrc
 
 # Install oh-my-zsh theme and plugins
 # Define the custom directory
