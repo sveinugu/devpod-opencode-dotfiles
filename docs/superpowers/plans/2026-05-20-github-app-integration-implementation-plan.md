@@ -52,6 +52,9 @@ This revision keeps the Request Contract v1 wire shape fixed while closing the r
 
 **Files:**
 - Modify: `docs/superpowers/plans/2026-05-20-github-app-integration-implementation-plan.md`
+- Create: `docs/deployment/auth.md` (planned artifact only)
+- Create: `docs/deployment/broker_stack.md` (planned artifact only)
+- Create: `docs/deployment/idempotency.md` (planned artifact only)
 - Modify: `deploy/github-app-executor/base/deployment.yaml`
 - Modify: `services/github_app_executor/app/auth/token_review.py`
 - Modify: `services/github_app_executor/app/idempotency/store.py`
@@ -403,6 +406,20 @@ def test_post_action_payload_mismatch_error_envelope(client, auth_headers):
 
 
 def test_status_lookup_success_envelope(client, auth_headers):
+    create = client.post(
+        "/v1/action",
+        headers=auth_headers,
+        json={
+            "request_id": "req_contract_ok",
+            "repo": "octo-org/demo-repo",
+            "action": "comment-pr",
+            "persona": "reviewer",
+            "idempotency_key": "idem_contract_ok",
+            "payload": {"pr_number": 42, "body": "Please tighten the policy wording."},
+        },
+    )
+    assert create.status_code == 201
+
     response = client.get("/v1/status/req_contract_ok", headers=auth_headers)
 
     assert response.status_code == 200
@@ -781,7 +798,7 @@ def test_m2_payload_mismatch_is_rejected_within_24h(m2_cluster, auth_headers):
 | Slice 1 | Prod OpenBao provider resolution | `tests/integration/test_prod_security_guards.py` | `pytest tests/integration/test_prod_security_guards.py::test_prod_profile_resolves_private_key_provider_to_openbao -q -m integration` | Exit `0`; output contains `1 passed` |
 | Slice 1 | Prod local-PEM rejection | `tests/integration/test_prod_security_guards.py` | `pytest tests/integration/test_prod_security_guards.py::test_prod_profile_rejects_local_pem_private_key_provider -q -m integration` | Exit `0`; output contains `1 passed` |
 | Slice 1 | No-token-return regression | `tests/e2e/test_no_token_return.py` | `pytest tests/e2e/test_no_token_return.py -q` | Exit `0`; output contains `2 passed` |
-| Slice 1 | Broker/executor log leak scan | `tests/e2e/test_no_token_return.py` | `sh -lc "rg -n -i -P '(-----BEGIN (?:RSA |EC |OPENSSH |)PRIVATE KEY-----|\\beyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\b|\\bgh[psoau]_[A-Za-z0-9_-]{7,}\\b)' var/log/github-app-executor/*.log | rg -F -v 'token_return.enabled must be false in prod' && exit 1 || exit 0"` | Exit `0`; no output after filtering the allowed prod guardrail message |
+| Slice 1 | Broker/executor log leak scan | `tests/e2e/test_no_token_return.py` | `sh -c 'ls var/log/github-app-executor/*.log >/dev/null || (echo "no logs" >&2; exit 1); rg -n --no-messages -E "(-----BEGIN (RSA |EC |OPENSSH |)PRIVATE KEY-----|\\beyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\b|\\bgh[psoau]_[A-Za-z0-9_-]{7,}\\b)" var/log/github-app-executor/*.log | grep -v "token_return.enabled must be false in prod"'` | Exit `1` with stderr `no logs` when no broker/executor logs exist; otherwise exit `0` with no output after filtering the allowed prod guardrail message |
 | Slice 1 | Broker-first workspace egress bypass gate | `tests/integration/test_prod_security_guards.py` | `kubectl exec -n devpod-workspaces pod/workspace-pod -- sh -lc 'curl -sS --connect-timeout 5 https://api.github.com/meta'` | Exit is non-zero; stderr shows a blocked network attempt such as `Connection timed out`, `Connection refused`, or `Operation not permitted`, and cluster evidence shows a matching network-policy deny or iptables `REJECT` for `api.github.com:443` |
 | Slice 2 | Success contract envelope | `tests/e2e/test_contract_envelope.py` | `pytest tests/e2e/test_contract_envelope.py::test_post_action_success_envelope -q` | Exit `0`; output contains `1 passed` |
 | Slice 2 | Error contract envelope | `tests/e2e/test_contract_envelope.py` | `pytest tests/e2e/test_contract_envelope.py::test_post_action_payload_mismatch_error_envelope -q` | Exit `0`; output contains `1 passed` |
