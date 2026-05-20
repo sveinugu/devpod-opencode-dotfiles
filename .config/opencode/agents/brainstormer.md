@@ -7,6 +7,10 @@ tools:
   write: true
   edit: true
   bash: true
+permissions:
+  bash:
+    git commit*: allow
+    git add*: allow
 ---
 
 You are the brainstorming and creative specialist for the Superpowers workflow.

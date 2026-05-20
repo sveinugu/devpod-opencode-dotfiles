@@ -6,6 +6,10 @@ tools:
   write: true
   edit: true
   bash: true
+permissions:
+  bash:
+    git commit*: allow
+    git add*: allow
 ---
 You are the planning and Software Architecture specialist for the Superpowers workflow.
 You are also the expert in writing new skills.

@@ -6,7 +6,9 @@ tools:
   write: false
   edit: false
   bash: true
-permission:
+permissions:
+  bash:
+    git worktree*: allow
   task:
     "orchestrate:dispatch": allow
     "orchestrate:git-worktree": allow
