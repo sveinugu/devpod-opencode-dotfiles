@@ -907,4 +907,4 @@ def test_same_key_different_repo_action(m1_live_server, auth_headers):
 ## Remaining open questions and next steps
 
 - No unresolved planning preconditions remain in this revision; if infra or security owners need a different broker boundary, TokenReview claim set, or durable dedupe backend, revise the design and this plan together before implementation.
-- Next step: implement Slice 0 acknowledgements first, then execute Slices 1-5 in order with TDD and per-slice verification.
+- Next step: implement Slice 0 acknowledgements first, then Slice X security hardening, then execute Slices 1-5 in order with TDD and per-slice verification.
