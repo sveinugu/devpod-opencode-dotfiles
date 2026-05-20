@@ -174,6 +174,7 @@ All agent-facing operations in v1 use a shared structured envelope.
 - `GITHUB_PERMISSION_MISMATCH`
 - `UPSTREAM_TIMEOUT`
 - `INVALID_WORKLOAD_TOKEN`
+- `DUPLICATE_PAYLOAD_MISMATCH`
 
 **Normative rules**
 
@@ -185,8 +186,9 @@ All agent-facing operations in v1 use a shared structured envelope.
 - Every mutating request must carry both `request_id` and `idempotency_key` so caller logs, broker audit logs, and GitHub-visible results can be correlated.
 - `idempotency_key` uniqueness scope is `(caller workload identity, repo, action)`.
 - Minimum dedupe retention window is 24 hours.
-- Duplicate semantics must return the prior canonical result for the same semantic request; if the payload differs for the same dedupe key, reject with explicit error code `DUPLICATE_PAYLOAD_MISMATCH`.
-- Audit logs must record both first-seen and dedupe-hit events keyed by `request_id` + `idempotency_key`.
+- For requests with the same `request_id` and `idempotency_key`, the broker must return the prior canonical result if the payloads are semantically identical.
+- If payloads differ for the same `request_id` and `idempotency_key`, the broker must reject the request with explicit error code `DUPLICATE_PAYLOAD_MISMATCH`.
+- Audit logs must record first-seen, replay-hit, and payload-mismatch rejection events keyed by `request_id` + `idempotency_key`.
 
 #### Action payload schemas (v1)
 
@@ -833,9 +835,14 @@ For deny/no-mutation scenarios in this matrix, the test harness should include a
   - **Required evidence:** captured GitHub artifacts from both paths, broker/local audit records tied to `request_id`, and a comparison log showing identical persona markers
 - **Scenario:** replay or duplication attempt detection
   - **Commands / harness:** replay the same mutating request with identical `request_id` and `idempotency_key`
-  - **Expected outcome:** broker rejects the replay and logs an anomaly
+  - **Expected outcome:** broker returns the prior canonical result without creating a duplicate artifact and logs the replay hit
   - **Post-check method:** broker audit pipeline queries the original target GitHub surface for the deterministic request marker within 5 minutes and confirms that only the original artifact exists.
-  - **Required evidence:** broker audit entry showing replay rejection, anomaly alert or equivalent signal, correlation to the original `request_id`, and acceptance of `exactly one original artifact, no duplicate artifact`
+  - **Required evidence:** broker audit entry showing replay-hit handling, correlation to the original `request_id`, returned canonical result matching the first response, and acceptance of `exactly one original artifact, no duplicate artifact`
+- **Scenario:** duplicate request with mismatched payload
+  - **Commands / harness:** replay a mutating request with the same `request_id` and `idempotency_key` but a semantically different payload
+  - **Expected outcome:** broker rejects the request with `DUPLICATE_PAYLOAD_MISMATCH`, logs the mismatch, and creates no additional GitHub artifact
+  - **Post-check method:** broker audit pipeline queries the original target GitHub surface for the deterministic request marker within 5 minutes and confirms that only the original artifact exists.
+  - **Required evidence:** caller error response with `DUPLICATE_PAYLOAD_MISMATCH`, broker audit entry showing payload-mismatch rejection tied to the original `request_id`, mismatch log or equivalent signal, and acceptance of `exactly one original artifact, no duplicate artifact`
 - **Scenario:** broker-delegation token return path
   - **Commands / harness:** request a broker-delegation token for a single approved action, then redeem it once with the matching `request_id`; repeat with the same token after the expected action window
   - **Expected outcome:** first use succeeds, replay or delayed reuse is rejected, and the broker records issuance and both use attempts
