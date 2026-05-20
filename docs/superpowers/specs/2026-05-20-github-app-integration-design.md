@@ -561,6 +561,22 @@ Preferred mechanism: projected ServiceAccount tokens with broker-specific audien
 For mutating actions, broker authorization remains authoritative even if the in-pod preflight layer already accepted the request.
 Read actions should also be broker-authorized and broker-audited by default so policy and audit behavior stays consistent across read and write paths.
 
+### 10.1.1 Kubernetes workspace pod & projected ServiceAccount tokens (brief)
+
+- **Workspace pod** means the Kubernetes Pod running the developer workspace where the in-pod agent process runs.
+- Kubernetes can project short-lived, audience-bound ServiceAccount tokens into that pod through projected volumes backed by the TokenRequest API; prefer this over legacy long-lived Secret-based ServiceAccount tokens.
+- The in-pod agent reads the projected token file and presents it to the broker as `Authorization: Bearer <token>`.
+- The broker must validate token issuer, audience, signature, and expiry before using workload claims for authorization or audit.
+- Very short example YAML:
+  ```yaml
+  volumes:
+    - name: broker-token
+      projected: {sources: [{serviceAccountToken: {path: broker-token, audience: github-broker, expirationSeconds: 3600}}]}
+  ```
+- If that volume is mounted at `/var/run/secrets/opencode`, the token file appears at `/var/run/secrets/opencode/broker-token`.
+- Best practices: set an explicit audience, keep expiry short, use a dedicated ServiceAccount per trust domain, disable automount unless needed, and prefer broker-executed actions over returning GitHub tokens.
+- References: Kubernetes ServiceAccount token projection docs: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/ ; GitHub App installation auth: https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation
+
 Broker checks should include:
 
 - token issuer and signature validation
