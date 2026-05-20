@@ -1,0 +1,234 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${NAMESPACE}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ${WORKSPACE_SERVICEACCOUNT}
+  namespace: ${NAMESPACE}
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ${BROKER_SERVICEACCOUNT}
+  namespace: ${NAMESPACE}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: broker-opa-policy
+  namespace: ${NAMESPACE}
+data:
+  policy.rego: |
+    package github.authz
+
+    default allow = false
+
+    allow if {
+      input.namespace == "devpod-workspaces"
+      input.serviceaccount == "workspace-agent"
+      input.action == "comment-pr"
+      input.repo == "octo-org/demo-repo"
+      input.persona == "reviewer"
+    }
+
+    allow if {
+      input.namespace == "devpod-workspaces"
+      input.serviceaccount == "workspace-agent"
+      input.action == "comment-pr"
+      input.repo == "octo-org/demo-repo"
+      input.persona == "implementer"
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: broker-config
+  namespace: ${NAMESPACE}
+data:
+  BROKER_AUDIENCE: "github-broker"
+  GITHUB_APP_ID: "12345"
+  GITHUB_INSTALLATION_ID: "67890"
+  GITHUB_API_BASE_URL: "http://github-sim.${NAMESPACE}.svc.cluster.local:8082"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: github-sim
+  namespace: ${NAMESPACE}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: github-sim
+  template:
+    metadata:
+      labels:
+        app: github-sim
+    spec:
+      containers:
+        - name: github-sim
+          image: ${BROKER_IMAGE}
+          command:
+            - python3
+            - -m
+            - phase0_broker.github_sim_server
+          ports:
+            - containerPort: 8082
+          env:
+            - name: GITHUB_SIM_PORT
+              value: "8082"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: github-sim
+  namespace: ${NAMESPACE}
+spec:
+  selector:
+    app: github-sim
+  ports:
+    - name: http
+      port: 8082
+      targetPort: 8082
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: broker
+  namespace: ${NAMESPACE}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: broker
+  template:
+    metadata:
+      labels:
+        app: broker
+    spec:
+      serviceAccountName: ${BROKER_SERVICEACCOUNT}
+      containers:
+        - name: broker
+          image: ${BROKER_IMAGE}
+          command:
+            - python3
+            - -m
+            - phase0_broker.broker_server
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: broker-config
+          env:
+            - name: OPA_URL
+              value: "http://127.0.0.1:8181/v1/data/github/authz/allow"
+            - name: TOKEN_VALIDATION_MODE
+              value: "tokenreview"
+            - name: K8S_TOKENREVIEW_URL
+              value: "https://kubernetes.default.svc/apis/authentication.k8s.io/v1/tokenreviews"
+            - name: K8S_CA_PATH
+              value: "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+            - name: K8S_TOKEN_PATH
+              value: "/var/run/secrets/kubernetes.io/serviceaccount/token"
+            - name: GITHUB_APP_PRIVATE_KEY_PATH
+              value: "/var/run/secrets/github-app/private-key.pem"
+          volumeMounts:
+            - name: github-app-key
+              mountPath: /var/run/secrets/github-app
+              readOnly: true
+        - name: opa
+          image: ${OPA_IMAGE}
+          args:
+            - "run"
+            - "--server"
+            - "--log-format=json-pretty"
+            - "/policy/policy.rego"
+          ports:
+            - containerPort: 8181
+          volumeMounts:
+            - name: opa-policy
+              mountPath: /policy
+              readOnly: true
+      volumes:
+        - name: opa-policy
+          configMap:
+            name: broker-opa-policy
+        - name: github-app-key
+          secret:
+            secretName: ${GITHUB_APP_SECRET_NAME}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: broker
+  namespace: ${NAMESPACE}
+spec:
+  selector:
+    app: broker
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: workspace-agent
+  namespace: ${NAMESPACE}
+  labels:
+    app: workspace-agent
+spec:
+  restartPolicy: Never
+  serviceAccountName: ${WORKSPACE_SERVICEACCOUNT}
+  automountServiceAccountToken: false
+  containers:
+    - name: workspace-agent
+      image: ${BROKER_IMAGE}
+      command:
+        - sleep
+        - "3600"
+      volumeMounts:
+        - name: broker-token
+          mountPath: /var/run/secrets/opencode
+          readOnly: true
+  volumes:
+    - name: broker-token
+      projected:
+        sources:
+          - serviceAccountToken:
+              path: broker-token
+              audience: github-broker
+              expirationSeconds: 3600
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: workspace-egress-deny
+  namespace: ${NAMESPACE}
+spec:
+  podSelector:
+    matchLabels:
+      app: workspace-agent
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: broker
+      ports:
+        - protocol: TCP
+          port: 8080
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
