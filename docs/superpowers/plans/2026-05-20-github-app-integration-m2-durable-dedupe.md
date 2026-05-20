@@ -235,10 +235,16 @@ return 0
 ### Internal-only layout
 
 - Redis key names, canonicalization rules, lock semantics, `lock_token`, `expires_at`, and `schema_version` remain internal-only.
-- `request_id` remains a correlation field, not the primary dedupe key.
+- `request_id` remains a correlation field, not the primary dedupe key. Same dedupe scope + same payload + different `request_id` must replay the stored result instead of executing a second mutation.
 - `status_by_request_id` may stay process-local for M2 unless a later slice requires durable status lookups; that is separate from durable dedupe.
 
 ## 6) Test specs and verification matrix
+
+### Test helper API
+
+- Test helpers should expose `github_comment_count_by_request_id(request_id)` for correlation-oriented assertions.
+- Test helpers should expose `github_comment_count_by_idempotency_key(idempotency_key)` for dedupe-oriented assertions.
+- Dedupe assertions in M2 tests should use the idempotency-key helper so replay checks stay correct even when `request_id` changes between equivalent requests.
 
 ### Behavior-first pytest snippets
 
@@ -263,7 +269,7 @@ def test_replay_hit_survives_executor_restart_within_24h(redis_backed_live_serve
     assert first.status_code == 201
     assert replay.status_code == 200
     assert replay.json() == first.json()
-    assert redis_backed_live_server.github_comment_count(request["request_id"]) == 1
+    assert redis_backed_live_server.github_comment_count_by_idempotency_key(request["idempotency_key"]) == 1
 
 
 @pytest.mark.integration
@@ -283,7 +289,30 @@ def test_cross_replica_replay_returns_same_canonical_result(redis_two_replica_cl
     assert first.status_code == 201
     assert replay.status_code == 200
     assert replay.json() == first.json()
-    assert redis_two_replica_cluster.total_github_comment_count(request["request_id"]) == 1
+    assert redis_two_replica_cluster.github_comment_count_by_idempotency_key(request["idempotency_key"]) == 1
+
+
+@pytest.mark.integration
+def test_same_scope_same_payload_different_request_id_replays_prior_result(redis_two_replica_cluster, auth_headers):
+    first = {
+        "request_id": "req_m2_same_payload_a",
+        "repo": "octo-org/demo-repo",
+        "action": "comment-pr",
+        "persona": "reviewer",
+        "idempotency_key": "idem_m2_same_payload_a",
+        "payload": {"pr_number": 42, "body": "same payload, new request id"},
+    }
+    replay_request = {**first, "request_id": "req_m2_same_payload_b"}
+
+    created = redis_two_replica_cluster.replica_a.post("/v1/action", headers=auth_headers, json=first)
+    replay = redis_two_replica_cluster.replica_b.post("/v1/action", headers=auth_headers, json=replay_request)
+
+    assert created.status_code == 201
+    assert replay.status_code == 200
+    assert replay.json() == created.json()
+    assert redis_two_replica_cluster.github_comment_count_by_idempotency_key(first["idempotency_key"]) == 1
+    assert redis_two_replica_cluster.github_comment_count_by_request_id(first["request_id"]) == 1
+    assert redis_two_replica_cluster.github_comment_count_by_request_id(replay_request["request_id"]) == 0
 
 
 @pytest.mark.integration
@@ -325,7 +354,7 @@ def test_concurrent_cross_replica_race_is_deterministic(redis_two_replica_cluste
 
     assert sorted([first.status_code, second.status_code]) == [200, 201]
     assert first.json() == second.json()
-    assert redis_two_replica_cluster.total_github_comment_count("idem_m2_race_a") == 1
+    assert redis_two_replica_cluster.github_comment_count_by_idempotency_key("idem_m2_race_a") == 1
 
 
 @pytest.mark.integration
@@ -357,6 +386,7 @@ def test_replay_does_not_extend_result_ttl(redis_backed_live_server, auth_header
 | M1 limitation remains documented | `tests/integration/test_m1_idempotency_process_lifetime.py` | `pytest tests/integration/test_m1_idempotency_process_lifetime.py::test_m1_restart_clears_in_memory_dedupe -v` | `PASSED` showing current restart-loss behavior | `PASSED` unchanged; proves migration did not rewrite M1 semantics retroactively |
 | Restart-safe 24h replay | `tests/integration/test_m2_idempotency_retention.py` | `pytest tests/integration/test_m2_idempotency_retention.py::test_replay_hit_survives_executor_restart_within_24h -v` | `FAILED` because second request still returns `201` and GitHub mutation count is `2` | `PASSED`; second request returns `200` and mutation count stays `1` |
 | Cross-replica dedupe | `tests/integration/test_m2_idempotency_retention.py` | `pytest tests/integration/test_m2_idempotency_retention.py::test_cross_replica_replay_returns_same_canonical_result -v` | `FAILED` because replica B does not see replica A state | `PASSED`; replay body matches exactly and total mutation count is `1` |
+| `request_id` is correlation-only | `tests/integration/test_m2_idempotency_retention.py` | `pytest tests/integration/test_m2_idempotency_retention.py::test_same_scope_same_payload_different_request_id_replays_prior_result -v` | `FAILED` because the second request is treated as a new mutation or returns the wrong status | `PASSED`; first call returns `201`, second returns `200`, body matches exactly, idempotency-key mutation count stays `1`, replay request-id mutation count stays `0` |
 | Payload mismatch within window | `tests/integration/test_m2_idempotency_retention.py` | `pytest tests/integration/test_m2_idempotency_retention.py::test_same_key_different_payload_returns_duplicate_payload_mismatch_within_24h -v` | `FAILED` because second payload is accepted or wrong code is returned | `PASSED`; `409` with `DUPLICATE_PAYLOAD_MISMATCH` |
 | Deterministic first-writer race | `tests/integration/test_m2_idempotency_retention.py` | `pytest tests/integration/test_m2_idempotency_retention.py::test_concurrent_cross_replica_race_is_deterministic -v` | `FAILED` because both requests can execute the GitHub mutation or response bodies diverge | `PASSED`; exactly one `201`, one `200`, identical bodies, one mutation |
 | TTL invariant: replay never extends retention | `tests/integration/test_m2_idempotency_retention.py` | `pytest tests/integration/test_m2_idempotency_retention.py::test_replay_does_not_extend_result_ttl -v` | `FAILED` because replay refreshes the TTL or no TTL is present | `PASSED`; replay returns `200` and observed TTL only decreases |
@@ -364,6 +394,9 @@ def test_replay_does_not_extend_result_ttl(redis_backed_live_server, auth_header
 | External contract unchanged | `tests/e2e/test_contract_envelope.py` | `pytest tests/e2e/test_contract_envelope.py -v` | Existing failures if envelope shape drifts | `PASSED` with Request Contract v1 unchanged |
 | TTL visible at 24h floor | runbook / staging shell | `redis-cli --tls --user app --pass "$REDIS_PASSWORD" TTL "gha:idem:v2:result:7c52a4cc9f4a0b93e3f3d0e5d2d8fef3ebc9d5b1a4f70b498ce9c6e321cb7d44"` | `-2` or unexpected low TTL before feature | Integer between `86340` and `86400` immediately after first write |
 | Mixed-mode safety enforced | runbook / staging shell | `kubectl logs deploy/github-app-executor | rg "idempotency_mode=(memory|dual-write|dual-read|redis)"` | Multiple concurrent modes appear during cutover | Exactly one mode appears across serving replicas for each rollout phase |
+| Runbook covers transport auth failures | runbook docs | `rg -n "transport-auth-failure" deploy/runbooks/*.md` | No matches | At least one match showing the documented alert/runbook section for transport auth failures |
+| Metrics export includes anomaly denies | metrics endpoint | `curl -sS http://127.0.0.1:9090/metrics | rg -n "anomaly_denies"` | No output | At least one matching metric line, such as `github_app_anomaly_denies_total` |
+| Kubernetes deny events are inspectable | cluster events | `kubectl get events -A --field-selector reason=PolicyDenied,type=Warning --sort-by=.lastTimestamp` | No deny events visible or command not yet useful because deny path is not instrumented | Warning events appear when deny conditions are triggered, with object refs and recent timestamps visible for triage |
 
 ## 7) Operational checklist
 
@@ -397,6 +430,12 @@ def test_replay_does_not_extend_result_ttl(redis_backed_live_server, auth_header
 - `github_app_idem_store_errors_total`
 - `github_app_idem_redis_roundtrip_seconds`
 - `github_app_idem_result_ttl_seconds` (sampled)
+
+**Verification commands**
+
+- `rg -n "transport-auth-failure" deploy/runbooks/*.md`
+- `curl -sS http://127.0.0.1:9090/metrics | rg -n "anomaly_denies"`
+- `kubectl get events -A --field-selector reason=PolicyDenied,type=Warning --sort-by=.lastTimestamp`
 
 **Alerts**
 
@@ -442,6 +481,8 @@ def test_replay_does_not_extend_result_ttl(redis_backed_live_server, auth_header
 - Redis is the selected durable dedupe backend for M2, with the Postgres path documented only as fallback.
 - Request Contract v1 request and response envelopes remain externally unchanged.
 - Dedupe scope remains `(workload_identity, repo, action, idempotency_key)`.
+- If the same dedupe scope and same payload arrives with a different `request_id`, M2 treats `request_id` as correlation-only and replays the stored result instead of executing a new mutation.
+- Dedupe decisions are determined by `(workload_identity, repo, action, idempotency_key)` plus canonical `payload_hash`; `request_id` must not widen or narrow dedupe scope.
 - Replay records survive executor restart and are reusable from a different executor replica for at least 24 hours.
 - Same-scope, different-payload replays return `409 DUPLICATE_PAYLOAD_MISMATCH` within the 24-hour retention window.
 - Redis TTL is set from first successful write and is not extended by replay hits.
@@ -452,7 +493,6 @@ def test_replay_does_not_extend_result_ttl(redis_backed_live_server, auth_header
 
 ## 10) Remaining open questions
 
-1. If the same dedupe scope and payload arrives with a **different** `request_id`, should M2 replay the prior result or reject it as a caller bug?
-2. What is the acceptable loser-wait budget for claim contention: short poll and return cached result, or wait up to the full upstream timeout?
-3. Is a managed Redis with TLS, ACLs, and encrypted persistence already available in the target cluster, or must it be introduced in the same delivery window?
-4. Should durable `/v1/status/{request_id}` be in scope for M2, or is process-local status acceptable while only dedupe becomes durable?
+1. What is the acceptable loser-wait budget for claim contention: short poll and return cached result, or wait up to the full upstream timeout?
+2. Is a managed Redis with TLS, ACLs, and encrypted persistence already available in the target cluster, or must it be introduced in the same delivery window?
+3. Should durable `/v1/status/{request_id}` be in scope for M2, or is process-local status acceptable while only dedupe becomes durable?
