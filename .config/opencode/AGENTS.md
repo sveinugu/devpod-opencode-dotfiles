@@ -11,6 +11,11 @@ The configuration imports the following skills, in prioritized order:
 
 Please report major disagreements between skills to the human partner (user)!
 
+# Auto-loaded skills
+
+Unless the task is explicitly not related to programming, the agent must always load the "pragmatic-programmer" skill!
+Agents must always load the "karpathy-guidelines" skill!
+
 ## On Test-driven development
 
 Important: TDD tests are NOT unit tests! It is important that the tests are implemented at the level where they describe and provide specific behavior/functionality to the human partner.
