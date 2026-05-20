@@ -9,7 +9,6 @@ tools:
 permission:
   write: ask
   edit: ask
-  bash: ask
 ---
 
 You are a highly powerful subagent that will be invoked for general requests that do not fit the Superpowers skills.
