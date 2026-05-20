@@ -95,9 +95,9 @@ The GitHub App private key is mounted as a file into the DevPod. A local helper 
 - Weaker isolation in multi-agent or multi-user environments
 - Harder to centralize audit and policy enforcement
 
-### Approach C — Broker returns short-lived tokens to DevPod callers
+### Approach C — Broker returns tokens to DevPod callers
 
-The broker authenticates the DevPod, mints an installation token, and returns it to the caller for direct GitHub use.
+The broker authenticates the DevPod and returns either a broker-delegation token that the broker itself minted for tightly bounded local use or, less preferably, a raw GitHub installation token for direct GitHub use.
 
 **Pros**
 
@@ -318,6 +318,22 @@ Example response:
 }
 ```
 
+#### Action → GitHub permission matrix
+
+The following matrix assumes the v1 REST endpoints named in this spec. It defines the minimum GitHub App permissions the implementation should request for each action and the deny-test that should prove the permission boundary is real.
+
+| Action | GitHub endpoint(s) | Minimum GitHub App permissions | Suggested deny-test |
+| --- | --- | --- | --- |
+| `read-pr` | `GET /repos/{owner}/{repo}/pulls/{pull_number}` | `pull_requests: read` | Attempt `read-pr` against a repo outside the workload allowlist; expect `POLICY_DENY` and only broker audit evidence. |
+| `comment-pr` | `POST /repos/{owner}/{repo}/issues/{issue_number}/comments` | `issues: write` | Remove or withhold `issues: write`, then submit `comment-pr`; expect `GITHUB_PERMISSION_MISMATCH` or broker-side deny before GitHub mutation. |
+| `comment-issue` | `POST /repos/{owner}/{repo}/issues/{issue_number}/comments` | `issues: write` | Remove or withhold `issues: write`, then submit `comment-issue`; expect `GITHUB_PERMISSION_MISMATCH` or broker-side deny before GitHub mutation. |
+| `create-pr` | `POST /repos/{owner}/{repo}/pulls` | `pull_requests: write` | Remove or withhold `pull_requests: write`, then submit `create-pr`; expect `GITHUB_PERMISSION_MISMATCH` or broker-side deny before GitHub mutation. |
+
+Notes:
+
+- `create-pr` in this v1 contract assumes the head branch already exists. If a future flow also pushes commits or creates branches through Git, that flow will need an additional permission review, likely including `contents` access.
+- `comment-pr` in this spec means a timeline issue comment on a pull request, not a line-level review comment. If review comments are added later, they need a separate permission review.
+
 ### 8.2 Policy and request validation layer
 
 **Responsibility:** Perform non-authoritative preflight validation of required inputs, supported action types, and obvious request-shape errors before broker submission.
@@ -478,7 +494,7 @@ This same broker-first pattern is the recommended path for read actions so reads
 
 Use only for isolated single-user DevPods, because the private key enters the workspace pod.
 
-### 9.3 Flow C — DevPod receives a token with TTL <= 60 seconds (**discouraged exception**)
+### 9.3 Flow C — DevPod receives a broker-returned token (**discouraged exception**)
 
 **Inputs**
 
@@ -486,13 +502,14 @@ Use only for isolated single-user DevPods, because the private key enters the wo
 - intended operation context
 - persona
 - DevPod workload identity
+- request ID
 
 **Steps**
 
 1. DevPod authenticates to the broker.
 2. Broker makes the authoritative allow/deny decision for caller, repo, persona, and action.
 3. Broker mints App JWT and installation token.
-4. Broker returns a token with TTL <= 60 seconds to the DevPod.
+4. Broker returns either a broker-delegation token or, less preferably, a raw GitHub installation token.
 5. DevPod uses it immediately for the intended GitHub action.
 6. DevPod records the result locally.
 
@@ -503,13 +520,19 @@ Use only for isolated single-user DevPods, because the private key enters the wo
 - Generic tokens are easier to misuse than action-specific endpoints.
 - GitHub installation tokens are not single-use; do not assume single-use cryptographic guarantees.
 
-**If used at all**
+**Token semantics**
 
-- TTL must be <= 60 seconds.
+- **Broker-delegation token:** a short-lived token minted by the broker for local client use. If the broker returns this kind of token, a TTL of `<= 60 seconds` is acceptable. The broker-delegation token must be bound to `request_id`, the client must present `request_id` when using the token, the broker must log issuance and use, and the broker must flag reuse or delayed use outside the expected action window.
+- **Raw GitHub installation token:** a GitHub-issued installation access token that the broker chooses to hand back to the DevPod. Do not claim a broker-controlled sub-minute TTL for this token type. GitHub controls the expiration of installation access tokens per its installation-auth flow, and the documented default is an expiration after one hour rather than an arbitrary per-issuance TTL chosen by the broker: https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation
+
+**If a broker-returned token path is used at all**
+
 - Scope must be minimal.
-- Issuance and use correlation is required; the broker must log `request_id` at issuance and the client must present `request_id` when using the token.
+- Issuance and use correlation is required.
+- The broker must log `request_id` at issuance, and the client must present `request_id` when using the token.
 - The broker must flag token reuse or delayed use outside the expected action window.
 - Anomaly detection should monitor token issuance frequency, cross-repo reuse patterns, and use outside the expected action window.
+- If the broker returns a raw GitHub installation token, compensating controls are required: issuance/use correlation, strict egress controls, action-binding where feasible, anomaly detection, and clear audit logging.
 
 ## 10. Auth flows
 
@@ -630,6 +653,7 @@ Behavior:
 - Define a minimum GitHub App permission matrix per action using GitHub App permission and installation-auth guidance as the boundary reference: https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/choosing-permissions-for-a-github-app and https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation
 - Require audit alerts for anomalous activity such as denied-policy spikes, unusual repo fan-out from one workload, repeated installation lookup failures, or abnormal mutating volume from one persona.
 - In broker-first mode, deny DevPod direct egress to GitHub APIs by default so workloads cannot bypass broker policy and audit controls.
+- If Flow C returns a raw GitHub installation token, restrict egress so the workload can reach only the required GitHub endpoints for the approved action whenever the platform can enforce that boundary.
 
 ### 12.2 Multi-tenant risks
 
@@ -711,7 +735,7 @@ The implementation plan should use behavior-focused verification rather than low
 5. Disallowed repo/persona/action combinations are rejected before GitHub mutation.
 6. Broker audit log records the correct persona, repo, action, and result.
 7. Local-minting fallback works only when configured with a valid CSI-mounted key.
-8. Token-return exception path, if implemented, enforces TTL <= 60 seconds and records both issuance and use.
+8. Token-return exception path, if implemented, verifies broker-delegation-token binding behavior or raw-token compensating controls and records both issuance and use.
 
 ### 15.2 Failure-path verification
 
@@ -724,6 +748,8 @@ The implementation plan should use behavior-focused verification rather than low
 
 ### 15.3 Verification matrix
 
+For deny/no-mutation scenarios in this matrix, the test harness should include a deterministic request marker derived from `request_id` in any would-be GitHub-visible body or title, for example `[request_id:req_02]`. Suggested lookback window for GitHub post-checks is 2-5 minutes to cover normal API and audit lag. Unless otherwise noted, the acceptance criterion is zero matching GitHub-visible artifacts plus a correlated broker audit record for the same `request_id`.
+
 - **Scenario:** authorized broker-first PR comment
   - **Commands / harness:** submit a `comment-pr` request through the v1 request contract with `request_id` and `idempotency_key`
   - **Expected outcome:** broker authorizes, posts the comment, and returns `status=ok`
@@ -731,23 +757,28 @@ The implementation plan should use behavior-focused verification rather than low
 - **Scenario:** policy deny on disallowed repository
   - **Commands / harness:** submit a mutating request for a repo outside the workload allowlist
   - **Expected outcome:** broker returns `POLICY_DENY`; no GitHub mutation occurs
-  - **Required evidence:** caller error response with `request_id`, broker deny audit event with the same `request_id`, and absence of a matching GitHub mutation
+  - **No-mutation verification method:** caller harness queries the exact target GitHub surface within 5 minutes for the deterministic request marker (`GET /repos/{owner}/{repo}/issues/{issue_number}/comments` for comment actions or `GET /repos/{owner}/{repo}/pulls` for `create-pr`).
+  - **Required evidence:** caller error response with `request_id`, broker deny audit event with the same `request_id`, zero matching artifacts in the 2-5 minute lookback window, and an explicit recorded acceptance of `no mutation observed`
 - **Scenario:** invalid workload token
   - **Commands / harness:** replay a request with wrong audience or expired projected token in a controlled harness
   - **Expected outcome:** broker returns `INVALID_WORKLOAD_TOKEN`
-  - **Required evidence:** caller error record with `request_id`, broker auth-failure audit event, and no GitHub-side change
+  - **No-mutation verification method:** caller harness queries the same GitHub endpoint family that would have been mutated and searches for the deterministic request marker within 5 minutes.
+  - **Required evidence:** caller error record with `request_id`, broker auth-failure audit event, zero matching GitHub-visible artifacts in the 2-5 minute lookback window, and acceptance of `no mutation observed`
 - **Scenario:** installation lookup failure
   - **Commands / harness:** request an action against a repo not covered by the target installation
   - **Expected outcome:** broker returns `INSTALLATION_NOT_FOUND`
-  - **Required evidence:** caller error response, broker audit event, and upstream lookup failure evidence correlated by `request_id`
+  - **No-mutation verification method:** caller harness queries for the deterministic request marker on the target issue-comment or pull-request surface within 5 minutes.
+  - **Required evidence:** caller error response, broker audit event, upstream lookup failure evidence correlated by `request_id`, zero matching artifacts in the 2-5 minute lookback window, and acceptance of `no mutation observed`
 - **Scenario:** GitHub permission mismatch
   - **Commands / harness:** run an action requiring a permission not granted to the GitHub App
   - **Expected outcome:** broker returns `GITHUB_PERMISSION_MISMATCH`
-  - **Required evidence:** caller error response, broker audit event, and captured upstream GitHub error correlated by `request_id`
+  - **No-mutation verification method:** caller harness queries the exact would-be mutation surface for the deterministic request marker within 5 minutes; broker audit pipeline may run the same check asynchronously as a secondary guard.
+  - **Required evidence:** caller error response, broker audit event, captured upstream GitHub error correlated by `request_id`, zero matching artifacts in the 2-5 minute lookback window, and acceptance of `no mutation observed`
 - **Scenario:** upstream timeout during a mutating action
   - **Commands / harness:** inject GitHub API timeout or broker-to-GitHub network fault in a controlled test
   - **Expected outcome:** bounded retry behavior, then `UPSTREAM_TIMEOUT` if unresolved; no blind duplicate mutation
-  - **Required evidence:** caller error response with `request_id`, broker retry log, and reconciliation record showing whether GitHub state changed
+  - **Post-check method:** broker audit pipeline queries the target GitHub surface for the deterministic request marker within 5 minutes and records whether zero or one matching artifact exists.
+  - **Required evidence:** caller error response with `request_id`, broker retry log, and reconciliation record showing either zero matches or exactly one match with no duplicates; acceptance requires no more than one matching artifact
 - **Scenario:** local CSI fallback comment path
   - **Commands / harness:** run the same request through the local-minting fallback in an isolated DevPod
   - **Expected outcome:** local helper posts the comment successfully and logs the request without leaking key material
@@ -755,7 +786,16 @@ The implementation plan should use behavior-focused verification rather than low
 - **Scenario:** replay or duplication attempt detection
   - **Commands / harness:** replay the same mutating request with identical `request_id` and `idempotency_key`
   - **Expected outcome:** broker rejects the replay and logs an anomaly
-  - **Required evidence:** broker audit entry showing replay rejection, anomaly alert or equivalent signal, and correlation to the original `request_id`
+  - **Post-check method:** broker audit pipeline queries the original target GitHub surface for the deterministic request marker within 5 minutes and confirms that only the original artifact exists.
+  - **Required evidence:** broker audit entry showing replay rejection, anomaly alert or equivalent signal, correlation to the original `request_id`, and acceptance of `exactly one original artifact, no duplicate artifact`
+- **Scenario:** broker-delegation token return path
+  - **Commands / harness:** request a broker-delegation token for a single approved action, then redeem it once with the matching `request_id`; repeat with the same token after the expected action window
+  - **Expected outcome:** first use succeeds, replay or delayed reuse is rejected, and the broker records issuance and both use attempts
+  - **Required evidence:** broker issuance log tied to `request_id`, successful first-use record, rejected replay or delayed-use record, and anomaly signal for the second use
+- **Scenario:** raw GitHub installation token return path
+  - **Commands / harness:** request a raw installation token through the exception path, perform the approved action, and attempt one out-of-policy follow-up that should be blocked by compensating controls
+  - **Expected outcome:** the approved action is correlated to issuance, the follow-up is blocked or flagged, and the broker records raw-token issuance plus downstream action correlation
+  - **Required evidence:** broker issuance log tied to `request_id`, strict-egress or action-binding evidence for the blocked or flagged follow-up, anomaly or policy signal for the attempted misuse, and audit records that correlate token issuance to observed use
 - **Scenario:** egress deny enforcement in broker-first mode
   - **Commands / harness:** from the DevPod, attempt a direct GitHub API call such as `curl https://api.github.com`
   - **Expected outcome:** network access is blocked or rejected and the bypass attempt is observable
@@ -818,5 +858,5 @@ These unknowns are recorded explicitly so the implementation plan can separate h
 
 - **Broker-first** costs more operationally but gives better isolation, auditability, and multi-tenant safety.
 - **Local minting** is simpler in isolated setups but weakens secret isolation.
-- **Returning tokens** may ease transition but is less safe and should stay exceptional.
+- **Returning broker-delegation tokens** may ease transition and can be bounded tightly, but returning raw GitHub installation tokens is materially weaker and should stay exceptional.
 - **One App identity** simplifies GitHub auth and repo scaling, but persona attribution must be solved in content and auditing instead of GitHub identity.
