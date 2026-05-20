@@ -34,7 +34,7 @@ mkdir -p ~/.config
 # Symlink your OpenCode folder from the repo to the expected location
 # -s = symlink, -f = force, -n = treat folder symlink as a file
 rm -rf ~/.config/opencode
-ln -sfn $HOME/.config/opencode ~/.config/
+ln -sfn $HOME/.config/opencode ~/dotfiles/.config/opencode
 
 # Install particular skills using npx
 cd $HOME/.config/opencode && npx -y skills add wondelai/skills/pragmatic-programmer
