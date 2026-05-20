@@ -21,8 +21,27 @@ Agents must always load the "karpathy-guidelines" skill!
 Important: TDD tests are NOT unit tests! It is important that the tests are implemented at the level where they describe and provide specific behavior/functionality to the human partner.
 Tests of particular software subcomponents should be prioritized only if they are generally useful or particularly important for the architecture.
 If tests are implemented as unit tests at a too low level, then code refactor becomes more difficult and TDD breaks down (too much time refactoring tests vs coding new features).
-
 Also, more than in obra/superpowers, the Pragmatic Programmer highlights the importance of tests as exploratory devices to pin down the interfaces, functionality, architecture and design of code before it is written, in discussions with the human partner. Interaction with the human partner around tests should be prioritized if new interfaces or architectures are considered, unless the human says otherwise.
+
+### Concrete policies
+- Agents must apply TDD at the test level that best drives the current goal. For a tracer bullet or cross-layer change, write a failing integration/contract test first. For isolated business logic, write a focused unit test first."
+- All prototypes must live in a git worktree or a branch named 'prototype/*'. Prototypes must be deleted or converted to tests+design before merging. No prototype code may be merged to main.
+- Prefer real interactions for contract/integration checks. Mock only when unavoidable and document rationale in the test file header.
+- Agents must complete brainstorming design approval (docs path + commit) before implementation. After approval, agents must follow TDD (tests-first) on the agreed slice. If tests force a design change, open a focused design update and re-approve
+- Before marking a feature done, run pragmatic-programmer quick diagnostic; append score and 1–3 remediation tasks to PR if score < 8.å
+- Any deviation from these rules requires one-line justification and explicit human approval, recorded in the PR.
+
+### How to reconcile in practice (short recipe for agents)
+1. Brainstorm → write lightweight design and define tracer bullet (verification: design committed).
+2. Choose test level for tracer bullet (integration/contract preferred for E2E; unit for focused logic).
+3. TDD at chosen level: write failing test, watch fail, implement minimal code, refactor.
+4. Post-implementation: run pragmatic-programmer diagnostic, score, and add remediation if needed.
+5. If prototype used, ensure it lives in worktree and is removed/converted before merge.
+
+Why this works
+- Keeps TDD's core benefit (tests first, watch fail) while letting pragmatic judgment choose the right test level.
+- Preserves tracer-bullet velocity and prevents many brittle unit tests that lock implementation.
+- Ensures design concerns (DRY, orthogonality, reversibility) are explicitly checked before and after implementation.
 
 ## Subagent delegation (short)
 
