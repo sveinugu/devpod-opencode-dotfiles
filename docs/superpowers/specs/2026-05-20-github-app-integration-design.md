@@ -3,34 +3,44 @@
 Date: 2026-05-20
 Status: Draft design.
 Planning gate: Approved for Phase 0 discovery planning while §18.1 preconditions remain unresolved. Full implementation planning is allowed only after those preconditions are resolved.
-Scope: Agent-initiated GitHub actions across multiple repositories using a single GitHub App identity; webhook-driven automation and OpenCode Companion integration are excluded
+Scope: Agent-initiated GitHub actions across multiple repositories using a single GitHub App identity; webhook-driven automation is excluded
 
 ## 1. Summary
 
 This design defines a GitHub App integration for opencode agents that lets agents create pull requests and post issue or pull request comments across multiple repositories through a single GitHub App installation. GitHub should see one App identity. Agent personas are represented in comment and PR content plus local audit metadata, not as separate GitHub identities. For mutating actions, the external broker is the authoritative allow/deny policy decision point.
 
-The preferred deployment model for DevPods on Kubernetes is:
+The preferred deployment model for DevPod-managed workspace pods on Kubernetes is:
 
-1. DevPod workload authenticates to an external broker using a projected, audience-bound ServiceAccount token.
-2. The external broker holds the GitHub App private key.
+1. An in-pod agent process in the workspace pod authenticates to an external broker using a projected, audience-bound ServiceAccount token.
+2. The external broker is an in-cluster service running separately from workspace pods and holds the GitHub App private key.
 3. The external broker is the authoritative policy decision point for all mutating GitHub actions.
 4. The broker mints GitHub App JWTs and installation tokens and performs GitHub API actions directly.
-5. The DevPod receives structured results, not reusable GitHub tokens.
+5. The workspace pod receives structured results, not reusable GitHub tokens.
 
-Fallback for isolated single-user DevPods: the GitHub App private key may be mounted into the DevPod as a file through CSI-backed secret delivery, and a local broker/helper may mint tokens locally.
+Fallback for isolated single-user workspace pods: the GitHub App private key may be mounted into the workspace pod as a file through CSI-backed secret delivery, and an in-pod helper may mint tokens locally. This fallback must not be used in shared DevPod-managed workspace pods.
 
-## 2. Assumptions
+## 2. Assumptions and terminology
 
 - One GitHub App installation can be granted access to multiple target repositories.
 - Personas are presentation-layer identity only; they are not separate GitHub principals.
-- OpenCode Companion is explicitly out of scope and must not be used for credential handling, brokering, or authorization.
-- DevPods default credential sharing is disabled, so GitHub App credentials must be delivered explicitly through Kubernetes/DevPod mechanisms.
+- Agents have no access to laptop-side local context.
+- No laptop-side helper is used for credential handling, brokering, authorization, or request routing.
+- DevPod-managed workspace pods default credential sharing is disabled, so GitHub App credentials must be delivered explicitly through Kubernetes mechanisms.
 - The first implementation is agent-initiated only; webhook listeners, background jobs, and autonomous event processing are out of scope.
-- DevPods run on Kubernetes or on infrastructure where Kubernetes-style secret-delivery patterns are representative of the intended setup.
+- Workspace pods run on Kubernetes or on infrastructure where Kubernetes-style secret-delivery patterns are representative of the intended setup.
+
+### 2.1 Terminology
+
+- **DevPod orchestrator** — the laptop-side provisioner that creates or connects to workspace pods. It is not part of the runtime auth or request path.
+- **Workspace pod** — the Kubernetes pod that hosts the agent workspace and projected ServiceAccount token.
+- **In-pod agent process** — the agent runtime inside the workspace pod that originates GitHub requests.
+- **External broker** — an in-cluster service, separate from workspace pods, that holds the GitHub App private key and either executes GitHub API calls directly or, in tightly controlled exception flows, returns a token.
+
+No laptop-side helper is required or used; all agent requests originate from in-pod agent processes or are proxied through the external broker only.
 
 ## 3. Problem statement
 
-opencode agents need a safe, auditable way to act through one GitHub App across multiple repositories without relying on personal access tokens or per-persona bot accounts. The system must preserve a single GitHub-side identity while still recording which persona initiated each visible action. The design must work well with DevPods and avoid broad credential exposure inside workspace containers.
+opencode agents need a safe, auditable way to act through one GitHub App across multiple repositories without relying on personal access tokens or per-persona bot accounts. The system must preserve a single GitHub-side identity while still recording which persona initiated each visible action. The design must work well with workspace pods, assume no agent access to laptop-side local context, and avoid broad credential exposure inside workspace containers.
 
 ## 4. Goals and non-goals
 
@@ -38,7 +48,7 @@ opencode agents need a safe, auditable way to act through one GitHub App across 
 
 - Support issue comments, pull request comments, PR creation, and PR/issue metadata reads.
 - Support multiple repositories through one GitHub App installation model.
-- Keep the GitHub App private key out of the DevPod whenever practical.
+- Keep the GitHub App private key out of the workspace pod whenever practical.
 - Attribute actions to personas in content/metadata and audit logs.
 - Provide clear policy boundaries for allowed repos, actions, and personas.
 - Keep rollback cheap and the implementation reversible.
@@ -48,25 +58,25 @@ opencode agents need a safe, auditable way to act through one GitHub App across 
 - Webhook receivers or background automation
 - Per-persona GitHub accounts or GitHub Apps
 - OAuth on-behalf-of-user flows as the primary architecture
-- OpenCode Companion integration
-- Long-lived GitHub tokens stored in the DevPod
+- Laptop-side helpers or local-context bridges in the auth or request path
+- Long-lived GitHub tokens stored in the workspace pod
 
-## 5. DevPod findings that shape the design
+## 5. DevPod orchestrator and workspace-pod findings that shape the design
 
-The current repo and DevPod documentation support the following conclusions:
+The current repo and DevPod orchestrator documentation support the following conclusions:
 
-- This repo is a DevPod/OpenCode dotfiles setup, not an application service repo, so the design should focus on local tooling contracts and operational setup rather than a large standalone platform.
+- This repo is a DevPod/OpenCode dotfiles setup, not an application service repo, so the design should focus on workspace-pod tooling contracts and operational setup rather than a large standalone platform.
 - The local Dockerfile already prepares file-based auth mounting patterns for OpenCode auth (`/home/vscode/.local/share/opencode/auth.json`), which makes file-mounted secret delivery a better fit than broad env-var injection.
-- DevPod documents built-in forwarding for git, docker, ssh, and optional gpg credentials, but not arbitrary GitHub App private-key handling.
-- DevPod on Kubernetes therefore depends on normal Kubernetes secret-delivery mechanisms for this design: projected ServiceAccount tokens, Secrets Store CSI Driver, Vault integrations, or equivalent external secret/broker patterns.
+- DevPod orchestrator docs describe built-in forwarding for git, docker, ssh, and optional gpg credentials, but not arbitrary GitHub App private-key handling; laptop-side processes are therefore not part of this auth path.
+- Workspace pods on Kubernetes therefore depend on normal Kubernetes secret-delivery mechanisms for this design: projected ServiceAccount tokens, Secrets Store CSI Driver, Vault integrations, or equivalent external secret/broker patterns.
 
-Design consequence: built-in DevPod git credential forwarding should not be used as the primary GitHub App authorization path.
+Design consequence: built-in DevPod orchestrator credential forwarding should not be used as the primary GitHub App authorization path.
 
 ## 6. Approaches considered
 
 ### Approach A — External broker performs GitHub actions (**recommended**)
 
-DevPod workloads authenticate to an external broker using workload identity. The broker holds the GitHub App private key, mints installation tokens, and performs GitHub API actions directly.
+Workspace pods authenticate to an external broker using workload identity. The broker holds the GitHub App private key, mints installation tokens, and performs GitHub API actions directly.
 
 **Pros**
 
@@ -78,17 +88,17 @@ DevPod workloads authenticate to an external broker using workload identity. The
 **Cons**
 
 - Requires broker infrastructure
-- Slightly more operational complexity than local-only helpers
+- Slightly more operational complexity than an isolated in-pod fallback
 
-### Approach B — DevPod-local minting with CSI-mounted private key
+### Approach B — Workspace-pod-local minting with CSI-mounted private key
 
-The GitHub App private key is mounted as a file into the DevPod. A local helper or broker mints App JWTs and installation tokens locally.
+The GitHub App private key is mounted as a file into the workspace pod. An in-pod helper mints App JWTs and installation tokens locally.
 
 **Pros**
 
 - Simpler initial setup in isolated environments
 - No separate broker service required
-- Good fallback for single-user DevPods
+- Good fallback for isolated single-user workspace pods
 
 **Cons**
 
@@ -96,9 +106,9 @@ The GitHub App private key is mounted as a file into the DevPod. A local helper 
 - Weaker isolation in multi-agent or multi-user environments
 - Harder to centralize audit and policy enforcement
 
-### Approach C — Broker returns tokens to DevPod callers
+### Approach C — Broker returns tokens to workspace-pod callers
 
-The broker authenticates the DevPod and returns either a broker-delegation token that the broker itself minted for tightly bounded local use or, less preferably, a raw GitHub installation token for direct GitHub use.
+The broker authenticates the workspace pod and returns either a broker-delegation token that the broker itself minted for tightly bounded local use or, less preferably, a raw GitHub installation token for direct GitHub use.
 
 **Pros**
 
@@ -113,11 +123,11 @@ The broker authenticates the DevPod and returns either a broker-delegation token
 
 ### Recommendation
 
-Use **Approach A** as the default. Keep **Approach B** as a documented fallback for isolated single-user DevPods. Treat **Approach C** as an exception path only.
+Use **Approach A** as the default. Keep **Approach B** as a documented fallback for isolated single-user workspace pods. Treat **Approach C** as an exception path only.
 
 ## 7. Architecture
 
-The system has five main boundaries: a DevPod-local agent request interface, a non-authoritative preflight validation layer, a workload-identity link from DevPod to an external broker, the external GitHub App broker, and GitHub itself. Agents submit explicit GitHub actions with repository, target object, persona, and payload. The DevPod validates request shape and presents workload identity to the broker. The broker is the authoritative policy decision point for mutating actions: it authenticates the DevPod, authorizes the repo/persona/action, formats persona-visible content, mints GitHub App authentication material, and performs the GitHub API call. GitHub records one App identity; persona attribution is carried in content and local audit logs.
+The system has five main boundaries: an in-pod agent-facing request interface, a non-authoritative in-pod preflight validation layer, a workload-identity link from the workspace pod to the external broker, the external GitHub App broker, and GitHub itself. Agents submit explicit GitHub actions with repository, target object, persona, and payload. The in-pod agent process validates request shape and presents workload identity to the broker. The broker is the authoritative policy decision point for mutating actions: it authenticates the workspace pod, authorizes the repo/persona/action, formats persona-visible content, mints GitHub App authentication material, and performs the GitHub API call. GitHub records one App identity; persona attribution is carried in content and broker-authoritative audit logs. No laptop-side helper is required or used; all agent requests originate from in-pod agent processes or are proxied through the external broker only.
 
 ## 8. Components
 
@@ -127,7 +137,7 @@ The system has five main boundaries: a DevPod-local agent request interface, a n
 
 **Interface:** Narrow operations such as `read-pr`, `comment-pr`, `comment-issue`, `create-pr` with explicit repo, target, persona, and payload. Broker-authorized and broker-audited reads are the recommended default path.
 
-**Ownership:** DevPod local.
+**Ownership:** In-pod agent process in the workspace pod.
 
 #### Request Contract v1 (normative)
 
@@ -139,7 +149,7 @@ All agent-facing operations in v1 use a shared structured envelope.
 - `repo` — required repository identifier in `owner/name` form
 - `action` — required action name from the supported v1 action set
 - `persona` — required presentation-layer persona label
-- `caller_identity` — optional informational caller label as observed by the DevPod-local interface before broker authentication
+- `caller_identity` — optional informational caller label as observed by the in-pod agent-facing interface before broker authentication
 - `payload` — required action-specific body fields
 - `idempotency_key` — required for mutating actions; optional for read-only actions
 
@@ -167,7 +177,7 @@ All agent-facing operations in v1 use a shared structured envelope.
 
 **Normative rules**
 
-- DevPod-local validation may reject malformed requests before broker submission, but it is not authoritative for mutating-policy decisions.
+- In-pod preflight validation may reject malformed requests before broker submission, but it is not authoritative for mutating-policy decisions.
 - `caller_identity` is informational only and must not be used as an authoritative policy input.
 - Authorization and authoritative audit identity must derive from authenticated workload identity validated by the broker from projected ServiceAccount token claims or equivalent workload identity claims.
 - The external broker is authoritative for all allow/deny decisions on mutating GitHub actions.
@@ -341,29 +351,29 @@ Notes:
 
 ### 8.2 Policy and request validation layer
 
-**Responsibility:** Perform non-authoritative preflight validation of required inputs, supported action types, and obvious request-shape errors before broker submission.
+**Responsibility:** Perform non-authoritative in-pod preflight validation of required inputs, supported action types, and obvious request-shape errors before broker submission.
 
 **Interface:** Input is a structured request; output is reject-for-malformed-input or normalized request-for-broker.
 
-**Ownership:** DevPod local for preflight only; the external broker is authoritative for mutating-policy decisions.
+**Ownership:** Broker-authoritative for policy and validation outcomes; any in-pod preflight is advisory only.
 
 Preflight handling may enrich logs or operator UX, but it must not override broker-derived identity, authorization, or authoritative audit attribution.
 
 ### 8.3 Broker authentication identity
 
-**Responsibility:** Present workload identity from the DevPod to the external broker.
+**Responsibility:** Present workload identity from the workspace pod to the external broker.
 
 **Interface:** Projected ServiceAccount token or equivalent workload identity token, audience-bound to the broker.
 
-**Ownership:** DevPod local / Kubernetes platform.
+**Ownership:** Workspace pod / Kubernetes platform.
 
 ### 8.4 External GitHub App broker
 
-**Responsibility:** Authenticate DevPod workloads, make the authoritative allow/deny decision for mutating actions, hold the GitHub App private key, mint App JWTs and installation tokens, and perform GitHub API calls.
+**Responsibility:** Authenticate workspace-pod callers via projected ServiceAccount tokens, make the authoritative allow/deny decision for mutating actions, hold the GitHub App private key, mint App JWTs and installation tokens, and perform GitHub API calls directly.
 
 **Interface:** Narrow action endpoints returning structured results rather than generic tokens.
 
-**Ownership:** External broker.
+**Ownership:** In-cluster broker service (Infra).
 
 ### 8.5 GitHub App installation
 
@@ -379,7 +389,7 @@ Preflight handling may enrich logs or operator UX, but it must not override brok
 
 **Interface:** Accept normalized action data and persona label; emit final comment/PR payload conforming to the canonical persona formatting spec.
 
-**Ownership:** DevPod local or external broker; recommended at the broker if final payload assembly happens there.
+**Ownership:** External broker by default; in-pod fallback formatter only for the CSI-based isolated single-user fallback.
 
 #### Canonical persona formatting spec v1
 
@@ -400,19 +410,19 @@ Normative rules:
 
 **Interface:** Structured append-only events without secret contents.
 
-**Ownership:** Prefer external broker as source of truth; local request logs are optional.
+**Ownership:** Broker-authoritative; local request logs are optional.
 
 ### 8.8 Optional local key mount fallback
 
-**Responsibility:** Provide file-based private-key access inside an isolated DevPod if no external broker exists.
+**Responsibility:** Provide file-based private-key access inside an isolated single-user workspace pod if no external broker exists.
 
 **Interface:** Mounted file path only.
 
-**Ownership:** DevPod local / Kubernetes platform.
+**Ownership:** Workspace pod / Kubernetes platform. This fallback must not be used in shared DevPod-managed workspace pods.
 
 ## 9. Data flows
 
-### 9.1 Flow A — DevPod request to external broker, broker performs GitHub action (**default**)
+### 9.1 Flow A — In-pod agent process calls the external broker, and the broker performs the GitHub action (**default**)
 
 **Inputs**
 
@@ -421,13 +431,13 @@ Normative rules:
 - action type
 - persona
 - payload/body
-- DevPod workload identity token
+- workspace-pod workload identity token
 
 **Steps**
 
-1. Agent submits a structured GitHub request.
-2. DevPod-local preflight validation checks request shape and required fields only.
-3. DevPod presents a projected, audience-bound ServiceAccount token to the broker.
+1. An in-pod agent process submits a structured GitHub request.
+2. In-pod preflight validation checks request shape and required fields only.
+3. The workspace pod presents a projected, audience-bound ServiceAccount token to the broker.
 4. Broker authenticates the workload and makes the authoritative repo/action/persona policy decision.
 5. Broker formats final persona-visible content.
 6. Broker mints a GitHub App JWT from the private key it holds.
@@ -437,10 +447,12 @@ Normative rules:
 
 This same broker-first pattern is the recommended path for read actions so reads remain broker-authorized and broker-audited by default.
 
+The request path contains only the in-pod agent process, the broker, and GitHub. No laptop-side process participates in auth, routing, token minting, or request execution.
+
 **Who holds keys**
 
 - GitHub App private key: external broker only
-- ServiceAccount token: DevPod workload
+- ServiceAccount token: workspace pod
 - Installation token: external broker only
 
 **Where tokens are minted**
@@ -458,7 +470,7 @@ This same broker-first pattern is the recommended path for read actions so reads
 - policy decision
 - result or failure class
 
-### 9.2 Flow B — DevPod-local request with CSI-mounted key and local minting (**fallback**)
+### 9.2 Flow B — Workspace-pod-local request with CSI-mounted key and local minting (**fallback**)
 
 **Inputs**
 
@@ -470,24 +482,24 @@ This same broker-first pattern is the recommended path for read actions so reads
 
 **Steps**
 
-1. Agent submits a structured request.
-2. DevPod-local preflight validation checks request shape and required fields only.
+1. An in-pod agent process submits a structured request.
+2. In-pod preflight validation checks request shape and required fields only.
 3. Local formatter applies persona markers.
-4. Local helper reads the GitHub App private key from a CSI-mounted file.
-5. Local helper mints a GitHub App JWT.
-6. Local helper exchanges the JWT for an installation token.
-7. Local helper performs the GitHub API call.
-8. Local helper returns structured results.
+4. An in-pod helper reads the GitHub App private key from a CSI-mounted file.
+5. The in-pod helper mints a GitHub App JWT.
+6. The in-pod helper exchanges the JWT for an installation token.
+7. The in-pod helper performs the GitHub API call.
+8. The in-pod helper returns structured results.
 
 **Who holds keys**
 
-- GitHub App private key: DevPod pod via mounted file
-- Installation token: DevPod pod
+- GitHub App private key: workspace pod via mounted file
+- Installation token: workspace pod
 
 **Where tokens are minted**
 
-- App JWT: DevPod local
-- Installation token: DevPod local
+- App JWT: workspace pod
+- Installation token: workspace pod
 
 **Audit records written**
 
@@ -497,38 +509,38 @@ This same broker-first pattern is the recommended path for read actions so reads
 
 **Important constraint**
 
-Use only for isolated single-user DevPods, because the private key enters the workspace pod.
+Use only for isolated single-user workspace pods, because the private key enters the workspace pod. This fallback must not be used in shared DevPod-managed workspace pods.
 
-### 9.3 Flow C — DevPod receives a broker-returned token (**discouraged exception**)
+### 9.3 Flow C — Workspace pod receives a broker-returned token (**discouraged exception**)
 
 **Inputs**
 
 - repo/org
 - intended operation context
 - persona
-- DevPod workload identity
+- workspace-pod workload identity
 - request ID
 
 **Steps**
 
-1. DevPod authenticates to the broker.
+1. The workspace pod authenticates to the broker.
 2. Broker makes the authoritative allow/deny decision for caller, repo, persona, and action.
 3. Broker mints App JWT and installation token.
 4. Broker returns either a broker-delegation token or, less preferably, a raw GitHub installation token.
-5. DevPod uses it immediately for the intended GitHub action.
-6. DevPod records the result locally.
+5. The in-pod agent process uses it immediately for the intended GitHub action.
+6. The workspace pod records the result locally.
 
 **Why discouraged**
 
 - Tokens can be copied or logged.
-- Audit trails split across broker and DevPod.
+- Audit trails split across broker and workspace pod.
 - Generic tokens are easier to misuse than action-specific endpoints.
 - GitHub installation tokens are not single-use; do not assume single-use cryptographic guarantees.
 
 **Token semantics**
 
 - **Broker-delegation token:** a short-lived token minted by the broker for local client use. If the broker returns this kind of token, a TTL of `<= 60 seconds` is acceptable. The broker-delegation token must be bound to `request_id`, the client must present `request_id` when using the token, the broker must log issuance and use, and the broker must flag reuse or delayed use outside the expected action window.
-- **Raw GitHub installation token:** a GitHub-issued installation access token that the broker chooses to hand back to the DevPod. Do not claim a broker-controlled sub-minute TTL for this token type. GitHub controls the expiration of installation access tokens per its installation-auth flow, and the documented default is an expiration after one hour rather than an arbitrary per-issuance TTL chosen by the broker: https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation
+- **Raw GitHub installation token:** a GitHub-issued installation access token that the broker chooses to hand back to the workspace pod. Do not claim a broker-controlled sub-minute TTL for this token type. GitHub controls the expiration of installation access tokens per its installation-auth flow, and the documented default is an expiration after one hour rather than an arbitrary per-issuance TTL chosen by the broker: https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation
 
 **If a broker-returned token path is used at all**
 
@@ -542,11 +554,11 @@ Use only for isolated single-user DevPods, because the private key enters the wo
 
 ## 10. Auth flows
 
-### 10.1 DevPod to broker
+### 10.1 Workspace pod to broker
 
 Preferred mechanism: projected ServiceAccount tokens with broker-specific audience.
 
-For mutating actions, broker authorization remains authoritative even if the DevPod-local preflight layer already accepted the request.
+For mutating actions, broker authorization remains authoritative even if the in-pod preflight layer already accepted the request.
 Read actions should also be broker-authorized and broker-audited by default so policy and audit behavior stays consistent across read and write paths.
 
 Broker checks should include:
@@ -562,7 +574,7 @@ Authoritative identity for authorization and audit must derive from validated wo
 Recommended pattern:
 
 - separate ServiceAccounts for distinct trust domains
-- avoid one shared identity across unrelated DevPods
+- avoid one shared identity across unrelated workspace pods
 - fail closed on any identity mismatch
 
 ### 10.2 Broker to GitHub
@@ -582,7 +594,7 @@ Recommended pattern:
 
 - ServiceAccount token: short-lived, projected, audience-bound to broker
 - Installation token: GitHub default short-lived token only, used ephemerally
-- GitHub App key: long-lived secret managed outside the DevPod when practical
+- GitHub App key: long-lived secret managed outside the workspace pod when practical
 - Repo scope: only repositories granted to the installation
 - Action scope: narrower policy at the broker than GitHub permissions whenever possible
 
@@ -644,34 +656,34 @@ Behavior:
 
 ### 12.1 Security principles
 
-- Prefer broker-held GitHub App private keys over DevPod-local key storage.
-- Prefer file mounts over env-var injection for any secret that must enter a DevPod.
+- Prefer broker-held GitHub App private keys over workspace-pod-local key storage.
+- Prefer file mounts over env-var injection for any secret that must enter a workspace pod.
 - Prefer broker-executed actions over returning tokens.
 - Use projected, audience-bound ServiceAccount tokens for workload-to-broker auth.
 - Enforce repo/persona/action policy independently from GitHub permission scopes.
 
 ### 12.1.1 Security controls (required for prod-like envs)
 
-- Enforce TLS between DevPod workloads and the broker; prefer mTLS where the platform can support workload certificates cleanly.
+- Enforce TLS between workspace pods and the broker; prefer mTLS where the platform can support workload certificates cleanly.
 - Validate workload token freshness and audience on every broker request; projected ServiceAccount token guidance comes from Kubernetes service-account and projected-volume documentation: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/ and https://kubernetes.io/docs/concepts/storage/projected-volumes/
 - Add anti-replay protection through single-use nonces for mutating requests or strict freshness windows tied to `request_id` and `idempotency_key`.
 - Apply broker-side rate limiting for mutating endpoints so one compromised workload cannot flood GitHub or the audit pipeline.
 - Define a minimum GitHub App permission matrix per action using GitHub App permission and installation-auth guidance as the boundary reference: https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/choosing-permissions-for-a-github-app and https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation
 - Require audit alerts for anomalous activity such as denied-policy spikes, unusual repo fan-out from one workload, repeated installation lookup failures, or abnormal mutating volume from one persona.
-- In broker-first mode, deny DevPod direct egress to GitHub APIs by default so workloads cannot bypass broker policy and audit controls.
+- In broker-first mode, deny workspace-pod direct egress to GitHub APIs by default so workloads cannot bypass broker policy and audit controls. Broker-exec is preferred; any raw-token return path must be explicitly exception-gated and audited.
 - If Flow C returns a raw GitHub installation token, restrict egress so the workload can reach only the required GitHub endpoints for the approved action whenever the platform can enforce that boundary.
 
 ### 12.2 Multi-tenant risks
 
 Major risks:
 
-- multiple agents or users sharing a DevPod pod
+- multiple agents or users sharing a workspace pod
 - mounted key material readable by unintended processes
 - generic token issuance increasing blast radius
 
 Mitigations:
 
-- one trust domain per DevPod where possible
+- one trust domain per workspace pod where possible
 - separate ServiceAccounts for separate trust domains
 - external broker as default
 - local key mounts only in isolated single-user pods
@@ -696,34 +708,34 @@ Audit records must not capture:
 - JWTs
 - installation tokens
 
-## 13. DevPod and Kubernetes secret-delivery options
+## 13. Workspace pod and Kubernetes secret-delivery options
 
 ### 13.1 Preferred default
 
-Use an external broker plus projected ServiceAccount tokens from DevPods.
+Use an external broker plus projected ServiceAccount tokens from workspace pods.
 
 Rationale:
 
 - keeps GitHub App key out of workspace pods
-- aligns well with DevPod on Kubernetes
+- aligns well with DevPod-managed workspace pods on Kubernetes
 - strongest audit and multi-tenant story
 
 ### 13.2 Supported fallback
 
-Use Secrets Store CSI Driver, Vault CSI, or equivalent file-based secret delivery to mount the GitHub App private key into the DevPod only for isolated single-user setups.
+Use Secrets Store CSI Driver, Vault CSI, or equivalent file-based secret delivery to mount the GitHub App private key into the workspace pod only for isolated single-user setups. This fallback must not be used in shared DevPod-managed workspace pods.
 
 ### 13.3 Not recommended as default
 
 - broad env-var injection of GitHub App private keys
-- using DevPod’s built-in git credential forwarding as GitHub App authorization
-- long-lived reusable tokens stored in the DevPod
+- using the DevPod orchestrator’s built-in git credential forwarding as GitHub App authorization
+- long-lived reusable tokens stored in the workspace pod
 
-## 14. Recommended DevPod/Kubernetes configuration choices
+## 14. Recommended workspace-pod / Kubernetes configuration choices
 
 - Use projected ServiceAccount tokens with an explicit broker audience.
-- Give distinct DevPod trust domains distinct ServiceAccounts.
+- Give distinct workspace-pod trust domains distinct ServiceAccounts.
 - Prefer external secret managers plus CSI or broker patterns over plain env-var injection.
-- If the private key must reach the DevPod, mount it as a file, not an env var.
+- If the private key must reach the workspace pod, mount it as a file, not an env var.
 - Restrict network access so only approved workloads can reach the broker.
 - Keep broker endpoints narrow and action-specific.
 - Rotate underlying secret-manager material on a normal ops cadence and rely on GitHub short-lived installation tokens at runtime.
@@ -734,14 +746,15 @@ The implementation plan should use behavior-focused verification rather than low
 
 ### 15.1 Core verification scenarios
 
-1. DevPod workload can authenticate to the broker using projected ServiceAccount identity.
+1. An in-pod agent process in the workspace pod can authenticate to the broker using projected ServiceAccount identity.
 2. Authorized workload can read PR metadata from an allowed repository.
 3. Authorized workload can post a PR comment with the expected persona marker.
 4. Authorized workload can create a PR with the expected persona metadata.
 5. Disallowed repo/persona/action combinations are rejected before GitHub mutation.
 6. Broker audit log records the correct persona, repo, action, and result.
-7. Local-minting fallback works only when configured with a valid CSI-mounted key.
-8. Token-return exception path, if implemented, verifies broker-delegation-token binding behavior or raw-token compensating controls and records both issuance and use.
+7. No laptop-side process appears in the request path; evidence includes only workspace-pod and broker entries before the GitHub artifact.
+8. Local-minting fallback works only when configured with a valid CSI-mounted key in an isolated single-user workspace pod.
+9. Token-return exception path, if implemented, verifies broker-delegation-token binding behavior or raw-token compensating controls and records both issuance and use.
 
 ### 15.2 Failure-path verification
 
@@ -751,6 +764,7 @@ The implementation plan should use behavior-focused verification rather than low
 - installation lookup failure
 - GitHub permission mismatch
 - transient network failure with bounded retry behavior
+- unexpected laptop-side hop in the request path
 
 ### 15.3 Verification matrix
 
@@ -760,6 +774,14 @@ For deny/no-mutation scenarios in this matrix, the test harness should include a
   - **Commands / harness:** submit a `comment-pr` request through the v1 request contract with `request_id` and `idempotency_key`
   - **Expected outcome:** broker authorizes, posts the comment, and returns `status=ok`
   - **Required evidence:** caller log with `request_id`, broker audit entry with the same `request_id`, GitHub comment URL or comment ID containing the expected persona marker
+- **Scenario:** projected ServiceAccount authentication from workspace pod to broker
+  - **Commands / harness:** submit a broker-first request from an in-pod agent process using the projected ServiceAccount token mounted in the workspace pod
+  - **Expected outcome:** broker accepts the workload identity and records the authenticated namespace/service-account claims for the request
+  - **Required evidence:** workspace-pod caller log with `request_id`, broker auth log tied to the same `request_id`, and broker audit data showing the validated projected-token claims used for authorization
+- **Scenario:** request path excludes laptop-side processes
+  - **Commands / harness:** submit a broker-first mutating request and collect correlation records from the workspace pod, broker, and GitHub result path
+  - **Expected outcome:** the correlated request path includes only the in-pod agent process, broker, and GitHub; no laptop-side process appears in auth, routing, or token-minting records
+  - **Required evidence:** workspace-pod caller log with `request_id`, broker audit or access log with the same `request_id`, GitHub artifact or upstream-call record, and an explicit absence check for any laptop-side process record in the correlated path
 - **Scenario:** policy deny on disallowed repository
   - **Commands / harness:** submit a mutating request for a repo outside the workload allowlist
   - **Expected outcome:** broker returns `POLICY_DENY`; no GitHub mutation occurs
@@ -786,8 +808,8 @@ For deny/no-mutation scenarios in this matrix, the test harness should include a
   - **Post-check method:** broker audit pipeline queries the target GitHub surface for the deterministic request marker within 5 minutes and records whether zero or one matching artifact exists.
   - **Required evidence:** caller error response with `request_id`, broker retry log, and reconciliation record showing either zero matches or exactly one match with no duplicates; acceptance requires no more than one matching artifact
 - **Scenario:** local CSI fallback comment path
-  - **Commands / harness:** run the same request through the local-minting fallback in an isolated DevPod
-  - **Expected outcome:** local helper posts the comment successfully and logs the request without leaking key material
+  - **Commands / harness:** run the same request through the local-minting fallback in an isolated single-user workspace pod
+  - **Expected outcome:** the in-pod helper posts the comment successfully and logs the request without leaking key material
   - **Required evidence:** caller/local log with `request_id`, local audit record, and GitHub comment URL or ID with the expected persona marker
 - **Scenario:** persona-format parity across broker-first and local-CSI fallback paths
   - **Commands / harness:** submit equivalent mutating requests through both the broker-first path and the local-CSI fallback path, then compare the resulting canonical persona markers
@@ -807,7 +829,7 @@ For deny/no-mutation scenarios in this matrix, the test harness should include a
   - **Expected outcome:** the approved action is correlated to issuance, the follow-up is blocked or flagged, and the broker records raw-token issuance plus downstream action correlation
   - **Required evidence:** broker issuance log tied to `request_id`, strict-egress or action-binding evidence for the blocked or flagged follow-up, anomaly or policy signal for the attempted misuse, and audit records that correlate token issuance to observed use
 - **Scenario:** egress deny enforcement in broker-first mode
-  - **Commands / harness:** from the DevPod, attempt a direct GitHub API call such as `curl https://api.github.com`
+  - **Commands / harness:** from the workspace pod, attempt a direct GitHub API call such as `curl https://api.github.com`
   - **Expected outcome:** network access is blocked or rejected and the bypass attempt is observable
   - **Required evidence:** network policy logs or firewall logs showing the block plus broker-side audit or monitoring evidence of the attempted bypass path
 
@@ -818,8 +840,8 @@ This design is successful when the future implementation can demonstrate all of 
 1. Agents can act across multiple repositories using one GitHub App installation model.
 2. GitHub sees one App identity, not separate persona accounts.
 3. Persona identity is visible in content/metadata and captured in audit logs.
-4. The preferred implementation keeps the GitHub App private key out of the DevPod.
-5. DevPod workloads authenticate to the broker using short-lived workload identity.
+4. The preferred implementation keeps the GitHub App private key out of the workspace pod.
+5. Workspace pods authenticate to the broker using short-lived workload identity.
 6. Mutating actions are governed by broker-authoritative repo/persona/action policy.
 7. Failures are understandable, auditable, and do not leak secrets.
 8. The design remains implementable as a single focused plan without requiring webhook automation.
@@ -859,7 +881,7 @@ These unknowns are recorded explicitly so the implementation plan can separate h
 
 ## 19. Short next steps
 
-1. Confirm the broker trust model and projected ServiceAccount token claims available in the target DevPod cluster.
+1. Confirm the broker trust model and projected ServiceAccount token claims available in the target workspace-pod cluster.
 2. If those preconditions are unresolved, write a Phase 0 discovery plan before the full implementation plan.
 3. Finalize and adopt the v1 request contract defined in §8.1 (ownership assignment and field validation).
 4. Write the implementation plan for the broker-first path and the local CSI fallback path.
