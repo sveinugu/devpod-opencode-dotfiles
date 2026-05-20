@@ -347,7 +347,7 @@ def test_post_action_success_envelope(client, auth_headers):
         "/v1/action",
         headers=auth_headers,
         json={
-            "request_id": "req_contract_ok",
+            "request_id": "req_contract_ok_1",
             "repo": "octo-org/demo-repo",
             "action": "comment-pr",
             "persona": "reviewer",
@@ -362,7 +362,7 @@ def test_post_action_success_envelope(client, auth_headers):
     assert response.status_code == 201
     body = response.json()
     assert set(body.keys()) == {"request_id", "status", "result"}
-    assert body["request_id"] == "req_contract_ok"
+    assert body["request_id"] == "req_contract_ok_1"
     assert body["status"] == "ok"
     assert set(body["result"].keys()) == {"comment_id", "url"}
     assert "state" not in body
@@ -373,7 +373,7 @@ def test_post_action_success_envelope(client, auth_headers):
 
 def test_post_action_payload_mismatch_error_envelope(client, auth_headers):
     request = {
-        "request_id": "req_contract_conflict",
+        "request_id": "req_contract_conflict_1",
         "repo": "octo-org/demo-repo",
         "action": "comment-pr",
         "persona": "reviewer",
@@ -410,7 +410,7 @@ def test_status_lookup_success_envelope(client, auth_headers):
         "/v1/action",
         headers=auth_headers,
         json={
-            "request_id": "req_contract_ok",
+            "request_id": "req_contract_status_1",
             "repo": "octo-org/demo-repo",
             "action": "comment-pr",
             "persona": "reviewer",
@@ -420,12 +420,12 @@ def test_status_lookup_success_envelope(client, auth_headers):
     )
     assert create.status_code == 201
 
-    response = client.get("/v1/status/req_contract_ok", headers=auth_headers)
+    response = client.get("/v1/status/req_contract_status_1", headers=auth_headers)
 
     assert response.status_code == 200
     body = response.json()
     assert set(body.keys()) == {"request_id", "status", "result"}
-    assert body["request_id"] == "req_contract_ok"
+    assert body["request_id"] == "req_contract_status_1"
     assert body["status"] == "ok"
 ```
 
@@ -778,6 +778,35 @@ def test_m2_payload_mismatch_is_rejected_within_24h(m2_cluster, auth_headers):
     assert audit["validated_workload_identity"] == "system:serviceaccount:devpod-workspaces:opencode-agent"
 ```
 
+### `tests/integration/test_idempotency_scope.py`
+
+```python
+import pytest
+
+
+@pytest.mark.integration
+def test_same_key_different_repo_action(m1_live_server, auth_headers):
+    base = {
+        "request_id": "req_scope_1",
+        "idempotency_key": "idem_scope_shared",
+        "persona": "reviewer",
+        "payload": {"pr_number": 1},
+    }
+
+    a = {**base, "repo": "org/repo-a", "action": "comment-pr"}
+    b = {**base, "repo": "org/repo-b", "action": "comment-pr"}
+    c = {**base, "repo": "org/repo-a", "action": "merge-pr"}
+
+    r1 = m1_live_server.post("/v1/action", headers=auth_headers, json=a)
+    r2 = m1_live_server.post("/v1/action", headers=auth_headers, json=b)
+    r3 = m1_live_server.post("/v1/action", headers=auth_headers, json=c)
+
+    assert r1.status_code == 201
+    assert r2.status_code == 201
+    assert r3.status_code == 201
+    assert m1_live_server.github_comment_count("req_scope_1") == 3
+```
+
 ### Internal-only labeling example for non-external diagnostics
 
 ```json
@@ -798,7 +827,7 @@ def test_m2_payload_mismatch_is_rejected_within_24h(m2_cluster, auth_headers):
 | Slice 1 | Prod OpenBao provider resolution | `tests/integration/test_prod_security_guards.py` | `pytest tests/integration/test_prod_security_guards.py::test_prod_profile_resolves_private_key_provider_to_openbao -q -m integration` | Exit `0`; output contains `1 passed` |
 | Slice 1 | Prod local-PEM rejection | `tests/integration/test_prod_security_guards.py` | `pytest tests/integration/test_prod_security_guards.py::test_prod_profile_rejects_local_pem_private_key_provider -q -m integration` | Exit `0`; output contains `1 passed` |
 | Slice 1 | No-token-return regression | `tests/e2e/test_no_token_return.py` | `pytest tests/e2e/test_no_token_return.py -q` | Exit `0`; output contains `2 passed` |
-| Slice 1 | Broker/executor log leak scan | `tests/e2e/test_no_token_return.py` | `sh -c 'matches=$(rg -n --no-messages -e "-----BEGIN (?:RSA |EC |OPENSSH |)PRIVATE KEY-----|\bgh[psoau]_[A-Za-z0-9_-]{7,}\b|\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b" -E var/log/github-app-executor/*.log | rg -v "token_return.enabled must be false in prod" || true); if [ -n "$matches" ]; then printf "%s\n" "$matches"; exit 1; else exit 0; fi'` | Exit `0` when no forbidden matches remain after excluding the allowed prod guard message; otherwise the command prints the matching lines and exits non-zero. |
+| Slice 1 | Broker/executor log leak scan | `tests/e2e/test_no_token_return.py` | `sh -c 'ls var/log/github-app-executor/*.log >/dev/null || (echo "no logs" >&2; exit 1); matches=$(rg -n -e "-----BEGIN (?:RSA |EC |OPENSSH |)PRIVATE KEY-----" -e "\\bgh[psoau]_[A-Za-z0-9_-]{7,}\\b" -e "\\beyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\b" var/log/github-app-executor/*.log | grep -v "token_return.enabled must be false in prod" || true); if [ -n "$matches" ]; then echo "$matches"; exit 1; else exit 0; fi'` | Exit `0` if no forbidden patterns found; if forbidden patterns are found the command prints matching lines and exits non-zero. |
 | Slice 1 | Broker-first workspace egress bypass gate | `tests/integration/test_prod_security_guards.py` | `sh -c "kubectl exec -n devpod-workspaces pod/workspace-pod -- sh -lc 'curl -sS --connect-timeout 5 --max-time 10 https://api.github.com/meta' >/tmp/workspace-egress.out 2>/tmp/workspace-egress.err && exit 1 || true && evidence=$(kubectl get events -n devpod-workspaces --field-selector reason=NetworkPolicyDenied --sort-by=.lastTimestamp | rg 'workspace-pod|NetworkPolicyDenied|DENIED|REJECT|api.github.com|443' || true); if [ -z \"$evidence\" ]; then evidence=$(kubectl logs -n kube-system -l k8s-app=cilium --since=1m | rg 'workspace-pod|DROP|REJECT|DENIED|api.github.com|443' || true); fi; if [ -n \"$evidence\" ]; then printf '%s\n' \"$evidence\"; exit 0; else exit 1; fi"` | `curl` fails (non-`200` or connection refused) and the evidence command prints deny logs or network-policy event lines and exits `0` |
 | Slice 2 | Success contract envelope | `tests/e2e/test_contract_envelope.py` | `pytest tests/e2e/test_contract_envelope.py::test_post_action_success_envelope -q` | Exit `0`; output contains `1 passed` |
 | Slice 2 | Error contract envelope | `tests/e2e/test_contract_envelope.py` | `pytest tests/e2e/test_contract_envelope.py::test_post_action_payload_mismatch_error_envelope -q` | Exit `0`; output contains `1 passed` |
@@ -807,13 +836,14 @@ def test_m2_payload_mismatch_is_rejected_within_24h(m2_cluster, auth_headers):
 | Slice 2 | Broker-issued policy deny via OPA | `tests/integration/test_auth_policy_failures.py` | `pytest tests/integration/test_auth_policy_failures.py::test_opa_deny_returns_policy_deny_and_no_mutation -q -m integration` | Exit `0`; output contains `1 passed` |
 | Slice 2 | Health endpoint | `tests/e2e/test_health_readiness.py` | `curl -sS -o /tmp/healthz.json -w '%{http_code}\n' http://127.0.0.1:8000/healthz && jq -e '.status == "ok"' /tmp/healthz.json` | First command prints `200`; `jq` exits `0` and prints `true` |
 | Slice 2 | Readiness endpoint | `tests/e2e/test_health_readiness.py` | `curl -sS -o /tmp/readyz.json -w '%{http_code}\n' http://127.0.0.1:8000/readyz && jq -e '.status == "ok" and .token_review == "ok" and .opa == "ok" and .openbao == "ok"' /tmp/readyz.json` | First command prints `200`; `jq` exits `0` and prints `true` |
-| Slice 2 | Success curl smoke | `tests/e2e/test_contract_envelope.py` | `curl -sS -o /tmp/action-ok.json -w '%{http_code}\n' -H 'Authorization: Bearer VALID_TOKEN' -H 'Content-Type: application/json' -d '{"request_id":"req_contract_ok","repo":"octo-org/demo-repo","action":"comment-pr","persona":"reviewer","idempotency_key":"idem_contract_ok","payload":{"pr_number":42,"body":"Please tighten the policy wording."}}' http://127.0.0.1:8000/v1/action && jq -e '.request_id == "req_contract_ok" and .status == "ok" and (.result | has("comment_id")) and (.result | has("url"))' /tmp/action-ok.json` | First command prints `201`; `jq` exits `0` and prints `true` |
-| Slice 2 | Error curl smoke | `tests/e2e/test_contract_envelope.py` | `sh -c "curl -sS -o /tmp/action-orig.json -w '%{http_code}\n' -H 'Authorization: Bearer VALID_TOKEN' -H 'Content-Type: application/json' -d '{\"request_id\":\"req_contract_conflict\",\"repo\":\"octo-org/demo-repo\",\"action\":\"comment-pr\",\"persona\":\"reviewer\",\"idempotency_key\":\"idem_contract_conflict\",\"payload\":{\"pr_number\":42,\"body\":\"Original body\"}}' http://127.0.0.1:8000/v1/action && curl -sS -o /tmp/action-conflict.json -w '%{http_code}\n' -H 'Authorization: Bearer VALID_TOKEN' -H 'Content-Type: application/json' -d '{\"request_id\":\"req_contract_conflict\",\"repo\":\"octo-org/demo-repo\",\"action\":\"comment-pr\",\"persona\":\"reviewer\",\"idempotency_key\":\"idem_contract_conflict\",\"payload\":{\"pr_number\":42,\"body\":\"Changed body\"}}' http://127.0.0.1:8000/v1/action && jq -e '.request_id == \"req_contract_conflict\" and .status == \"error\" and .error.code == \"DUPLICATE_PAYLOAD_MISMATCH\" and (.error.retryable == false)' /tmp/action-conflict.json"` | First command prints `201`; second prints `409`; `jq` exits `0` and prints `true` |
+| Slice 2 | Success curl smoke | `tests/e2e/test_contract_envelope.py` | `curl -sS -o /tmp/action-ok.json -w '%{http_code}\n' -H 'Authorization: Bearer VALID_TOKEN' -H 'Content-Type: application/json' -d '{"request_id":"req_contract_ok_1","repo":"octo-org/demo-repo","action":"comment-pr","persona":"reviewer","idempotency_key":"idem_contract_ok","payload":{"pr_number":42,"body":"Please tighten the policy wording."}}' http://127.0.0.1:8000/v1/action && jq -e '.request_id == "req_contract_ok_1" and .status == "ok" and (.result | has("comment_id")) and (.result | has("url"))' /tmp/action-ok.json` | First command prints `201`; `jq` exits `0` and prints `true` |
+| Slice 2 | Error curl smoke | `tests/e2e/test_contract_envelope.py` | `sh -c "curl -sS -o /tmp/action-orig.json -w '%{http_code}\n' -H 'Authorization: Bearer VALID_TOKEN' -H 'Content-Type: application/json' -d '{\"request_id\":\"req_contract_conflict_1\",\"repo\":\"octo-org/demo-repo\",\"action\":\"comment-pr\",\"persona\":\"reviewer\",\"idempotency_key\":\"idem_contract_conflict\",\"payload\":{\"pr_number\":42,\"body\":\"Original body\"}}' http://127.0.0.1:8000/v1/action && curl -sS -o /tmp/action-conflict.json -w '%{http_code}\n' -H 'Authorization: Bearer VALID_TOKEN' -H 'Content-Type: application/json' -d '{\"request_id\":\"req_contract_conflict_1\",\"repo\":\"octo-org/demo-repo\",\"action\":\"comment-pr\",\"persona\":\"reviewer\",\"idempotency_key\":\"idem_contract_conflict\",\"payload\":{\"pr_number\":42,\"body\":\"Changed body\"}}' http://127.0.0.1:8000/v1/action && jq -e '.request_id == \"req_contract_conflict_1\" and .status == \"error\" and .error.code == \"DUPLICATE_PAYLOAD_MISMATCH\" and (.error.retryable == false)' /tmp/action-conflict.json"` | First command prints `201`; second prints `409`; `jq` exits `0` and prints `true` |
 | Slice 3 | Persona marker tests | `tests/e2e/test_persona_format.py` | `pytest tests/e2e/test_persona_format.py -q` | Exit `0`; output contains `3 passed` |
 | Slice 3 | Internal-state labeling | `tests/integration/test_internal_state_labeling.py` | `pytest tests/integration/test_internal_state_labeling.py -q -m integration` | Exit `0`; output contains `1 passed` |
 | Slice 4 | M1 same-process replay | `tests/integration/test_m1_idempotency_process_lifetime.py` | `pytest tests/integration/test_m1_idempotency_process_lifetime.py::test_m1_replay_returns_canonical_result_during_single_process -q -m integration` | Exit `0`; output contains `1 passed` |
 | Slice 4 | M1 cross-identity scope | `tests/integration/test_m1_idempotency_process_lifetime.py` | `pytest tests/integration/test_m1_idempotency_process_lifetime.py::test_m1_same_request_id_and_idempotency_key_do_not_collide_across_workload_identities -q -m integration` | Exit `0`; output contains `1 passed` |
 | Slice 4 | M1 restart limitation | `tests/integration/test_m1_idempotency_process_lifetime.py` | `pytest tests/integration/test_m1_idempotency_process_lifetime.py::test_m1_restart_demonstrates_in_memory_lifetime_limit -q -m integration` | Exit `0`; output contains `1 passed` |
+| M1 idempotency slice | Idempotency scope by repo/action | `tests/integration/test_idempotency_scope.py` | `pytest tests/integration/test_idempotency_scope.py -q -m integration` | Exit `0`; output contains `1 passed` (or relevant number) |
 | Slice 5 | M2 24h replay retention | `tests/integration/test_m2_idempotency_retention.py` | `pytest tests/integration/test_m2_idempotency_retention.py::test_m2_replay_is_retained_for_24h_across_replicas -q -m integration` | Exit `0`; output contains `1 passed` |
 | Slice 5 | M2 mismatch rejection | `tests/integration/test_m2_idempotency_retention.py` | `pytest tests/integration/test_m2_idempotency_retention.py::test_m2_payload_mismatch_is_rejected_within_24h -q -m integration` | Exit `0`; output contains `1 passed` |
 
