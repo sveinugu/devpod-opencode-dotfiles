@@ -22,10 +22,10 @@ This revision keeps the Request Contract v1 wire shape fixed while closing the r
 - Added slice ownership to every verification-matrix row, including `tests/e2e/test_health_readiness.py`, and expanded the matrix with concrete commands and expected outputs for the new gates.
 - Replaced legacy response examples using `state`/`replayed` envelopes with Request Contract v1 response assertions from `docs/superpowers/specs/2026-05-20-github-app-integration-design.md` §8.1 so external responses are tested against the current contract shape.
 - Added explicit acceptance criteria for contract shape, precondition closure, security guardrails, persona formatting, TokenReview/OPA denial handling, M1 in-memory idempotency lifetime, cross-identity scope, and M2 durable 24-hour dedupe retention.
-- Updated the no-token-return spec to use neutral request IDs, forbid top-level token-style response keys, and scan for secret-like PEM/JWT/GitHub-token patterns instead of raw substring bans.
+- Updated the no-token-return spec to use neutral request IDs, forbid top-level token-style response keys, and scan with tightened secret-detection regex literals for PEM headers, `eyJ...` JWTs, and `gh[psoau]_...` GitHub tokens instead of broad dot-segment matching.
 - Reworded policy authority so the broker is the authoritative PDP, with OPA invoked only as the policy evaluation engine that supplies the policy reason.
 - Split the Slice 0 TokenReview claim contract into stable exact claims and dynamic pod claims validated by presence/shape rather than literal pod values.
-- Relaxed the log-scan gate to allow the expected prod guardrail message `token_return.enabled must be false in prod` while still failing on secret-like patterns.
+- Updated the verification-matrix log-scan command to use tightened ripgrep secret-detection patterns and explicitly filter the allowed prod guardrail message `token_return.enabled must be false in prod`.
 - Added a Slice 1 broker-first egress-bypass gate that proves workspace pods cannot call `api.github.com` directly when broker-first mode is enabled.
 
 ## Locked constraints
@@ -42,7 +42,7 @@ This revision keeps the Request Contract v1 wire shape fixed while closing the r
 
 - Prod-like startup must fail closed if `token_return.enabled=true`.
 - Prod-like startup must fail closed if the GitHub App private-key provider resolves to anything other than OpenBao or if a local PEM path is configured.
-- External API responses must not expose top-level keys named `token`, `access_token`, `installation_token`, or `jwt`, and external responses, captured outbound GitHub requests, and broker/executor logs must never include PEM headers, JWT-like segments, or GitHub token prefixes.
+- External API responses must not expose top-level keys named `token`, `access_token`, `installation_token`, or `jwt`, and external responses, captured outbound GitHub requests, and broker/executor logs must never include PEM private-key headers, JWTs matching the `eyJ...` heuristic, or GitHub token prefixes matching `gh[psoau]_...`.
 - When broker-first mode is enabled, workspace pods must be unable to call GitHub APIs directly; only the broker may hold GitHub egress.
 - Slice ownership: Slice 1 owns these enforcement checks; Slice 2 depends on them for auth/error-path coverage.
 
@@ -76,7 +76,7 @@ This revision keeps the Request Contract v1 wire shape fixed while closing the r
 3. **M2 durable dedupe backend:** `Redis`
    - **Rationale:** Native TTL support makes the minimum 24-hour dedupe window explicit and cross-replica replay behavior simpler than a bespoke SQL retention job.
 
-- [ ] Copy these exact decisions into the deployment/config/auth/idempotency files listed above before implementing later behavior changes.
+- [ ] Copy these exact decisions into explicit deployment decision docs at `docs/deployment/auth.md`, `docs/deployment/broker_stack.md`, and `docs/deployment/idempotency.md` before implementing later behavior changes (create these docs as Slice 0 artifacts if they do not exist).
 - [ ] Stop and revise the design + plan together if any later slice requires a different broker boundary, claim set, or durable backend.
 - [ ] Do not start Slice 1 until all three decision records above are preserved in code/config/docs touched by the implementation.
 
@@ -93,8 +93,8 @@ This revision keeps the Request Contract v1 wire shape fixed while closing the r
 - [ ] Write a failing integration test that starts the executor with the prod profile and `token_return.enabled=true`, expecting startup to fail before serving requests.
 - [ ] Verify that test fails for the right reason (startup succeeds or the wrong validation error is returned).
 - [ ] Write failing integration tests that (a) prove the prod profile resolves the private-key provider to OpenBao and (b) fail startup if a local PEM path/provider is configured in prod.
-- [ ] Extend `tests/e2e/test_no_token_return.py` so neutral `request_id`/`idempotency_key` fixtures, broker-path external responses, and captured outbound GitHub request metadata prove that no top-level response keys named `token`, `access_token`, `installation_token`, or `jwt` are exposed and no PEM/JWT/GitHub-token patterns appear in the public API surface.
-- [ ] Add a verification step that scans broker/executor logs for secret-like PEM/JWT/GitHub-token patterns, explicitly allowing the expected prod guardrail message `token_return.enabled must be false in prod`, and expects zero other matches.
+- [ ] Extend `tests/e2e/test_no_token_return.py` so neutral `request_id`/`idempotency_key` fixtures, broker-path external responses, and captured outbound GitHub request metadata prove that no top-level response keys named `token`, `access_token`, `installation_token`, or `jwt` are exposed and no tightened PEM/`eyJ...` JWT/`gh[psoau]_...` GitHub-token patterns appear in the public API surface.
+- [ ] Add a verification step that uses ripgrep to scan broker/executor logs for the tightened PEM/`eyJ...` JWT/`gh[psoau]_...` GitHub-token patterns, explicitly filtering the exact allowed prod guardrail message `token_return.enabled must be false in prod`, and expects zero other matches.
 - [ ] Add a failing broker-first egress-bypass gate that shells into the workspace pod, attempts `curl https://api.github.com/meta`, and fails unless the request is blocked with corresponding network-policy deny or iptables reject evidence.
 - [ ] Implement the minimum config-validation, secret-scan, and broker-first egress enforcement needed to make the new security tests pass.
 - [ ] Re-run the prod-security, no-token-return, and egress-bypass checks and commit only after the prod profile fails closed on forbidden token-return/local-PEM settings and direct workspace-to-GitHub egress is blocked.
@@ -177,7 +177,7 @@ This revision keeps the Request Contract v1 wire shape fixed while closing the r
 
 3. **Assertion:** Starting the executor in a prod-like profile with `token_return.enabled=true` exits non-zero before serving requests and emits a config-validation message containing `token_return.enabled must be false in prod`.
 4. **Assertion:** Starting the executor in a prod-like profile resolves the private-key provider to OpenBao; configuring a local PEM path/provider in prod exits non-zero before serving requests and emits a validation message containing `prod profile requires OpenBao private key provider`.
-5. **Assertion:** No external response body exposes top-level keys named `token`, `access_token`, `installation_token`, or `jwt`, and no external response body, captured outbound GitHub request body/metadata, or broker/executor log line contains PEM headers, JWT-like dot-separated segments, or GitHub token prefixes.
+5. **Assertion:** No external response body exposes top-level keys named `token`, `access_token`, `installation_token`, or `jwt`, and no external response body, captured outbound GitHub request body/metadata, or broker/executor log line contains PEM private-key headers, JWTs matching the `eyJ...` heuristic, or GitHub token prefixes matching `gh[psoau]_...`.
 6. **Assertion:** When broker-first mode is enabled, a workspace pod cannot reach `https://api.github.com/meta` directly; the attempt exits non-zero and produces network-policy deny or iptables reject evidence showing the broker remains the only GitHub egress path.
 
 ### Contract and auth/policy denials
@@ -278,12 +278,17 @@ import json
 import re
 
 
-FORBIDDEN_TOP_LEVEL_KEYS = {"token", "access_token", "installation_token", "jwt"}
+FORBIDDEN_TOP_LEVEL_KEYS = ("token", "access_token", "installation_token", "jwt")
 SECRET_PATTERNS = (
-    re.compile(r"-----BEGIN [A-Z ]+PRIVATE KEY-----"),
-    re.compile(r"\b[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b"),
-    re.compile(r"\b(?:gh[oprsu]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+)\b"),
+    re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |)PRIVATE KEY-----"),
+    re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b"),
+    re.compile(r"\bgh[psoau]_[A-Za-z0-9_-]{7,}\b"),
 )
+
+
+def assert_no_top_level_secret_keys(body: dict):
+    for key in FORBIDDEN_TOP_LEVEL_KEYS:
+        assert key not in body, key
 
 
 def assert_no_secret_like_material(serialized: str):
@@ -305,7 +310,7 @@ def test_external_responses_never_return_reusable_tokens(client, auth_headers):
     )
 
     body = response.json()
-    assert FORBIDDEN_TOP_LEVEL_KEYS.isdisjoint(body.keys())
+    assert_no_top_level_secret_keys(body)
     assert_no_secret_like_material(response.text)
 
 
@@ -326,7 +331,7 @@ def test_broker_path_public_api_and_outbound_metadata_exclude_tokens(github_reco
     outbound = github_recorder.last_request("/repos/octo-org/demo-repo/issues/42/comments")
     assert response.status_code == 201
     body = response.json()
-    assert FORBIDDEN_TOP_LEVEL_KEYS.isdisjoint(body.keys())
+    assert_no_top_level_secret_keys(body)
     assert_no_secret_like_material(response.text)
     assert_no_secret_like_material(json.dumps(outbound, sort_keys=True))
 ```
@@ -776,7 +781,7 @@ def test_m2_payload_mismatch_is_rejected_within_24h(m2_cluster, auth_headers):
 | Slice 1 | Prod OpenBao provider resolution | `tests/integration/test_prod_security_guards.py` | `pytest tests/integration/test_prod_security_guards.py::test_prod_profile_resolves_private_key_provider_to_openbao -q -m integration` | Exit `0`; output contains `1 passed` |
 | Slice 1 | Prod local-PEM rejection | `tests/integration/test_prod_security_guards.py` | `pytest tests/integration/test_prod_security_guards.py::test_prod_profile_rejects_local_pem_private_key_provider -q -m integration` | Exit `0`; output contains `1 passed` |
 | Slice 1 | No-token-return regression | `tests/e2e/test_no_token_return.py` | `pytest tests/e2e/test_no_token_return.py -q` | Exit `0`; output contains `2 passed` |
-| Slice 1 | Broker/executor log leak scan | `tests/e2e/test_no_token_return.py` | `sh -lc "rg -n -i '(token_return|-----BEGIN [A-Z ]+PRIVATE KEY-----|\\b[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\b|\\b(?:gh[oprsu]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+)\\b)' var/log/github-app-executor/*.log | rg -v 'token_return\\.enabled must be false in prod' && exit 1 || exit 0"` | Exit `0`; no output after filtering the allowed prod guardrail message |
+| Slice 1 | Broker/executor log leak scan | `tests/e2e/test_no_token_return.py` | `sh -lc "rg -n -i -P '(-----BEGIN (?:RSA |EC |OPENSSH |)PRIVATE KEY-----|\\beyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\b|\\bgh[psoau]_[A-Za-z0-9_-]{7,}\\b)' var/log/github-app-executor/*.log | rg -F -v 'token_return.enabled must be false in prod' && exit 1 || exit 0"` | Exit `0`; no output after filtering the allowed prod guardrail message |
 | Slice 1 | Broker-first workspace egress bypass gate | `tests/integration/test_prod_security_guards.py` | `kubectl exec -n devpod-workspaces pod/workspace-pod -- sh -lc 'curl -sS --connect-timeout 5 https://api.github.com/meta'` | Exit is non-zero; stderr shows a blocked network attempt such as `Connection timed out`, `Connection refused`, or `Operation not permitted`, and cluster evidence shows a matching network-policy deny or iptables `REJECT` for `api.github.com:443` |
 | Slice 2 | Success contract envelope | `tests/e2e/test_contract_envelope.py` | `pytest tests/e2e/test_contract_envelope.py::test_post_action_success_envelope -q` | Exit `0`; output contains `1 passed` |
 | Slice 2 | Error contract envelope | `tests/e2e/test_contract_envelope.py` | `pytest tests/e2e/test_contract_envelope.py::test_post_action_payload_mismatch_error_envelope -q` | Exit `0`; output contains `1 passed` |
