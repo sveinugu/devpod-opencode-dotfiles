@@ -13,6 +13,12 @@ def auth_headers() -> dict[str, str]:
 
 
 @pytest.fixture
+def auth_headers_identity_b() -> dict[str, str]:
+    """Alternate identity headers for cross-identity tests."""
+    return {"X-Workload-Identity": "devpod-workspaces/other-agent"}
+
+
+@pytest.fixture
 def fake_github_client() -> FakeGitHubClient:
     return FakeGitHubClient()
 
