@@ -4,7 +4,7 @@
 
 **Goal:** Align the executor implementation with Request Contract v1, close the remaining broker/auth preconditions, and add enforceable security, persona, and idempotency gates.
 
-**Architecture:** Keep the broker-first path thin: Python + FastAPI executor, FastMCP thin client, Kubernetes projected ServiceAccount token auth with TokenReview, OPA sidecar policy, and OpenBao-only private-key custody. M1 remains single-replica with in-memory idempotency explicitly documented as process-lifetime only; M2 upgrades to Redis-backed durable dedupe with a minimum 24-hour retention window.
+**Architecture:** Keep the broker-first path thin: Python + FastAPI executor, FastMCP thin client, Kubernetes projected ServiceAccount token auth with TokenReview, broker-issued authorization decisions that invoke an OPA sidecar as the policy evaluation engine, and OpenBao-only private-key custody. M1 remains single-replica with in-memory idempotency explicitly documented as process-lifetime only; M2 upgrades to Redis-backed durable dedupe with a minimum 24-hour retention window.
 
 **Tech Stack:** Python, FastAPI, pytest, FastMCP, Kubernetes TokenRequest/TokenReview, OPA, OpenBao, Redis
 
@@ -14,7 +14,7 @@ This revision keeps the Request Contract v1 wire shape fixed while closing the r
 
 ## Changelog
 
-- Added Slice 0 as a required precondition-closure gate that records the chosen broker deployment boundary, exact TokenReview claim set, and the Redis-backed M2 dedupe decision before Slice 1 may begin.
+- Added Slice 0 as a required precondition-closure gate that records the chosen broker deployment boundary, stable-vs-dynamic TokenReview claims, and the Redis-backed M2 dedupe decision before Slice 1 may begin.
 - Added prod security-enforcement tasks and tests for `token_return.enabled` fail-fast behavior, OpenBao-only private-key custody, response no-token-return coverage, and mandatory broker/executor log scanning.
 - Added negative-path auth/policy test specifications for invalid projected ServiceAccount tokens and OPA denies, including required no-mutation and audit-log assertions.
 - Added cross-identity idempotency coverage so the same `request_id` + `idempotency_key` from a different authenticated workload identity does not collide with the original request scope.
@@ -22,13 +22,18 @@ This revision keeps the Request Contract v1 wire shape fixed while closing the r
 - Added slice ownership to every verification-matrix row, including `tests/e2e/test_health_readiness.py`, and expanded the matrix with concrete commands and expected outputs for the new gates.
 - Replaced legacy response examples using `state`/`replayed` envelopes with Request Contract v1 response assertions from `docs/superpowers/specs/2026-05-20-github-app-integration-design.md` §8.1 so external responses are tested against the current contract shape.
 - Added explicit acceptance criteria for contract shape, precondition closure, security guardrails, persona formatting, TokenReview/OPA denial handling, M1 in-memory idempotency lifetime, cross-identity scope, and M2 durable 24-hour dedupe retention.
+- Updated the no-token-return spec to use neutral request IDs, forbid top-level token-style response keys, and scan for secret-like PEM/JWT/GitHub-token patterns instead of raw substring bans.
+- Reworded policy authority so the broker is the authoritative PDP, with OPA invoked only as the policy evaluation engine that supplies the policy reason.
+- Split the Slice 0 TokenReview claim contract into stable exact claims and dynamic pod claims validated by presence/shape rather than literal pod values.
+- Relaxed the log-scan gate to allow the expected prod guardrail message `token_return.enabled must be false in prod` while still failing on secret-like patterns.
+- Added a Slice 1 broker-first egress-bypass gate that proves workspace pods cannot call `api.github.com` directly when broker-first mode is enabled.
 
 ## Locked constraints
 
 - External wire contract stays Request Contract v1 per `docs/superpowers/specs/2026-05-20-github-app-integration-design.md` §8.1; do not add top-level fields to external examples or responses.
 - External broker/executor: Python + FastAPI.
 - Agent-facing integration: FastMCP thin client only.
-- AuthN/AuthZ: Kubernetes projected ServiceAccount tokens issued by TokenRequest, validated by TokenReview; OPA sidecar is authoritative for policy.
+- AuthN/AuthZ: Kubernetes projected ServiceAccount tokens issued by TokenRequest, validated by TokenReview; the broker is the authoritative PDP and invokes the OPA sidecar as its policy evaluation engine.
 - Secret custody: OpenBao is the only allowed GitHub App private-key source in prod-like environments.
 - Security: no token-return flows.
 - Idempotency: M1 is single-replica, in-memory only, and must document restart/loss-of-memory behavior; M2 must retain dedupe records for at least 24 hours and work across replicas.
@@ -37,7 +42,8 @@ This revision keeps the Request Contract v1 wire shape fixed while closing the r
 
 - Prod-like startup must fail closed if `token_return.enabled=true`.
 - Prod-like startup must fail closed if the GitHub App private-key provider resolves to anything other than OpenBao or if a local PEM path is configured.
-- External API responses, captured outbound GitHub requests, and broker/executor logs must never include reusable GitHub tokens, JWTs, PEM material, or token-return fields.
+- External API responses must not expose top-level keys named `token`, `access_token`, `installation_token`, or `jwt`, and external responses, captured outbound GitHub requests, and broker/executor logs must never include PEM headers, JWT-like segments, or GitHub token prefixes.
+- When broker-first mode is enabled, workspace pods must be unable to call GitHub APIs directly; only the broker may hold GitHub egress.
 - Slice ownership: Slice 1 owns these enforcement checks; Slice 2 depends on them for auth/error-path coverage.
 
 ## Implementation slices
@@ -56,17 +62,17 @@ This revision keeps the Request Contract v1 wire shape fixed while closing the r
 1. **Broker deployment boundary / stack:** `Broker-as-Pod with ingress`
    - **Rationale:** Matches the design’s in-cluster external broker boundary without introducing an extra identity layer or collapsing the trust boundary into the FastMCP client.
 2. **Projected ServiceAccount token claim set used for TokenReview:**
-   - `aud`: `["github-broker"]`
-   - `iss`: `"https://kubernetes.default.svc.cluster.local"`
-   - `sub`: `"system:serviceaccount:devpod-workspaces:opencode-agent"`
-   - `kubernetes.io/serviceaccount/namespace`: `"devpod-workspaces"`
-   - `kubernetes.io/serviceaccount/service-account.name`: `"opencode-agent"`
-   - `kubernetes.io/serviceaccount/service-account.uid`: `"9f4f4b3f-7c6d-4c46-9c18-7d3b0a7e5b21"`
-   - `kubernetes.io/pod/name`: `"workspace-7f9d8c6d4c-j8m2q"`
-   - `kubernetes.io/pod/uid`: `"6b7c0e8d-2b2f-4b7e-b839-1d7f50633a72"`
-   - TokenReview `status.user.username`: `"system:serviceaccount:devpod-workspaces:opencode-agent"`
-   - TokenReview `status.user.uid`: `"9f4f4b3f-7c6d-4c46-9c18-7d3b0a7e5b21"`
-   - TokenReview `status.user.groups`: `["system:serviceaccounts", "system:serviceaccounts:devpod-workspaces", "system:authenticated"]`
+   - **Stable exact claims (assert literally):**
+     - `aud`: `["github-broker"]`
+     - `iss`: `"https://kubernetes.default.svc.cluster.local"`
+     - `kubernetes.io/serviceaccount/namespace`: `"devpod-workspaces"`
+     - `kubernetes.io/serviceaccount/service-account.name`: `"opencode-agent"`
+   - **Dynamic claims (assert presence/shape only):**
+     - `kubernetes.io/pod/name`: present and matches `^workspace-[a-z0-9-]+$`
+     - `kubernetes.io/pod/uid`: present and matches UUID shape `^[0-9a-f-]{36}$`
+   - **Derived identity checks:**
+     - TokenReview `status.user.username`: `"system:serviceaccount:devpod-workspaces:opencode-agent"`
+     - TokenReview `status.user.groups`: `["system:serviceaccounts", "system:serviceaccounts:devpod-workspaces", "system:authenticated"]`
 3. **M2 durable dedupe backend:** `Redis`
    - **Rationale:** Native TTL support makes the minimum 24-hour dedupe window explicit and cross-replica replay behavior simpler than a bespoke SQL retention job.
 
@@ -87,10 +93,11 @@ This revision keeps the Request Contract v1 wire shape fixed while closing the r
 - [ ] Write a failing integration test that starts the executor with the prod profile and `token_return.enabled=true`, expecting startup to fail before serving requests.
 - [ ] Verify that test fails for the right reason (startup succeeds or the wrong validation error is returned).
 - [ ] Write failing integration tests that (a) prove the prod profile resolves the private-key provider to OpenBao and (b) fail startup if a local PEM path/provider is configured in prod.
-- [ ] Extend `tests/e2e/test_no_token_return.py` so broker-path external responses and captured outbound GitHub request metadata prove that tokens/JWTs/PEM material never appear in the public API surface.
-- [ ] Add a verification step that scans broker/executor logs for token, JWT, PEM, and `token_return` leaks and expects zero matches.
-- [ ] Implement the minimum config-validation and provider-resolution changes needed to make the new security tests pass.
-- [ ] Re-run the prod-security and no-token-return tests and commit only after the prod profile fails closed on forbidden token-return/local-PEM settings.
+- [ ] Extend `tests/e2e/test_no_token_return.py` so neutral `request_id`/`idempotency_key` fixtures, broker-path external responses, and captured outbound GitHub request metadata prove that no top-level response keys named `token`, `access_token`, `installation_token`, or `jwt` are exposed and no PEM/JWT/GitHub-token patterns appear in the public API surface.
+- [ ] Add a verification step that scans broker/executor logs for secret-like PEM/JWT/GitHub-token patterns, explicitly allowing the expected prod guardrail message `token_return.enabled must be false in prod`, and expects zero other matches.
+- [ ] Add a failing broker-first egress-bypass gate that shells into the workspace pod, attempts `curl https://api.github.com/meta`, and fails unless the request is blocked with corresponding network-policy deny or iptables reject evidence.
+- [ ] Implement the minimum config-validation, secret-scan, and broker-first egress enforcement needed to make the new security tests pass.
+- [ ] Re-run the prod-security, no-token-return, and egress-bypass checks and commit only after the prod profile fails closed on forbidden token-return/local-PEM settings and direct workspace-to-GitHub egress is blocked.
 
 ### Slice 2: Lock the external contract and auth/policy denials
 
@@ -106,7 +113,7 @@ This revision keeps the Request Contract v1 wire shape fixed while closing the r
 
 - [ ] Write failing end-to-end tests that assert Request Contract v1 success and error envelopes for `POST /v1/action` and `GET /v1/status/{request_id}`.
 - [ ] Write a failing integration test where an invalid/expired/wrong-audience projected ServiceAccount token returns `INVALID_WORKLOAD_TOKEN`, performs no GitHub mutation, and writes an auth-failure audit event keyed by `request_id`.
-- [ ] Write a failing integration test where OPA denies an otherwise well-formed mutating request, returns `POLICY_DENY`, performs no GitHub mutation, and writes a deny audit event including the validated workload identity.
+- [ ] Write a failing integration test where the broker invokes OPA for an otherwise well-formed mutating request, returns `POLICY_DENY`, performs no GitHub mutation, and writes a deny audit event showing the broker issued the final decision while OPA supplied the policy reason.
 - [ ] Verify all new contract/auth/policy tests fail for the expected missing behavior rather than fixture mistakes.
 - [ ] Implement the smallest response-model, TokenReview, OPA, and audit-log changes needed to satisfy the contract and denial tests.
 - [ ] Re-run the contract tests, auth/policy failure tests, and readiness smoke tests; commit only after negative-path tests prove no mutation and auditable deny behavior.
@@ -163,47 +170,49 @@ This revision keeps the Request Contract v1 wire shape fixed while closing the r
 
 ### Preconditions
 
-1. **Assertion:** Slice 0 explicitly records the chosen broker stack as `Broker-as-Pod with ingress`, the exact projected ServiceAccount token claim set listed above, and the `Redis` M2 dedupe backend choice.
+1. **Assertion:** Slice 0 explicitly records the chosen broker stack as `Broker-as-Pod with ingress`, the stable exact TokenReview claims (`aud`, `iss`, namespace, serviceAccount name) plus the dynamic pod-claim shape checks listed above, and the `Redis` M2 dedupe backend choice.
 2. **Assertion:** The plan text states that Slice 1 cannot begin until those three Slice 0 decisions are preserved in the implementation files listed for Slice 0.
 
 ### Security enforcement
 
 3. **Assertion:** Starting the executor in a prod-like profile with `token_return.enabled=true` exits non-zero before serving requests and emits a config-validation message containing `token_return.enabled must be false in prod`.
 4. **Assertion:** Starting the executor in a prod-like profile resolves the private-key provider to OpenBao; configuring a local PEM path/provider in prod exits non-zero before serving requests and emits a validation message containing `prod profile requires OpenBao private key provider`.
-5. **Assertion:** No external response body, captured outbound GitHub request body/metadata, or broker/executor log line contains GitHub installation tokens, App JWTs, PEM material, or a token-return field.
+5. **Assertion:** No external response body exposes top-level keys named `token`, `access_token`, `installation_token`, or `jwt`, and no external response body, captured outbound GitHub request body/metadata, or broker/executor log line contains PEM headers, JWT-like dot-separated segments, or GitHub token prefixes.
+6. **Assertion:** When broker-first mode is enabled, a workspace pod cannot reach `https://api.github.com/meta` directly; the attempt exits non-zero and produces network-policy deny or iptables reject evidence showing the broker remains the only GitHub egress path.
 
 ### Contract and auth/policy denials
 
-6. **Assertion:** Every successful external `POST /v1/action` response has top-level keys exactly `request_id`, `status`, and `result`; `status` equals `"ok"`; no top-level `error`, `state`, `replayed`, `token`, or `internal_state` key is present.
-7. **Assertion:** Every successful external `GET /v1/status/{request_id}` response has top-level keys exactly `request_id`, `status`, and `result`; `status` equals `"ok"`; no legacy top-level keys are present.
-8. **Assertion:** Every external error response has top-level keys exactly `request_id`, `status`, and `error`; `status` equals `"error"`; `error` has keys exactly `code`, `message`, `retryable`, and `details`.
-9. **Assertion:** An invalid/expired/wrong-audience projected ServiceAccount token returns `status="error"`, `error.code="INVALID_WORKLOAD_TOKEN"`, produces no GitHub mutation, and writes an audit event containing the `request_id`, the failed TokenReview audience check, and an auth-deny decision.
-10. **Assertion:** An OPA-denied mutating request returns `status="error"`, `error.code="POLICY_DENY"`, produces no GitHub mutation, and writes an audit event containing `request_id`, validated workload identity, deny decision, and policy reason.
+7. **Assertion:** Every successful external `POST /v1/action` response has top-level keys exactly `request_id`, `status`, and `result`; `status` equals `"ok"`; no top-level `error`, `state`, `replayed`, `token`, or `internal_state` key is present.
+8. **Assertion:** Every successful external `GET /v1/status/{request_id}` response has top-level keys exactly `request_id`, `status`, and `result`; `status` equals `"ok"`; no legacy top-level keys are present.
+9. **Assertion:** Every external error response has top-level keys exactly `request_id`, `status`, and `error`; `status` equals `"error"`; `error` has keys exactly `code`, `message`, `retryable`, and `details`.
+10. **Assertion:** An invalid/expired/wrong-audience projected ServiceAccount token returns `status="error"`, `error.code="INVALID_WORKLOAD_TOKEN"`, produces no GitHub mutation, and writes an audit event containing the `request_id`, the failed TokenReview audience check, and an auth-deny decision.
+11. **Assertion:** A policy-denied request records the stable exact TokenReview claims literally (`aud`, `iss`, namespace, serviceAccount name), validates dynamic pod claims by presence/shape only, and exposes the normalized workload identity without pinning literal pod values.
+12. **Assertion:** A broker-issued policy deny returns `status="error"`, `error.code="POLICY_DENY"`, produces no GitHub mutation, and writes an audit event containing `request_id`, validated workload identity, `decision_source="broker"`, `policy_engine="opa"`, and the OPA policy reason.
 
 ### Internal-state labeling
 
-11. **Assertion:** Any non-external diagnostic serializer output that includes internal fields nests them under one top-level `internal_state` object and labels every nested key with `(internal-only)`.
+13. **Assertion:** Any non-external diagnostic serializer output that includes internal fields nests them under one top-level `internal_state` object and labels every nested key with `(internal-only)`.
 
 ### Persona format
 
-12. **Assertion:** Every mutating comment body and PR body emitted by the broker begins with `[Persona: <persona>]` on the first line.
-13. **Assertion:** Every mutating comment body and PR body emitted by the broker ends with `— Posted by persona <persona> via GitHub App`.
-14. **Assertion:** A broker-path end-to-end test that captures the final outbound GitHub request body proves the emitted payload, not just formatter helpers, contains the canonical persona markers.
+14. **Assertion:** Every mutating comment body and PR body emitted by the broker begins with `[Persona: <persona>]` on the first line.
+15. **Assertion:** Every mutating comment body and PR body emitted by the broker ends with `— Posted by persona <persona> via GitHub App`.
+16. **Assertion:** A broker-path end-to-end test that captures the final outbound GitHub request body proves the emitted payload, not just formatter helpers, contains the canonical persona markers.
 
 ### Idempotency
 
-15. **Assertion:** In M1, replaying the same mutating request with the same authenticated workload identity, `repo`, `action`, `request_id`, and `idempotency_key` during one live process returns the original canonical success result and does not create a second GitHub artifact.
-16. **Assertion:** In M1, replaying the same `request_id` and `idempotency_key` with a semantically different payload returns `status="error"`, `error.code="DUPLICATE_PAYLOAD_MISMATCH"`, and creates no additional GitHub artifact.
-17. **Assertion:** In M1, sending the same `request_id` and `idempotency_key` from a different authenticated workload identity does not collide with the original dedupe record; an authorized second identity produces a distinct artifact, while an unauthorized second identity is rejected by policy before mutation.
-18. **Assertion:** In M1, restarting the single replica clears the in-memory dedupe store, and the runbook states that replay protection is limited to the lifetime of that process.
-19. **Assertion:** In M2, replaying the same mutating request on a different replica at any time before 24 hours have elapsed returns the original canonical result and creates no duplicate GitHub artifact.
-20. **Assertion:** In M2, a same-key/different-payload replay submitted within 24 hours returns `DUPLICATE_PAYLOAD_MISMATCH` across replicas.
-21. **Assertion:** M1 and M2 audit logs record first-seen, replay-hit, payload-mismatch, and cross-identity events keyed by `request_id` + `idempotency_key` + validated workload identity.
+17. **Assertion:** In M1, replaying the same mutating request with the same authenticated workload identity, `repo`, `action`, `request_id`, and `idempotency_key` during one live process returns the original canonical success result and does not create a second GitHub artifact.
+18. **Assertion:** In M1, replaying the same `request_id` and `idempotency_key` with a semantically different payload returns `status="error"`, `error.code="DUPLICATE_PAYLOAD_MISMATCH"`, and creates no additional GitHub artifact.
+19. **Assertion:** In M1, sending the same `request_id` and `idempotency_key` from a different authenticated workload identity does not collide with the original dedupe record; an authorized second identity produces a distinct artifact, while an unauthorized second identity is rejected by policy before mutation.
+20. **Assertion:** In M1, restarting the single replica clears the in-memory dedupe store, and the runbook states that replay protection is limited to the lifetime of that process.
+21. **Assertion:** In M2, replaying the same mutating request on a different replica at any time before 24 hours have elapsed returns the original canonical result and creates no duplicate GitHub artifact.
+22. **Assertion:** In M2, a same-key/different-payload replay submitted within 24 hours returns `DUPLICATE_PAYLOAD_MISMATCH` across replicas.
+23. **Assertion:** M1 and M2 audit logs record first-seen, replay-hit, payload-mismatch, and cross-identity events keyed by `request_id` + `idempotency_key` + validated workload identity.
 
 ### Verification matrix items
 
-22. **Assertion:** Every verification-matrix row below names the slice that introduces/owns the referenced test file path.
-23. **Assertion:** `tests/integration/test_prod_security_guards.py`, `tests/e2e/test_no_token_return.py`, `tests/e2e/test_contract_envelope.py`, `tests/integration/test_auth_policy_failures.py`, `tests/e2e/test_health_readiness.py`, `tests/e2e/test_persona_format.py`, `tests/integration/test_internal_state_labeling.py`, `tests/integration/test_m1_idempotency_process_lifetime.py`, and `tests/integration/test_m2_idempotency_retention.py` each pass with exit code `0` when their listed verification commands are run.
+24. **Assertion:** Every verification-matrix row below names the slice that introduces/owns the referenced test file path.
+25. **Assertion:** `tests/integration/test_prod_security_guards.py`, `tests/e2e/test_no_token_return.py`, `tests/e2e/test_contract_envelope.py`, `tests/integration/test_auth_policy_failures.py`, `tests/e2e/test_health_readiness.py`, `tests/e2e/test_persona_format.py`, `tests/integration/test_internal_state_labeling.py`, `tests/integration/test_m1_idempotency_process_lifetime.py`, and `tests/integration/test_m2_idempotency_retention.py` each pass with exit code `0` when their listed verification commands are run.
 
 ## Contract-test specifications
 
@@ -265,12 +274,29 @@ def test_prod_profile_rejects_local_pem_private_key_provider(start_executor, tmp
 ### `tests/e2e/test_no_token_return.py`
 
 ```python
+import json
+import re
+
+
+FORBIDDEN_TOP_LEVEL_KEYS = {"token", "access_token", "installation_token", "jwt"}
+SECRET_PATTERNS = (
+    re.compile(r"-----BEGIN [A-Z ]+PRIVATE KEY-----"),
+    re.compile(r"\b[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b"),
+    re.compile(r"\b(?:gh[oprsu]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+)\b"),
+)
+
+
+def assert_no_secret_like_material(serialized: str):
+    for pattern in SECRET_PATTERNS:
+        assert pattern.search(serialized) is None, pattern.pattern
+
+
 def test_external_responses_never_return_reusable_tokens(client, auth_headers):
     response = client.post(
         "/v1/action",
         headers=auth_headers,
         json={
-            "request_id": "req_no_token",
+            "request_id": "req_public_api_scrub",
             "repo": "octo-org/demo-repo",
             "action": "read-pr",
             "persona": "reviewer",
@@ -278,11 +304,9 @@ def test_external_responses_never_return_reusable_tokens(client, auth_headers):
         },
     )
 
-    serialized = response.text.lower()
-    assert "token" not in serialized
-    assert "jwt" not in serialized
-    assert "private_key" not in serialized
-    assert "-----begin" not in serialized
+    body = response.json()
+    assert FORBIDDEN_TOP_LEVEL_KEYS.isdisjoint(body.keys())
+    assert_no_secret_like_material(response.text)
 
 
 def test_broker_path_public_api_and_outbound_metadata_exclude_tokens(github_recorder, broker_client, auth_headers):
@@ -290,21 +314,21 @@ def test_broker_path_public_api_and_outbound_metadata_exclude_tokens(github_reco
         "/v1/action",
         headers=auth_headers,
         json={
-            "request_id": "req_no_token_broker_path",
+            "request_id": "req_public_api_scrub_broker_path",
             "repo": "octo-org/demo-repo",
             "action": "comment-pr",
             "persona": "reviewer",
-            "idempotency_key": "idem_no_token_broker_path",
+            "idempotency_key": "idem_public_api_scrub_broker_path",
             "payload": {"pr_number": 42, "body": "Token scrub check"},
         },
     )
 
     outbound = github_recorder.last_request("/repos/octo-org/demo-repo/issues/42/comments")
     assert response.status_code == 201
-    assert "token" not in response.text.lower()
-    assert "authorization" not in outbound["json"]
-    assert "jwt" not in str(outbound).lower()
-    assert "-----begin" not in str(outbound).lower()
+    body = response.json()
+    assert FORBIDDEN_TOP_LEVEL_KEYS.isdisjoint(body.keys())
+    assert_no_secret_like_material(response.text)
+    assert_no_secret_like_material(json.dumps(outbound, sort_keys=True))
 ```
 
 ### `tests/e2e/test_contract_envelope.py`
@@ -386,6 +410,8 @@ def test_status_lookup_success_envelope(client, auth_headers):
 ### `tests/integration/test_auth_policy_failures.py`
 
 ```python
+import re
+
 import pytest
 
 
@@ -443,12 +469,24 @@ def test_opa_deny_returns_policy_deny_and_no_mutation(
     body = response.json()
     assert body["status"] == "error"
     assert body["error"]["code"] == "POLICY_DENY"
+    assert body["error"]["details"]["decision_source"] == "broker"
+    assert body["error"]["details"]["policy_engine"] == "opa"
     assert github_recorder.count("req_policy_deny") == 0
 
     audit = broker_server.audit_event("req_policy_deny")
     assert audit["decision"] == "policy_deny"
+    assert audit["decision_source"] == "broker"
+    assert audit["policy_engine"] == "opa"
     assert audit["validated_workload_identity"] == "system:serviceaccount:devpod-workspaces:opencode-agent"
     assert audit["policy_reason"] == "repo_not_allowed"
+
+    claims = audit["token_review"]["claims"]
+    assert claims["aud"] == ["github-broker"]
+    assert claims["iss"] == "https://kubernetes.default.svc.cluster.local"
+    assert claims["kubernetes.io/serviceaccount/namespace"] == "devpod-workspaces"
+    assert claims["kubernetes.io/serviceaccount/service-account.name"] == "opencode-agent"
+    assert re.fullmatch(r"workspace-[a-z0-9-]+", claims["kubernetes.io/pod/name"])
+    assert re.fullmatch(r"[0-9a-f-]{36}", claims["kubernetes.io/pod/uid"])
 ```
 
 ### `tests/e2e/test_persona_format.py`
@@ -738,12 +776,13 @@ def test_m2_payload_mismatch_is_rejected_within_24h(m2_cluster, auth_headers):
 | Slice 1 | Prod OpenBao provider resolution | `tests/integration/test_prod_security_guards.py` | `pytest tests/integration/test_prod_security_guards.py::test_prod_profile_resolves_private_key_provider_to_openbao -q -m integration` | Exit `0`; output contains `1 passed` |
 | Slice 1 | Prod local-PEM rejection | `tests/integration/test_prod_security_guards.py` | `pytest tests/integration/test_prod_security_guards.py::test_prod_profile_rejects_local_pem_private_key_provider -q -m integration` | Exit `0`; output contains `1 passed` |
 | Slice 1 | No-token-return regression | `tests/e2e/test_no_token_return.py` | `pytest tests/e2e/test_no_token_return.py -q` | Exit `0`; output contains `2 passed` |
-| Slice 1 | Broker/executor log leak scan | `tests/e2e/test_no_token_return.py` | `! rg -n -i '(jwt|-----BEGIN [A-Z ]+PRIVATE KEY-----|token_return|installation[_-]?token|x-access-token)' var/log/github-app-executor/*.log` | Exit `0`; no output |
+| Slice 1 | Broker/executor log leak scan | `tests/e2e/test_no_token_return.py` | `sh -lc "rg -n -i '(token_return|-----BEGIN [A-Z ]+PRIVATE KEY-----|\\b[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\b|\\b(?:gh[oprsu]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+)\\b)' var/log/github-app-executor/*.log | rg -v 'token_return\\.enabled must be false in prod' && exit 1 || exit 0"` | Exit `0`; no output after filtering the allowed prod guardrail message |
+| Slice 1 | Broker-first workspace egress bypass gate | `tests/integration/test_prod_security_guards.py` | `kubectl exec -n devpod-workspaces pod/workspace-pod -- sh -lc 'curl -sS --connect-timeout 5 https://api.github.com/meta'` | Exit is non-zero; stderr shows a blocked network attempt such as `Connection timed out`, `Connection refused`, or `Operation not permitted`, and cluster evidence shows a matching network-policy deny or iptables `REJECT` for `api.github.com:443` |
 | Slice 2 | Success contract envelope | `tests/e2e/test_contract_envelope.py` | `pytest tests/e2e/test_contract_envelope.py::test_post_action_success_envelope -q` | Exit `0`; output contains `1 passed` |
 | Slice 2 | Error contract envelope | `tests/e2e/test_contract_envelope.py` | `pytest tests/e2e/test_contract_envelope.py::test_post_action_payload_mismatch_error_envelope -q` | Exit `0`; output contains `1 passed` |
 | Slice 2 | Status envelope | `tests/e2e/test_contract_envelope.py` | `pytest tests/e2e/test_contract_envelope.py::test_status_lookup_success_envelope -q` | Exit `0`; output contains `1 passed` |
 | Slice 2 | Invalid workload token deny/no mutation | `tests/integration/test_auth_policy_failures.py` | `pytest tests/integration/test_auth_policy_failures.py::test_invalid_workload_token_returns_invalid_workload_token_and_no_mutation -q -m integration` | Exit `0`; output contains `1 passed` |
-| Slice 2 | OPA deny/no mutation | `tests/integration/test_auth_policy_failures.py` | `pytest tests/integration/test_auth_policy_failures.py::test_opa_deny_returns_policy_deny_and_no_mutation -q -m integration` | Exit `0`; output contains `1 passed` |
+| Slice 2 | Broker-issued policy deny via OPA | `tests/integration/test_auth_policy_failures.py` | `pytest tests/integration/test_auth_policy_failures.py::test_opa_deny_returns_policy_deny_and_no_mutation -q -m integration` | Exit `0`; output contains `1 passed` |
 | Slice 2 | Health endpoint | `tests/e2e/test_health_readiness.py` | `curl -sS -o /tmp/healthz.json -w '%{http_code}\n' http://127.0.0.1:8000/healthz && jq -e '.status == "ok"' /tmp/healthz.json` | First command prints `200`; `jq` exits `0` and prints `true` |
 | Slice 2 | Readiness endpoint | `tests/e2e/test_health_readiness.py` | `curl -sS -o /tmp/readyz.json -w '%{http_code}\n' http://127.0.0.1:8000/readyz && jq -e '.status == "ok" and .token_review == "ok" and .opa == "ok" and .openbao == "ok"' /tmp/readyz.json` | First command prints `200`; `jq` exits `0` and prints `true` |
 | Slice 2 | Success curl smoke | `tests/e2e/test_contract_envelope.py` | `curl -sS -o /tmp/action-ok.json -w '%{http_code}\n' -H 'Authorization: Bearer VALID_TOKEN' -H 'Content-Type: application/json' -d '{"request_id":"req_contract_ok","repo":"octo-org/demo-repo","action":"comment-pr","persona":"reviewer","idempotency_key":"idem_contract_ok","payload":{"pr_number":42,"body":"Please tighten the policy wording."}}' http://127.0.0.1:8000/v1/action && jq -e '.request_id == "req_contract_ok" and .status == "ok" and (.result | has("comment_id")) and (.result | has("url"))' /tmp/action-ok.json` | First command prints `201`; `jq` exits `0` and prints `true` |
