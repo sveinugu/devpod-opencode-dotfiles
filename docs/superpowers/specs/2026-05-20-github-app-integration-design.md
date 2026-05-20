@@ -2,6 +2,7 @@
 
 Date: 2026-05-20
 Status: Approved design for implementation planning
+Status: Approved for Phase 0 discovery planning when §18.1 unknowns remain; approved for full implementation planning only after those preconditions are resolved.
 Scope: Agent-initiated GitHub actions across multiple repositories using a single GitHub App identity; webhook-driven automation and OpenCode Companion integration are excluded
 
 ## 1. Summary
@@ -172,6 +173,10 @@ All agent-facing operations in v1 use a shared structured envelope.
 - The external broker is authoritative for all allow/deny decisions on mutating GitHub actions.
 - Read actions should also follow a broker-authorized and broker-audited path by default.
 - Every mutating request must carry both `request_id` and `idempotency_key` so caller logs, broker audit logs, and GitHub-visible results can be correlated.
+- `idempotency_key` uniqueness scope is `(caller workload identity, repo, action)`.
+- Minimum dedupe retention window is 24 hours.
+- Duplicate semantics must return the prior canonical result for the same semantic request; if the payload differs for the same dedupe key, reject with explicit error code `DUPLICATE_PAYLOAD_MISMATCH`.
+- Audit logs must record both first-seen and dedupe-hit events keyed by `request_id` + `idempotency_key`.
 
 #### Action payload schemas (v1)
 
@@ -533,6 +538,7 @@ Use only for isolated single-user DevPods, because the private key enters the wo
 - The broker must flag token reuse or delayed use outside the expected action window.
 - Anomaly detection should monitor token issuance frequency, cross-repo reuse patterns, and use outside the expected action window.
 - If the broker returns a raw GitHub installation token, compensating controls are required: issuance/use correlation, strict egress controls, action-binding where feasible, anomaly detection, and clear audit logging.
+- Raw GitHub installation-token return mode is disabled by default in prod-like environments and may be enabled only via explicit exception configuration with mandatory audit tagging and compensating controls.
 
 ## 10. Auth flows
 
