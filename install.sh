@@ -36,8 +36,10 @@ mkdir -p ~/.config
 rm -rf ~/.config/opencode
 ln -sfn ~/dotfiles/.config/opencode ~/.config/opencode
 
-# Install particular skills using npx
-cd ~/.config/opencode && npx -y skills add wondelai/skills/pragmatic-programmer
+# Install particular skills and plugins using npx
+cd ~/.config/opencode \
+&& npx -y skills add wondelai/skills/pragmatic-programmer \
+&& npx -y @bybrawe/opencode-loop
 
 echo "✅ Dotfiles applied: .zshrc and OpenCode config linked."
 
