@@ -6,14 +6,15 @@ Scope: Agent-initiated GitHub actions across multiple repositories using a singl
 
 ## 1. Summary
 
-This design defines a GitHub App integration for opencode agents that lets agents create pull requests and post issue or pull request comments across multiple repositories through a single GitHub App installation. GitHub should see one App identity. Agent personas are represented in comment and PR content plus local audit metadata, not as separate GitHub identities.
+This design defines a GitHub App integration for opencode agents that lets agents create pull requests and post issue or pull request comments across multiple repositories through a single GitHub App installation. GitHub should see one App identity. Agent personas are represented in comment and PR content plus local audit metadata, not as separate GitHub identities. For mutating actions, the external broker is the authoritative allow/deny policy decision point.
 
 The preferred deployment model for DevPods on Kubernetes is:
 
 1. DevPod workload authenticates to an external broker using a projected, audience-bound ServiceAccount token.
 2. The external broker holds the GitHub App private key.
-3. The broker mints GitHub App JWTs and installation tokens and performs GitHub API actions directly.
-4. The DevPod receives structured results, not reusable GitHub tokens.
+3. The external broker is the authoritative policy decision point for all mutating GitHub actions.
+4. The broker mints GitHub App JWTs and installation tokens and performs GitHub API actions directly.
+5. The DevPod receives structured results, not reusable GitHub tokens.
 
 Fallback for isolated single-user DevPods: the GitHub App private key may be mounted into the DevPod as a file through CSI-backed secret delivery, and a local broker/helper may mint tokens locally.
 
@@ -115,7 +116,7 @@ Use **Approach A** as the default. Keep **Approach B** as a documented fallback 
 
 ## 7. Architecture
 
-The system has five main boundaries: a DevPod-local agent request interface, a policy validation layer, a workload-identity link from DevPod to an external broker, the external GitHub App broker, and GitHub itself. Agents submit explicit GitHub actions with repository, target object, persona, and payload. The DevPod validates the request shape and presents workload identity to the broker. The broker authenticates the DevPod, authorizes the repo/persona/action, formats persona-visible content, mints GitHub App authentication material, and performs the GitHub API call. GitHub records one App identity; persona attribution is carried in content and local audit logs.
+The system has five main boundaries: a DevPod-local agent request interface, a non-authoritative preflight validation layer, a workload-identity link from DevPod to an external broker, the external GitHub App broker, and GitHub itself. Agents submit explicit GitHub actions with repository, target object, persona, and payload. The DevPod validates request shape and presents workload identity to the broker. The broker is the authoritative policy decision point for mutating actions: it authenticates the DevPod, authorizes the repo/persona/action, formats persona-visible content, mints GitHub App authentication material, and performs the GitHub API call. GitHub records one App identity; persona attribution is carried in content and local audit logs.
 
 ## 8. Components
 
@@ -127,13 +128,55 @@ The system has five main boundaries: a DevPod-local agent request interface, a p
 
 **Ownership:** DevPod local.
 
+#### Request Contract v1 (normative)
+
+All agent-facing operations in v1 use a shared structured envelope.
+
+**Request envelope**
+
+- `request_id` — required unique correlation identifier for every request
+- `repo` — required repository identifier in `owner/name` form
+- `action` — required action name from the supported v1 action set
+- `persona` — required presentation-layer persona label
+- `caller_identity` — required caller identity as observed by the DevPod-local interface before broker authentication
+- `payload` — required action-specific body fields
+- `idempotency_key` — required for mutating actions; optional for read-only actions
+
+**Response envelope**
+
+- `request_id` — echoes the request correlation identifier
+- `status` — `ok` or `error`
+- `result` — action-specific success payload, present only when `status=ok`
+- `error` — structured error object, present only when `status=error`
+
+**Error object**
+
+- `code` — canonical error code
+- `message` — human-readable, non-secret summary
+- `retryable` — boolean
+- `details` — optional structured diagnostics safe for logs
+
+**Minimal canonical error codes**
+
+- `POLICY_DENY`
+- `INSTALLATION_NOT_FOUND`
+- `GITHUB_PERMISSION_MISMATCH`
+- `UPSTREAM_TIMEOUT`
+- `INVALID_WORKLOAD_TOKEN`
+
+**Normative rules**
+
+- DevPod-local validation may reject malformed requests before broker submission, but it is not authoritative for mutating-policy decisions.
+- The external broker is authoritative for all allow/deny decisions on mutating GitHub actions.
+- Every mutating request must carry both `request_id` and `idempotency_key` so caller logs, broker audit logs, and GitHub-visible results can be correlated.
+
 ### 8.2 Policy and request validation layer
 
-**Responsibility:** Validate required inputs, allowed action types, allowed personas, and allowed repositories.
+**Responsibility:** Perform non-authoritative preflight validation of required inputs, supported action types, and obvious request-shape errors before broker submission.
 
-**Interface:** Input is a structured request; output is allow/deny plus normalized parameters.
+**Interface:** Input is a structured request; output is reject-for-malformed-input or normalized request-for-broker.
 
-**Ownership:** DevPod local, optionally duplicated at the external broker.
+**Ownership:** DevPod local for preflight only; the external broker is authoritative for mutating-policy decisions.
 
 ### 8.3 Broker authentication identity
 
@@ -145,7 +188,7 @@ The system has five main boundaries: a DevPod-local agent request interface, a p
 
 ### 8.4 External GitHub App broker
 
-**Responsibility:** Authenticate DevPod workloads, enforce policy, hold the GitHub App private key, mint App JWTs and installation tokens, and perform GitHub API calls.
+**Responsibility:** Authenticate DevPod workloads, make the authoritative allow/deny decision for mutating actions, hold the GitHub App private key, mint App JWTs and installation tokens, and perform GitHub API calls.
 
 **Interface:** Narrow action endpoints returning structured results rather than generic tokens.
 
@@ -199,9 +242,9 @@ The system has five main boundaries: a DevPod-local agent request interface, a p
 **Steps**
 
 1. Agent submits a structured GitHub request.
-2. DevPod-local validation checks request shape and local policy.
+2. DevPod-local preflight validation checks request shape and required fields only.
 3. DevPod presents a projected, audience-bound ServiceAccount token to the broker.
-4. Broker authenticates the workload and enforces repo/action/persona policy.
+4. Broker authenticates the workload and makes the authoritative repo/action/persona policy decision.
 5. Broker formats final persona-visible content.
 6. Broker mints a GitHub App JWT from the private key it holds.
 7. Broker exchanges the JWT for an installation token.
@@ -242,7 +285,7 @@ The system has five main boundaries: a DevPod-local agent request interface, a p
 **Steps**
 
 1. Agent submits a structured request.
-2. DevPod-local validation checks request shape and local policy.
+2. DevPod-local preflight validation checks request shape and required fields only.
 3. Local formatter applies persona markers.
 4. Local helper reads the GitHub App private key from a CSI-mounted file.
 5. Local helper mints a GitHub App JWT.
@@ -282,7 +325,7 @@ Use only for isolated single-user DevPods, because the private key enters the wo
 **Steps**
 
 1. DevPod authenticates to the broker.
-2. Broker validates caller, repo, persona, and action.
+2. Broker makes the authoritative allow/deny decision for caller, repo, persona, and action.
 3. Broker mints App JWT and installation token.
 4. Broker returns a very short-lived token to the DevPod.
 5. DevPod uses it immediately for one GitHub action.
@@ -305,6 +348,8 @@ Use only for isolated single-user DevPods, because the private key enters the wo
 ### 10.1 DevPod to broker
 
 Preferred mechanism: projected ServiceAccount tokens with broker-specific audience.
+
+For mutating actions, broker authorization remains authoritative even if the DevPod-local preflight layer already accepted the request.
 
 Broker checks should include:
 
@@ -405,6 +450,15 @@ Behavior:
 - Use projected, audience-bound ServiceAccount tokens for workload-to-broker auth.
 - Enforce repo/persona/action policy independently from GitHub permission scopes.
 
+### 12.1.1 Security controls (required for prod-like envs)
+
+- Enforce TLS between DevPod workloads and the broker; prefer mTLS where the platform can support workload certificates cleanly.
+- Validate workload token freshness and audience on every broker request; projected ServiceAccount token guidance comes from Kubernetes service-account and projected-volume documentation: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/ and https://kubernetes.io/docs/concepts/storage/projected-volumes/
+- Add anti-replay protection through single-use nonces for mutating requests or strict freshness windows tied to `request_id` and `idempotency_key`.
+- Apply broker-side rate limiting for mutating endpoints so one compromised workload cannot flood GitHub or the audit pipeline.
+- Define a minimum GitHub App permission matrix per action using GitHub App permission and installation-auth guidance as the boundary reference: https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/choosing-permissions-for-a-github-app and https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation
+- Require audit alerts for anomalous activity such as denied-policy spikes, unusual repo fan-out from one workload, repeated installation lookup failures, or abnormal mutating volume from one persona.
+
 ### 12.2 Multi-tenant risks
 
 Major risks:
@@ -496,6 +550,37 @@ The implementation plan should use behavior-focused verification rather than low
 - GitHub permission mismatch
 - transient network failure with bounded retry behavior
 
+### 15.3 Verification matrix
+
+- **Scenario:** authorized broker-first PR comment
+  - **Commands / harness:** submit a `comment-pr` request through the v1 request contract with `request_id` and `idempotency_key`
+  - **Expected outcome:** broker authorizes, posts the comment, and returns `status=ok`
+  - **Required evidence:** caller log with `request_id`, broker audit entry with the same `request_id`, GitHub comment URL or comment ID containing the expected persona marker
+- **Scenario:** policy deny on disallowed repository
+  - **Commands / harness:** submit a mutating request for a repo outside the workload allowlist
+  - **Expected outcome:** broker returns `POLICY_DENY`; no GitHub mutation occurs
+  - **Required evidence:** caller error response with `request_id`, broker deny audit event with the same `request_id`, and absence of a matching GitHub mutation
+- **Scenario:** invalid workload token
+  - **Commands / harness:** replay a request with wrong audience or expired projected token in a controlled harness
+  - **Expected outcome:** broker returns `INVALID_WORKLOAD_TOKEN`
+  - **Required evidence:** caller error record with `request_id`, broker auth-failure audit event, and no GitHub-side change
+- **Scenario:** installation lookup failure
+  - **Commands / harness:** request an action against a repo not covered by the target installation
+  - **Expected outcome:** broker returns `INSTALLATION_NOT_FOUND`
+  - **Required evidence:** caller error response, broker audit event, and upstream lookup failure evidence correlated by `request_id`
+- **Scenario:** GitHub permission mismatch
+  - **Commands / harness:** run an action requiring a permission not granted to the GitHub App
+  - **Expected outcome:** broker returns `GITHUB_PERMISSION_MISMATCH`
+  - **Required evidence:** caller error response, broker audit event, and captured upstream GitHub error correlated by `request_id`
+- **Scenario:** upstream timeout during a mutating action
+  - **Commands / harness:** inject GitHub API timeout or broker-to-GitHub network fault in a controlled test
+  - **Expected outcome:** bounded retry behavior, then `UPSTREAM_TIMEOUT` if unresolved; no blind duplicate mutation
+  - **Required evidence:** caller error response with `request_id`, broker retry log, and reconciliation record showing whether GitHub state changed
+- **Scenario:** local CSI fallback comment path
+  - **Commands / harness:** run the same request through the local-minting fallback in an isolated DevPod
+  - **Expected outcome:** local helper posts the comment successfully and logs the request without leaking key material
+  - **Required evidence:** caller/local log with `request_id`, local audit record, and GitHub comment URL or ID with the expected persona marker
+
 ## 16. Success criteria
 
 This design is successful when the future implementation can demonstrate all of the following:
@@ -505,7 +590,7 @@ This design is successful when the future implementation can demonstrate all of 
 3. Persona identity is visible in content/metadata and captured in audit logs.
 4. The preferred implementation keeps the GitHub App private key out of the DevPod.
 5. DevPod workloads authenticate to the broker using short-lived workload identity.
-6. Mutating actions are governed by explicit repo/persona/action policy.
+6. Mutating actions are governed by broker-authoritative repo/persona/action policy.
 7. Failures are understandable, auditable, and do not leak secrets.
 8. The design remains implementable as a single focused plan without requiring webhook automation.
 
@@ -527,14 +612,17 @@ Deferred work:
 
 ## 18. Remaining unknowns
 
-These do not block planning, but they should be resolved during implementation planning or environment validation:
+### 18.1 Must decide before implementation planning
 
-1. Exact broker deployment location and technology stack
-2. Exact Kubernetes claims available in the projected ServiceAccount token in the target cluster
-3. Exact repository-to-installation mapping model if the GitHub App is installed at org scope with selective repo access
-4. Exact persona formatting convention for comments and PR bodies
+1. Exact broker deployment boundary and technology stack, because the trust boundary and operational model affect the implementation plan shape.
+2. Exact Kubernetes claims available in the projected ServiceAccount token in the target cluster, because broker authentication and policy mapping depend on those claims.
 
-These unknowns are recorded here so the implementation plan can turn them into concrete tasks instead of leaving them implicit.
+### 18.2 Can resolve during implementation
+
+1. Exact repository-to-installation mapping model if the GitHub App is installed at org scope with selective repo access.
+2. Exact persona formatting convention for comments and PR bodies.
+
+These unknowns are recorded explicitly so the implementation plan can separate hard preconditions from normal implementation tasks.
 
 ## 19. Short next steps
 
