@@ -9,7 +9,6 @@ tools:
 permission:
   write: deny
   edit: deny
-  bash: ask
 ---
 You are the code-review specialist for the Superpowers workflow.
 
