@@ -127,3 +127,21 @@ Expected: validator refuses with `refused: symlink escapes source root` and no f
    Files: `docs/superpowers/runbooks/devpod-persistence-verification.md`  
    Steps: (1) capture `kubectl`/`docker` verification commands; (2) add a symlink-race test; (3) record expected outputs and failures.  
    Commit: `docs(runbook): add persistence and installer security checks`
+
+## User-provided environment answers (2026-05-21)
+
+1. Cluster: "Cluster is currently single-node, but I might want to add extra nodes (e.g. one for control, one per devpod). local-path provisioner => node-local persistent storage backed by a directory on the k3s node (/var/lib/rancher/k3s/storage/...)."
+
+2. Persistence requirement: "Content of e.g. /workspaces/dotfiles/state and /workspaces/dotfiles/repos/omnipy/state somehow needs persistence, but could be git-based. The rest is already git-based persistence (if committed). Otherwise: survive pod/node restarts only (not full cluster rebuilds)."
+
+3. Host mounts: "No"
+
+4. Installer UX: "if run by devpods: no, If run manually: Possibly, if combined with --dry-run (showing all paths that will be changed) and -y options (yes to all prompts)."
+
+5. Signing: "Not signed now, but can start signing if needed."
+
+### Implications & recommended immediate actions (from planner)
+
+- Add source-root validation plus explicit refusal of hub-root execution in `install.sh`.
+- Isolate persistent OpenCode state per workspace under `/workspaces/dotfiles/state/opencode/<workspace-id>` with `0700` perms.
+- Pin `/workspaces` to durable k3d storage and verify persistence across pod restarts; consider `Retain` policy and backups.
