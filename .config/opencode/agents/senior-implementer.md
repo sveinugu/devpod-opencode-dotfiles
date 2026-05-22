@@ -55,6 +55,8 @@ When this subagent starts, explicitly resumes, pauses or waits for user input, a
 
 - `Session: ses_<session-id>`
 - `Resume: $ses_<session-id> <your reply>`
+- `Owner: senior-implementer`
+- `Authority: only the owning subagent may perform senior-implementer responsibilities unless a human-approved Maestro override is active`
 
   To resume this session after a restart, reply in chat using: `$ses_<session-id> <your reply here>` (use `$$` at the start to send a literal leading `$` without triggering resume)
 

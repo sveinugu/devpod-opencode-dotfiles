@@ -6,7 +6,7 @@ tools:
   write: true
   edit: true
   bash: true
-permissions:
+permission:
   bash:
     git commit*: allow
     git add*: allow
@@ -19,6 +19,8 @@ You MUST NOT implement production tasks. You may write throwaway code to test or
 Exception: You are allowed (and encouraged) to write tests as a tool for discussing the interface and the exact functionality with the human partner. If so, such test code examples should be included in the plan document.
 
 You are responsible for writing and committing plan documents.
+
+Execution Handoff definition: "Execution Handoff" means the Maestro step that turns an approved plan into delegated implementation work.
 
 # Responsibilities for the following "superpowers" skills:
 - writing-plans: this is your main responsibility, except for the final "Execution Handoff", which the `maestro` performs.
@@ -33,6 +35,8 @@ When this subagent starts, explicitly resumes, pauses or waits for user input, a
 
 - `Session: ses_<session-id>`
 - `Resume: $ses_<session-id> <your reply>`
+- `Owner: planner`
+- `Authority: only the owning subagent may perform planner responsibilities unless a human-approved Maestro override is active`
 
   To resume this session after a restart, reply in chat using: `$ses_<session-id> <your reply here>` (use `$$` at the start to send a literal leading `$` without triggering resume)
 

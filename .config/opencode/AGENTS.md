@@ -2,7 +2,7 @@
 
 The current configuration allows subagent-driven-development according to the
 `obra/superpowers` plugin, with (currently) a less powerful
-`maestro` agent coordinating (mostly) more powerful subagents. This allows for making great use of model plans where the quota is the number of premium requests.
+`maestro` agent coordinating (mostly) more powerful subagents. This makes effective use of premium-plan request quotas by letting the top-level agent orchestrate more capable specialists.
 
 ## Intent and operational setup
 
@@ -31,7 +31,7 @@ The configuration imports the following skills, in prioritized order:
 
 Please report major disagreements between skills to the human partner (user)!
 
-# Auto-loaded skills
+## Auto-loaded skills
 
 Unless the task is explicitly not related to programming, the agent must always load the "pragmatic-programmer" skill!
 Agents must always load the "karpathy-guidelines" skill!
@@ -40,7 +40,7 @@ Agents must always load the "karpathy-guidelines" skill!
 
 Important: TDD tests are NOT unit tests! It is important that the tests are implemented at the level where they describe and provide specific behavior/functionality to the human partner.
 Tests of particular software subcomponents should be prioritized only if they are generally useful or particularly important for the architecture.
-If tests are implemented as unit tests at a too low level, then code refactor becomes more difficult and TDD breaks down (too much time refactoring tests vs coding new features).
+If tests are implemented as unit tests at too low a level, then code refactor becomes more difficult and TDD breaks down (too much time refactoring tests vs coding new features).
 Also, more than in obra/superpowers, the Pragmatic Programmer highlights the importance of tests as exploratory devices to pin down the interfaces, functionality, architecture and design of code before it is written, in discussions with the human partner. Interaction with the human partner around tests should be prioritized if new interfaces or architectures are considered, unless the human says otherwise.
 
 ### Concrete policies
@@ -77,7 +77,9 @@ Why this works
 - Routing question: before spawning, the Maestro MAY ask exactly one routing-only clarifying question (hard limit: 1 question, max 18 words) to choose the correct subagent or scope. This single question must not perform or begin the delegated work (no discovery beyond routing). After the Maestro spawns a subagent, that subagent follows its own interaction rules — e.g. an iterative, one‑question‑per‑message dialog — to refine scope and design.
 - Handoff wording (required): when spawning a named subagent the Maestro SHOULD use exactly:
   `Switching you to the <subagent> subagent now — please interact directly with it; I will remain available for orchestration.`
-- Planner ownership sentence: planner-owned artifacts (plans/specs/review-records) must be authored/committed by planner unless an explicit Maestro override is active.
+- Planner ownership sentence: planner-owned artifacts (plans/specs) must be authored/committed by planner unless an explicit Maestro override is active.
+- Review-record policy: review feedback is conversational by default. A persistent review-record document is created only when explicitly requested or required by a plan/spec. When such a document is created, it is owned by the reviewing subagent unless explicitly reassigned. For PR-based review, GitHub review history is the default persisted review record.
+- Execution Handoff definition: "Execution Handoff" means the Maestro step that turns an approved plan into delegated implementation work.
 - Mandatory handoff metadata (required in EVERY subagent start, explicit resume, handoff, pause, and completion message):
     - `Session: ses_<session-id>`
     - `Resume: $ses_<session-id> <your reply>`
@@ -101,7 +103,7 @@ Why this works
 - If takeover would otherwise occur, the acting agent must refuse with:
   `Refused — owned by <subagent>; resume or re-dispatch that subagent, or use Maestro override.`
 
-# Subagent interaction rules:
+## Subagent interaction rules:
 
 First message (recommended, can be overridden in this file for this subagent):
 
@@ -121,7 +123,7 @@ Interaction rules:
 
   "The <subagent> subagent has completed the scoped work. Returning control to the <parent agent> for orchestration and next-step delegation."
 
-# Simple Maestro override (human-only, two-message confirmation):
+## Simple Maestro override (human-only, two-message confirmation):
 
 To authorize the Maestro to perform work normally delegated to subagents the human must send two consecutive messages:
 

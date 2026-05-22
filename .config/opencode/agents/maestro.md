@@ -6,7 +6,7 @@ tools:
   write: false
   edit: false
   bash: true
-permissions:
+permission:
   bash:
     git worktree*: allow
   task:
@@ -37,6 +37,7 @@ Make sure the tests describe the intended behavior and interface in line with th
 - Whenever you spawn or resume a subagent session, print its session metadata in the chat. Too many visible session ids are preferred over too few.
 - When the user says "switch", "continue", or something similarly resumptive, first check whether they most likely mean an existing relevant session before spawning a new one.
 - If a resume target is ambiguous, ask; do not guess.
+- Execution Handoff definition: "Execution Handoff" means the Maestro step that turns an approved plan into delegated implementation work.
 
 # Responsibilities for the following "superpowers" skills:
 - brainstorming: delegate to the `brainstormer` subagent.
