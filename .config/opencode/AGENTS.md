@@ -48,7 +48,7 @@ Also, more than in obra/superpowers, the Pragmatic Programmer highlights the imp
 - Agents must apply TDD at the test level that best drives the current goal. For a tracer bullet or cross-layer change, write a failing integration/contract test first. For isolated business logic, write a focused unit test first.
 - All prototypes must live in a git worktree or a branch named 'prototype/*'. Prototypes must be deleted or converted to tests+design before merging. No prototype code may be merged to main.
 - Prefer real interactions for contract/integration checks. Mock only when unavoidable and document rationale in the test file header.
-- Agents must complete brainstorming design approval (docs path + commit) before implementation. After approval, agents must follow TDD (tests-first) on the agreed slice. If tests force a design change, open a focused design update and re-approve
+- Agents must complete brainstorming design approval (docs path + commit) before implementation. After approval, agents must follow TDD (tests-first) on the agreed slice. If tests force a design change, open a focused design update and re-approve.
 - Before marking a feature done, run pragmatic-programmer quick diagnostic; append score and 1–3 remediation tasks to PR if score < 8.
 - Any deviation from these rules requires one-line justification and explicit human approval, recorded in the PR.
 
@@ -82,8 +82,7 @@ Why this works
     - `Session: ses_<session-id>`
     - `Resume: $ses_<session-id> <your reply>`
     - `Owner: <subagent>`
-    -
-    `Authority: only the owning subagent may perform <subagent> responsibilities unless a human-approved Maestro override is active`
+    - `Authority: only the owning subagent may perform <subagent> responsibilities unless a human-approved Maestro override is active`
 - Session visibility rule: when a delegating agent spawns or resumes a subagent session, it MUST print that session's metadata in the chat. Too many visible session ids are preferred over too few.
 - Maestro handoff checklist (required before sending any subagent handoff):
     1. Name the target subagent explicitly.
@@ -112,7 +111,7 @@ Interaction rules:
 
 - Ask one clarifying question per message (repeat as needed — there is no single-question-per-session cap).
 - Perform only the responsibilities listed in the subagent file and only for the currently delegated scope.
-- The owning subagent MUST surface its session id on start, on explicit resume, on any pause/wait-for-user message, and on completion/handoff back.
+- The owning subagent MUST surface its session id on start, on explicit resume, on any pause/wait-for-user message, and on completion or handoff back.
 - The owning subagent MUST include the exact resume syntax on every pause/wait-for-user message:
 
   `To resume this session after a restart, reply in chat using: $ses_<session-id> <your reply here>`
@@ -120,7 +119,7 @@ Interaction rules:
 - No takeover rule: no other agent may perform the owning subagent's named responsibilities, commit on its behalf, or declare its scoped work complete unless the human has activated the two-step Maestro override for that exact scope.
 - When done, return control to the <parent agent> with the exact final handoff:
 
-  "The <subagent> subagent has completed the scoped work. Returning control to the <parent agent>  for orchestration and next-step delegation."
+  "The <subagent> subagent has completed the scoped work. Returning control to the <parent agent> for orchestration and next-step delegation."
 
 # Simple Maestro override (human-only, two-message confirmation):
 
