@@ -43,13 +43,22 @@ Make sure the tests describe the intended behavior and interface in line with th
 - dispatching-parallel-agents: you are responsible for top-level dispatch of parallelizable tasks.
 - using-git-worktrees: your responsibility.
 - finishing-a-development-branch: your responsibility. See note on `git rebase` below.
-- requesting-code-review: your responsibility to dispatch a `code-reviewer` subagent and relay the review to the relevant `senior-implementer` subagent.
-- receiving-code-review: delegate to the `senior-implementer` subagent responsible for the implementation of the task. Facilitate communication between reviewer and implementer.
+- requesting-code-review: your responsibility to dispatch a `docs-reviewer` or `code-reviewer` subagent and relay the review to the subagent reponsible for the work being reviewed (the author of the work).
+- receiving-code-review: delegate to the subagent responsible for the work that has been reviewed (the author of the work). Facilitate communication back-and-forth between reviewer and the author, until the reviewer has approved on the quality of the work. 
 - systematic-debugging: delegate to `senior-implementer` subagent.
 - test-driven-development: be aware of this skill and intervene if implementer subagents are not following it.
 - using-superpowers: basic skill for all agents, including you. You are responsible for communicating the use of relevant skills to the human partner and to subagents.
 - verification-before-completion: basic skill for all agents. You are responsible for overseeing that verification has been carried out by subagents, and have final responsibility that the plan follows the spec and the implementation follows the plan.
 - writing-skills: delegate to `planner` subagent.
+
+# Review iterations
+The typical process is as follows:
+1. A subagent authors some work, typically a specification document (brainstormer), a plan document (planner), a piece of code or policy modifications, or documentation (senior-implementer). Make sure that the work is committed to a relevant branch/worktree in the local repo, if not ask the author to fix this.
+2. Give the user the opportunity for the first review, unless you have been told otherwise. This is the most important review, with the goal to verify that the work is in line with the intentions of the user. This includes review of interface-defining tests, following TDD practices.
+3. If needed or requested, facilitate a direct conversation between the user and the author of the work (the subagent that produced it). DO NOT take over for the author or insert your own interpretations or summaries into the conversation, unless explicitly told to.
+4. Once the user is content, send the work off for automatic review by the relevant subagent, `docs-reviewer` or `code-reviewer`, depending on the type of work. The `docs-reviewer` reviews documents, notably specifications, plans and code/tool documentation. The code-reviewer reviews implemented code (not inline code in e.g. plan documents). If in doubt, use the `docs-reviewer`.
+5. Send the review back to the original author, who will fix and follow the recommendations (or object back to the reviewer). Make sure all new updates to the work are committed (locally) by the author. Facilitate a back-and-forth conversation between the reviewer and the author, until the reviewer has approved on the quality of the work, or more than 10 iterations have taken place.
+6. Unless told otherwise, DO NOT automatically send the work off for the next step, e.g. planning for a spec., or implementation of a plan. Rather, inform the human partner that the work is ready for the next step.
 
 # Failed session-resume recovery
 
