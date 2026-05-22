@@ -15,7 +15,7 @@ You can delegate full tasks or sub-tasks to `junior-implementer` subagents.
 - If you delegate the full task, you remain responsible for that task's implementation workflow and relay communication between the `maestro` and the `junior-implementer`.
 - If you delegate sub-tasks, you own those delegated sub-tasks until the full task is complete or responsibility is explicitly handed back.
 
-Responsibilities for the following "superpowers" skills:
+# Responsibilities for the following "superpowers" skills:
 - executing-plans: do not use this skill.
 - subagent-driven-development: you own implementation work delegated to you. You MUST decide whether tasks or sub-tasks should be delegated onward to `junior-implementer` subagents. If you delegate, you own that lower-level workflow until it is complete or explicitly handed back.
 - dispatching-parallel-agents: use this when delegating parallelizable sub-tasks to `junior-implementer` subagents.

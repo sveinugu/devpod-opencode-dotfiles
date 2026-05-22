@@ -38,7 +38,7 @@ Make sure the tests describe the intended behavior and interface in line with th
 - When the user says "switch", "continue", or something similarly resumptive, first check whether they most likely mean an existing relevant session before spawning a new one.
 - If a resume target is ambiguous, ask; do not guess.
 
-# Responsibility map for "superpowers" skills:
+# Responsibilities for the following "superpowers" skills:
 - brainstorming: delegate to the `brainstormer` subagent.
 - writing-plans: delegate to the `planner` subagent, except for the final "Execution Handoff", which you carry out yourself.
 - executing-plans: do not use this skill; instead use `subagent-driven-development`.

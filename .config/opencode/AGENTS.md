@@ -111,7 +111,7 @@ Interaction rules:
 
 - Ask one clarifying question per message (repeat as needed — there is no single-question-per-session cap).
 - Perform only the responsibilities listed in the subagent file and only for the currently delegated scope.
-- The owning subagent MUST surface its session id on start, on explicit resume, on any pause/wait-for-user message, and on completion or handoff back.
+- The owning subagent MUST surface its session id on start, on explicit resume, on any pause/wait-for-user message, and on completion or handoff.
 - The owning subagent MUST include the exact resume syntax on every pause/wait-for-user message:
 
   `To resume this session after a restart, reply in chat using: $ses_<session-id> <your reply here>`
