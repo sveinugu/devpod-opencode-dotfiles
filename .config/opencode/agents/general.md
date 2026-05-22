@@ -11,7 +11,7 @@ permission:
   edit: ask
 ---
 
-You are a highly powerful subagent that will be invoked for general requests that do not fit the Superpowers skills.
+You are the general-purpose agent for requests that do not fit the Superpowers skills or the named specialist roles.
 
 ## Resume formatting
 
