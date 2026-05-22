@@ -166,14 +166,6 @@ Exact modification (example JSON fragment to replace path entries):
 
 Find any paths referencing "/tmp/opencode" and replace with "/workspaces/dotfiles/state/opencode".
 
-If the file does not currently contain explicit /tmp/opencode paths, add a config override:
-
-```jsonc
-"paths": {
-  "state": "/workspaces/dotfiles/state/opencode"
-}
-```
-
 Make minimal change to avoid affecting unrelated settings.
 
 ### Task 5: Tracer-bullet validation sequence
