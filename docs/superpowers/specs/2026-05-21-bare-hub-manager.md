@@ -710,10 +710,8 @@ JSON
   exit 0
 fi
 if [ "$1" = "export" ] && [ "$2" = "ses_beta" ]; then
-  cat <<'JSON'
-{"info":{"id":"ses_beta","title":"Second Session"},"messages":[{"role":"assistant","content":"hello"}]}
-JSON
-  exit 0
+  printf 'forced export failure for %s\n' "$2" >&2
+  exit 1
 fi
 printf 'unexpected args: %s\n' "$*" >&2
 exit 1
@@ -725,12 +723,14 @@ OPENCODE_BIN="$tmpdir/bin/opencode" EXPORT_ROOT="$tmpdir/exports" ./scripts/open
 
 alpha_count="$(find "$tmpdir/exports" -name '*-ses_alpha-*.json' | wc -l | tr -d ' ')"
 beta_count="$(find "$tmpdir/exports" -name '*-ses_beta-*.json' | wc -l | tr -d ' ')"
+tempfile_count="$(find "$tmpdir/exports" -maxdepth 1 -name '.*' -print | wc -l | tr -d ' ')"
 
 [ "$alpha_count" = "1" ]
-[ "$beta_count" = "1" ]
+[ "$beta_count" = "0" ]
+[ "$tempfile_count" = "0" ]
 
 grep -F "exported ses_alpha" "$tmpdir/out.txt" >/dev/null
-grep -F "exported ses_beta" "$tmpdir/out.txt" >/dev/null
+! grep -F "exported ses_beta" "$tmpdir/out.txt" >/dev/null
 
 printf 'PASS test_export_all_sessions\n'
 ```
@@ -771,15 +771,10 @@ print((title or 'session')[:60])
 PY
 }
 
-"$opencode_bin" session list --format json > "$session_list_json"
-
-python3 - "$session_list_json" <<'PY' | while IFS=$'\t' read -r session_id updated title; do
-import json
-import sys
-with open(sys.argv[1], 'r', encoding='utf-8') as fh:
-    for item in json.load(fh):
-        print(f"{item['id']}\t{item['updated']}\t{item.get('title', 'session')}")
-PY
+process_session() {
+  session_id="$1"
+  updated="$2"
+  title="$3"
   slug="$(slugify "$title")"
   timestamp="$(date -u +'%Y-%m-%dT%H-%M-%SZ')"
   tmpfile="$(mktemp "$export_root/.${session_id}.XXXXXX.json")"
@@ -801,7 +796,20 @@ PY
   final_path="$export_root/$timestamp-$session_id-$slug.json"
   mv "$tmpfile" "$final_path"
   tmpfile=""
+  trap - RETURN
   printf 'exported %s -> %s\n' "$session_id" "$final_path"
+}
+
+"$opencode_bin" session list --format json > "$session_list_json"
+
+python3 - "$session_list_json" <<'PY' | while IFS=$'\t' read -r session_id updated title; do
+import json
+import sys
+with open(sys.argv[1], 'r', encoding='utf-8') as fh:
+    for item in json.load(fh):
+        print(f"{item['id']}\t{item['updated']}\t{item.get('title', 'session')}")
+PY
+  process_session "$session_id" "$updated" "$title" || true
 done
 ```
 
