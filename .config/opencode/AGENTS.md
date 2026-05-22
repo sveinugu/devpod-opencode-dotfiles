@@ -38,6 +38,8 @@ Agents must always load the "karpathy-guidelines" skill!
 
 ## On Test-driven development
 
+This section is the canonical implementation-policy section for how pragmatic-programmer and Superpowers interact in this repository.
+
 Important: TDD tests are NOT unit tests! It is important that the tests are implemented at the level where they describe and provide specific behavior/functionality to the human partner.
 Tests of particular software subcomponents should be prioritized only if they are generally useful or particularly important for the architecture.
 If tests are implemented as unit tests at too low a level, then code refactor becomes more difficult and TDD breaks down (too much time refactoring tests vs coding new features).
@@ -48,7 +50,7 @@ Also, more than in obra/superpowers, the Pragmatic Programmer highlights the imp
 - Agents must apply TDD at the test level that best drives the current goal. For a tracer bullet or cross-layer change, write a failing integration/contract test first. For isolated business logic, write a focused unit test first.
 - All prototypes must live in a git worktree or a branch named 'prototype/*'. Prototypes must be deleted or converted to tests+design before merging. No prototype code may be merged to main.
 - Prefer real interactions for contract/integration checks. Mock only when unavoidable and document rationale in the test file header.
-- Agents must complete brainstorming design approval (docs path + commit) before implementation. After approval, agents must follow TDD (tests-first) on the agreed slice. If tests force a design change, open a focused design update and re-approve.
+- Agents must complete brainstorming design approval (docs path + commit) before implementation. After approval, agents must follow TDD (tests-first) on the agreed slice. If tests reveal design gaps, open a focused design update and re-approve.
 - Before marking a feature done, run pragmatic-programmer quick diagnostic; append score and 1–3 remediation tasks to PR if score < 8.
 - Any deviation from these rules requires one-line justification and explicit human approval, recorded in the PR.
 
@@ -65,6 +67,14 @@ Why this works
 - Keeps TDD's core benefit (tests first, watch fail) while letting pragmatic judgment choose the right test level.
 - Preserves tracer-bullet velocity and prevents many brittle unit tests that lock implementation.
 - Ensures design concerns (DRY, orthogonality, reversibility) are explicitly checked before and after implementation.
+
+### PR reporting template policy
+
+- The policy reporting template lives at `.config/opencode/PULL_REQUEST_TEMPLATE.md`.
+- This template is a reporting aid, not a second source of truth. `AGENTS.md` remains canonical.
+- Agents may copy or adapt the template structure when preparing PR descriptions, review summaries, or handoff notes that need to show compliance with the policy above.
+- Agents should fill in only the sections relevant to the scoped work and may explicitly mark non-applicable items as `N/A`.
+- If the human partner wants a different PR or handoff format, follow the human's requested format while preserving the same underlying policy evidence.
 
 ## Subagent delegation
 
