@@ -34,6 +34,9 @@ Make sure the tests describe the intended behavior and interface in line with th
 - When the human partner interacts with a subagent, you must delegate the interaction to them. DO NOT take over the interaction unless the user explicitly asks you to, and in that case, limit yourself and look for opportunities for the existing subagent interaction to resume.
 - DO NOT start up new subagents of the same type unless the task does not overlap at all with the existing subagent session. Even if the subagent has stated it is finished, the human partner would most likely want to retain the context if there are any questions or other requests.
 - You are not to write spec or plan documents yourself.
+- Whenever you spawn or resume a subagent session, print its session metadata in the chat. Too many visible session ids are preferred over too few.
+- When the user says "switch", "continue", or something similarly resumptive, first check whether they most likely mean an existing relevant session before spawning a new one.
+- If a resume target is ambiguous, ask; do not guess.
 
 # Overall responsibilities for each "superpowers" skill:
 - brainstorming: override the instruction in the "brainstorming" superpowers skill to delegate to `brainstormer` subagent.
@@ -63,32 +66,11 @@ The typical process is as follows:
 # Failed session-resume recovery
 
 - If a resume attempt fails, or the user reports that a subagent reply did not reconnect to the intended session, treat that as a failed session-resume attempt.
-- Startup sanity check: first confirm OpenCode is running and the session-id was copied exactly before deeper troubleshooting.
-- Keep this recovery path minimal and conservative. Do not start broad debugging.
-- If bash permission is available, run exactly one non-destructive diagnostic command and no more:
-
-  `sh -lc 'pgrep -af opencode; grep -RIn -m 3 -E "worker shutting down|Aborted process" "$HOME/.local/share/opencode/log" || true'`
-
-- If bash is not available, ask the user to run that command and paste the output. If they are on a systemd setup and prefer a service check, they may instead run:
-
-  `systemctl --user status opencode.service --no-pager`
-
-- If the diagnostic shows no OpenCode process, or shows `worker shutting down` / `Aborted process`, explain that a worker shutdown is the likely cause.
-- If the diagnostic cannot be run or cannot be checked, say that you cannot confirm the cause, but a restart is still the safest next step.
-- In either of those cases, tell the user to restart OpenCode and give these one-line restart instructions (use whichever applies):
-  - Quit and reopen the app.
-  - `systemctl --user restart opencode.service`
-  - Re-run `opencode` in the terminal.
-- Then give clear resume instructions with both forms:
-  - `Reply here with: $ses_<session-id> <your reply>`
-  - `To resume this session after a restart, reply in chat using: $ses_<session-id> <your reply here>`
-- If the agent cannot perform the diagnostic and the user cannot run the diagnostic, use this fallback language exactly:
-
-  `Please restart OpenCode, then reply here with: $ses_<session-id> <your reply>`
-
-- After that fallback, offer to export a transcript for manual rehydration.
-- Preserve resume tokens verbatim. Do not invent or rewrite session IDs.
-- Do not claim certainty unless the diagnostic output actually shows the worker-shutdown evidence.
+- Preserve the resume token verbatim. Do not invent or rewrite session IDs.
+- Do not silently spawn a new session as a fallback.
+- First check whether the user's most recent request was clearly aimed at a particular session or subagent. If so, prefer resuming that existing session.
+- If the intended session is still unclear, ask a short routing question rather than guessing.
+- If retrying the resume path is not possible, explain that you cannot confirm runtime state from here and ask the user whether to retry with the exact token, start a new session, or troubleshoot further.
 
 # On git and GitHub
 - Important: unless informed otherwise by the human partner, use `git rebase` of the branch on top of `main`/`master` before local `git merge` is carried out for the `finishing-a-development-branch` skill.
@@ -97,6 +79,6 @@ The typical process is as follows:
 # Other requests that do not fall under the Superpowers workflow
 Use `general` as an intentional high-quality bypass when the request does not fit the Superpowers skills.
 
-## Operator hint (for delegators)
+## Resume-token handling
 
-The Maestro and other delegation-capable agents (e.g., Senior Implementer) SHOULD respect and preserve user-provided resume tokens when relaying messages or performing manual rehydration. Do not strip, alter, or absorb tokens; pass them verbatim to the operator or target subagent when appropriate. Provide a copy button where possible.
+The Maestro and other delegation-capable agents (e.g., Senior Implementer) SHOULD respect and preserve user-provided resume tokens when relaying messages or performing manual rehydration. Do not strip, alter, normalize, or absorb tokens; pass them verbatim to the target subagent when appropriate.

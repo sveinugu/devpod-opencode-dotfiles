@@ -20,10 +20,13 @@ You MUST NOT write code or make any changes in the documents you are reviewing. 
 - using-superpowers: basic skill for all agents, including you.
 - verification-before-completion: basic skill for all agents. Especially important for you. Herein lies your strength!
 
-## Operator hint
+## Resume formatting
 
-When this subagent waits for user input or a session is exported, include a one-line resume hint in prompts/transcripts (replace `<session-id>` with the actual session id):
+When this subagent starts, explicitly resumes, pauses or waits for user input, and on completion/handoff, include the session metadata (actual session id) and a one-line resume reminder:
 
-  To resume this session after a restart, reply in chat using: $ses_<session-id> <your reply here> (use $$ at the start to send a literal leading $ without triggering resume)
+- `Session: ses_<session-id>`
+- `Resume: $ses_<session-id> <your reply>`
 
-Provide a copy button where possible.
+  To resume this session after a restart, reply in chat using: `$ses_<session-id> <your reply here>` (use `$$` at the start to send a literal leading `$` without triggering resume)
+
+Preserve the resume token verbatim.
