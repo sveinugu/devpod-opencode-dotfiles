@@ -783,6 +783,8 @@ PY
   slug="$(slugify "$title")"
   timestamp="$(date -u +'%Y-%m-%dT%H-%M-%SZ')"
   tmpfile="$(mktemp "$export_root/.${session_id}.XXXXXX.json")"
+  cleanup_tmpfile() { [ -n "${tmpfile:-}" ] && [ -f "$tmpfile" ] && rm -f "$tmpfile"; }
+  trap cleanup_tmpfile RETURN
   "$opencode_bin" export "$session_id" > "$tmpfile"
   python3 - "$tmpfile" "$session_id" <<'PY'
 import json
@@ -798,6 +800,7 @@ PY
   rm -f "$export_root"/*-"$session_id"-*.json
   final_path="$export_root/$timestamp-$session_id-$slug.json"
   mv "$tmpfile" "$final_path"
+  tmpfile=""
   printf 'exported %s -> %s\n' "$session_id" "$final_path"
 done
 ```
@@ -936,7 +939,7 @@ Expected: the durable-state directories exist before the backup script is introd
 - [ ] **Step 6: Commit**
 
 ```bash
-git add scripts/prepare-state-backup-set.sh tests/opencode/test_prepare_state_backup_set.sh
+git add scripts/prepare-state-backup-set.sh tests/opencode/test_prepare_state_backup_set.sh repos/.keep
 git commit -m "feat(backup): stage durable state for host snapshots"
 ```
 
@@ -967,7 +970,23 @@ export fixture_dir
 cat > "$tmpdir/bin/kubectl" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-tar -C "${fixture_dir}" -cf - .
+if [ "$#" -eq 11 ] \
+  && [ "$1" = "exec" ] \
+  && [ "$2" = "-n" ] \
+  && [ "$3" = "devpod" ] \
+  && [ "$4" = "workspace-pod" ] \
+  && [ "$5" = "--" ] \
+  && [ "$6" = "tar" ] \
+  && [ "$7" = "-C" ] \
+  && [ "$8" = "/tmp/opencode-backup-staging/current" ] \
+  && [ "$9" = "-cf" ] \
+  && [ "${10}" = "-" ] \
+  && [ "${11}" = "." ]; then
+  tar -C "${fixture_dir}" -cf - .
+  exit 0
+fi
+printf 'unexpected kubectl args: %s\n' "$*" >&2
+exit 1
 EOF
 
 cat > "$tmpdir/bin/restic" <<'EOF'
