@@ -1,2 +1,8 @@
 # JetBrains project dir
 .idea
+
+# OpenCode dir
+.opencode
+
+# Backup files
+**/*.bak.*
