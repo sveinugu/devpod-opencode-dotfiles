@@ -779,9 +779,11 @@ process_session() {
   timestamp="$(date -u +'%Y-%m-%dT%H-%M-%SZ')"
   tmpfile="$(mktemp "$export_root/.${session_id}.XXXXXX.json")"
   cleanup_tmpfile() { [ -n "${tmpfile:-}" ] && [ -f "$tmpfile" ] && rm -f "$tmpfile"; }
+  # Preserve any pre-existing RETURN trap so this per-session cleanup does not
+  # clobber outer function cleanup installed by the caller.
+  prev_return_trap="$(trap -p RETURN 2>/dev/null || true)"
   trap cleanup_tmpfile RETURN
-  "$opencode_bin" export "$session_id" > "$tmpfile"
-  python3 - "$tmpfile" "$session_id" <<'PY'
+  if "$opencode_bin" export "$session_id" > "$tmpfile" && python3 - "$tmpfile" "$session_id" <<'PY'
 import json
 import sys
 path, session_id = sys.argv[1], sys.argv[2]
@@ -792,12 +794,20 @@ if not data.get('info', {}).get('id') == session_id:
 if 'messages' not in data:
     raise SystemExit('invalid export: missing messages')
 PY
-  rm -f "$export_root"/*-"$session_id"-*.json
-  final_path="$export_root/$timestamp-$session_id-$slug.json"
-  mv "$tmpfile" "$final_path"
-  tmpfile=""
-  trap - RETURN
-  printf 'exported %s -> %s\n' "$session_id" "$final_path"
+  then
+    rm -f "$export_root"/*-"$session_id"-*.json
+    final_path="$export_root/$timestamp-$session_id-$slug.json"
+    mv "$tmpfile" "$final_path"
+    tmpfile=""
+    printf 'exported %s -> %s\n' "$session_id" "$final_path"
+  fi
+  # Restore the caller's RETURN trap after both success and failure. If there
+  # was no previous RETURN trap, clear the trap explicitly.
+  if [ -n "$prev_return_trap" ]; then
+    eval "$prev_return_trap"
+  else
+    trap - RETURN
+  fi
 }
 
 "$opencode_bin" session list --format json > "$session_list_json"
