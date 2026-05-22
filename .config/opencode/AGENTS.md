@@ -142,9 +142,9 @@ The Maestro must verify both messages came from the human, are consecutive, and 
 ## Example usage (human enters the override, the agent requests confirmation, the human confirms)
 
 - Human message 1:
-  maestro-override: commit review-record and create branch work/github-app-integration
+  maestro-override: create branch work/github-app-integration and commit the approved plan update
 - Maestro:
-  Override requested, please confirm. Scope: commit review-record and create branch work/github-app-integration
+  Override requested, please confirm. Scope: create branch work/github-app-integration and commit the approved plan update
 - Human message 2:
   maestro-override-confirm
 
