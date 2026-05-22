@@ -50,7 +50,27 @@ Why this works
 - Handoff wording (required): when spawning a named subagent the Maestro SHOULD use exactly:
 
   "Switching you to the <subagent> subagent now — please interact directly with it; I will remain available for orchestration."
+- Planner ownership sentence: planner-owned artifacts (plans/specs/review-records) must be authored/committed by planner unless an explicit Maestro override is active.
+- Mandatory handoff metadata (required in EVERY subagent handoff, pause, and completion message):
+  - `Session: ses_<session-id>`
+  - `Resume: $ses_<session-id> <your reply>`
+  - `Owner: <subagent>`
+  - `Authority: only the owning subagent may perform <subagent> responsibilities unless a human-approved Maestro override is active`
+- Maestro handoff checklist (required before sending any subagent handoff):
+  1. Name the target subagent explicitly.
+  2. Include the exact session id in `ses_<id>` form.
+  3. Include the exact resume command in `$ses_<id> <reply>` form.
+  4. State that replies with `$ses_<id>` route to the owning subagent, not Maestro triage.
+  5. State that only the owning subagent may perform its named responsibilities unless the human activates the two-step Maestro override.
 - Per-subagent override: a subagent file may define a more specific first-message/handoff wording; that override applies only to that subagent and must be explicit in the subagent file.
+
+## Named-responsibility ownership
+
+- If repo docs assign a responsibility to a named subagent, that subagent is the sole owner of that responsibility for the active scope.
+- Other agents, including Maestro and senior-implementer, MUST NOT perform that responsibility, commit artifacts owned by that responsibility, or answer in a way that implies takeover.
+- Exception: the human may activate the existing two-step Maestro override for an exact short scope. Without that override, takeover is forbidden.
+- If takeover would otherwise occur, the acting agent must refuse with:
+  `Refused — owned by <subagent>; resume or re-dispatch that subagent, or use Maestro override.`
 
 
 # Subagent interaction rules:
@@ -62,6 +82,12 @@ First message (recommended, can be overridden in this file for this subagent):
 Interaction rules (minimal):
 - Ask one clarifying question per message (repeat as needed — there is no single-question-per-session cap).
 - Perform only responsibilities listed in the subagent file.
+- The owning subagent MUST surface its session id on start, on any pause/wait-for-user message, and on completion/handoff back.
+- The owning subagent MUST include the exact resume syntax on every pause/wait-for-user message:
+
+  `To resume this session after a restart, reply in chat using: $ses_<session-id> <your reply here>`
+
+- No takeover rule: no other agent may perform the owning subagent's named responsibilities, commit on its behalf, or declare its scoped work complete unless the human has activated the two-step Maestro override for that exact scope.
 - When done, return control to the <parent agent> with the exact final handoff:
 
   "The <subagent> subagent has completed the scoped work. Returning control to the <parent agent>  for orchestration and next-step delegation."
@@ -104,10 +130,11 @@ maestro-override-confirm
 - Matching: session-id matching should be case-insensitive; operators should canonicalize IDs (e.g., lower-case) when performing manual lookups or rehydration.
 - Escape: If a user needs a literal leading dollar, instruct them to prefix with "$$" (e.g., "$$hello" => "$hello" no resume).
 - Authorization: Only allow resume actions when the requester is authenticated as the session owner or has explicit permission to reply to that session. Reject anonymous or unauthorized resume attempts.
+- Routing guarantee: when a valid `$ses_<session-id>` token is present and authorization succeeds, the reply MUST be routed directly to that session's owning subagent rather than being re-triaged as a fresh Maestro task.
 - Privacy/safety: Perform authorization checks before token lookup or resume processing. For unauthorized requests, do not disclose session content and do not confirm whether a session exists unless policy explicitly allows it.
 - TTL: Operators should treat resume tokens as valid for a default of 30 days from session creation; operators may extend on a per-case basis.
 - Operator actions (no-code):
-  - Add the one-line resume hint to exported transcripts and to subagent prompts where sessions may be left waiting.
+  - Add the one-line resume hint plus `Session: ses_<id>` to exported transcripts and to subagent prompts where sessions may be left waiting.
   - When manually rehydrating a session, use the session-id directly (case-insensitive lookup), enforce authorization checks before applying the reply, and preserve the token verbatim.
   - Treat resume requests as audit events: record who requested/when/session-id/result and retain logs per your retention policy. Do not log full reply/session content by default.
   - If token is expired, require transcript-based/manual rehydration instead of direct resume.

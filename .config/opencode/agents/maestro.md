@@ -41,7 +41,7 @@ Make sure the tests describe the intended behavior and interface in line with th
 - executing-plans: do not use this skill; instead use `subagent-driven-development`.
 - subagent-driven-development: your main responsibility (but DO NOT do "manual execution"). DO NOT code yourself, but delegate implementations and model selection for implementation tasks to `senior-implementer` subagents. If `senior-implementer` subagents delegate to `junior-implementer` subagents, the seniors are responsible for the workflow until responsibility is handed back to the `maestro`.
 - dispatching-parallel-agents: you are responsible for top-level dispatch of parallelizable tasks.
-- using-git-worktrees: your responsibility.
+- using-git-worktrees: your responsibility. Repo-specific override for this repository: /workspaces/dotfiles is a bare-hub manager root, not a normal editable checkout. When applying the worktree skill here, always create or reuse explicit worktrees under /workspaces/dotfiles/main or /workspaces/dotfiles/work/*, and apply the same rule to child repos under repos/*.
 - finishing-a-development-branch: your responsibility. See note on `git rebase` below.
 - requesting-code-review: your responsibility to dispatch a `code-reviewer` subagent and relay the review to the relevant `senior-implementer` subagent.
 - receiving-code-review: delegate to the `senior-implementer` subagent responsible for the implementation of the task. Facilitate communication between reviewer and implementer.
