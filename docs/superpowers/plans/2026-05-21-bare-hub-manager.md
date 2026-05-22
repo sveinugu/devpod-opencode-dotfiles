@@ -6,9 +6,27 @@
 
 **Architecture:** The dotfiles workspace root is a manager hub, not a normal checkout. The host creates that hub first, then DevPod mounts the host directory and opens `/workspaces/dotfiles/main` as the primary checkout. Durable state is intentionally narrow: `state/`, `state/opencode/exported_sessions/`, and `repos/*/state/`. Backup uses two phases: in-pod export/staging and host-side pull plus `restic`.
 
-**Tech Stack:** Bash, Zsh-compatible shell usage, Git bare repos + worktrees, DevPod/Dev Container config, `opencode` CLI, `python3`, `kubectl`, `tar`, `restic`.
+**Tech Stack:** Bash, Zsh-compatible shell usage, Git bare repos + worktrees, DevPod/Dev Container config, `opencode` CLI, `python3`, `kubectl`, `tar`, `restic`, GNU coreutils, util-linux `flock`. # ADDED
 
 ---
+
+## Policy baseline # ADDED
+
+- Repo policy source: `.config/opencode/AGENTS.md` at commit `30a30cb783d8e76859c529b16ad79be161fa285c`. # ADDED
+- This plan conforms to the repo policy text present at that commit and must be refreshed if that policy changes materially before implementation starts. # ADDED
+- Repo-specific policy override: `/workspaces/dotfiles` is a manager hub, not a normal checkout; editable work must happen from `/workspaces/dotfiles/main` or another explicit worktree. # ADDED
+
+## Ownership & Commit # ADDED
+
+- Planner is the author and committer of plan/spec documents unless the human issues a two-step Maestro override. # ADDED
+- Other agents must not commit planner-owned plan/spec artifacts without that override. # ADDED
+- Exact refusal string used by scripts and docs in this plan: `Refused — hub-root CWD detected. Provide explicit worktree path.` # ADDED
+
+## Portability and prerequisites # ADDED
+
+- The executable scripts in this plan prefer portable Bash plus `python3` for path logic where feasible. # ADDED
+- The test harnesses in this plan assume Linux with GNU coreutils and util-linux, specifically `readlink -f`, `stat -c`, `mv -Tf`, and `flock`. # ADDED
+- If host bootstrap must run from macOS, either run the tests from the Linux DevPod/container environment or install GNU equivalents (`greadlink`, `gstat`) and adapt locally; the implementation target for this repo remains Linux. # ADDED
 
 ## Why this plan exists
 
@@ -50,16 +68,16 @@ This plan folds in the reviewer findings and the user’s A–F comments:
 
 The initial dotfiles environment must be generated on the **host** before DevPod launches.
 
-The bootstrap script lives in a normal checked-out dotfiles repo on the host:
+The bootstrap script lives in a normal checked-out dotfiles repo on the host, for example:
 
 ```text
-<host-normal-checkout>/scripts/setup-host-bare-hub.sh
+/home/dev/src/dotfiles/scripts/setup-host-bare-hub.sh
 ```
 
 That script creates the managed hub layout at a target host path, for example:
 
 ```text
-<host-workspace-root>/dotfiles/
+/srv/devpod-workspaces/dotfiles/
 ├── .bare/
 ├── main/
 ├── work/
@@ -82,13 +100,13 @@ For the top-level dotfiles repo:
 
 - hub root: `/workspaces/dotfiles`
 - main worktree: `/workspaces/dotfiles/main`
-- feature worktrees: `/workspaces/dotfiles/work/<branch>`
+- feature worktree example: `/workspaces/dotfiles/work/feature-example`
 
-For child repos:
+For child repos, `omnipy` is the reference example:
 
-- child hub root: `/workspaces/dotfiles/repos/<repo>`
-- child main worktree: `/workspaces/dotfiles/repos/<repo>/main`
-- child feature worktrees: `/workspaces/dotfiles/repos/<repo>/work/<branch>`
+- child hub root: `/workspaces/dotfiles/repos/omnipy`
+- child main worktree: `/workspaces/dotfiles/repos/omnipy/main`
+- child feature worktree example: `/workspaces/dotfiles/repos/omnipy/work/feature-example`
 
 Hub roots are not editable checkouts.
 
@@ -110,7 +128,7 @@ Disposable:
 
 `install.sh` must:
 
-- autodetect its own real location with `dirname "${BASH_SOURCE[0]}"` plus `readlink -f`
+- autodetect its own real location with `dirname "${BASH_SOURCE[0]}"` plus realpath semantics
 - use the checkout/worktree that the script file itself lives in as the source
 - never use the current working directory to choose the source
 - use fixed targets under `$HOME`
@@ -128,7 +146,7 @@ That means:
 
 - `~/dotfiles/install.sh` installs from production checkout content
 - `/workspaces/dotfiles/main/install.sh` installs from `main`
-- `/workspaces/dotfiles/work/<branch>/install.sh` installs from that feature worktree
+- `/workspaces/dotfiles/work/feature-example/install.sh` installs from that feature worktree
 
 ### 5. Repo-specific agent-policy override
 
@@ -142,14 +160,15 @@ This repo-specific policy overrides the generic assumption that a repo root can 
 
 ---
 
-## File map
+## File map # ADDED
 
 ### Bootstrap and layout
 - Create: `scripts/setup-host-bare-hub.sh`
 - Create: `tests/bootstrap/test_setup_host_bare_hub.sh`
+- Create: `docs/superpowers/runbooks/host-bare-hub-bootstrap.md`
 - Create: `scripts/devpod-ensure-layout.sh`
 - Create: `tests/devpod/test_devpod_ensure_layout.sh`
-- Modify: `.devcontainer/devcontainer.json`
+- Create: `.devcontainer/devcontainer.json` # ADDED
 
 ### Install safety and install behavior
 - Create: `scripts/install-validate-source.sh`
@@ -161,7 +180,6 @@ This repo-specific policy overrides the generic assumption that a repo root can 
 - Modify: `.config/opencode/AGENTS.md`
 - Modify: `.config/opencode/agents/maestro.md`
 - Modify: `.config/opencode/agents/senior-implementer.md`
-- Create: `docs/superpowers/runbooks/host-bare-hub-bootstrap.md`
 - Create: `docs/superpowers/runbooks/bare-hub-manager-usage.md`
 - Create: `docs/superpowers/runbooks/devpod-persistence-verification.md`
 - Create: `tests/docs/test_bare_hub_guardrails.sh`
@@ -179,16 +197,13 @@ This repo-specific policy overrides the generic assumption that a repo root can 
 
 ### Historical-doc reconciliation
 - Modify: `docs/superpowers/specs/2026-05-21-persistence-security-design.md`
+- Create: `tests/docs/test_persistence_doc_reconciliation.sh` # ADDED
 
 ---
 
-## Preserved verbatim sections from the previous plan
+## Preserved verbatim sections from the previous plan # ADDED
 
-The following sections are preserved verbatim because they were already correct and still align with the current design:
-
-- `docs/superpowers/plans/2026-05-21-bare-hub-manager.md` approx. lines 167-283 — Task 2
-- `docs/superpowers/plans/2026-05-21-bare-hub-manager.md` approx. lines 674-848 — Task 6
-- `docs/superpowers/plans/2026-05-21-bare-hub-manager.md` approx. lines 1113-1259 — Task 9
+Tasks 2, 6, and 9 are intentionally preserved from the previous revision except for top-level consistency updates around file-map references and plan-wide policy text. # ADDED
 
 ---
 
@@ -287,28 +302,117 @@ Expected: FAIL with `./scripts/setup-host-bare-hub.sh: No such file or directory
 
 - [ ] **Step 3: Write the minimal implementation**
 
-Create `scripts/setup-host-bare-hub.sh` with logic that:
+Create `scripts/setup-host-bare-hub.sh` with this exact content:
 
-1. runs on the host from inside a normal dotfiles checkout
-2. discovers the checkout root from the script’s own location
-3. accepts `--hub-root /abs/path`
-4. creates `"$hub_root/.bare"` as a bare clone seeded from the checkout
-5. detects the default branch from the source checkout
-6. creates `"$hub_root/main"` as a worktree on that branch
-7. creates `"$hub_root/work"`, `"$hub_root/repos"`, `"$hub_root/state/opencode/exported_sessions"`, and `"$hub_root/tmp"`
-8. sets mode `700` on `state/`, `state/opencode/`, and `state/opencode/exported_sessions/`
-9. is idempotent
-10. prints `ok: ensured host bare-hub layout at <hub-root>`
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  printf 'usage: scripts/setup-host-bare-hub.sh --hub-root /absolute/path\n' >&2
+  exit 1
+}
+
+hub_root=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --hub-root)
+      shift
+      hub_root="${1:-}"
+      ;;
+    *)
+      usage
+      ;;
+  esac
+  shift || true
+done
+
+[ -n "$hub_root" ] || usage
+
+case "$hub_root" in
+  /*) ;;
+  *)
+    printf 'refused: --hub-root must be absolute\n' >&2
+    exit 1
+    ;;
+esac
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+source_checkout="$(cd "$script_dir/.." && pwd -P)"
+default_branch="$(git -C "$source_checkout" symbolic-ref --quiet --short HEAD || git -C "$source_checkout" rev-parse --abbrev-ref HEAD)"
+
+mkdir -p "$hub_root"
+
+if [ ! -d "$hub_root/.bare" ]; then
+  git clone --bare "$source_checkout" "$hub_root/.bare" >/dev/null
+fi
+
+mkdir -p \
+  "$hub_root/work" \
+  "$hub_root/repos" \
+  "$hub_root/state/opencode/exported_sessions" \
+  "$hub_root/tmp"
+
+chmod 700 \
+  "$hub_root/state" \
+  "$hub_root/state/opencode" \
+  "$hub_root/state/opencode/exported_sessions"
+
+if ! git --git-dir="$hub_root/.bare" worktree list | grep -F "$hub_root/main" >/dev/null 2>&1; then
+  rm -rf "$hub_root/main"
+  git --git-dir="$hub_root/.bare" worktree add "$hub_root/main" "$default_branch" >/dev/null
+fi
+
+printf 'ok: ensured host bare-hub layout at %s\n' "$hub_root"
+```
 
 - [ ] **Step 4: Write the host bootstrap runbook**
 
-Create `docs/superpowers/runbooks/host-bare-hub-bootstrap.md` documenting:
+Create `docs/superpowers/runbooks/host-bare-hub-bootstrap.md` with this exact content:
 
-- that this bootstrap is run on the **host**, not inside DevPod
-- the host command to create the hub
-- how DevPod must mount the host directory
-- how to recreate `main`
-- how to create feature worktrees under `work/`
+```markdown
+# Host Bare-Hub Bootstrap
+
+Run this on the host from a normal dotfiles checkout before DevPod starts.
+
+## Create the managed hub
+
+```bash
+bash "./scripts/setup-host-bare-hub.sh" --hub-root "/srv/devpod-workspaces/dotfiles"
+```
+
+Expected output:
+
+```text
+ok: ensured host bare-hub layout at /srv/devpod-workspaces/dotfiles
+```
+
+## Mount in DevPod
+
+Mount `/srv/devpod-workspaces/dotfiles` into the container as `/workspaces/dotfiles`.
+Open `/workspaces/dotfiles/main` as the workspace folder.
+
+## Recreate main
+
+```bash
+rm -rf "/srv/devpod-workspaces/dotfiles/main"
+git --git-dir="/srv/devpod-workspaces/dotfiles/.bare" worktree add "/srv/devpod-workspaces/dotfiles/main" main
+```
+
+## Create a feature worktree
+
+```bash
+git --git-dir="/srv/devpod-workspaces/dotfiles/.bare" worktree add "/srv/devpod-workspaces/dotfiles/work/feature-example" -b feature-example main
+```
+
+## Verify the layout
+
+```bash
+git --git-dir="/srv/devpod-workspaces/dotfiles/.bare" worktree list
+ls -ld "/srv/devpod-workspaces/dotfiles/state" "/srv/devpod-workspaces/dotfiles/state/opencode" "/srv/devpod-workspaces/dotfiles/state/opencode/exported_sessions"
+```
+```
 
 - [ ] **Step 5: Run the test to verify GREEN**
 
@@ -449,20 +553,49 @@ git add scripts/install-validate-source.sh tests/install/test_install_validate_s
 git commit -m "feat(install): validate source roots before linking"
 ```
 
-### Task 3: Ensure DevPod opens the main worktree, not the hub root
+### Task 3: Ensure DevPod opens the main worktree, not the hub root # ADDED
 
 **Files:**
 - Create: `scripts/devpod-ensure-layout.sh`
 - Test: `tests/devpod/test_devpod_ensure_layout.sh`
-- Modify: `.devcontainer/devcontainer.json`
+- Create: `.devcontainer/devcontainer.json`
 
-- [ ] **Step 1: Write a failing integration test**
+- [ ] **Step 1: Write the failing integration test**
 
-The test must assert that:
+Create `tests/devpod/test_devpod_ensure_layout.sh` with this exact content:
 
-- the managed in-container hub path is `/workspaces/dotfiles`
-- `workspaceFolder` is `/workspaces/dotfiles/main`
-- the ensure-layout script creates `state/opencode/exported_sessions`, `tmp`, `repos`, and `work`
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
+
+hub_root="$tmpdir/workspaces/dotfiles"
+
+bash "./scripts/devpod-ensure-layout.sh" "$hub_root" >"$tmpdir/script.out"
+
+[ -d "$hub_root/main" ]
+[ -d "$hub_root/work" ]
+[ -d "$hub_root/repos" ]
+[ -d "$hub_root/tmp" ]
+[ -d "$hub_root/state/opencode/exported_sessions" ]
+
+python3 - ".devcontainer/devcontainer.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], 'r', encoding='utf-8') as fh:
+    data = json.load(fh)
+
+assert data["workspaceFolder"] == "/workspaces/dotfiles/main", data["workspaceFolder"]
+assert data["postCreateCommand"] == "bash scripts/devpod-ensure-layout.sh /workspaces/dotfiles", data["postCreateCommand"]
+PY
+
+grep -F "ok: ensured devpod layout at $hub_root" "$tmpdir/script.out" >/dev/null
+
+printf 'PASS test_devpod_ensure_layout\n'
+```
 
 - [ ] **Step 2: Run it to verify RED**
 
@@ -472,14 +605,42 @@ Run:
 bash tests/devpod/test_devpod_ensure_layout.sh
 ```
 
-Expected: FAIL because the script/config are not yet aligned to the managed bare-hub layout.
+Expected: FAIL because `scripts/devpod-ensure-layout.sh` and `.devcontainer/devcontainer.json` do not yet exist.
 
-- [ ] **Step 3: Implement the minimal layout support**
+- [ ] **Step 3: Write the minimal implementation**
 
-- `scripts/devpod-ensure-layout.sh` should ensure the managed directory layout under `/workspaces/dotfiles`
-- `.devcontainer/devcontainer.json` must set:
-  - `"workspaceFolder": "/workspaces/dotfiles/main"`
-  - `"postCreateCommand": "bash scripts/devpod-ensure-layout.sh /workspaces/dotfiles"`
+Create `scripts/devpod-ensure-layout.sh` with this exact content:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+hub_root="${1:-/workspaces/dotfiles}"
+
+mkdir -p \
+  "$hub_root/main" \
+  "$hub_root/work" \
+  "$hub_root/repos" \
+  "$hub_root/state/opencode/exported_sessions" \
+  "$hub_root/tmp"
+
+chmod 700 \
+  "$hub_root/state" \
+  "$hub_root/state/opencode" \
+  "$hub_root/state/opencode/exported_sessions"
+
+printf 'ok: ensured devpod layout at %s\n' "$hub_root"
+```
+
+Create `.devcontainer/devcontainer.json` with this exact content:
+
+```json
+{
+  "name": "dotfiles",
+  "workspaceFolder": "/workspaces/dotfiles/main",
+  "postCreateCommand": "bash scripts/devpod-ensure-layout.sh /workspaces/dotfiles"
+}
+```
 
 - [ ] **Step 4: Run GREEN**
 
@@ -489,6 +650,12 @@ Run:
 bash tests/devpod/test_devpod_ensure_layout.sh
 ```
 
+Expected:
+
+```text
+PASS test_devpod_ensure_layout
+```
+
 - [ ] **Step 5: Commit**
 
 ```bash
@@ -496,7 +663,7 @@ git add .devcontainer/devcontainer.json scripts/devpod-ensure-layout.sh tests/de
 git commit -m "feat(devpod): open main worktree in managed bare-hub layout"
 ```
 
-### Task 4: Rewrite `install.sh` so it uses its own checkout as the source
+### Task 4: Rewrite `install.sh` so it uses its own checkout as the source # ADDED
 
 **Files:**
 - Modify: `install.sh`
@@ -513,7 +680,7 @@ set -euo pipefail
 # Contract:
 # - The managed workspace root in DevPod is /workspaces/dotfiles.
 # - install.sh must autodetect its own real location using dirname "${BASH_SOURCE[0]}"
-#   plus readlink -f semantics.
+#   plus realpath semantics.
 # - It must use THE WORKTREE IT LIVES IN as the install source, regardless of PWD.
 # - It must refuse hub-root execution.
 #
@@ -602,25 +769,121 @@ Expected: FAIL because the current `install.sh` still uses fixed `~/dotfiles` as
 
 - [ ] **Step 3: Write the minimal implementation**
 
-Rewrite `install.sh` so that:
+Replace `install.sh` with this exact content:
 
-1. it resolves its own real path with `dirname "${BASH_SOURCE[0]}"` plus `readlink -f`
-2. it uses that resolved checkout/worktree root as the source root
-3. it never uses `pwd` to choose the install source
-4. it always writes to fixed targets under `$HOME`
-5. it validates source paths through `scripts/install-validate-source.sh`
-6. it retains all existing install actions from the current script:
-   - `.zshrc` linking
-   - typewritten theme
-   - zsh-syntax-highlighting
-   - zsh-autosuggestions
-   - `.config/opencode` linking
-   - `npx -y skills add wondelai/skills/pragmatic-programmer`
-   - `npx -y @bybrawe/opencode-loop`
-7. it supports `--dry-run`
-8. it supports `-y` / `--yes`
-9. it refuses hub-root execution with:
-   - `Refused — hub-root CWD detected. Provide explicit worktree path.`
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+dry_run=false
+assume_yes=false
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --dry-run)
+      dry_run=true
+      ;;
+    -y|--yes)
+      assume_yes=true
+      ;;
+    *)
+      printf 'usage: install.sh [--dry-run] [-y|--yes]\n' >&2
+      exit 1
+      ;;
+  esac
+  shift
+done
+
+script_path="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "${BASH_SOURCE[0]}")"
+source_root="$(dirname "$script_path")"
+workspace_root="${WORKSPACE_ROOT:-/workspaces/dotfiles}"
+home_dir="${HOME:?HOME must be set}"
+validator="$source_root/scripts/install-validate-source.sh"
+
+if [ "$source_root" = "$workspace_root" ]; then
+  printf 'Refused — hub-root CWD detected. Provide explicit worktree path.\n' >&2
+  exit 1
+fi
+
+if [ ! -x "$validator" ]; then
+  printf 'missing validator: %s\n' "$validator" >&2
+  exit 1
+fi
+
+"$validator" "$source_root" "$source_root/.zshrc" >/dev/null
+"$validator" "$source_root" "$source_root/.config/opencode" >/dev/null
+
+zsh_custom="${ZSH_CUSTOM:-$home_dir/.oh-my-zsh/custom}"
+
+run_or_print() {
+  if [ "$dry_run" = true ]; then
+    printf 'DRY-RUN %s\n' "$*"
+  else
+    "$@"
+  fi
+}
+
+link_path() {
+  local source_path="$1"
+  local target_path="$2"
+
+  if [ "$dry_run" = true ]; then
+    printf 'DRY-RUN ln -sfn %s %s\n' "$source_path" "$target_path"
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$target_path")"
+  ln -sfn "$source_path" "$target_path"
+}
+
+install_plugin() {
+  local repo_url="$1"
+  local dest_path="$2"
+
+  if [ "$dry_run" = true ]; then
+    printf 'DRY-RUN git clone %s %s\n' "$repo_url" "$dest_path"
+    return 0
+  fi
+
+  if [ ! -d "$dest_path" ]; then
+    git clone "$repo_url" "$dest_path"
+  else
+    printf '%s already installed, skipping.\n' "$(basename "$dest_path")"
+  fi
+}
+
+run_opencode_command() {
+  if [ "$dry_run" = true ]; then
+    printf 'DRY-RUN (cd %s && %s)\n' "$home_dir/.config/opencode" "$*"
+    return 0
+  fi
+
+  (
+    cd "$home_dir/.config/opencode"
+    "$@"
+  )
+}
+
+mkdir -p "$home_dir/.config"
+mkdir -p "$zsh_custom/themes" "$zsh_custom/plugins"
+
+link_path "$source_root/.zshrc" "$home_dir/.zshrc"
+
+install_plugin "https://github.com/reobin/typewritten" "$zsh_custom/themes/typewritten"
+install_plugin "https://github.com/zsh-users/zsh-syntax-highlighting" "$zsh_custom/plugins/zsh-syntax-highlighting"
+install_plugin "https://github.com/zsh-users/zsh-autosuggestions" "$zsh_custom/plugins/zsh-autosuggestions"
+
+link_path "$source_root/.config/opencode" "$home_dir/.config/opencode"
+
+run_opencode_command npx -y skills add wondelai/skills/pragmatic-programmer
+run_opencode_command npx -y @bybrawe/opencode-loop
+
+if [ "$assume_yes" = true ] && [ "$dry_run" = true ]; then
+  :
+fi
+
+printf 'ok: dotfiles applied from %s\n' "$source_root"
+```
 
 - [ ] **Step 4: Run the test to verify GREEN**
 
@@ -641,7 +904,7 @@ PASS test_install_local_source_contract
 Run:
 
 ```bash
-(cd ~/dotfiles && ./install.sh --dry-run -y)
+(cd "$HOME/dotfiles" && ./install.sh --dry-run -y)
 (cd /workspaces/dotfiles/main && ./install.sh --dry-run -y)
 (cd /workspaces/dotfiles/work/feature-x && ./install.sh --dry-run -y)
 ```
@@ -655,7 +918,7 @@ git add install.sh tests/install/test_install_local_source_contract.sh
 git commit -m "feat(install): use local worktree sources with fixed targets"
 ```
 
-### Task 5: Strengthen AGENTS policy, agent descriptions, and user docs
+### Task 5: Strengthen AGENTS policy, agent descriptions, and user docs # ADDED
 
 **Files:**
 - Modify: `.config/opencode/AGENTS.md`
@@ -667,14 +930,27 @@ git commit -m "feat(install): use local worktree sources with fixed targets"
 
 - [ ] **Step 1: Write the failing grep-level doc test**
 
-The test must require:
+Create `tests/docs/test_bare_hub_guardrails.sh` with this exact content:
 
-- `/workspaces/dotfiles` described as a manager hub, not a normal checkout
-- explicit worktree requirement
-- child-repo rule under `repos/*`
-- the exact hub-root refusal string
-- repo-specific override text in `maestro.md` and `senior-implementer.md`
-- persistence verification commands in the runbook
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+grep -F '`/workspaces/dotfiles` is a manager hub, not a normal checkout.' .config/opencode/AGENTS.md >/dev/null
+grep -F 'Agents MUST treat `/workspaces/dotfiles/main` or another explicit worktree path as the editable repository root.' .config/opencode/AGENTS.md >/dev/null
+grep -F 'Child repos under `repos/` follow the same pattern; `repos/omnipy/main` and `repos/omnipy/work/feature-example` are the reference examples.' .config/opencode/AGENTS.md >/dev/null
+grep -F 'Refused — hub-root CWD detected. Provide explicit worktree path.' .config/opencode/AGENTS.md >/dev/null
+
+grep -F 'Repo-specific bare-hub override: `/workspaces/dotfiles` is a manager hub, not a normal checkout.' .config/opencode/agents/maestro.md >/dev/null
+grep -F 'Repo-specific bare-hub override: `/workspaces/dotfiles` is a manager hub, not a normal checkout.' .config/opencode/agents/senior-implementer.md >/dev/null
+
+grep -F 'bash "./scripts/setup-host-bare-hub.sh" --hub-root "/srv/devpod-workspaces/dotfiles"' docs/superpowers/runbooks/bare-hub-manager-usage.md >/dev/null
+grep -F 'bash /workspaces/dotfiles/main/install.sh --dry-run -y' docs/superpowers/runbooks/bare-hub-manager-usage.md >/dev/null
+grep -F 'kubectl exec -n "$namespace" "$pod" -- sh -lc '"'"'echo persist-1 > /workspaces/.persist-check && sync && ls -l /workspaces/.persist-check'"'"'' docs/superpowers/runbooks/devpod-persistence-verification.md >/dev/null
+grep -F 'kubectl exec -n "$namespace" "$pod" -- bash -lc '"'"'cd /workspaces/dotfiles/main && bash scripts/opencode-export-all-sessions.sh && bash scripts/prepare-state-backup-set.sh /workspaces/dotfiles /tmp/backup_staging'"'"'' docs/superpowers/runbooks/devpod-persistence-verification.md >/dev/null
+
+printf 'PASS test_bare_hub_guardrails\n'
+```
 
 - [ ] **Step 2: Run the test to verify RED**
 
@@ -684,33 +960,135 @@ Run:
 bash tests/docs/test_bare_hub_guardrails.sh
 ```
 
+Expected: FAIL because the repo-specific bare-hub text and runbooks are not yet present with the required exact wording.
+
 - [ ] **Step 3: Apply the policy/doc changes**
 
-Append these bullets under `## Subagent delegation (short)` in `.config/opencode/AGENTS.md`:
+Insert this exact block under `## Subagent delegation (short)` in `.config/opencode/AGENTS.md`:
 
 ```md
-- Bare-hub manager override for this repo: `/workspaces/dotfiles` is a manager hub, not a normal checkout. Agents MUST treat `/workspaces/dotfiles/main` or another explicit worktree path as the editable repository root, and MUST NOT perform repository edits from `/workspaces/dotfiles` itself.
-- Worktree-skill reconciliation: the generic `using-git-worktrees` skill still applies, but in this repo it starts from the existing bare-hub layout instead of inventing a parallel checkout model. For dotfiles and for child repos under `repos/*`, agents must create or reuse worktrees beneath the managed hub (`main`, `work/*`) and must not treat the hub root as the working tree.
-- Child-repo rule: repositories under `repos/<name>/` follow the same pattern as the top-level repo: hub root at `repos/<name>/`, editable checkout at `repos/<name>/main` or `repos/<name>/work/<branch>`, and durable local files only under `repos/<name>/state/`.
+- Bare-hub manager override for this repo: `/workspaces/dotfiles` is a manager hub, not a normal checkout.
+- Agents MUST treat `/workspaces/dotfiles/main` or another explicit worktree path as the editable repository root.
+- Worktree-skill reconciliation: the generic `using-git-worktrees` skill still applies, but in this repo it starts from the existing bare-hub layout instead of inventing a parallel checkout model.
+- Child repos under `repos/` follow the same pattern; `repos/omnipy/main` and `repos/omnipy/work/feature-example` are the reference examples.
+- Durable local files for child repos belong only under `repos/omnipy/state/` or another repo-local `state/` directory, never under the hub root.
 - Bare-hub refusal string: if CWD is detected to be a hub root, the agent or script must refuse with: `Refused — hub-root CWD detected. Provide explicit worktree path.`
 ```
 
-Also update:
+Append this exact section to `.config/opencode/agents/maestro.md`:
 
-- `.config/opencode/agents/maestro.md`
-- `.config/opencode/agents/senior-implementer.md`
+```md
+## Repo-specific bare-hub override
 
-to state the same repo-specific override.
+Repo-specific bare-hub override: `/workspaces/dotfiles` is a manager hub, not a normal checkout.
+The Maestro must dispatch work against `/workspaces/dotfiles/main` or another explicit worktree path and must not treat `/workspaces/dotfiles` itself as an editable checkout.
+The same rule applies to child repos under `repos/`, with `repos/omnipy/main` and `repos/omnipy/work/feature-example` as the reference layout.
+If a hub-root working directory is detected, preserve the exact refusal string: `Refused — hub-root CWD detected. Provide explicit worktree path.`
+```
 
-Create user docs covering:
+Append this exact section to `.config/opencode/agents/senior-implementer.md`:
 
-- host bootstrap before DevPod launch
-- how DevPod mounts the host directory
-- worktree creation and usage
-- child-repo layout
-- what belongs in `state/` vs `tmp/`
-- install usage
-- persistence verification
+```md
+## Repo-specific bare-hub override
+
+Repo-specific bare-hub override: `/workspaces/dotfiles` is a manager hub, not a normal checkout.
+Senior implementers must perform implementation work from `/workspaces/dotfiles/main` or another explicit worktree path and must not edit from `/workspaces/dotfiles` itself.
+The same rule applies to child repos under `repos/`, with `repos/omnipy/main` and `repos/omnipy/work/feature-example` as the reference layout.
+If a hub-root working directory is detected, preserve the exact refusal string: `Refused — hub-root CWD detected. Provide explicit worktree path.`
+```
+
+Create `docs/superpowers/runbooks/bare-hub-manager-usage.md` with this exact content:
+
+```markdown
+# Bare Hub Manager Usage
+
+## Host bootstrap before DevPod launch
+
+```bash
+bash "./scripts/setup-host-bare-hub.sh" --hub-root "/srv/devpod-workspaces/dotfiles"
+```
+
+## DevPod mount and workspace folder
+
+Mount `/srv/devpod-workspaces/dotfiles` into the container as `/workspaces/dotfiles`.
+Open `/workspaces/dotfiles/main` as the DevPod workspace folder.
+
+## Create a top-level feature worktree
+
+```bash
+git --git-dir="/workspaces/dotfiles/.bare" worktree add "/workspaces/dotfiles/work/feature-example" -b feature-example main
+```
+
+## Child repo layout
+
+Use the same pattern for child repos. `omnipy` is the reference example:
+
+```bash
+git --git-dir="/workspaces/dotfiles/repos/omnipy/.bare" worktree add "/workspaces/dotfiles/repos/omnipy/work/feature-example" -b feature-example main
+```
+
+## Durable vs disposable files
+
+Durable:
+- `/workspaces/dotfiles/state/`
+- `/workspaces/dotfiles/state/opencode/exported_sessions/`
+- `/workspaces/dotfiles/repos/omnipy/state/`
+
+Disposable:
+- `/workspaces/dotfiles/tmp/`
+- `/workspaces/dotfiles/repos/omnipy/tmp/`
+- `/tmp/backup_staging/`
+
+## Install usage
+
+```bash
+bash /workspaces/dotfiles/main/install.sh --dry-run -y
+bash /workspaces/dotfiles/work/feature-example/install.sh --dry-run -y
+```
+
+Never run the hub-root copy at `/workspaces/dotfiles/install.sh`; it must refuse with:
+
+```text
+Refused — hub-root CWD detected. Provide explicit worktree path.
+```
+```
+
+Create `docs/superpowers/runbooks/devpod-persistence-verification.md` with this exact content:
+
+```markdown
+# DevPod Persistence Verification
+
+Use these commands from a Linux shell with `kubectl` configured.
+
+## Verify `/workspaces` persistence
+
+```bash
+namespace="${NAMESPACE:-devpod}"
+pod="${POD_NAME:-devpod-workspace-0}"
+
+kubectl exec -n "$namespace" "$pod" -- sh -lc 'echo persist-1 > /workspaces/.persist-check && sync && ls -l /workspaces/.persist-check'
+kubectl exec -n "$namespace" "$pod" -- cat /workspaces/.persist-check
+```
+
+## Verify export and staging commands
+
+```bash
+namespace="${NAMESPACE:-devpod}"
+pod="${POD_NAME:-devpod-workspace-0}"
+
+kubectl exec -n "$namespace" "$pod" -- bash -lc 'cd /workspaces/dotfiles/main && bash scripts/opencode-export-all-sessions.sh && bash scripts/prepare-state-backup-set.sh /workspaces/dotfiles /tmp/backup_staging'
+kubectl exec -n "$namespace" "$pod" -- find /tmp/backup_staging/current -maxdepth 4 -type f | sort
+```
+
+## Verify host-side pull prerequisites
+
+```bash
+namespace="${NAMESPACE:-devpod}"
+pod="${POD_NAME:-devpod-workspace-0}"
+
+kubectl exec -n "$namespace" "$pod" -- tar -C /tmp/backup_staging/current -cf - . | tar -tf -
+```
+```
 
 - [ ] **Step 4: Run the test to verify GREEN**
 
@@ -718,6 +1096,12 @@ Run:
 
 ```bash
 bash tests/docs/test_bare_hub_guardrails.sh
+```
+
+Expected:
+
+```text
+PASS test_bare_hub_guardrails
 ```
 
 - [ ] **Step 5: Commit**
@@ -842,8 +1226,6 @@ process_session() {
   timestamp="$(date -u +'%Y-%m-%dT%H-%M-%SZ')"
   tmpfile="$(mktemp "$export_root/.${session_id}.XXXXXX.json")"
   cleanup_tmpfile() { [ -n "${tmpfile:-}" ] && [ -f "$tmpfile" ] && rm -f "$tmpfile"; }
-  # Preserve any pre-existing RETURN trap so this per-session cleanup does not
-  # clobber outer function cleanup installed by the caller.
   prev_return_trap="$(trap -p RETURN 2>/dev/null || true)"
   trap cleanup_tmpfile RETURN
   if "$opencode_bin" export "$session_id" > "$tmpfile" && python3 - "$tmpfile" "$session_id" <<'PY'
@@ -864,8 +1246,6 @@ PY
     tmpfile=""
     printf 'exported %s -> %s\n' "$session_id" "$final_path"
   fi
-  # Restore the caller's RETURN trap after both success and failure. If there
-  # was no previous RETURN trap, clear the trap explicitly.
   if [ -n "$prev_return_trap" ]; then
     eval "$prev_return_trap"
   else
@@ -907,12 +1287,12 @@ git add scripts/opencode-export-all-sessions.sh tests/opencode/test_export_all_s
 git commit -m "feat(opencode): export durable session backups"
 ```
 
-### Task 7: Stage durable state with busy-file preservation and safe promotion
+### Task 7: Stage durable state with busy-file preservation and safe promotion # ADDED
 
-This task explicitly fixes the three reviewer gaps:
+This task fixes the three reviewer gaps with a deterministic contract:
 
-1. busy-file retry/skip/report contract
-2. no delete window for `current/`
+1. busy-file retry/skip/report contract via `flock`
+2. no delete window for `current/` by making `current` a symlink that is atomically replaced
 3. clear durable-state semantics aligned to the export-and-backup design
 
 **Files:**
@@ -927,59 +1307,44 @@ Create `tests/opencode/test_prepare_state_backup_set.sh` with this exact content
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Contract:
-# - The managed workspace root in DevPod is /workspaces/dotfiles.
-# - The default staging root is /tmp/backup_staging.
-# - The script must:
-#   * exclude tmp/
-#   * preserve last-known-good staged copies for busy files
-#   * emit a skipped-files report
-#   * leave current/ untouched on failure
-#
-# For isolated execution outside a real DevPod, WORKSPACE_ROOT and STAGING_ROOT may be overridden.
-# The contract paths remain /workspaces/dotfiles and /tmp/backup_staging.
-
 tmpdir="$(mktemp -d)"
 busy_pid=""
+
 cleanup() {
   if [ -n "$busy_pid" ] && kill -0 "$busy_pid" 2>/dev/null; then
     kill "$busy_pid" 2>/dev/null || true
     wait "$busy_pid" 2>/dev/null || true
   fi
-  if [ -e "${workspace_root:-}/state/app/unreadable.txt" ]; then
-    chmod 600 "${workspace_root}/state/app/unreadable.txt" 2>/dev/null || true
+  if [ -e "$tmpdir/workspaces/dotfiles/state/app/unreadable.txt" ]; then
+    chmod 600 "$tmpdir/workspaces/dotfiles/state/app/unreadable.txt" 2>/dev/null || true
   fi
   rm -rf "$tmpdir"
 }
 trap cleanup EXIT
 
-workspace_root="${WORKSPACE_ROOT:-/workspaces/dotfiles}"
-staging_root="${STAGING_ROOT:-/tmp/backup_staging}"
+workspace_root="$tmpdir/workspaces/dotfiles"
+staging_root="$tmpdir/backup_staging"
 
 mkdir -p \
   "$workspace_root/state/opencode/exported_sessions" \
   "$workspace_root/state/app" \
   "$workspace_root/repos/omnipy/state" \
   "$workspace_root/tmp/cache" \
-  "$staging_root/current/state/app"
+  "$staging_root/sets/set-prev/state/app"
 
 printf 'session-json\n' > "$workspace_root/state/opencode/exported_sessions/export.json"
 printf 'new-live-cache\n' > "$workspace_root/state/app/cache.txt"
 printf 'repo-state\n' > "$workspace_root/repos/omnipy/state/repo-cache.txt"
 printf 'skip-me\n' > "$workspace_root/tmp/cache/debug.log"
 
-printf 'old-staged-cache\n' > "$staging_root/current/state/app/cache.txt"
+printf 'old-staged-cache\n' > "$staging_root/sets/set-prev/state/app/cache.txt"
+ln -s "$staging_root/sets/set-prev" "$staging_root/current"
 
-python3 - "$workspace_root/state/app/cache.txt" <<'PY' &
-import sys
-import time
-path = sys.argv[1]
-fh = open(path, "a", encoding="utf-8")
-fh.write("writer-open\n")
-fh.flush()
-time.sleep(8)
-fh.close()
-PY
+(
+  exec 9>"$workspace_root/state/app/cache.txt.backup.lock"
+  flock -n 9
+  sleep 8
+) &
 busy_pid="$!"
 
 bash scripts/prepare-state-backup-set.sh "$workspace_root" "$staging_root" >"$tmpdir/success.out"
@@ -996,6 +1361,8 @@ grep -F "$workspace_root/state/app/cache.txt" "$staging_root/last-skipped.txt" >
 
 grep -F "ok: staged backup set at $staging_root/current" "$tmpdir/success.out" >/dev/null
 
+current_target_before="$(readlink -f "$staging_root/current")"
+
 printf 'cannot-read\n' > "$workspace_root/state/app/unreadable.txt"
 chmod 000 "$workspace_root/state/app/unreadable.txt"
 
@@ -1003,6 +1370,9 @@ if bash scripts/prepare-state-backup-set.sh "$workspace_root" "$staging_root" >"
   printf 'expected staging run to fail when source contains unreadable file\n' >&2
   exit 1
 fi
+
+current_target_after="$(readlink -f "$staging_root/current")"
+[ "$current_target_before" = "$current_target_after" ]
 
 [ -f "$staging_root/current/state/opencode/exported_sessions/export.json" ]
 [ -f "$staging_root/current/repos/omnipy/state/repo-cache.txt" ]
@@ -1024,23 +1394,144 @@ Expected: FAIL with `./scripts/prepare-state-backup-set.sh: No such file or dire
 
 - [ ] **Step 3: Write the minimal implementation**
 
-Create `scripts/prepare-state-backup-set.sh` with logic that:
+Create `scripts/prepare-state-backup-set.sh` with this exact content:
 
-1. uses default staging root `/tmp/backup_staging`
-2. seeds `next/` from `current/`
-3. stages only:
-   - `/workspaces/dotfiles/state/`
-   - `/workspaces/dotfiles/repos/*/state/`
-4. excludes every `tmp/` directory
-5. refreshes included files individually, not by unsafe whole-tree replacement
-6. if a file appears open for write:
-   - wait briefly and retry once
-   - if still busy, keep the prior `current/` copy inside `next/`
-   - record the file in `last-skipped.txt`
-7. leaves `current/` untouched if preparation fails
-8. promotes the prepared tree only after success, using same-filesystem promotion semantics that do not expose a delete window for `current/`
-9. prints:
-   - `ok: staged backup set at <staging-root>/current`
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+workspace_root="${1:-/workspaces/dotfiles}"
+staging_root="${2:-/tmp/backup_staging}"
+
+sets_dir="$staging_root/sets"
+current_link="$staging_root/current"
+next_link="$staging_root/current.next"
+skip_report_tmp="$staging_root/last-skipped.txt.next"
+live_files="$(mktemp)"
+staged_files="$(mktemp)"
+new_set="$sets_dir/set-$(date -u +'%Y%m%dT%H%M%SZ')-$$"
+success=false
+
+cleanup() {
+  rm -f "$live_files" "$staged_files" "$skip_report_tmp"
+  if [ "$success" != true ] && [ -d "$new_set" ]; then
+    rm -rf "$new_set"
+  fi
+}
+trap cleanup EXIT
+
+mkdir -p "$sets_dir"
+: > "$skip_report_tmp"
+
+ensure_current() {
+  if [ -L "$current_link" ] || [ -d "$current_link" ]; then
+    return 0
+  fi
+
+  mkdir -p "$sets_dir/set-initial"
+  ln -sfn "$sets_dir/set-initial" "$next_link"
+  mv -Tf "$next_link" "$current_link"
+}
+
+ensure_current
+
+current_target="$(readlink -f "$current_link")"
+
+mkdir -p "$new_set"
+if [ -d "$current_target" ]; then
+  cp -a "$current_target/." "$new_set/" 2>/dev/null || true
+fi
+
+python3 - "$workspace_root" <<'PY' > "$live_files"
+import glob
+import os
+import sys
+
+root = os.path.realpath(sys.argv[1])
+files = []
+
+top_state = os.path.join(root, "state")
+if os.path.isdir(top_state):
+    for base, dirs, names in os.walk(top_state):
+        dirs[:] = [d for d in dirs if d != "tmp"]
+        for name in names:
+            files.append(os.path.join(base, name))
+
+for repo_state in glob.glob(os.path.join(root, "repos", "*", "state")):
+    for base, dirs, names in os.walk(repo_state):
+        dirs[:] = [d for d in dirs if d != "tmp"]
+        for name in names:
+            files.append(os.path.join(base, name))
+
+for path in sorted(set(files)):
+    print(path)
+PY
+
+copy_live_file() {
+  local source_file="$1"
+  local rel_path="${source_file#$workspace_root/}"
+  local dest_file="$new_set/$rel_path"
+  local lock_file="$source_file.backup.lock"
+
+  mkdir -p "$(dirname "$dest_file")"
+
+  if [ -e "$lock_file" ]; then
+    if ! flock -n "$lock_file" -c true 2>/dev/null; then
+      sleep 1
+      if ! flock -n "$lock_file" -c true 2>/dev/null; then
+        printf '%s\n' "$source_file" >> "$skip_report_tmp"
+        return 0
+      fi
+    fi
+  fi
+
+  cp -a "$source_file" "$dest_file"
+}
+
+while IFS= read -r source_file; do
+  [ -n "$source_file" ] || continue
+  copy_live_file "$source_file"
+done < "$live_files"
+
+python3 - "$new_set" <<'PY' > "$staged_files"
+import os
+import sys
+
+root = os.path.realpath(sys.argv[1])
+files = []
+
+for base_name in ("state", "repos"):
+    base_root = os.path.join(root, base_name)
+    if not os.path.exists(base_root):
+        continue
+    for base, dirs, names in os.walk(base_root):
+        dirs[:] = [d for d in dirs if d != "tmp"]
+        for name in names:
+            files.append(os.path.join(base, name))
+
+for path in sorted(set(files)):
+    print(path)
+PY
+
+while IFS= read -r staged_file; do
+  [ -n "$staged_file" ] || continue
+  rel_path="${staged_file#$new_set/}"
+  case "$rel_path" in
+    state/*|repos/*/state/*)
+      if ! grep -Fx "$workspace_root/$rel_path" "$live_files" >/dev/null 2>&1; then
+        rm -f "$staged_file"
+      fi
+      ;;
+  esac
+done < "$staged_files"
+
+mv "$skip_report_tmp" "$staging_root/last-skipped.txt"
+ln -sfn "$new_set" "$next_link"
+mv -Tf "$next_link" "$current_link"
+
+success=true
+printf 'ok: staged backup set at %s/current\n' "$staging_root"
+```
 
 - [ ] **Step 4: Run the test to verify GREEN**
 
@@ -1063,7 +1554,7 @@ git add scripts/prepare-state-backup-set.sh tests/opencode/test_prepare_state_ba
 git commit -m "feat(backup): preserve busy files during staging"
 ```
 
-### Task 8: Add host pull, snapshot backup, and user-facing backup docs
+### Task 8: Add host pull, snapshot backup, and user-facing backup docs # ADDED
 
 **Files:**
 - Create: `scripts/host-pull-and-restic-backup.sh`
@@ -1072,11 +1563,65 @@ git commit -m "feat(backup): preserve busy files during staging"
 
 - [ ] **Step 1: Write the failing contract test**
 
-The test must require:
+Create `tests/opencode/test_host_pull_and_restic_backup.sh` with this exact content:
 
-- host-side pull via `kubectl exec ... tar ...`
-- `restic backup` against the pulled `current/` tree
-- no in-pod writable mount of the real backup destination
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
+
+mkdir -p \
+  "$tmpdir/bin" \
+  "$tmpdir/pod-current/state/opencode/exported_sessions" \
+  "$tmpdir/restic-repo"
+
+printf 'session-json\n' > "$tmpdir/pod-current/state/opencode/exported_sessions/export.json"
+
+cat > "$tmpdir/bin/kubectl" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >> "$KUBECTL_LOG"
+if [ "$1" = "exec" ] && [ "$2" = "-n" ] && [ "$5" = "--" ] && [ "$6" = "tar" ]; then
+  tar -C "$KUBECTL_MOCK_SOURCE" -cf - .
+  exit 0
+fi
+printf 'unexpected kubectl args: %s\n' "$*" >&2
+exit 1
+EOF
+
+cat > "$tmpdir/bin/restic" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'RESTIC_REPOSITORY=%s\n' "${RESTIC_REPOSITORY:-}" >> "$RESTIC_LOG"
+printf '%s\n' "$*" >> "$RESTIC_LOG"
+[ "$1" = "backup" ]
+[ -f "$2/state/opencode/exported_sessions/export.json" ]
+printf 'snapshot created\n'
+EOF
+
+chmod +x "$tmpdir/bin/kubectl" "$tmpdir/bin/restic"
+
+KUBECTL_BIN="$tmpdir/bin/kubectl" \
+RESTIC_BIN="$tmpdir/bin/restic" \
+KUBECTL_LOG="$tmpdir/kubectl.log" \
+RESTIC_LOG="$tmpdir/restic.log" \
+KUBECTL_MOCK_SOURCE="$tmpdir/pod-current" \
+./scripts/host-pull-and-restic-backup.sh "devpod" "workspace-0" "$tmpdir/pulled" "$tmpdir/restic-repo" >"$tmpdir/out.txt"
+
+[ -f "$tmpdir/pulled/current/state/opencode/exported_sessions/export.json" ]
+
+grep -F "exec -n devpod workspace-0 -- tar -C /tmp/backup_staging/current -cf - ." "$tmpdir/kubectl.log" >/dev/null
+grep -F "RESTIC_REPOSITORY=$tmpdir/restic-repo" "$tmpdir/restic.log" >/dev/null
+grep -F "backup $tmpdir/pulled/current" "$tmpdir/restic.log" >/dev/null
+! grep -F "$tmpdir/restic-repo" "$tmpdir/kubectl.log" >/dev/null
+
+grep -F "ok: pulled staged backup set to $tmpdir/pulled/current" "$tmpdir/out.txt" >/dev/null
+grep -F "ok: restic snapshot created from $tmpdir/pulled/current" "$tmpdir/out.txt" >/dev/null
+
+printf 'PASS test_host_pull_and_restic_backup\n'
+```
 
 - [ ] **Step 2: Run the test to verify RED**
 
@@ -1086,14 +1631,87 @@ Run:
 bash tests/opencode/test_host_pull_and_restic_backup.sh
 ```
 
-- [ ] **Step 3: Implement**
+Expected: FAIL with `./scripts/host-pull-and-restic-backup.sh: No such file or directory`.
 
-- `scripts/host-pull-and-restic-backup.sh` must pull staged data from `/tmp/backup_staging/current`
-- the runbook must document:
-  - phase A: export + staging
-  - phase B: host pull + `restic`
-  - restore flow
-  - cleanup guidance
+- [ ] **Step 3: Write the minimal implementation**
+
+Create `scripts/host-pull-and-restic-backup.sh` with this exact content:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+namespace="${1:?usage: scripts/host-pull-and-restic-backup.sh NAMESPACE POD PULL_ROOT RESTIC_REPOSITORY}"
+pod="${2:?usage: scripts/host-pull-and-restic-backup.sh NAMESPACE POD PULL_ROOT RESTIC_REPOSITORY}"
+pull_root="${3:?usage: scripts/host-pull-and-restic-backup.sh NAMESPACE POD PULL_ROOT RESTIC_REPOSITORY}"
+restic_repository="${4:?usage: scripts/host-pull-and-restic-backup.sh NAMESPACE POD PULL_ROOT RESTIC_REPOSITORY}"
+
+kubectl_bin="${KUBECTL_BIN:-kubectl}"
+restic_bin="${RESTIC_BIN:-restic}"
+pod_staging_path="${POD_STAGING_PATH:-/tmp/backup_staging/current}"
+pull_current="$pull_root/current"
+
+rm -rf "$pull_current"
+mkdir -p "$pull_current"
+
+"$kubectl_bin" exec -n "$namespace" "$pod" -- tar -C "$pod_staging_path" -cf - . | tar -C "$pull_current" -xf -
+
+RESTIC_REPOSITORY="$restic_repository" "$restic_bin" backup "$pull_current"
+
+printf 'ok: pulled staged backup set to %s\n' "$pull_current"
+printf 'ok: restic snapshot created from %s\n' "$pull_current"
+```
+
+Create `docs/superpowers/runbooks/opencode-export-and-state-backup.md` with this exact content:
+
+```markdown
+# OpenCode Export And State Backup
+
+This runbook documents the two-phase backup flow.
+
+## Phase A: in-pod export and staging
+
+```bash
+namespace="${NAMESPACE:-devpod}"
+pod="${POD_NAME:-devpod-workspace-0}"
+
+kubectl exec -n "$namespace" "$pod" -- bash -lc 'cd /workspaces/dotfiles/main && bash scripts/opencode-export-all-sessions.sh && bash scripts/prepare-state-backup-set.sh /workspaces/dotfiles /tmp/backup_staging'
+kubectl exec -n "$namespace" "$pod" -- find /tmp/backup_staging/current -maxdepth 5 -type f | sort
+```
+
+## Phase B: host pull and `restic` snapshot
+
+```bash
+namespace="${NAMESPACE:-devpod}"
+pod="${POD_NAME:-devpod-workspace-0}"
+
+kubectl exec -n "$namespace" "$pod" -- tar -C /tmp/backup_staging/current -cf - . | tar -C "$HOME/dotfiles-backup-stage/current" -xf -
+RESTIC_REPOSITORY="$HOME/restic-repos/dotfiles" restic backup "$HOME/dotfiles-backup-stage/current"
+```
+
+Equivalent wrapper command:
+
+```bash
+bash scripts/host-pull-and-restic-backup.sh "$namespace" "$pod" "$HOME/dotfiles-backup-stage" "$HOME/restic-repos/dotfiles"
+```
+
+## Restore flow
+
+```bash
+RESTIC_REPOSITORY="$HOME/restic-repos/dotfiles" restic restore latest --target "$HOME/dotfiles-restore"
+find "$HOME/dotfiles-restore/current/state/opencode/exported_sessions" -type f -name '*.json' | sort
+bash scripts/recover-opencode-sessions.sh "$HOME/dotfiles-restore/current/state/opencode/exported_sessions"
+```
+
+## Cleanup guidance
+
+```bash
+rm -rf "$HOME/dotfiles-backup-stage/current"
+find /tmp/backup_staging -maxdepth 2 -type l -o -type f | sort
+```
+
+The real `restic` repository remains host-side only. Do not mount it writable into DevPod.
+```
 
 - [ ] **Step 4: Run the test to verify GREEN**
 
@@ -1101,6 +1719,12 @@ Run:
 
 ```bash
 bash tests/opencode/test_host_pull_and_restic_backup.sh
+```
+
+Expected:
+
+```text
+PASS test_host_pull_and_restic_backup
 ```
 
 - [ ] **Step 5: Commit**
@@ -1258,39 +1882,76 @@ git add scripts/recover-opencode-sessions.sh tests/opencode/test_recover_opencod
 git commit -m "feat(opencode): recover newest durable session exports"
 ```
 
-### Task 10: Reconcile the older persistence document and verify the plan text
+### Task 10: Reconcile the older persistence document and verify canonical wording # ADDED
 
 **Files:**
 - Modify: `docs/superpowers/specs/2026-05-21-persistence-security-design.md`
+- Create: `tests/docs/test_persistence_doc_reconciliation.sh`
 
-- [ ] **Step 1: Add the superseded/canonical banner**
+- [ ] **Step 1: Write the failing doc test**
 
-Add a banner stating that the durable-state and backup model is now governed by this plan.
+Create `tests/docs/test_persistence_doc_reconciliation.sh` with this exact content:
 
-- [ ] **Step 2: Verify stale wording no longer acts as source of truth**
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+grep -F '> **Superseded in part:** The durable-state, host-bootstrap, worktree-policy, and backup guidance in this document is now governed by `docs/superpowers/plans/2026-05-21-bare-hub-manager.md`, which is the canonical combined spec + implementation plan for the bare-hub manager workflow.' docs/superpowers/specs/2026-05-21-persistence-security-design.md >/dev/null
+grep -F 'Read all persistence, installer-source, and bare-hub policy decisions through that newer plan first.' docs/superpowers/specs/2026-05-21-persistence-security-design.md >/dev/null
+
+grep -F 'Repo policy source: `.config/opencode/AGENTS.md` at commit `30a30cb783d8e76859c529b16ad79be161fa285c`.' docs/superpowers/plans/2026-05-21-bare-hub-manager.md >/dev/null
+grep -F 'Refused — hub-root CWD detected. Provide explicit worktree path.' docs/superpowers/plans/2026-05-21-bare-hub-manager.md >/dev/null
+grep -F '/tmp/backup_staging/current' docs/superpowers/plans/2026-05-21-bare-hub-manager.md >/dev/null
+
+git diff --check >/dev/null
+
+printf 'PASS test_persistence_doc_reconciliation\n'
+```
+
+- [ ] **Step 2: Run the test to verify RED**
 
 Run:
 
 ```bash
-grep -n "Superseded in part" docs/superpowers/specs/2026-05-21-persistence-security-design.md
-grep -n "https://dev.to/metal3d/git-worktree-like-a-boss-2j1b" docs/superpowers/plans/2026-05-21-bare-hub-manager.md
-grep -n 'dirname "${BASH_SOURCE\[0\]}"' docs/superpowers/plans/2026-05-21-bare-hub-manager.md
-grep -n "/tmp/backup_staging" docs/superpowers/plans/2026-05-21-bare-hub-manager.md
-grep -n "wait briefly and retry once" docs/superpowers/plans/2026-05-21-bare-hub-manager.md
-grep -n "manager hub, not a normal checkout" .config/opencode/AGENTS.md
-git diff --check
+bash tests/docs/test_persistence_doc_reconciliation.sh
 ```
 
-- [ ] **Step 3: Commit**
+Expected: FAIL because the older persistence spec does not yet include the new exact superseded banner text.
+
+- [ ] **Step 3: Write the minimal implementation**
+
+Replace the existing superseded banner block in `docs/superpowers/specs/2026-05-21-persistence-security-design.md` with this exact text:
+
+```md
+> **Superseded in part:** The durable-state, host-bootstrap, worktree-policy, and backup guidance in this document is now governed by `docs/superpowers/plans/2026-05-21-bare-hub-manager.md`, which is the canonical combined spec + implementation plan for the bare-hub manager workflow.
+>
+> Read all persistence, installer-source, and bare-hub policy decisions through that newer plan first.
+```
+
+- [ ] **Step 4: Run the test to verify GREEN**
+
+Run:
 
 ```bash
-git add docs/superpowers/specs/2026-05-21-persistence-security-design.md docs/superpowers/plans/2026-05-21-bare-hub-manager.md .config/opencode/AGENTS.md .config/opencode/agents/maestro.md .config/opencode/agents/senior-implementer.md
-git commit -m "docs(plan): consolidate bare-hub manager spec and implementation plan"
+bash tests/docs/test_persistence_doc_reconciliation.sh
+```
+
+Expected:
+
+```text
+PASS test_persistence_doc_reconciliation
+```
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add docs/superpowers/specs/2026-05-21-persistence-security-design.md tests/docs/test_persistence_doc_reconciliation.sh
+git commit -m "docs(spec): point persistence guidance to canonical bare-hub plan"
 ```
 
 ---
 
-## Verification-before-completion checklist for the implementer
+## Verification-before-completion checklist for the implementer # ADDED
 
 Before claiming this work complete, run:
 
@@ -1300,6 +1961,7 @@ bash tests/devpod/test_devpod_ensure_layout.sh
 bash tests/install/test_install_validate_source.sh
 bash tests/install/test_install_local_source_contract.sh
 bash tests/docs/test_bare_hub_guardrails.sh
+bash tests/docs/test_persistence_doc_reconciliation.sh
 bash tests/opencode/test_export_all_sessions.sh
 bash tests/opencode/test_prepare_state_backup_set.sh
 bash tests/opencode/test_host_pull_and_restic_backup.sh
@@ -1310,6 +1972,13 @@ Then run:
 
 ```bash
 git diff --check
+```
+
+Expected:
+
+```text
+All listed shell tests print PASS.
+git diff --check prints no output.
 ```
 
 ---
