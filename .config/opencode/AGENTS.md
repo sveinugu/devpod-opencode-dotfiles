@@ -126,10 +126,6 @@ Why this works
     5. State that only the owning subagent may perform its named responsibilities unless the human activates the two-step Maestro override.
     6. When resuming an existing subagent session, explicitly say it is a resume of the existing session, not a new session.
 - Per-subagent override: a subagent file may define a more specific first-message/handoff wording; that override applies only to that subagent and must be explicit in the subagent file.
-- Bare-hub manager override for this repo: `/workspaces/dotfiles` is a manager hub, not a normal checkout. Agents MUST treat `/workspaces/dotfiles/main` or another explicit worktree path as the editable repository root, and MUST NOT perform repository edits from `/workspaces/dotfiles` itself.
-- Worktree-skill reconciliation: the generic `using-git-worktrees` skill still applies, but in this repo it starts from the existing bare-hub layout instead of inventing a parallel checkout model. For dotfiles and for child repos under `repos/*`, agents must create or reuse worktrees beneath the managed hub (`main`, `work/*`) and must not treat the hub root as the working tree.
-- Child-repo rule: repositories under `repos/<name>/` follow the same pattern as the top-level repo: hub root at `repos/<name>/`, editable checkout at `repos/<name>/main` or `repos/<name>/work/<branch>`, and durable local files only under `repos/<name>/state/`.
-- Bare-hub refusal string: if CWD is detected to be a hub root, the agent or script must refuse with: `Refused — hub-root CWD detected. Provide explicit worktree path.`
 
 ## Intent-preserving delegation packet
 

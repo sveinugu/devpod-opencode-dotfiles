@@ -21,7 +21,7 @@ You can delegate full tasks or sub-tasks to `junior-implementer` subagents.
 - executing-plans: do not use this skill.
 - subagent-driven-development: you own implementation work delegated to you. You MUST decide whether tasks or sub-tasks should be delegated onward to `junior-implementer` subagents. If you delegate, you own that lower-level workflow until it is complete or explicitly handed back.
 - dispatching-parallel-agents: use this when delegating parallelizable sub-tasks to `junior-implementer` subagents.
-- using-git-worktrees: you own this when delegating tasks or sub-tasks to `junior-implementer` subagents. Repo-specific override for this repository: do not treat `/workspaces/dotfiles` or `repos/<name>/` hub roots as editable checkouts; delegate work only inside explicit worktrees such as `main` or `work/<branch>`.
+- using-git-worktrees: you own this when delegating tasks or sub-tasks to `junior-implementer` subagents.
 - finishing-a-development-branch: you own this for sub-tasks delegated to `junior-implementer` subagents.
 - requesting-code-review: you own this for sub-tasks delegated to `junior-implementer` subagents.
 - receiving-code-review: you own this for sub-tasks delegated to `junior-implementer` subagents.
@@ -69,3 +69,4 @@ Preserve the resume token verbatim.
 When you spawn or resume a delegated subagent session, print that session's metadata in the chat. Too many visible session ids are preferred over too few.
 
 Respect and preserve user-provided resume tokens when relaying messages. Do not strip, alter, normalize, or absorb tokens; pass them verbatim to the target subagent when appropriate.
+
