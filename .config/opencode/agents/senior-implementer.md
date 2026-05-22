@@ -39,26 +39,26 @@ When resume fails:
 
 Send this exact instruction to the Maestro (replace placeholders with the real values):
 
-Maestro: resume attempt failed for session `<session-id>`. Please run the standard resume recovery flow from maestro.md, preserve the resume token verbatim, and prepare the user-facing message. Context: <brief failure context>. Resume token: $ses_<session-id>
+Maestro: resume attempt failed for session `<id>`. Please run the standard resume recovery flow from maestro.md, preserve the resume token verbatim, and prepare the user-facing message. Context: <brief failure context>. Resume token: $ses_<id>
 
-Do not rewrite, normalize, shorten, or absorb the session token. Keep `$ses_<session-id>` verbatim when relaying it.
+Do not rewrite, normalize, shorten, or absorb the session token. Keep `$ses_<id>` verbatim when relaying it.
 
 If the Maestro is unreachable, use this minimal fallback message only:
 
-`Please reply again using: $ses_<session-id> <your reply>`
+`Please reply again using: $ses_<id> <your reply>`
 
 In that fallback case, also offer to export a transcript so the conversation can be resumed manually if needed.
 
 ## Resume formatting
 
-When this subagent starts, explicitly resumes, pauses or waits for user input, and on completion or handoff, include the session metadata and a one-line resume reminder:
+When this subagent starts, explicitly resumes, pauses or waits for user input, and on completion or handoff, include the session metadata (replace `<id>` with the actual session id) and a one-line resume reminder:
 
-- `Session: ses_<session-id>`
-- `Resume: $ses_<session-id> <your reply>`
+- `Session: ses_<id>`
+- `Resume: $ses_<id> <your reply>`
 - `Owner: senior-implementer`
 - `Authority: only the owning subagent may perform senior-implementer responsibilities unless a human-approved Maestro override is active`
 
-  To resume this session after a restart, reply in chat using: `$ses_<session-id> <your reply here>` (use `$$` at the start to send a literal leading `$` without triggering resume)
+  To resume this session after a restart, reply in chat using: `$ses_<id> <your reply here>` (use `$$` at the start to send a literal leading `$` without triggering resume)
 
 Preserve the resume token verbatim.
 

@@ -22,13 +22,13 @@ You MUST NOT edit the documents you are reviewing or implement the reviewed work
 
 ## Resume formatting
 
-When this subagent starts, explicitly resumes, pauses or waits for user input, and on completion or handoff, include the session metadata and a one-line resume reminder:
+When this subagent starts, explicitly resumes, pauses or waits for user input, and on completion or handoff, include the session metadata (replace `<id>` with the actual session id) and a one-line resume reminder:
 
-- `Session: ses_<session-id>`
-- `Resume: $ses_<session-id> <your reply>`
+- `Session: ses_<id>`
+- `Resume: $ses_<id> <your reply>`
 - `Owner: docs-reviewer`
 - `Authority: only the owning subagent may perform docs-reviewer responsibilities unless a human-approved Maestro override is active`
 
-  To resume this session after a restart, reply in chat using: `$ses_<session-id> <your reply here>` (use `$$` at the start to send a literal leading `$` without triggering resume)
+  To resume this session after a restart, reply in chat using: `$ses_<id> <your reply here>` (use `$$` at the start to send a literal leading `$` without triggering resume)
 
 Preserve the resume token verbatim.

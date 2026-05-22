@@ -90,9 +90,9 @@ Why this works
 - Planner ownership sentence: planner-owned artifacts (plans/specs) must be authored/committed by planner unless an explicit Maestro override is active.
 - Review-record policy: review feedback is conversational by default. A persistent review-record document is created only when explicitly requested or required by a plan/spec. When such a document is created, it is owned by the reviewing subagent unless explicitly reassigned. For PR-based review, GitHub review history is the default persisted review record.
 - Execution Handoff definition: "Execution Handoff" means the Maestro step that turns an approved plan into delegated implementation work.
-- Mandatory handoff metadata (required in EVERY subagent start, explicit resume, handoff, pause, and completion message):
-    - `Session: ses_<session-id>`
-    - `Resume: $ses_<session-id> <your reply>`
+- Mandatory handoff metadata (required in EVERY subagent start, explicit resume, handoff, pause, and completion message, replace `<id>` with the actual session id):
+    - `Session: ses_<id>`
+    - `Resume: $ses_<id> <your reply>`
     - `Owner: <subagent>`
     - `Authority: only the owning subagent may perform <subagent> responsibilities unless a human-approved Maestro override is active`
 - Session visibility rule: when a delegating agent spawns or resumes a subagent session, it MUST print that session's metadata in the chat. Too many visible session ids are preferred over too few.
@@ -126,7 +126,7 @@ Interaction rules:
 - The owning subagent MUST surface its session id on start, on explicit resume, on any pause/wait-for-user message, and on completion or handoff.
 - The owning subagent MUST include the exact resume syntax on every pause/wait-for-user message:
 
-  `To resume this session after a restart, reply in chat using: $ses_<session-id> <your reply here>`
+  `To resume this session after a restart, reply in chat using: $ses_<id> <your reply here>`
 
 - No takeover rule: no other agent may perform the owning subagent's named responsibilities, commit on its behalf, or declare its scoped work complete unless the human has activated the two-step Maestro override for that exact scope.
 - When done, return control to the <parent agent> with the exact final handoff:
@@ -163,7 +163,7 @@ The Maestro must verify both messages came from the human, are consecutive, and 
 - Purpose: Provide a simple agent-facing policy for resuming subagent sessions after process restarts.
 - User-facing resume syntax: A user may resume a waiting subagent by sending a single-line message that begins with:
 
-  `$ses_<session-id> <their reply>`
+  `$ses_<id> <their reply>`
 
   Example: `$ses_1beff32adffex42WsKM8Hks5PF Here is my answer`
 
@@ -173,7 +173,7 @@ The Maestro must verify both messages came from the human, are consecutive, and 
 - Escape: If a user needs a literal leading dollar, instruct them to prefix with `$$` (e.g.,
   `"$$hello" => "$hello"` no resume).
 - Routing guarantee: when a valid
-  `$ses_<session-id>` token is present, the reply MUST be routed DIRECTLY AND VERBATIM to that session's owning subagent rather than being re-triaged as a fresh task for the dispatching agent (e.g. Maestro).
+  `$ses_<id>` token is present, the reply MUST be routed DIRECTLY AND VERBATIM to that session's owning subagent rather than being re-triaged as a fresh task for the dispatching agent (e.g. Maestro).
 - Preserve resume tokens verbatim. Do not rewrite, normalize, shorten, or absorb them.
 
 ### Session-resume and "switch" semantics
