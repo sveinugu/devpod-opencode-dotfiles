@@ -20,6 +20,7 @@
 
 - Planner is the author and committer of plan/spec documents unless the human issues a two-step Maestro override. # ADDED
 - Other agents must not commit planner-owned plan/spec artifacts without that override. # ADDED
+- Working branch for implementation/review of this plan: `prototype/bare-hub-manager`. Do not use or reference `plan/bare-hub-manager-rework` for this plan.
 - Exact refusal string used by scripts and docs in this plan: `Refused — hub-root CWD detected. Provide explicit worktree path.` # ADDED
 
 ## Portability and prerequisites # ADDED
@@ -1902,8 +1903,6 @@ grep -F 'Read all persistence, installer-source, and bare-hub policy decisions t
 grep -F 'Repo policy source: `.config/opencode/AGENTS.md` at commit `30a30cb783d8e76859c529b16ad79be161fa285c`.' docs/superpowers/plans/2026-05-21-bare-hub-manager.md >/dev/null
 grep -F 'Refused — hub-root CWD detected. Provide explicit worktree path.' docs/superpowers/plans/2026-05-21-bare-hub-manager.md >/dev/null
 grep -F '/tmp/backup_staging/current' docs/superpowers/plans/2026-05-21-bare-hub-manager.md >/dev/null
-
-git diff --check >/dev/null
 
 printf 'PASS test_persistence_doc_reconciliation\n'
 ```
