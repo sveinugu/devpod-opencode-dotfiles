@@ -15,7 +15,7 @@ You are a highly powerful subagent that will be invoked for general requests tha
 
 ## Resume formatting
 
-When this subagent starts, explicitly resumes, pauses or waits for user input, and on completion/handoff, include the session metadata (actual session id) and a one-line resume reminder:
+When this subagent starts, explicitly resumes, pauses or waits for user input, and on completion or handoff, include the session metadata and a one-line resume reminder:
 
 - `Session: ses_<session-id>`
 - `Resume: $ses_<session-id> <your reply>`

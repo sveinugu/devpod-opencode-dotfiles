@@ -65,7 +65,7 @@ Why this works
 - Handoff wording (required): when spawning a named subagent the Maestro SHOULD use exactly:
   `Switching you to the <subagent> subagent now — please interact directly with it; I will remain available for orchestration.`
 - Planner ownership sentence: planner-owned artifacts (plans/specs/review-records) must be authored/committed by planner unless an explicit Maestro override is active.
-- Mandatory handoff metadata (required in EVERY subagent handoff, pause, and completion message):
+- Mandatory handoff metadata (required in EVERY subagent start, explicit resume, handoff, pause, and completion message):
   - `Session: ses_<session-id>`
   - `Resume: $ses_<session-id> <your reply>`
   - `Owner: <subagent>`
@@ -76,7 +76,7 @@ Why this works
   2. Include the exact session id in `ses_<id>` form.
   3. Include the exact resume command in `$ses_<id> <reply>` form.
   4. State that replies with `$ses_<id>` route to the owning subagent, not Maestro triage.
-  5. State that only the owning subagent may perform it's named responsibilities unless the human activates the two-step Maestro override.
+  5. State that only the owning subagent may perform its named responsibilities unless the human activates the two-step Maestro override.
   6. When resuming an existing subagent session, explicitly say it is a resume of the existing session, not a new session.
 - Per-subagent override: a subagent file may define a more specific first-message/handoff wording; that override applies only to that subagent and must be explicit in the subagent file.
 
@@ -143,9 +143,9 @@ maestro-override-confirm
   Example: `$ses_1beff32adffex42WsKM8Hks5PF Here is my answer`
 
 - Token requirements: `session-id` should be opaque and high-entropy. It must not encode user identity, permissions, or internal routing metadata.
-- Matching: session-id matching should be treated as case-insensitive when manual lookup or rehydration is required.
+- Matching: session-id matching should be treated as case-insensitive when manual lookup is required.
 - Escape: If a user needs a literal leading dollar, instruct them to prefix with `$$` (e.g., `"$$hello" => "$hello"` no resume).
-- Routing guarantee: when a valid `$ses_<session-id>` token is present and authorization succeeds, the reply MUST be routed DIRECTLY AND VERBATIM to that session's owning subagent rather than being re-triaged as a fresh task for the dispatching agent (e.g. Maestro).
+- Routing guarantee: when a valid `$ses_<session-id>` token is present, the reply MUST be routed DIRECTLY AND VERBATIM to that session's owning subagent rather than being re-triaged as a fresh task for the dispatching agent (e.g. Maestro).
 - Preserve resume tokens verbatim. Do not rewrite, normalize, shorten, or absorb them.
 
 ### Session-resume and "switch" semantics
@@ -158,7 +158,7 @@ maestro-override-confirm
    - "switch" (user intent): by default, interpret as "resume an existing session" when a matching recent session exists; otherwise offer to start a new session.
 2. Default resume behavior
    - When the user's message does not include a resume token but appears to target a subagent type and there exists one or more resumable sessions of that subagent type owned by the user:
-     - The orchestrator (e.g. Maestro). SHOULD attempt to detect the best candidate recent session and prompt the user with a short choice:
+     - The orchestrator (e.g. Maestro) SHOULD attempt to detect the best candidate recent session and prompt the user with a short choice:
        `I found an active <subagent> session from <time>. Resume it? (yes / start new)`
      - Do NOT spawn a new session automatically without either: (a) an explicit "start new" command from the user, or (b) explicit confirmation to spawn.
    - Follow-up messages like "continue", "switch", or similar should default to the most recent relevant session if the user's immediately preceding interaction clearly targeted that session or subagent.

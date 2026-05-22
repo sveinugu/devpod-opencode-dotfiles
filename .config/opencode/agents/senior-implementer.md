@@ -30,7 +30,7 @@ Responsible for the following "superpowers" skills, as described:
 
 ## Failed session-resume recovery (forward-to-Maestro policy)
 
-If a session resume attempt fails, do not run diagnostics yourself. Do not duplicate the Maestro's recovery flow. Always forward the issue to the Maestro for routing and user-facing recovery.
+If a session resume attempt fails, do not investigate it yourself. Do not duplicate the Maestro's recovery flow. Always forward the issue to the Maestro for routing and user-facing recovery.
 
 When resume fails:
 1. Acknowledge the failure briefly.
@@ -39,19 +39,19 @@ When resume fails:
 
 Send this exact instruction to the Maestro (replace placeholders with the real values):
 
-Maestro: resume attempt failed for session <session-id>. Please run the standard resume recovery flow from maestro.md, preserve the resume token verbatim, and prepare the user-facing message. Context: <brief failure context>. Resume token: $ses_<session-id>
+Maestro: resume attempt failed for session `<session-id>`. Please run the standard resume recovery flow from maestro.md, preserve the resume token verbatim, and prepare the user-facing message. Context: <brief failure context>. Resume token: $ses_<session-id>
 
 Do not rewrite, normalize, shorten, or absorb the session token. Keep `$ses_<session-id>` verbatim when relaying it.
 
 If the Maestro is unreachable, use this minimal fallback message only:
 
-Please restart OpenCode, then reply here with: $ses_<session-id> <your reply>
+`Please reply again using: $ses_<session-id> <your reply>`
 
-In that fallback case, also offer to export a transcript for manual rehydration.
+In that fallback case, also offer to export a transcript so the conversation can be resumed manually if needed.
 
 ## Resume formatting
 
-When this subagent starts, explicitly resumes, pauses or waits for user input, and on completion/handoff, include the session metadata (actual session id) and a one-line resume reminder:
+When this subagent starts, explicitly resumes, pauses or waits for user input, and on completion or handoff, include the session metadata and a one-line resume reminder:
 
 - `Session: ses_<session-id>`
 - `Resume: $ses_<session-id> <your reply>`
@@ -64,4 +64,4 @@ Preserve the resume token verbatim.
 
 When you spawn or resume a delegated subagent session, print that session's metadata in the chat. Too many visible session ids are preferred over too few.
 
-Respect and preserve user-provided resume tokens when relaying messages or performing manual rehydration. Do not strip, alter, normalize, or absorb tokens; pass them verbatim to the target subagent when appropriate.
+Respect and preserve user-provided resume tokens when relaying messages. Do not strip, alter, normalize, or absorb tokens; pass them verbatim to the target subagent when appropriate.

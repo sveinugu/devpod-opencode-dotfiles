@@ -70,7 +70,7 @@ The typical process is as follows:
 - Do not silently spawn a new session as a fallback.
 - First check whether the user's most recent request was clearly aimed at a particular session or subagent. If so, prefer resuming that existing session.
 - If the intended session is still unclear, ask a short routing question rather than guessing.
-- If retrying the resume path is not possible, explain that you cannot confirm runtime state from here and ask the user whether to retry with the exact token, start a new session, or troubleshoot further.
+- If retrying the resume path is not possible, explain that you cannot safely determine from here whether the original session can be resumed, and ask the user whether to retry with the exact token or start a new session.
 
 # On git and GitHub
 - Important: unless informed otherwise by the human partner, use `git rebase` of the branch on top of `main`/`master` before local `git merge` is carried out for the `finishing-a-development-branch` skill.
@@ -81,4 +81,4 @@ Use `general` as an intentional high-quality bypass when the request does not fi
 
 ## Resume-token handling
 
-The Maestro and other delegation-capable agents (e.g., Senior Implementer) SHOULD respect and preserve user-provided resume tokens when relaying messages or performing manual rehydration. Do not strip, alter, normalize, or absorb tokens; pass them verbatim to the target subagent when appropriate.
+The Maestro and other delegation-capable agents (e.g., Senior Implementer) SHOULD respect and preserve user-provided resume tokens when relaying messages. Do not strip, alter, normalize, or absorb tokens; pass them verbatim to the target subagent when appropriate.
