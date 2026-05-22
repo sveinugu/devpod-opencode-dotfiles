@@ -2,9 +2,10 @@
 
 ## SUMMARY
 
+OpenCode durability in this plan does not come from backing up OpenCode config files or internal runtime storage. The durable artifacts are the JSON files produced by `opencode export` under `state/opencode/exported_sessions/`, plus the repo-local `state/` directories explicitly included by this backup contract. Repo-intentional OpenCode files remain ordinary source/dotfile content preserved by Git, while user/global OpenCode config is outside this plan unless separately backed up as part of home-directory dotfiles.
+
 - **Durable state scope is narrower than the earlier docs implied.** Replace the persistence wording in `docs/superpowers/specs/2026-05-21-persistence-security-design.md` sections **Executive summary**, **Mitigations and guardrails** (bullets 53-55), **Recommended k3d/DevPod default**, and **Prioritized actionable TODOs** items **3** and **4** with the state contract from `docs/superpowers/specs/2026-05-21-opencode-export-and-state-backup-design.md`: durable state is `state/`, `state/opencode/exported_sessions/`, and `repos/*/state/`; `tmp/` stays disposable.
 - **The earlier manager plan needs its persistence tasks replaced, not extended.** Replace `docs/superpowers/plans/2026-05-21-bare-hub-manager.md` sections **Architecture**, **File Structure**, **Task 2**, **Task 4**, **Task 5 Step 4**, and **Task 6**. Those sections currently talk about redirecting generic OpenCode state into `/workspaces/dotfiles/state`; they must instead point to the export-and-backup flow in Part 2 of this document.
-- **OpenCode durability now comes from exports, not internal storage copying.** Revise `docs/superpowers/specs/2026-05-21-persistence-security-design.md` bullet **54** (`Store transcripts per workspace under /workspaces/dotfiles/state/opencode/<workspace-id>`) so it distinguishes runtime state from durable history: runtime files may live under `state/opencode/`, but keep-worthy session history is backed up via `state/opencode/exported_sessions/` produced by `opencode export`.
 - **Backup procedure language must be replaced wholesale.** Any future doc or runbook that says “back up `/workspaces`” or “back up OpenCode state directly” must be updated to the two-phase design from `docs/superpowers/specs/2026-05-21-opencode-export-and-state-backup-design.md` sections **Backup Staging Contract**, **Host Backup Contract**, and **Schedule**.
 - **Install and hub-root guardrails still stand.** Keep and execute the install-safety work from `docs/superpowers/specs/2026-05-21-persistence-security-design.md` sections **Mitigations and guardrails**, **Admin tests and verification**, and **Prioritized actionable TODOs** items **1**, **2**, and **5** as Part 1 below.
 
@@ -672,6 +673,8 @@ git commit -m "test(plan): verify bare-hub manager tracer bullet"
 
 ### Task 6: Export OpenCode sessions into `state/opencode/exported_sessions/`
 
+Use `opencode session list --format json` plus `opencode export <session-id>` to materialize durable session-history JSON files under `state/opencode/exported_sessions/`. These exported JSONs are the backup source of truth for OpenCode session recovery. We intentionally do not back up OpenCode internal runtime DB files, caches, lockfiles, or in-memory objects, because those are implementation details rather than stable durable artifacts. Re-export when a session is new, malformed on disk, or newer than its last export.
+
 **Files:**
 - Create: `scripts/opencode-export-all-sessions.sh`
 - Test: `tests/opencode/test_export_all_sessions.sh`
@@ -845,6 +848,8 @@ git commit -m "feat(opencode): export durable session backups"
 ```
 
 ### Task 7: Stage durable state into the double-buffer backup set
+
+Exclude any `.config/opencode` runtime/config folders from staged backups unless they are repo-intentional dotfiles already preserved by normal source/dotfile backup policy.
 
 **Files:**
 - Create: `scripts/prepare-state-backup-set.sh`
