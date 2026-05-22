@@ -618,6 +618,8 @@ git commit -m "docs(guardrails): document bare-hub safety checks"
 
 ### Task 5: Verify the Part 1 tracer bullet end-to-end
 
+Verification checkpoint task (non-TDD by design; no new implementation).
+
 **Files:**
 - None
 
@@ -756,6 +758,9 @@ export_root="${EXPORT_ROOT:-/workspaces/dotfiles/state/opencode/exported_session
 
 mkdir -p "$export_root"
 
+session_list_json="$(mktemp)"
+trap 'rm -f "$session_list_json"' EXIT
+
 slugify() {
   python3 - "$1" <<'PY'
 import re
@@ -766,11 +771,14 @@ print((title or 'session')[:60])
 PY
 }
 
-"$opencode_bin" session list --format json | python3 - <<'PY' | while IFS=$'\t' read -r session_id updated title; do
+"$opencode_bin" session list --format json > "$session_list_json"
+
+python3 - "$session_list_json" <<'PY' | while IFS=$'\t' read -r session_id updated title; do
 import json
 import sys
-for item in json.load(sys.stdin):
-    print(f"{item['id']}\t{item['updated']}\t{item.get('title', 'session')}")
+with open(sys.argv[1], 'r', encoding='utf-8') as fh:
+    for item in json.load(fh):
+        print(f"{item['id']}\t{item['updated']}\t{item.get('title', 'session')}")
 PY
   slug="$(slugify "$title")"
   timestamp="$(date -u +'%Y-%m-%dT%H-%M-%SZ')"
@@ -920,7 +928,7 @@ Run:
 
 ```bash
 mkdir -p state/opencode/exported_sessions
-mkdir -p repos/.keep
+mkdir -p repos && : > repos/.keep
 ```
 
 Expected: the durable-state directories exist before the backup script is introduced into regular use.
@@ -950,12 +958,16 @@ set -euo pipefail
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
 
-mkdir -p "$tmpdir/bin" "$tmpdir/host-copy"
+fixture_dir="$tmpdir/fixture"
+
+mkdir -p "$tmpdir/bin" "$tmpdir/host-copy" "$fixture_dir"
+printf 'staged-file\n' > "$fixture_dir/export.json"
+export fixture_dir
 
 cat > "$tmpdir/bin/kubectl" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-printf 'staged-file\n'
+tar -C "${fixture_dir}" -cf - .
 EOF
 
 cat > "$tmpdir/bin/restic" <<'EOF'
@@ -1133,7 +1145,8 @@ if [ "$#" -eq 0 ]; then
 fi
 
 tmp_list="$(mktemp)"
-trap 'rm -f "$tmp_list"' EXIT
+tmp_sorted="$(mktemp)"
+trap 'rm -f "$tmp_list" "$tmp_sorted"' EXIT
 
 for input_path in "$@"; do
   if [ -d "$input_path" ]; then
@@ -1143,27 +1156,30 @@ for input_path in "$@"; do
   fi
 done
 
-sort -r "$tmp_list" | python3 - <<'PY' | while IFS=$'\t' read -r session_id file_path; do
+sort -r "$tmp_list" > "$tmp_sorted"
+
+python3 - "$tmp_sorted" <<'PY' | while IFS=$'\t' read -r session_id file_path; do
 import json
 import sys
 
 seen = set()
-for line in sys.stdin:
-    path = line.strip()
-    if not path:
-        continue
-    filename = path.rsplit('/', 1)[-1]
-    parts = filename.split('-', 3)
-    session_id = None
-    if len(parts) >= 3 and parts[2].startswith('ses_'):
-        session_id = parts[2]
-    if session_id is None:
-        with open(path, 'r', encoding='utf-8') as fh:
-            session_id = json.load(fh)['info']['id']
-    if session_id in seen:
-        continue
-    seen.add(session_id)
-    print(f"{session_id}\t{path}")
+with open(sys.argv[1], 'r', encoding='utf-8') as fh:
+    for line in fh:
+        path = line.strip()
+        if not path:
+            continue
+        filename = path.rsplit('/', 1)[-1]
+        parts = filename.split('-', 3)
+        session_id = None
+        if len(parts) >= 3 and parts[2].startswith('ses_'):
+            session_id = parts[2]
+        if session_id is None:
+            with open(path, 'r', encoding='utf-8') as fh:
+                session_id = json.load(fh)['info']['id']
+        if session_id in seen:
+            continue
+        seen.add(session_id)
+        print(f"{session_id}\t{path}")
 PY
   opencode import "$file_path"
 done
