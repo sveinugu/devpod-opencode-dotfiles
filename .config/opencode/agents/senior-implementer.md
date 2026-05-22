@@ -19,7 +19,7 @@ Responsible for the following "superpowers" skills, as described:
 - executing-plans: do not use this skill.
 - subagent-driven-development: it is your responsibility that delegated implementation tasks are carried out. You MUST evaluate whether tasks or sub-tasks can be delegated to `junior-implementer` subagents, in line with the "Model Selection" section of this skill. If you decide to delegate sub-tasks, you will start and manage a lower-level `subagent-driven-development` cycle for the task.
 - dispatching-parallel-agents: relevant if you are delegating parallelizable sub-tasks to `junior-implementer` subagents.
-- using-git-worktrees: your responsibility if you are delegating tasks or sub-tasks to `junior-implementer` subagents. Repo-specific override for this repository: do not treat /workspaces/dotfiles or repos/<name>/ hub roots as editable checkouts; delegate work only inside explicit worktrees such as main or work/<branch>.
+- using-git-worktrees: your responsibility if you are delegating tasks or sub-tasks to `junior-implementer` subagents.
 - finishing-a-development-branch: your responsibility for sub-tasks delegated to `junior-implementer` subagents.
 - requesting-code-review: your responsibility for sub-tasks delegated to `junior-implementer` subagents.
 - receiving-code-review: your responsibility for sub-tasks delegated to `junior-implementer` subagents.
@@ -60,3 +60,4 @@ Provide a copy button where possible.
 ## Operator hint (for delegators)
 
 Senior Implementers and other delegation-capable agents SHOULD respect and preserve user-provided resume tokens when relaying messages or performing manual rehydration. Do not strip, alter, or absorb tokens; pass them verbatim to the operator or target subagent when appropriate. Provide a copy button where possible. 
+
