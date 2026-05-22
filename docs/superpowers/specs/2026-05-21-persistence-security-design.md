@@ -3,6 +3,8 @@
 Date: 2026-05-21
 Scope: `/workspaces` persistence in DevPod on k3d, install-source behavior for dotfiles, and bare-hub manager guardrails.
 
+> **Superseded in part:** The durable-state and backup model in this document has been superseded by `docs/superpowers/plans/2026-05-21-bare-hub-manager.md`, which is now the canonical combined spec + implementation plan for the bare-hub manager workflow. While this document remains in the repo, read all persistence and backup guidance through that newer document.
+
 ## Executive summary
 
 `/workspaces` is durable only when DevPod mounts durable Kubernetes storage; `hostPath` and PVC-backed volumes can persist, while `emptyDir` cannot. For a bare-hub/worktree layout, installing from a mounted repo checkout is safer than copying from local disk because copied worktrees often keep broken `.git` indirection. The biggest risks are path/symlink attacks into `$HOME`, host-credential exposure through bind mounts, and over-broad persistent state. Recommended default: PVC-backed `/workspaces`, non-root installer, explicit absolute source/worktree paths, and per-workspace state with `0700` permissions.
