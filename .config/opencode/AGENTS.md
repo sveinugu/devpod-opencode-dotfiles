@@ -136,6 +136,7 @@ Why this works
 - No silent extra deliverables: if an output is not explicitly requested or required by the approved artifact, do not add it to the delegated scope.
 - Weaker orchestrators must prefer lossless routing over reinterpretation. When in doubt, pass through the original wording and ask one routing question rather than compressing meaning into a summary.
 - Subagent restatement: before doing substantive work, the owning subagent MUST restate `Active slice:`, `Deliverables:`, and `Non-deliverables:` in its own words and stop immediately if anything appears mismatched.
+- `Preview:` optional; provide the exact outgoing delegation packet on request, or before dispatch when the orchestrator materially compressed earlier context.
 - Example packet (for reference; templates should remain marker-only):
 
   ```text
@@ -270,7 +271,7 @@ The Maestro must verify both messages came from the human, are consecutive, and 
     - When the user's message does not include a resume token but appears to target a subagent type and there exists one or more resumable sessions of that subagent type owned by the user:
         - The orchestrator (e.g. Maestro) SHOULD attempt to detect the best candidate recent session and prompt the user with a short choice:
           `I found an active <subagent> session from <time>. Resume it? (yes / start new)`
-        - Do NOT spawn a new session automatically without either: (a) an explicit "start new" command from the user, or (b) explicit confirmation to spawn.
+        - Do not silently spawn a new session. Do NOT spawn a new session automatically without either: (a) an explicit "start new" command from the user, or (b) explicit confirmation to spawn.
     - Follow-up messages like "continue", "switch", or similar should default to the most recent relevant session if the user's immediately preceding interaction clearly targeted that session or subagent.
     - Before spawning a new subagent, check whether the last relevant session is still active, waiting for input, or the most likely intended target.
     - If more than one session is a plausible match, ask rather than guessing.

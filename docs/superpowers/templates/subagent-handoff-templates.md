@@ -19,6 +19,7 @@ Provenance:
 - Verbatim user context — verbatim-user
 - Deliverables — <verbatim-user | approved-artifact | agent-inference>
 - Non-deliverables — <verbatim-user | approved-artifact | agent-inference>
+Preview: available on request before dispatch
 Subagent restatement: required before substantive work begins
 ```
 
