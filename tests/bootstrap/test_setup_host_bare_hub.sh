@@ -38,7 +38,12 @@ fi
 
 (
   cd "$checkout"
-  bash "./scripts/setup-host-bare-hub.sh" --hub-root "$hub_root" --mode host >"$tmpdir/out.txt"
+  bash "./scripts/setup-host-bare-hub.sh" \
+    --hub-root "$hub_root" \
+    --mode host \
+    --github-user-name "Bootstrap User" \
+    --github-user-email "bootstrap@example.com" \
+    >"$tmpdir/out.txt"
 )
 
 (
@@ -56,9 +61,17 @@ if not payload.get("ok"):
     sys.exit(1)
 PY
 
+grep -F 'gitdir: ./.bare' "$hub_root/.git" >/dev/null
+fetch_refspec="$(git --git-dir="$hub_root/.bare" config --get remote.origin.fetch)"
+[ "$fetch_refspec" = "+refs/heads/*:refs/remotes/origin/*" ]
+user_name="$(git --git-dir="$hub_root/.bare" config --get user.name)"
+user_email="$(git --git-dir="$hub_root/.bare" config --get user.email)"
+[ "$user_name" = "Bootstrap User" ]
+[ "$user_email" = "bootstrap@example.com" ]
+
 (
   cd "$checkout"
-  bash "./scripts/setup-host-bare-hub.sh" --hub-root "$hub_root" --mode host >"$tmpdir/out-second.txt"
+  printf 'Y\n' | bash "./scripts/setup-host-bare-hub.sh" --hub-root "$hub_root" --mode host >"$tmpdir/out-second.txt"
 )
 
 (

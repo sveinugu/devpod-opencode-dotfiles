@@ -15,16 +15,30 @@ Mode note for this step:
 - Use `--mode host` when validating host permissions and ownership semantics.
 - `--mode auto` is the default and auto-detects container markers.
 - For host bootstrap, keep `--mode host` explicit.
+- Script help: `bash "./scripts/setup-host-bare-hub.sh" --help` (usage line shows `--github-user-name`, `--github-user-email`, and `--fetch-origin`).
 
 ```bash
 bash "./scripts/setup-host-bare-hub.sh" --hub-root "$HUB_PATH" --mode host
 ```
+
+Credential behavior during bootstrap:
+
+- Prompt shown: `Use existing git credentials? Y/N`
+- `Y`: keep current repo identity settings as-is.
+- `N`: script prompts for GitHub username/email and writes them into hub git config.
+- Optional non-interactive override: pass `--github-user-name` and `--github-user-email`.
 
 Expected output:
 
 ```text
 ok: ensured host bare-hub layout at /srv/devpod-workspaces/dotfiles
 ```
+
+The script writes `.git` at `$HUB_PATH/.git` with `gitdir: ./.bare`, so host and pod workflows can use the hub-local git metadata without repeatedly passing `--git-dir`.
+
+The script also sets `remote.origin.fetch` to `+refs/heads/*:refs/remotes/origin/*` inside `$HUB_PATH/.bare/config` and can optionally fetch with `--fetch-origin yes`.
+
+Identity and fetch settings are stored in the hub-managed git config (`$HUB_PATH/.bare/config`), making them reusable from pod-mounted paths.
 
 ## Step 2 (HOST): Verify bootstrap result
 

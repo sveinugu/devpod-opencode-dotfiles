@@ -25,7 +25,12 @@ chmod +x "$checkout/scripts/setup-host-bare-hub.sh" "$checkout/scripts/verify-ho
 
 (
   cd "$checkout"
-  bash "./scripts/setup-host-bare-hub.sh" --hub-root "$hub_root" --mode host >/dev/null
+  bash "./scripts/setup-host-bare-hub.sh" \
+    --hub-root "$hub_root" \
+    --mode host \
+    --github-user-name "Verifier User" \
+    --github-user-email "verifier@example.com" \
+    >/dev/null
 )
 
 (
@@ -67,7 +72,7 @@ PY
 
 (
   cd "$checkout"
-  bash "./scripts/setup-host-bare-hub.sh" --hub-root "$hub_root" --mode host >/dev/null
+  printf 'Y\n' | bash "./scripts/setup-host-bare-hub.sh" --hub-root "$hub_root" --mode host >/dev/null
 )
 
 chmod 755 "$hub_root/work"
