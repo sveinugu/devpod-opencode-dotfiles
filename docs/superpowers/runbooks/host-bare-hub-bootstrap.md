@@ -8,7 +8,7 @@ https://dev.to/metal3d/git-worktree-like-a-boss-2j1b
 In practical terms, after bootstrap you get:
 
 - one managed hub root (admin structure)
-- one primary editable worktree (`main`)
+- one primary editable worktree (`main`, required)
 - a predictable place for feature worktrees (`work/`)
 - repo-local durable state paths (`state/`)
 
@@ -50,6 +50,7 @@ What this gives you immediately:
 - `$HUB_PATH/.git` points to `./.bare` (so normal `git ...` works from hub path)
 - fetch refspec is configured in `$HUB_PATH/.bare/config`
 - username/email configuration is written in hub-local git config for pod reuse via mounted path
+- bootstrap enforces a **main-only** convention: source checkout must have `main`, and hub main worktree is always created from `main`
 
 ## Step 2 (HOST): Verify bootstrap result
 

@@ -24,6 +24,7 @@ git init "$checkout" >/dev/null 2>&1
   cd "$checkout"
   git add . >/dev/null 2>&1
   git -c user.name='Test User' -c user.email='test@example.com' commit -m 'fixture' >/dev/null 2>&1
+  git branch -M main >/dev/null 2>&1
 )
 
 if [ -f "scripts/setup-host-bare-hub.sh" ]; then
@@ -68,6 +69,8 @@ user_name="$(git --git-dir="$hub_root/.bare" config --get user.name)"
 user_email="$(git --git-dir="$hub_root/.bare" config --get user.email)"
 [ "$user_name" = "Bootstrap User" ]
 [ "$user_email" = "bootstrap@example.com" ]
+main_branch="$(git -C "$hub_root/main" rev-parse --abbrev-ref HEAD)"
+[ "$main_branch" = "main" ]
 
 (
   cd "$checkout"
@@ -90,5 +93,34 @@ if not payload.get("ok"):
 PY
 
 grep -F "ok: ensured host bare-hub layout at $hub_root" "$tmpdir/out.txt" >/dev/null
+
+checkout_no_main="$tmpdir/dotfiles-checkout-no-main"
+hub_root_no_main="$tmpdir/host-workspaces/dotfiles-no-main"
+mkdir -p "$checkout_no_main/.config/opencode" "$checkout_no_main/scripts"
+printf 'export TEST_ZSHRC=1\n' > "$checkout_no_main/.zshrc"
+printf '{"ok":true}\n' > "$checkout_no_main/.config/opencode/opencode.jsonc"
+git init "$checkout_no_main" >/dev/null 2>&1
+(
+  cd "$checkout_no_main"
+  git add . >/dev/null 2>&1
+  git -c user.name='Test User' -c user.email='test@example.com' commit -m 'fixture' >/dev/null 2>&1
+)
+cp "$checkout/scripts/setup-host-bare-hub.sh" "$checkout_no_main/scripts/setup-host-bare-hub.sh"
+chmod +x "$checkout_no_main/scripts/setup-host-bare-hub.sh"
+
+if (
+  cd "$checkout_no_main"
+  bash "./scripts/setup-host-bare-hub.sh" \
+    --hub-root "$hub_root_no_main" \
+    --mode host \
+    --github-user-name "No Main User" \
+    --github-user-email "nomain@example.com" \
+    >"$tmpdir/no-main.out" 2>&1
+); then
+  printf 'expected main-only setup to fail when source checkout has no main branch\n' >&2
+  exit 1
+fi
+
+grep -F 'refused: main branch not found in source checkout; main-only convention enforced' "$tmpdir/no-main.out" >/dev/null
 
 printf 'PASS test_setup_host_bare_hub\n'

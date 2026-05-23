@@ -89,8 +89,11 @@ effective_mode="$(resolve_mode)"
 
 configure_identity() {
   if [ -n "$github_user_name" ] && [ -n "$github_user_email" ]; then
-    git --git-dir="$hub_root/.bare" config user.name "$github_user_name"
-    git --git-dir="$hub_root/.bare" config user.email "$github_user_email"
+    (
+      cd "$hub_root"
+      git config user.name "$github_user_name"
+      git config user.email "$github_user_email"
+    )
     return
   fi
 
@@ -121,8 +124,11 @@ configure_identity() {
         exit 1
       }
 
-      git --git-dir="$hub_root/.bare" config user.name "$github_user_name"
-      git --git-dir="$hub_root/.bare" config user.email "$github_user_email"
+      (
+        cd "$hub_root"
+        git config user.name "$github_user_name"
+        git config user.email "$github_user_email"
+      )
       ;;
     *)
       printf 'refused: answer Y or N\n' >&2
@@ -143,7 +149,11 @@ EOF
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 source_checkout="$(cd "$script_dir/.." && pwd -P)"
-default_branch="$(git -C "$source_checkout" symbolic-ref --quiet --short HEAD || git -C "$source_checkout" rev-parse --abbrev-ref HEAD)"
+
+if ! (cd "$source_checkout" && git show-ref --verify --quiet refs/heads/main); then
+  printf 'refused: main branch not found in source checkout; main-only convention enforced\n' >&2
+  exit 1
+fi
 
 mkdir -p "$hub_root"
 
@@ -164,15 +174,27 @@ write_devpodignore "$hub_root/work"
 write_devpodignore "$hub_root/repos"
 write_devpodignore "$hub_root/tmp"
 
-if ! git --git-dir="$hub_root/.bare" worktree list | grep -F "$hub_root/main" >/dev/null 2>&1; then
+if ! (
+  cd "$hub_root"
+  git worktree list | grep -F "$hub_root/main" >/dev/null 2>&1
+); then
   rm -rf "$hub_root/main"
-  git --git-dir="$hub_root/.bare" worktree add "$hub_root/main" "$default_branch" >/dev/null
+  (
+    cd "$hub_root"
+    git worktree add "$hub_root/main" main >/dev/null
+  )
 fi
 
-git --git-dir="$hub_root/.bare" config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+(
+  cd "$hub_root"
+  git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+)
 
 if [ "$fetch_origin" = "yes" ]; then
-  git --git-dir="$hub_root/.bare" fetch origin >/dev/null 2>&1 || true
+  (
+    cd "$hub_root"
+    git fetch origin >/dev/null 2>&1 || true
+  )
 fi
 
 configure_identity
