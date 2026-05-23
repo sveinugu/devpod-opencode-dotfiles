@@ -18,6 +18,8 @@ mkdir -p "$checkout/.config/opencode" "$checkout/scripts" "$tmpdir/host-workspac
 
 printf 'export TEST_ZSHRC=1\n' > "$checkout/.zshrc"
 printf '{"ok":true}\n' > "$checkout/.config/opencode/opencode.jsonc"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$checkout/install.sh"
+chmod 600 "$checkout/install.sh"
 
 git init "$checkout" >/dev/null 2>&1
 (
@@ -71,11 +73,16 @@ user_email="$(git --git-dir="$hub_root/.bare" config --get user.email)"
 [ "$user_email" = "bootstrap@example.com" ]
 main_branch="$(git -C "$hub_root/main" rev-parse --abbrev-ref HEAD)"
 [ "$main_branch" = "main" ]
+install_mode_first="$(stat -c '%a' "$hub_root/main/install.sh")"
+[ "$install_mode_first" = "700" ]
 
 (
   cd "$checkout"
   printf 'Y\n' | bash "./scripts/setup-host-bare-hub.sh" --hub-root "$hub_root" --mode host >"$tmpdir/out-second.txt"
 )
+
+install_mode_second="$(stat -c '%a' "$hub_root/main/install.sh")"
+[ "$install_mode_second" = "700" ]
 
 (
   cd "$checkout"
@@ -99,6 +106,8 @@ hub_root_no_main="$tmpdir/host-workspaces/dotfiles-no-main"
 mkdir -p "$checkout_no_main/.config/opencode" "$checkout_no_main/scripts"
 printf 'export TEST_ZSHRC=1\n' > "$checkout_no_main/.zshrc"
 printf '{"ok":true}\n' > "$checkout_no_main/.config/opencode/opencode.jsonc"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$checkout_no_main/install.sh"
+chmod 600 "$checkout_no_main/install.sh"
 git init "$checkout_no_main" >/dev/null 2>&1
 (
   cd "$checkout_no_main"

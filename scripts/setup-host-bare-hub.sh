@@ -216,6 +216,10 @@ if [ "$effective_mode" = "host" ]; then
         ;;
     esac
   done < <(find "$hub_root" -type f -print0)
+
+  if [ -f "$hub_root/main/install.sh" ]; then
+    chmod 700 "$hub_root/main/install.sh"
+  fi
 fi
 
 printf 'ok: ensured host bare-hub layout at %s\n' "$hub_root"
