@@ -38,3 +38,26 @@ git --git-dir="/srv/devpod-workspaces/dotfiles/.bare" worktree add "/srv/devpod-
 git --git-dir="/srv/devpod-workspaces/dotfiles/.bare" worktree list
 ls -ld "/srv/devpod-workspaces/dotfiles/state" "/srv/devpod-workspaces/dotfiles/state/opencode" "/srv/devpod-workspaces/dotfiles/state/opencode/exported_sessions"
 ```
+
+These checks are the **minimum user validation** for this runbook.
+
+## Advanced/contributor validation (optional)
+
+For contributors or when troubleshooting, run the host bootstrap contract test manually:
+
+```bash
+bash tests/bootstrap/test_setup_host_bare_hub.sh
+```
+
+Expected output:
+
+```text
+PASS test_setup_host_bare_hub
+```
+
+This test step is **optional for normal users** following the runbook, but **recommended for contributors** and troubleshooting sessions.
+
+### Linux/GNU tools note
+
+`tests/bootstrap/test_setup_host_bare_hub.sh` assumes Linux/GNU tooling (for example `stat -c` and `readlink -f`).
+If you are on macOS, run this test from a Linux environment (for example your DevPod/container) or install GNU equivalents.
