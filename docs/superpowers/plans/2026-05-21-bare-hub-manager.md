@@ -653,6 +653,12 @@ Per-worktree path discovery (recommended approach):
   - `direnv`: automatic, but adds a new dependency and trust model;
   - shell wrapper/hook that auto-sources `.hub-env`: useful later, but should be a follow-up slice instead of a prerequisite for this refactor.
 
+Dockerfile note for optional `direnv` support:
+- Modify the repo-root Dockerfile in the runtime/dev stage used for interactive shells.
+- Install `direnv` with the base-image package manager (`apt-get install -y direnv` on Debian/Ubuntu, `apk add --no-cache direnv` on Alpine).
+- Add `/etc/profile.d/direnv.sh` to run `eval "$(direnv hook bash)"`; add the zsh hook too when zsh is installed/used.
+- Keep CI Dockerfile builds aligned with this package change; implementers may optionally verify locally with `docker --version` and a repo-root `docker build`.
+
 Exact permission policy for `scripts/create-hub-repo.sh` (authoritative when effective mode resolves to `host`):
 
 - managed directories MUST end at mode `0700`: repo-hub directories `<repo_hub>/`, `<repo_hub>/.bare/`, `<repo_hub>/main/`, `<repo_hub>/work/`; shared-root directories `<hub_root>/repos/`, `<hub_root>/state/`, `<hub_root>/state/hub/`, `<hub_root>/state/repos/`, `<hub_root>/state/opencode/`, `<hub_root>/state/opencode/exported_sessions/`, `<hub_root>/tmp/`, and any created per-worktree subdirectories beneath `state/<worktree_key>/` or `tmp/<worktree_key>/`;
