@@ -11,12 +11,13 @@
   ],
   "permission": {
     "bash": {
+      "*": "ask",
       "ls *": "allow",
       "cat *": "allow",
       "grep *": "allow",
       "find *": "allow",
       "git log*": "allow",
-      "git status": "allow",
+      "git status*": "allow",
       "git diff*": "allow",
       "git show*": "allow",
       "git branch": "allow",
@@ -24,8 +25,7 @@
       "git commit*": "ask",
       "git add*": "ask",
       "git push*": "deny",
-      "rm *": "deny",
-      "*": "ask"
+      "rm *": "deny"
     }
   },
   "agent": {
