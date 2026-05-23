@@ -79,21 +79,14 @@ Do **not** run this recovery step in pod.
 
 ```bash
 rm -rf "$HUB_PATH/main"
-git -C "$HUB_PATH" worktree add "$HUB_PATH/main" main
+(cd "$HUB_PATH" && git worktree add "$HUB_PATH/main" main)
 ```
 
 ## Step 5 (HOST): Verify host layout quickly
 
 ```bash
-git -C "$HUB_PATH" worktree list
+(cd "$HUB_PATH" && git worktree list)
 ls -ld "$HUB_PATH/state" "$HUB_PATH/state/opencode" "$HUB_PATH/state/opencode/exported_sessions"
-```
-
-Optional host helper:
-
-```bash
-hubgit() { git -C "$HUB_PATH" "$@"; }
-hubgit worktree list
 ```
 
 ## Step 6 (IN POD): Confirm mounted workspace
@@ -107,17 +100,10 @@ Inside DevPod/container, confirm you are working from:
 ## Step 7 (IN POD): Create a feature worktree
 
 ```bash
-git -C "/workspaces/dotfiles" worktree add "/workspaces/dotfiles/work/feature-example" -b feature-example main
+(cd "/workspaces/dotfiles" && git worktree add "/workspaces/dotfiles/work/feature-example" -b feature-example main)
 ```
 
 This keeps branch/worktree lifecycle tied to your active development context.
-
-Optional pod helper:
-
-```bash
-podhubgit() { git -C "/workspaces/dotfiles" "$@"; }
-podhubgit worktree list
-```
 
 ## Step 8 (IN POD): Onboard an additional repo under `repos/`
 
@@ -132,8 +118,8 @@ mkdir -p "$REPO_HUB"
 git clone --bare "$REPO_URL" "$REPO_HUB/.bare"
 printf 'gitdir: ./.bare\n' > "$REPO_HUB/.git"
 
-git -C "$REPO_HUB" worktree add "$REPO_HUB/main" main
-git -C "$REPO_HUB" worktree add "$REPO_HUB/work/feature-example" -b feature-example main
+(cd "$REPO_HUB" && git worktree add "$REPO_HUB/main" main)
+(cd "$REPO_HUB" && git worktree add "$REPO_HUB/work/feature-example" -b feature-example main)
 ```
 
 After onboarding, open and work from `"$REPO_HUB/main"` (or another explicit worktree).
