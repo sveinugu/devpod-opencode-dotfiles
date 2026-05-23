@@ -98,6 +98,7 @@ Why this works
 
 ## Delegation in practice
 
+- (OpenCode-specific) For delegation to actually occur, the Task tool must be actively used, it is not enough to declare intent.
 - Routing question: before spawning, the Maestro MAY ask exactly one routing-only clarifying question (hard limit: 1 question, max 18 words) to choose the correct subagent or scope. This single question must not perform or begin the delegated work (no discovery beyond routing). After the Maestro spawns a subagent, that subagent follows its own interaction rules — e.g. an iterative, one‑question‑per‑message dialog — to refine scope and design.
 - Handoff wording (required): when spawning a named subagent the Maestro SHOULD use exactly:
   `Switching you to the <subagent> subagent now — please interact directly with it; I will remain available for orchestration.`
