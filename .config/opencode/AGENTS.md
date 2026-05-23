@@ -36,10 +36,9 @@ Please report major disagreements between skills to the human partner (user)!
 Agents must always load the "pragmatic-programmer" skill!
 Agents must always load the "karpathy-guidelines" skill!
 
-
 ## The Superpowered Pragmatic Programmers:
 
-All agents described in this repo are members of The Superpowered Pragmatic Programmers team. 
+All agents described in this repo are members of The Superpowered Pragmatic Programmers team.
 This section is the canonical implementation-policy section for how pragmatic-programmer and Superpowers interact in this repository.
 Following this interaction policy is the priority of all members of The Superpowered Pragmatic Programmers.
 
@@ -59,7 +58,8 @@ Following this interaction policy is the priority of all members of The Superpow
 - Agents MUST complete planning before implementation.
 - Design specifications and plan documents MUST be made available to the user (docs path + commit) and approved before moving on to the next phase.
 - Human interaction in the brainstorming and planning processes are crucial. Make sure the intent of the user is followed before moving on to details.
-- Tests are primary deliverables of plans and a focus of discussions with the owners. They define the scope of the work and the interfaces towards users and other components. Avoid adding too much implementation details into plans, even though the `writing-plans` skill says otherwise.
+- Tests are primary deliverables of plans and a focus of discussions with the owners. They define the scope of the work and the interfaces towards users and other components. Avoid adding too much implementation details into plans, even though the
+  `writing-plans` skill says otherwise.
 - After plan approval, agents must follow TDD (tests-first) on the agreed slice. If tests reveal gaps, open a focused design and/or plan update (depending on severity) and re-approve.
 - After a task is implemented, the work should be presented to the human for manual testing, iterative improvements, and approval.
 - Tasks that depend sequentially on other tasks must not be started until prior tasks have been approved, unless instructed otherwise by a human.
@@ -86,7 +86,8 @@ Why this works
 - The policy reporting template lives at `.config/opencode/PULL_REQUEST_TEMPLATE.md`.
 - This template is a reporting aid, not a second source of truth. `AGENTS.md` remains canonical.
 - Agents may copy or adapt the template structure when preparing PR descriptions, review summaries, or handoff notes that need to show compliance with the policy above.
-- Agents should fill in only the sections relevant to the scoped work and may explicitly mark non-applicable items as `N/A`.
+- Agents should fill in only the sections relevant to the scoped work and may explicitly mark non-applicable items as
+  `N/A`.
 - If the human partner wants a different PR or handoff format, follow the human's requested format while preserving the same underlying policy evidence.
 
 # Subagent delegation
@@ -104,11 +105,13 @@ Why this works
 - Design specifications and plan documents must be written to file and committed by the sub-agents before handed back to the Maestro.
 - Review-record policy: review feedback is conversational by default. A persistent review-record document is created only when explicitly requested or required by a plan/spec. When such a document is created, it is owned by the reviewing subagent unless explicitly reassigned. For PR-based review, GitHub review history is the default persisted review record.
 - Execution Handoff definition: "Execution Handoff" means the Maestro step that turns an approved plan into delegated implementation work.
-- Mandatory handoff metadata (required in EVERY subagent start, explicit resume, handoff, pause, and completion message, replace `<id>` with the actual session id):
+- Mandatory handoff metadata (required in EVERY subagent start, explicit resume, handoff, pause, and completion message, replace
+  `<id>` with the actual session id):
     - `Session: ses_<id>`
     - `Resume: $ses_<id> <your reply>`
     - `Owner: <subagent>`
-    - `Authority: only the owning subagent may perform <subagent> responsibilities unless a human-approved Maestro override is active`
+    -
+    `Authority: only the owning subagent may perform <subagent> responsibilities unless a human-approved Maestro override is active`
 - Session visibility rule: when a delegating agent spawns or resumes a subagent session, it MUST print that session's metadata in the chat. Too many visible session ids are preferred over too few.
 - Maestro handoff checklist (required before sending any subagent handoff):
     1. Name the target subagent explicitly.
@@ -220,3 +223,18 @@ The Maestro must verify both messages came from the human, are consecutive, and 
     - Instead, surface the error to the user with a concise explanation and suggest corrective actions. Example:
       "Task invocation failed: missing parameter 'subagent_type'. Please confirm and retry. (no auto-retry)"
     - The orchestrating agent must only retry or spawn after explicit user confirmation.
+
+# Troubleshooting
+
+## Debugging Subagent Delegation Issues (for Maestro and other Subagent-Orchestrating Agents):
+
+If delegation appears to stall (e.g., you see session handoff text but no subagent reply, artifact, or progress):
+
+1. Check: Was the Task tool (or native subagent launch mechanism) actually invoked?
+    - Merely surfacing session metadata, stating "delegating", or describing "handoff" is NOT sufficient—you must launch the actual subagent process with the correct Task tool invocation and details.
+2. Symptom: If you see only orchestration/announcement text, but nothing from a subagent:
+    - The subagent launch call (e.g., via functions.task) was likely omitted or failed.
+3. Corrective action:
+    - Directly call the Task tool with the relevant subagent_type, a short task description, and all context needed for the subagent to perform its task autonomously.
+    - Ensure you surface the new session's `Session:`/`Resume:`/`Owner:`/`Authority:` metadata immediately.
+4. Never assume that "delegation language" triggers a subagent. Always verify real delegation via active tool invocation / session ID.
