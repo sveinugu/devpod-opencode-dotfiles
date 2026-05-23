@@ -165,7 +165,10 @@ This repo-specific policy overrides the generic assumption that a repo root can 
 
 ### Bootstrap and layout
 - Create: `scripts/setup-host-bare-hub.sh`
+- Create: `scripts/verify-host-bare-hub.sh` # ADDED (scoped plan update 2026-05-23)
 - Create: `tests/bootstrap/test_setup_host_bare_hub.sh`
+- Create: `tests/bootstrap/test_verify_host_bare_hub.sh` # ADDED (scoped plan update 2026-05-23)
+- Modify: `tests/bootstrap/test_setup_host_bare_hub.sh` # ADDED (scoped plan update 2026-05-23)
 - Create: `docs/superpowers/runbooks/host-bare-hub-bootstrap.md`
 - Create: `scripts/devpod-ensure-layout.sh`
 - Create: `tests/devpod/test_devpod_ensure_layout.sh`
@@ -437,6 +440,183 @@ git commit -m "feat(bootstrap): add host bare-hub bootstrap"
 ```
 
 ### Task 2: Validate installer source roots and symlink safety
+
+### Scoped plan update (2026-05-23): Host hub verification contract and migration # ADDED
+
+This scoped update refines Part 1 verification without changing broader architecture.
+
+#### Scope of this update # ADDED
+
+- Add a path-accepting verification script for host bare-hub conformance.
+- Use the same verifier in two modes:
+  1. user/manual verification on real hub paths;
+  2. regression verification on temporary fixture hubs created by tests.
+- Keep target platforms explicitly limited to Linux (DevPod/runtime tests) and macOS (host user workflows).
+- Enforce strict permissions uniformly in host bootstrap and host verification: all directories `0700`, all files `0600` (no sensitive/non-sensitive split in this scoped update).
+- Add `.devpodignore` safety markers in managed hub paths except `state/` paths as a future sync-safety control.
+
+#### New/updated files for this scoped update # ADDED
+
+- Create: `scripts/verify-host-bare-hub.sh`
+- Create: `tests/bootstrap/test_verify_host_bare_hub.sh`
+- Modify: `tests/bootstrap/test_setup_host_bare_hub.sh` (delegate structural assertions to verifier)
+- Modify: `docs/superpowers/runbooks/host-bare-hub-bootstrap.md` (advanced validation command should prefer verifier)
+- Modify: `scripts/setup-host-bare-hub.sh` (host/container mode handling, uniform chmod policy, `.devpodignore` creation)
+
+#### Verifier contract (planned) # ADDED
+
+`scripts/verify-host-bare-hub.sh` accepts:
+
+```text
+--hub-root /absolute/path
+--format human|json
+```
+
+Behavior:
+
+- `--format human` (default): user-friendly summary with PASS/FAIL and actionable failure lines.
+- `--format json`: machine-parseable result for harnesses.
+- Exit code `0` only when all required checks pass.
+- Non-zero exit for any failed required check or invalid CLI usage.
+
+Planned JSON shape (approved):
+
+```json
+{
+  "ok": true,
+  "hub_root": "/absolute/path",
+  "checks": [
+    {"id":"dirs.exist","ok":true,"message":"required directories exist"}
+  ],
+  "warnings": []
+}
+```
+
+Minimum required checks (initial policy):
+
+1. Required directories exist under `--hub-root`:
+   - `.bare/`
+   - `main/`
+   - `work/`
+   - `repos/`
+   - `state/opencode/exported_sessions/`
+   - `tmp/`
+2. `.bare` is a usable bare git dir (`git --git-dir=... rev-parse --is-bare-repository` true).
+3. `main` is attached as a worktree from `.bare`.
+4. Host-mode permission policy is satisfied for bootstrap-managed content:
+   - directories `0700`;
+   - files `0600`;
+   - executable carveout: files that must remain executable for repo/workflow operation are allowed `0700` (owner execute only).
+5. `.devpodignore` marker files are present in managed hub directories except `state/` paths.
+
+#### Permission and ownership policy (initial) # ADDED
+
+Because host files may be inspected from both host and DevPod contexts, UID/GID and mode representation may differ due to mount translation (colima+k3d observation).
+
+Initial policy to avoid false positives/negatives:
+
+- **Host-run verifier is authoritative** for permission checks on host bootstrap output.
+- Permission checks are **not enforcement-gated in DevPod/container context** for this slice; container-side permission observations may be reported as informational only.
+- Required host permission target for bootstrap-managed content: directories `0700`, files `0600`, executable carveout `0700`.
+- Ownership mismatches remain advisory warnings in this slice unless they create an immediately unsafe/writable-by-non-owner condition.
+- Hard-fail conditions for this slice:
+  - required path missing;
+  - `.bare` invalid;
+  - `main` not attached;
+  - host permission target not met (`0700` dirs, `0600` files, executable carveout `0700`).
+
+#### Bootstrap script mode handling (host vs container) # ADDED
+
+`scripts/setup-host-bare-hub.sh` must surface explicit controls for creation/enforcement context:
+
+```text
+--mode auto|host|container
+```
+
+Initial behavior:
+
+- `--mode host`: enforce chmod policy (`0700` dirs, `0600` files, executable carveout `0700`) on managed hub content created/managed by the script.
+- `--mode container`: skip chmod enforcement to avoid noisy/misleading rewrites in mount-translated contexts.
+- `--mode auto` (default): detect container context via ordered markers and map to `container`; otherwise `host`.
+
+Implementation note for this plan: detection heuristic must be overridable via explicit `--mode` to avoid false auto-detection.
+
+Auto-detection precedence (default contract for this slice):
+
+1. If explicit `--mode host|container` is provided, use it.
+2. Else, if `HUB_BOOTSTRAP_MODE` is set to `host` or `container`, use it.
+3. Else, if any container marker is present, treat as `container`:
+   - `/.dockerenv` exists, or
+   - `/run/.containerenv` exists, or
+   - `KUBERNETES_SERVICE_HOST` is non-empty.
+4. Else, treat as `host`.
+
+#### `.devpodignore` safety net policy (future-facing, included in this slice) # ADDED
+
+- Create `.devpodignore` in each managed hub directory except `state/` paths.
+- Do **not** place `.devpodignore` inside `state/` subtree so state retention semantics remain explicit and controlled.
+- Baseline placement for this slice:
+  - `<hub_root>/.devpodignore`
+  - `<hub_root>/main/.devpodignore` (if present)
+  - `<hub_root>/work/.devpodignore`
+  - `<hub_root>/repos/.devpodignore`
+  - `<hub_root>/tmp/.devpodignore`
+- `.devpodignore` template content (default for this slice):
+
+```text
+# managed by setup-host-bare-hub; defensive sync guard
+*
+!.devpodignore
+```
+
+- Tradeoff note: wildcard template maximizes accidental-sync prevention but may block intended sync behavior in environments that begin honoring `.devpodignore` more aggressively. This is accepted for this slice as a safety-first default and can be narrowed later if workflow friction appears.
+
+#### Regression migration in this plan # ADDED
+
+- `tests/bootstrap/test_setup_host_bare_hub.sh` remains the bootstrap regression test, but shifts filesystem conformance assertions to `scripts/verify-host-bare-hub.sh --format json` against the temp hub path.
+- Add focused verifier test (`tests/bootstrap/test_verify_host_bare_hub.sh`) to cover:
+  - passing known-good fixture;
+  - missing required directory;
+  - invalid `.bare`;
+  - permission mismatch against host policy (`0700` dirs, `0600` files, executable carveout `0700`).
+  - `.devpodignore` missing in required managed directories.
+
+#### Acceptance criteria for this scoped update # ADDED
+
+1. Users can run one command against any candidate hub path and get a clear conformance result.
+2. The same verifier is used by regression tests on temporary hubs.
+3. Verifier works on Linux and macOS for supported checks in this slice.
+4. Verifier provides both human-readable and machine-parseable output.
+5. Runbook advanced validation uses bootstrap+verify sequence.
+6. Host-side permission policy is explicit and uniform: directories `0700`, files `0600`, executable carveout `0700`.
+7. DevPod/container permission checks are documented as non-authoritative/informational for this slice.
+8. `.devpodignore` placement policy (all managed directories except `state/` paths) is documented and tested.
+9. Auto-detection precedence for `--mode auto` is documented and overridable.
+
+#### Proposed defaults for final user approval (actionable-on-accept) # ADDED
+
+1. **Executable files under global file policy**
+   - Default: keep global host target as files `0600`, but allow explicit executable carveout as `0700` for files that must execute.
+   - Plan/test definition: verifier accepts file mode `0600` or `0700` for files; directories remain `0700`.
+   - Tradeoff: avoids breaking operational scripts while preserving owner-only access.
+
+2. **Exact `.devpodignore` template**
+   - Default content in every required `.devpodignore` file:
+
+   ```text
+   # managed by setup-host-bare-hub; defensive sync guard
+   *
+   !.devpodignore
+   ```
+
+   - Tradeoff: strongest sync-safety default, with potential future friction if DevPod starts enforcing ignore semantics differently.
+
+3. **Host/container auto-detection and override**
+   - Default precedence:
+     1) explicit `--mode`; 2) `HUB_BOOTSTRAP_MODE`; 3) container markers; 4) host fallback.
+   - Tradeoff: deterministic and operator-overridable, minimizing false auto-detection lock-in.
+
+If user accepts these defaults, this scoped update is implementation-ready with no remaining OPEN policy blockers.
 
 **Files:**
 - Create: `scripts/install-validate-source.sh`
