@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a self-contained bare-hub manager workflow for dotfiles where the host creates the hub before DevPod starts, editing happens only in explicit worktrees, `install.sh` always uses the local checkout it lives in, and durable OpenCode history is backed up via exported sessions plus repo-local `state/`.
+**Goal:** Build a self-contained bare-hub manager workflow for dotfiles where the host creates the hub before DevPod starts, editing happens only in explicit worktrees, `install.sh` always uses the local checkout it lives in, and durable OpenCode history is backed up via exported sessions plus one top-level `state/` tree.
 
-**Architecture:** The dotfiles workspace root is a manager hub, not a normal checkout. The host creates that hub first, then DevPod mounts the host directory and opens `/workspaces/dotfiles/main` as the primary checkout. Durable state is intentionally narrow: `state/`, `state/opencode/exported_sessions/`, and `repos/*/state/`. Backup uses two phases: in-pod export/staging and host-side pull plus `restic`.
+**Architecture:** The dotfiles workspace root is a manager hub, not a normal checkout. The host creates that hub first, then DevPod mounts the host directory and opens `/workspaces/dotfiles/main` as the primary checkout. Durable state is intentionally narrow: one top-level `state/` tree, `state/opencode/exported_sessions/`, and canonical per-worktree subpaths such as `state/hub/main/` and `state/repos/*/work/*/`. Backup uses two phases: in-pod export/staging and host-side pull plus `restic`.
 
 **Tech Stack:** Bash, Zsh-compatible shell usage, Git bare repos + worktrees, DevPod/Dev Container config, `opencode` CLI, `python3`, `kubectl`, `tar`, `restic`, GNU coreutils, util-linux `flock`. # ADDED
 
@@ -115,15 +115,20 @@ Hub roots are not editable checkouts.
 
 Durable:
 
-- `/workspaces/dotfiles/state/`
+- `/workspaces/dotfiles/state/hub/main/`
+- `/workspaces/dotfiles/state/hub/work/feature-example/`
+- `/workspaces/dotfiles/state/repos/omnipy/main/`
+- `/workspaces/dotfiles/state/repos/omnipy/work/feature-example/`
 - `/workspaces/dotfiles/state/opencode/exported_sessions/`
-- `/workspaces/dotfiles/repos/*/state/`
 
 Disposable:
 
-- any `tmp/` directory
+- `/workspaces/dotfiles/tmp/hub/main/`
+- `/workspaces/dotfiles/tmp/hub/work/feature-example/`
+- `/workspaces/dotfiles/tmp/repos/omnipy/main/`
+- `/workspaces/dotfiles/tmp/repos/omnipy/work/feature-example/`
 - `/tmp/backup_staging/`
-- OpenCode runtime scratch not intentionally exported or stored in repo-local `state/`
+- OpenCode runtime scratch not intentionally exported or stored in the top-level `state/` tree
 
 ### 4. Installer policy
 
@@ -584,18 +589,36 @@ Auto-detection precedence (default contract for this slice):
 
 #### New planned item: `scripts/create-hub-repo.sh` # ADDED
 
-Add a small reusable helper for provisioning one bare+worktree repo hub so the top-level bootstrap flow and child-repo onboarding share the same repo-creation path.
+Keep two outward-facing scripts — `scripts/setup-host-bare-hub.sh` for top-level hub setup and `scripts/create-hub-repo.sh` for child-repo setup — but extract only their tiny shared repo-provisioning steps into a private core helper so the duplicated lines live in one place.
 
 Purpose:
 
-- allow `scripts/setup-host-bare-hub.sh` to reuse the same repo-hub creation path for the top-level hub repo;
-- allow a user or Maestro-led workflow to onboard another repo under `repos/` without manually repeating runbook step 8.
+- keep `scripts/setup-host-bare-hub.sh` as the public top-level bootstrap entry point;
+- keep `scripts/create-hub-repo.sh` as the public child-repo onboarding entry point;
+- extract the shared bare-clone + gitdir + main-worktree setup into a very small private helper/library so the two public scripts stay DRY without inventing a large abstraction.
 
-Shared layout boundary for this helper:
+Recommended DRY boundary:
 
-- the helper owns the per-repo hub skeleton common to both top-level and child repos: `<repo_hub>/`, `<repo_hub>/.bare/`, `<repo_hub>/.git`, `<repo_hub>/main/`, `<repo_hub>/work/`, and `<repo_hub>/tmp/`;
-- when onboarding a child repo under `repos/*`, the helper must also create `<repo_hub>/state/` with the same permission policy as the other managed directories;
-- for the top-level dotfiles hub, `scripts/setup-host-bare-hub.sh` remains responsible for top-level-only companion paths such as `<repo_hub>/repos/` and `<repo_hub>/state/opencode/exported_sessions/`, but those paths must use the same exact permission policy pinned below.
+- extract only the duplicated repo-hub steps into a private helper/library (for example `scripts/lib/hub-repo-core.sh`): validate `main`, clone/init `<repo_hub>/.bare`, write `<repo_hub>/.git`, attach `<repo_hub>/main`, and apply the baseline `.devpodignore` + host-mode permission logic to repo-hub paths;
+- keep top-level orchestration in `scripts/setup-host-bare-hub.sh`, because it owns the shared hub roots `<hub_root>/repos/`, `<hub_root>/state/`, `<hub_root>/tmp/`, and `state/opencode/exported_sessions/`;
+- keep child-repo orchestration in `scripts/create-hub-repo.sh`, because it owns repo naming and the canonical shared-root subpaths for that repo under the top-level `state/` and `tmp/` trees.
+
+Unified state/tmp layout boundary:
+
+- there is exactly one top-level durable root: `<hub_root>/state/`;
+- there is exactly one top-level disposable root: `<hub_root>/tmp/`;
+- every worktree maps to one canonical key beneath both roots:
+  - top-level main worktree → `hub/main`
+  - top-level feature worktree → `hub/work/<worktree_name>`
+  - child repo main worktree → `repos/<repo_name>/main`
+  - child repo feature worktree → `repos/<repo_name>/work/<worktree_name>`
+- examples:
+  - `/workspaces/dotfiles/state/hub/main/`
+  - `/workspaces/dotfiles/state/hub/work/feature-example/`
+  - `/workspaces/dotfiles/state/repos/omnipy/main/`
+  - `/workspaces/dotfiles/state/repos/omnipy/work/new-feature/`
+  - `/workspaces/dotfiles/tmp/hub/work/feature-example/`
+  - `/workspaces/dotfiles/tmp/repos/omnipy/main/`
 
 Minimal planned behavior:
 
@@ -603,6 +626,8 @@ Minimal planned behavior:
 - clone/init the bare repo at `<repo_hub>/.bare` from a provided repo URL or source checkout;
 - write `<repo_hub>/.git` with `gitdir: ./.bare`;
 - create the `main` worktree from `main` only;
+- create or repair the canonical shared-root directories for the main worktree it creates, using `state/<worktree_key>/` and `tmp/<worktree_key>/` under the one top-level hub root;
+- document the same mapping for future feature worktrees so later worktree-creation steps land in the same canonical structure;
 - create baseline `.devpodignore` files for the directories it manages except `state/` paths;
 - apply the exact `--mode`-controlled permission and ownership behavior defined below.
 
@@ -618,10 +643,20 @@ Usability assumptions:
 - caller provides a source with a `main` branch;
 - script is safe to run both from host bootstrap flows and directly by a human from a terminal.
 
+Per-worktree path discovery (recommended approach):
+
+- recommended initial mechanism: whenever a managed worktree is created, write an untracked env file such as `<worktree>/.hub-env` containing exports for `HUB_WORKTREE_KEY`, `HUB_STATE_DIR`, `HUB_TMP_DIR`, `HUB_STATE_ROOT`, and `HUB_TMP_ROOT`;
+- recommendation rationale: a generated env file is simple, shell-visible, and dependency-free; it keeps the canonical mapping discoverable without requiring extra tools or hidden git metadata lookups;
+- tradeoff: the env file does not become active automatically in every shell unless the user explicitly sources it or later adds a shell hook;
+- alternatives considered but not preferred for this slice:
+  - `git config --worktree ...`: good metadata storage, but not automatically exported to shell processes;
+  - `direnv`: automatic, but adds a new dependency and trust model;
+  - shell wrapper/hook that auto-sources `.hub-env`: useful later, but should be a follow-up slice instead of a prerequisite for this refactor.
+
 Exact permission policy for `scripts/create-hub-repo.sh` (authoritative when effective mode resolves to `host`):
 
-- managed directories MUST end at mode `0700`: `<repo_hub>/`, `<repo_hub>/.bare/`, `<repo_hub>/main/`, `<repo_hub>/work/`, `<repo_hub>/tmp/`, child-repo `<repo_hub>/state/`, and top-level companion directories `<repo_hub>/repos/`, `<repo_hub>/state/`, `<repo_hub>/state/opencode/`, and `<repo_hub>/state/opencode/exported_sessions/` when they exist;
-- managed non-executable files MUST end at mode `0600`: `<repo_hub>/.git`, all managed `.devpodignore` files, and all non-executable files under managed `.bare/` and `state/` trees;
+- managed directories MUST end at mode `0700`: repo-hub directories `<repo_hub>/`, `<repo_hub>/.bare/`, `<repo_hub>/main/`, `<repo_hub>/work/`; shared-root directories `<hub_root>/repos/`, `<hub_root>/state/`, `<hub_root>/state/hub/`, `<hub_root>/state/repos/`, `<hub_root>/state/opencode/`, `<hub_root>/state/opencode/exported_sessions/`, `<hub_root>/tmp/`, and any created per-worktree subdirectories beneath `state/<worktree_key>/` or `tmp/<worktree_key>/`;
+- managed non-executable files MUST end at mode `0600`: `<repo_hub>/.git`, all managed `.devpodignore` files, and all non-executable files under managed `.bare/` and top-level `state/` trees;
 - managed executable carveout files MUST end at mode `0700`: `.bare/hooks/*` and `<repo_hub>/main/install.sh` when present;
 - symlinks are never chmod'ed by this helper; if a managed path is present with an unexpected file type, the helper must fail fast instead of rewriting it.
 
@@ -1221,7 +1256,7 @@ Insert this exact block under `## Subagent delegation (short)` in `.config/openc
 - Agents MUST treat `/workspaces/dotfiles/main` or another explicit worktree path as the editable repository root.
 - Worktree-skill reconciliation: the generic `using-git-worktrees` skill still applies, but in this repo it starts from the existing bare-hub layout instead of inventing a parallel checkout model.
 - Child repos under `repos/` follow the same pattern; `repos/omnipy/main` and `repos/omnipy/work/feature-example` are the reference examples.
-- Durable local files for child repos belong only under `repos/omnipy/state/` or another repo-local `state/` directory, never under the hub root.
+- Durable local files for child repos belong only under canonical top-level `state/repos/omnipy/main/`, `state/repos/omnipy/work/feature-example/`, or another `state/repos/...` path, never under the repo hub itself.
 - Bare-hub refusal string: if CWD is detected to be a hub root, the agent or script must refuse with: `Refused — hub-root CWD detected. Provide explicit worktree path.`
 ```
 
@@ -1280,13 +1315,15 @@ git --git-dir="/workspaces/dotfiles/repos/omnipy/.bare" worktree add "/workspace
 ## Durable vs disposable files
 
 Durable:
-- `/workspaces/dotfiles/state/`
+- `/workspaces/dotfiles/state/hub/main/`
+- `/workspaces/dotfiles/state/hub/work/feature-example/`
+- `/workspaces/dotfiles/state/repos/omnipy/main/`
 - `/workspaces/dotfiles/state/opencode/exported_sessions/`
-- `/workspaces/dotfiles/repos/omnipy/state/`
 
 Disposable:
-- `/workspaces/dotfiles/tmp/`
-- `/workspaces/dotfiles/repos/omnipy/tmp/`
+- `/workspaces/dotfiles/tmp/hub/main/`
+- `/workspaces/dotfiles/tmp/hub/work/feature-example/`
+- `/workspaces/dotfiles/tmp/repos/omnipy/main/`
 - `/tmp/backup_staging/`
 
 ## Install usage
@@ -1565,8 +1602,8 @@ cleanup() {
     kill "$busy_pid" 2>/dev/null || true
     wait "$busy_pid" 2>/dev/null || true
   fi
-  if [ -e "$tmpdir/workspaces/dotfiles/state/app/unreadable.txt" ]; then
-    chmod 600 "$tmpdir/workspaces/dotfiles/state/app/unreadable.txt" 2>/dev/null || true
+  if [ -e "$tmpdir/workspaces/dotfiles/state/hub/main/app/unreadable.txt" ]; then
+    chmod 600 "$tmpdir/workspaces/dotfiles/state/hub/main/app/unreadable.txt" 2>/dev/null || true
   fi
   rm -rf "$tmpdir"
 }
@@ -1577,21 +1614,21 @@ staging_root="$tmpdir/backup_staging"
 
 mkdir -p \
   "$workspace_root/state/opencode/exported_sessions" \
-  "$workspace_root/state/app" \
-  "$workspace_root/repos/omnipy/state" \
-  "$workspace_root/tmp/cache" \
-  "$staging_root/sets/set-prev/state/app"
+  "$workspace_root/state/hub/main/app" \
+  "$workspace_root/state/repos/omnipy/main" \
+  "$workspace_root/tmp/hub/main/cache" \
+  "$staging_root/sets/set-prev/state/hub/main/app"
 
 printf 'session-json\n' > "$workspace_root/state/opencode/exported_sessions/export.json"
-printf 'new-live-cache\n' > "$workspace_root/state/app/cache.txt"
-printf 'repo-state\n' > "$workspace_root/repos/omnipy/state/repo-cache.txt"
-printf 'skip-me\n' > "$workspace_root/tmp/cache/debug.log"
+printf 'new-live-cache\n' > "$workspace_root/state/hub/main/app/cache.txt"
+printf 'repo-state\n' > "$workspace_root/state/repos/omnipy/main/repo-cache.txt"
+printf 'skip-me\n' > "$workspace_root/tmp/hub/main/cache/debug.log"
 
-printf 'old-staged-cache\n' > "$staging_root/sets/set-prev/state/app/cache.txt"
+printf 'old-staged-cache\n' > "$staging_root/sets/set-prev/state/hub/main/app/cache.txt"
 ln -s "$staging_root/sets/set-prev" "$staging_root/current"
 
 (
-  exec 9>"$workspace_root/state/app/cache.txt.backup.lock"
+  exec 9>"$workspace_root/state/hub/main/app/cache.txt.backup.lock"
   flock -n 9
   sleep 8
 ) &
@@ -1600,21 +1637,21 @@ busy_pid="$!"
 bash scripts/prepare-state-backup-set.sh "$workspace_root" "$staging_root" >"$tmpdir/success.out"
 
 [ -f "$staging_root/current/state/opencode/exported_sessions/export.json" ]
-[ -f "$staging_root/current/repos/omnipy/state/repo-cache.txt" ]
-[ ! -e "$staging_root/current/tmp/cache/debug.log" ]
+[ -f "$staging_root/current/state/repos/omnipy/main/repo-cache.txt" ]
+[ ! -e "$staging_root/current/tmp/hub/main/cache/debug.log" ]
 
-grep -F "old-staged-cache" "$staging_root/current/state/app/cache.txt" >/dev/null
-! grep -F "new-live-cache" "$staging_root/current/state/app/cache.txt" >/dev/null
+grep -F "old-staged-cache" "$staging_root/current/state/hub/main/app/cache.txt" >/dev/null
+! grep -F "new-live-cache" "$staging_root/current/state/hub/main/app/cache.txt" >/dev/null
 
 [ -f "$staging_root/last-skipped.txt" ]
-grep -F "$workspace_root/state/app/cache.txt" "$staging_root/last-skipped.txt" >/dev/null
+grep -F "$workspace_root/state/hub/main/app/cache.txt" "$staging_root/last-skipped.txt" >/dev/null
 
 grep -F "ok: staged backup set at $staging_root/current" "$tmpdir/success.out" >/dev/null
 
 current_target_before="$(readlink -f "$staging_root/current")"
 
-printf 'cannot-read\n' > "$workspace_root/state/app/unreadable.txt"
-chmod 000 "$workspace_root/state/app/unreadable.txt"
+printf 'cannot-read\n' > "$workspace_root/state/hub/main/app/unreadable.txt"
+chmod 000 "$workspace_root/state/hub/main/app/unreadable.txt"
 
 if bash scripts/prepare-state-backup-set.sh "$workspace_root" "$staging_root" >"$tmpdir/fail.out" 2>&1; then
   printf 'expected staging run to fail when source contains unreadable file\n' >&2
@@ -1625,9 +1662,9 @@ current_target_after="$(readlink -f "$staging_root/current")"
 [ "$current_target_before" = "$current_target_after" ]
 
 [ -f "$staging_root/current/state/opencode/exported_sessions/export.json" ]
-[ -f "$staging_root/current/repos/omnipy/state/repo-cache.txt" ]
-grep -F "old-staged-cache" "$staging_root/current/state/app/cache.txt" >/dev/null
-[ ! -e "$staging_root/current/tmp/cache/debug.log" ]
+[ -f "$staging_root/current/state/repos/omnipy/main/repo-cache.txt" ]
+grep -F "old-staged-cache" "$staging_root/current/state/hub/main/app/cache.txt" >/dev/null
+[ ! -e "$staging_root/current/tmp/hub/main/cache/debug.log" ]
 
 printf 'PASS test_prepare_state_backup_set\n'
 ```
@@ -1750,7 +1787,7 @@ import sys
 root = os.path.realpath(sys.argv[1])
 files = []
 
-for base_name in ("state", "repos"):
+for base_name in ("state",):
     base_root = os.path.join(root, base_name)
     if not os.path.exists(base_root):
         continue
@@ -1767,7 +1804,7 @@ while IFS= read -r staged_file; do
   [ -n "$staged_file" ] || continue
   rel_path="${staged_file#$new_set/}"
   case "$rel_path" in
-    state/*|repos/*/state/*)
+    state/*)
       if ! grep -Fx "$workspace_root/$rel_path" "$live_files" >/dev/null 2>&1; then
         rm -f "$staged_file"
       fi
