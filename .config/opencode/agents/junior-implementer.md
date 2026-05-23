@@ -2,7 +2,7 @@
 description: Superpowered and pragmatic junior developer / implementation specialist
 mode: subagent
 model: github-copilot/gpt-5-mini
-reasoningEffort: high
+reasoningEffort: medium
 tools:
   write: true
   edit: true
