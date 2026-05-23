@@ -2,7 +2,7 @@
 description: Superpowered and pragmatic planner and system architect
 mode: subagent
 model: github-copilot/gpt-5.4
-reasoningEffort: xhigh
+reasoningEffort: high
 tools:
   write: true
   edit: true
