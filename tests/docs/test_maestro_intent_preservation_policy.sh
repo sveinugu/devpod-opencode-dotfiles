@@ -20,7 +20,7 @@ rg -n 'Artifact path:' "$templates" >/dev/null
 rg -n 'Active slice:' "$templates" >/dev/null
 rg -n 'Verbatim user context:' "$templates" >/dev/null
 rg -n 'Non-deliverables:' "$templates" >/dev/null
-rg -n 'prefer lossless routing over reinterpretation' "$maestro" >/dev/null
+rg -n 'Prefer lossless routing over reinterpretation' "$maestro" >/dev/null
 rg -n 'No silent extra deliverables' "$maestro" >/dev/null
 rg -n 'Artifact path:' "$maestro" >/dev/null
 rg -n 'Verbatim user context:' "$maestro" >/dev/null

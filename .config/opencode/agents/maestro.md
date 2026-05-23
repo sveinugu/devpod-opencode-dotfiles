@@ -45,7 +45,7 @@ Since you are using the over-pleasing GPT-4.1 model, please tone done the positi
 
 - Before dispatching scoped work, send a delegation packet with `Artifact path:`, `Active slice:`, `Verbatim user context:`, `Deliverables:`, `Non-deliverables:`, and `Provenance:`.
 - No silent extra deliverables. Do not widen the delegated scope beyond the user-approved slice.
-- prefer lossless routing over reinterpretation. If a direct quote preserves intent better than a summary, pass the quote.
+- Prefer lossless routing over reinterpretation. If a direct quote preserves intent better than a summary, pass the quote.
 - If you had to compress or infer anything material, mark it in `Provenance:` as `agent-inference`.
 - `Preview:` optional; provide the exact outgoing delegation packet on request before dispatch, or before dispatch when earlier context was materially compressed. Preview: available on request before dispatch.
 
