@@ -31,36 +31,50 @@ if [ -f "scripts/setup-host-bare-hub.sh" ]; then
   chmod +x "$checkout/scripts/setup-host-bare-hub.sh"
 fi
 
-(
-  cd "$checkout"
-  bash "./scripts/setup-host-bare-hub.sh" --hub-root "$hub_root" >"$tmpdir/out.txt"
-)
-
-[ -d "$hub_root/.bare" ]
-[ -d "$hub_root/main" ]
-[ -d "$hub_root/work" ]
-[ -d "$hub_root/repos" ]
-[ -d "$hub_root/state/opencode/exported_sessions" ]
-[ -d "$hub_root/tmp" ]
-
-state_mode="$(stat -c '%a' "$hub_root/state")"
-opencode_mode="$(stat -c '%a' "$hub_root/state/opencode")"
-exports_mode="$(stat -c '%a' "$hub_root/state/opencode/exported_sessions")"
-
-[ "$state_mode" = "700" ]
-[ "$opencode_mode" = "700" ]
-[ "$exports_mode" = "700" ]
-
-git --git-dir="$hub_root/.bare" worktree list | grep -F "$hub_root/main" >/dev/null
+if [ -f "scripts/verify-host-bare-hub.sh" ]; then
+  cp "scripts/verify-host-bare-hub.sh" "$checkout/scripts/verify-host-bare-hub.sh"
+  chmod +x "$checkout/scripts/verify-host-bare-hub.sh"
+fi
 
 (
   cd "$checkout"
-  bash "./scripts/setup-host-bare-hub.sh" --hub-root "$hub_root" >"$tmpdir/out-second.txt"
+  bash "./scripts/setup-host-bare-hub.sh" --hub-root "$hub_root" --mode host >"$tmpdir/out.txt"
 )
 
-[ -d "$hub_root/.bare" ]
-[ -d "$hub_root/main" ]
-git --git-dir="$hub_root/.bare" worktree list | grep -F "$hub_root/main" >/dev/null
+(
+  cd "$checkout"
+  bash "./scripts/verify-host-bare-hub.sh" --hub-root "$hub_root" --format json >"$tmpdir/verify-first.json"
+)
+
+python3 - "$tmpdir/verify-first.json" <<'PY'
+import json
+import sys
+
+payload = json.load(open(sys.argv[1], "r", encoding="utf-8"))
+if not payload.get("ok"):
+    print("expected verifier to pass on first bootstrap run", file=sys.stderr)
+    sys.exit(1)
+PY
+
+(
+  cd "$checkout"
+  bash "./scripts/setup-host-bare-hub.sh" --hub-root "$hub_root" --mode host >"$tmpdir/out-second.txt"
+)
+
+(
+  cd "$checkout"
+  bash "./scripts/verify-host-bare-hub.sh" --hub-root "$hub_root" --format json >"$tmpdir/verify-second.json"
+)
+
+python3 - "$tmpdir/verify-second.json" <<'PY'
+import json
+import sys
+
+payload = json.load(open(sys.argv[1], "r", encoding="utf-8"))
+if not payload.get("ok"):
+    print("expected verifier to pass on second bootstrap run", file=sys.stderr)
+    sys.exit(1)
+PY
 
 grep -F "ok: ensured host bare-hub layout at $hub_root" "$tmpdir/out.txt" >/dev/null
 
