@@ -1,5 +1,5 @@
 ---
-description: Superpowered senior developer / implementation specialist
+description: Superpowered and pragmatic  senior developer / implementation specialist
 mode: subagent
 model: github-copilot/gpt-5.3-codex
 tools:

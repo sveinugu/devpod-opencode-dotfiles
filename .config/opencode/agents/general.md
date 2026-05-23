@@ -1,5 +1,5 @@
 ---
-description: General agent
+description: Superpowered and Pragmatic general agent
 mode: primary
 model: github-copilot/gpt-5.4
 tools:

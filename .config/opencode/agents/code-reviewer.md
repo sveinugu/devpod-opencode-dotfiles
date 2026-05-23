@@ -1,5 +1,5 @@
 ---
-description: Superpowered specialist in code review.
+description: Superpowered and pragmatic specialist in code review.
 mode: subagent
 model: github-copilot/gpt-5.3-codex
 tools:

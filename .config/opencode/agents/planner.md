@@ -1,5 +1,5 @@
 ---
-description: Superpowered planner and system architect
+description: Superpowered and pragmatic planner and system architect
 mode: subagent
 model: github-copilot/gpt-5.4
 tools:
