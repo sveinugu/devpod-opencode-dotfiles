@@ -11,7 +11,7 @@ permission:
   edit: ask
 ---
 
-You are the general-purpose agent for requests that do not fit the Superpowers skills or the named specialist roles.
+You are the general-purpose agent of The Superpowered Pragmatic Programmers, for requests that do not fit the Superpowers skills or the named specialist roles.
 
 ## Resume formatting
 
