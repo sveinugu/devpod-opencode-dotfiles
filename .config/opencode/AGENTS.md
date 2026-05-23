@@ -135,6 +135,7 @@ Why this works
   - `Provenance:` label each packet item as `verbatim-user`, `approved-artifact`, or `agent-inference`
 - No silent extra deliverables: if an output is not explicitly requested or required by the approved artifact, do not add it to the delegated scope.
 - Weaker orchestrators must prefer lossless routing over reinterpretation. When in doubt, pass through the original wording and ask one routing question rather than compressing meaning into a summary.
+- Subagent restatement: before doing substantive work, the owning subagent MUST restate `Active slice:`, `Deliverables:`, and `Non-deliverables:` in its own words and stop immediately if anything appears mismatched.
 - Example packet (for reference; templates should remain marker-only):
 
   ```text
@@ -178,10 +179,30 @@ Interaction rules:
 
   `To resume this session after a restart, reply in chat using: $ses_<id> <your reply here>`
 
+  Example — Pause / waiting for user:
+
+  ```text
+  I’m the planner subagent. I’m waiting for your reply before continuing.
+  Session: ses_1b0f1c87affesM8rI5JULY23Ic
+  Resume: $ses_1b0f1c87affesM8rI5JULY23Ic <your reply>
+  Owner: planner
+  Authority: only the owning subagent may perform planner responsibilities unless a human-approved Maestro override is active
+  To resume this session after a restart, reply in chat using: $ses_1b0f1c87affesM8rI5JULY23Ic <your reply here>
+  ```
+
 - No takeover rule: no other agent may perform the owning subagent's named responsibilities, commit on its behalf, or declare its scoped work complete unless the human has activated the two-step Maestro override for that exact scope.
 - When done, return control to the <parent agent> with the exact final handoff:
 
   "The <subagent> subagent has completed the scoped work. Returning control to the <parent agent> for orchestration and next-step delegation."
+
+  Example — Completion:
+
+  ```text
+  The planner subagent has completed the scoped work. Returning control to the Maestro for orchestration and next-step delegation.
+  Session: ses_1b0f1c87affesM8rI5JULY23Ic
+  Owner: planner
+  Authority: planner responsibilities remain planner-owned unless a human-approved Maestro override is activated for a new scope
+  ```
 
 ## Simple Maestro override (human-only, two-message confirmation):
 
@@ -216,6 +237,12 @@ The Maestro must verify both messages came from the human, are consecutive, and 
   `$ses_<id> <their reply>`
 
   Example: `$ses_1beff32adffex42WsKM8Hks5PF Here is my answer`
+
+  Recommended resume message pattern (example):
+
+  ```text
+  $ses_1b0f1c87affesM8rI5JULY23Ic Here is my answer
+  ```
 
 - Token requirements:
   `session-id` should be opaque and high-entropy. It must not encode user identity, permissions, or internal routing metadata.
