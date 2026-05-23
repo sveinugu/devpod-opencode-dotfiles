@@ -643,17 +643,13 @@ Usability assumptions:
 - caller provides a source with a `main` branch;
 - script is safe to run both from host bootstrap flows and directly by a human from a terminal.
 
-Per-worktree path discovery (recommended approach):
+Per-worktree path discovery (chosen approach: `direnv`):
 
-- recommended initial mechanism: whenever a managed worktree is created, write an untracked env file such as `<worktree>/.hub-env` containing exports for `HUB_WORKTREE_KEY`, `HUB_STATE_DIR`, `HUB_TMP_DIR`, `HUB_STATE_ROOT`, and `HUB_TMP_ROOT`;
-- recommendation rationale: a generated env file is simple, shell-visible, and dependency-free; it keeps the canonical mapping discoverable without requiring extra tools or hidden git metadata lookups;
-- tradeoff: the env file does not become active automatically in every shell unless the user explicitly sources it or later adds a shell hook;
-- alternatives considered but not preferred for this slice:
-  - `git config --worktree ...`: good metadata storage, but not automatically exported to shell processes;
-  - `direnv`: automatic, but adds a new dependency and trust model;
-  - shell wrapper/hook that auto-sources `.hub-env`: useful later, but should be a follow-up slice instead of a prerequisite for this refactor.
+- use `direnv` as the per-folder environment solution for managed worktrees, because it makes the canonical `state/` and `tmp/` mappings load automatically when entering each worktree;
+- each managed worktree should receive a generated `.envrc` that exports `HUB_WORKTREE_KEY`, `HUB_STATE_DIR`, `HUB_TMP_DIR`, `HUB_STATE_ROOT`, and `HUB_TMP_ROOT` from the canonical shared-root mapping;
+- this is intentionally preferred over `git config --worktree ...` or a custom shell wrapper because the repo already manages the Dockerfile for the interactive environment, so enabling `direnv` is a small, reversible infrastructure change instead of a separate platform dependency problem.
 
-Dockerfile note for optional `direnv` support:
+Dockerfile note for `direnv` support:
 - Modify the repo-root Dockerfile in the runtime/dev stage used for interactive shells.
 - Install `direnv` with the base-image package manager (`apt-get install -y direnv` on Debian/Ubuntu, `apk add --no-cache direnv` on Alpine).
 - Add `/etc/profile.d/direnv.sh` to run `eval "$(direnv hook bash)"`; add the zsh hook too when zsh is installed/used.
