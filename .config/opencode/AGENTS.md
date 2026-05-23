@@ -122,6 +122,19 @@ Why this works
     6. When resuming an existing subagent session, explicitly say it is a resume of the existing session, not a new session.
 - Per-subagent override: a subagent file may define a more specific first-message/handoff wording; that override applies only to that subagent and must be explicit in the subagent file.
 
+## Intent-preserving delegation packet
+
+- Before delegating scoped work that depends on an approved plan/spec/artifact, the delegating agent MUST pass a lossless delegation packet.
+- Required packet fields:
+  - `Artifact path:` the exact approved plan/spec path when one exists
+  - `Active slice:` the exact portion of that artifact being delegated now
+  - `Verbatim user context:` a quoted block with the user’s exact relevant words
+  - `Deliverables:` only the outputs explicitly requested or required by the approved artifact
+  - `Non-deliverables:` work explicitly excluded from the delegated scope
+  - `Provenance:` label each packet item as `verbatim-user`, `approved-artifact`, or `agent-inference`
+- No silent extra deliverables: if an output is not explicitly requested or required by the approved artifact, do not add it to the delegated scope.
+- Weaker orchestrators must prefer lossless routing over reinterpretation. When in doubt, pass through the original wording and ask one routing question rather than compressing meaning into a summary.
+
 ## Named-responsibility ownership
 
 - If repo docs or agent specs assign a responsibility to a named subagent, that subagent is the sole owner of that responsibility for the active scope.
