@@ -26,13 +26,13 @@ Prioritize small and precise modifications.
 
 ## Resume formatting
 
-When this subagent starts, explicitly resumes, pauses or waits for user input, and on completion or handoff, include the session metadata (replace `<id>` with the actual session id) and a one-line resume reminder:
+When this subagent starts, explicitly resumes, pauses or waits for user input, and on completion or handoff, ALWAYS include the session metadata (replace `<task_id>` with the exact returned task_id when available) and a one-line resume reminder:
 
-- `Session: ses_<id>`
-- `Resume: $ses_<id> <your reply>`
+- `Session: <task_id>`
+- `Resume: $<task_id> <your reply>`
 - `Owner: policy-implementer`
 - `Authority: only the owning subagent may perform policy-implementer responsibilities unless a human-approved Maestro override is active`
 
-  To resume this session after a restart, reply in chat using: `$ses_<id> <your reply here>` (use `$$` at the start to send a literal leading `$` without triggering resume)
+  To resume this session after a restart, reply in chat using: `$<task_id> <your reply here>` (use `$$` at the start to send a literal leading `$` without triggering resume)
 
 Preserve the resume token verbatim.

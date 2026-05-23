@@ -106,19 +106,23 @@ Why this works
 - Design specifications and plan documents must be written to file and committed by the sub-agents before handed back to the Maestro.
 - Review-record policy: review feedback is conversational by default. A persistent review-record document is created only when explicitly requested or required by a plan/spec. When such a document is created, it is owned by the reviewing subagent unless explicitly reassigned. For PR-based review, GitHub review history is the default persisted review record.
 - Execution Handoff definition: "Execution Handoff" means the Maestro step that turns an approved plan into delegated implementation work.
-- Mandatory handoff metadata (required in EVERY subagent start, explicit resume, handoff, pause, and completion message, replace
-  `<id>` with the actual session id):
-    - `Session: ses_<id>`
-    - `Resume: $ses_<id> <your reply>`
-    - `Owner: <subagent>`
-    -
-    `Authority: only the owning subagent may perform <subagent> responsibilities unless a human-approved Maestro override is active`
+- Mandatory session metadata (required in EVERY subagent start, explicit resume, handoff, pause, and completion message, replace
+  `<task_id>` with the exact returned task_id when available):
+    ```text
+    Session: <task_id>
+    Resume: $<task_id> <your reply>
+    Owner: <subagent>
+    Authority: only the owning subagent may perform <subagent> responsibilities unless a human-approved Maestro override is active
+    ```
+- When a Task or native subagent launch returns `task_id`, agents MUST use that exact returned `task_id` verbatim as the canonical session identifier.
+- Delegating agents MUST validate surfaced `Session:` and `Resume:` values against that exact returned `task_id` before sending or repeating them.
+- If no `task_id` is available, agents MUST preserve the exact existing session identifier when known and MUST NOT invent, rewrite, or normalize one.
 - Session visibility rule: when a delegating agent spawns or resumes a subagent session, it MUST print that session's metadata in the chat. Too many visible session ids are preferred over too few.
 - Maestro handoff checklist (required before sending any subagent handoff):
     1. Name the target subagent explicitly.
-    2. Include the exact session id in `ses_<id>` form.
-    3. Include the exact resume command in `$ses_<id> <reply>` form.
-    4. State that replies with `$ses_<id>` route to the owning subagent, not Maestro triage.
+    2. Include the exact returned `task_id` when available.
+    3. Include the exact resume command in `$<task_id> <reply>` form.
+    4. State that replies with `$<task_id>` route to the owning subagent, not Maestro triage.
     5. State that only the owning subagent may perform its named responsibilities unless the human activates the two-step Maestro override.
     6. When resuming an existing subagent session, explicitly say it is a resume of the existing session, not a new session.
 - Per-subagent override: a subagent file may define a more specific first-message/handoff wording; that override applies only to that subagent and must be explicit in the subagent file.
@@ -175,10 +179,11 @@ Interaction rules:
 
 - Ask one clarifying question per message (repeat as needed — there is no single-question-per-session cap).
 - Perform only the responsibilities listed in the subagent file and only for the currently delegated scope.
-- The owning subagent MUST surface its session id on start, on explicit resume, on any pause/wait-for-user message, and on completion or handoff.
+- The owning subagent MUST surface the full `Session:` / `Resume:` / `Owner:` / `Authority:` block on start, on explicit resume, on any pause/wait-for-user message, and on completion or handoff.
+- Examples below show `ses_...` only because that is the current shape of a real task_id, not a wrapper rule.
 - The owning subagent MUST include the exact resume syntax on every pause/wait-for-user message:
 
-  `To resume this session after a restart, reply in chat using: $ses_<id> <your reply here>`
+  `To resume this session after a restart, reply in chat using: $<task_id> <your reply here>`
 
   Example — Pause / waiting for user:
 
@@ -201,6 +206,7 @@ Interaction rules:
   ```text
   The planner subagent has completed the scoped work. Returning control to the Maestro for orchestration and next-step delegation.
   Session: ses_1b0f1c87affesM8rI5JULY23Ic
+  Resume: $ses_1b0f1c87affesM8rI5JULY23Ic <your reply>
   Owner: planner
   Authority: planner responsibilities remain planner-owned unless a human-approved Maestro override is activated for a new scope
   ```
@@ -235,7 +241,7 @@ The Maestro must verify both messages came from the human, are consecutive, and 
 - Purpose: Provide a simple agent-facing policy for resuming subagent sessions after process restarts.
 - User-facing resume syntax: A user may resume a waiting subagent by sending a single-line message that begins with:
 
-  `$ses_<id> <their reply>`
+  `$<task_id> <their reply>`
 
   Example: `$ses_1beff32adffex42WsKM8Hks5PF Here is my answer`
 
@@ -246,13 +252,13 @@ The Maestro must verify both messages came from the human, are consecutive, and 
   ```
 
 - Token requirements:
-  `session-id` should be opaque and high-entropy. It must not encode user identity, permissions, or internal routing metadata.
-- Matching: session-id matching should be treated as case-insensitive when manual lookup is required.
+  `task_id` should be treated as opaque. It must not encode user identity, permissions, or internal routing metadata.
+- Matching: task_id matching should be treated as case-insensitive when manual lookup is required.
 - Escape: If a user needs a literal leading dollar, instruct them to prefix with `$$` (e.g.,
   `"$$hello" => "$hello"` no resume).
 - Routing guarantee: when a valid
-  `$ses_<id>` token is present, the reply MUST be routed DIRECTLY AND VERBATIM to that session's owning subagent rather than being re-triaged as a fresh task for the dispatching agent (e.g. Maestro).
-- Never override or reroute a user-provided $ses_<id> token. Always route to that exact session regardless of other active sessions.
+  `$<task_id>` token is present, the reply MUST be routed DIRECTLY AND VERBATIM to that session's owning subagent rather than being re-triaged as a fresh task for the dispatching agent (e.g. Maestro).
+- Never override or reroute a user-provided $<task_id> token. Always route to that exact session regardless of other active sessions.
 - Preserve resume tokens verbatim. Do not rewrite, normalize, shorten, or absorb them.
 
 ### Session-resume and "switch" semantics
@@ -264,8 +270,7 @@ The Maestro must verify both messages came from the human, are consecutive, and 
 #### Policy
 
 1. Definitions:
-    - "session" (aka process instance): a single subagent session identified by a resume token (
-      `ses_<id>`). A subagent process may host multiple sessions, but UI/resume tokens map to sessions.
+    - "session" (aka process instance): a single subagent session identified by the exact Task-returned `task_id` when available. Current task_ids may look like `ses_...`. A subagent process may host multiple sessions, but UI/resume tokens map to sessions.
     - "switch" (user intent): by default, interpret as "resume an existing session" when a matching recent session exists; otherwise offer to start a new session.
 2. Default resume behavior
     - When the user's message does not include a resume token but appears to target a subagent type and there exists one or more resumable sessions of that subagent type owned by the user:
@@ -277,7 +282,7 @@ The Maestro must verify both messages came from the human, are consecutive, and 
     - If more than one session is a plausible match, ask rather than guessing.
 3. Explicit resume precedence
     - If the user supplies a resume token in the message (line begins with
-      `$ses_<id>`), route the message to that session immediately and verbatim (no spawn).
+      `$<task_id>`), route the message to that session immediately and verbatim (no spawn).
     - If the user uses "switch to <subagent>" and provides a resume token, route to that token.
     - If the user uses "switch" without a token and the orchestrator cannot find any reasonable candidate session, ask: "No recent <subagent> session found. Start a new one?" and wait for confirmation.
 4. Error / tool-failure behavior
@@ -298,5 +303,5 @@ If delegation appears to stall (e.g., you see session handoff text but no subage
     - The subagent launch call (e.g., via functions.task) was likely omitted or failed.
 3. Corrective action:
     - Directly call the Task tool with the relevant subagent_type, a short task description, and all context needed for the subagent to perform its task autonomously.
-    - Ensure you surface the new session's `Session:`/`Resume:`/`Owner:`/`Authority:` metadata immediately.
+    - Ensure you surface the new session's validated `Session:`/`Resume:`/`Owner:`/`Authority:` metadata immediately.
 4. Never assume that "delegation language" triggers a subagent. Always verify real delegation via active tool invocation / session ID.
