@@ -222,7 +222,7 @@ Tasks 2, 6, and 9 are intentionally preserved from the previous revision except 
 
 ### Task 1: Bootstrap the host bare-hub layout before DevPod starts
 
-Note: Implementation of this task MUST follow the scoped updates in the 'create-hub-repo' subsection (see § 'Revised planned item: scripts/create-hub-repo.sh') — do not implement the older inline script text as-is.
+Note: Implementation of this task MUST follow Task 1B plus the scoped updates in the 'create-hub-repo' subsection (see § 'Revised planned item: scripts/create-hub-repo.sh') — do not implement the older inline script text as-is.
 
 **Files:**
 - Create: `scripts/setup-host-bare-hub.sh`
@@ -254,12 +254,15 @@ mkdir -p "$checkout/.config/opencode" "$checkout/scripts" "$tmpdir/host-workspac
 
 printf 'export TEST_ZSHRC=1\n' > "$checkout/.zshrc"
 printf '{"ok":true}\n' > "$checkout/.config/opencode/opencode.jsonc"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$checkout/install.sh"
+chmod 600 "$checkout/install.sh"
 
 git init "$checkout" >/dev/null 2>&1
 (
   cd "$checkout"
   git add . >/dev/null 2>&1
   git -c user.name='Test User' -c user.email='test@example.com' commit -m 'fixture' >/dev/null 2>&1
+  git branch -M main >/dev/null 2>&1
 )
 
 if [ -f "scripts/setup-host-bare-hub.sh" ]; then
@@ -267,38 +270,103 @@ if [ -f "scripts/setup-host-bare-hub.sh" ]; then
   chmod +x "$checkout/scripts/setup-host-bare-hub.sh"
 fi
 
-(
-  cd "$checkout"
-  bash "./scripts/setup-host-bare-hub.sh" --hub-root "$hub_root" >"$tmpdir/out.txt"
-)
-
-[ -d "$hub_root/.bare" ]
-[ -d "$hub_root/main" ]
-[ -d "$hub_root/work" ]
-[ -d "$hub_root/repos" ]
-[ -d "$hub_root/state/opencode/exported_sessions" ]
-[ -d "$hub_root/tmp" ]
-
-state_mode="$(stat -c '%a' "$hub_root/state")"
-opencode_mode="$(stat -c '%a' "$hub_root/state/opencode")"
-exports_mode="$(stat -c '%a' "$hub_root/state/opencode/exported_sessions")"
-
-[ "$state_mode" = "700" ]
-[ "$opencode_mode" = "700" ]
-[ "$exports_mode" = "700" ]
-
-git --git-dir="$hub_root/.bare" worktree list | grep -F "$hub_root/main" >/dev/null
+if [ -f "scripts/verify-host-bare-hub.sh" ]; then
+  cp "scripts/verify-host-bare-hub.sh" "$checkout/scripts/verify-host-bare-hub.sh"
+  chmod +x "$checkout/scripts/verify-host-bare-hub.sh"
+fi
 
 (
   cd "$checkout"
-  bash "./scripts/setup-host-bare-hub.sh" --hub-root "$hub_root" >"$tmpdir/out-second.txt"
+  bash "./scripts/setup-host-bare-hub.sh" \
+    --hub-root "$hub_root" \
+    --mode host \
+    --github-user-name "Bootstrap User" \
+    --github-user-email "bootstrap@example.com" \
+    >"$tmpdir/out.txt"
 )
 
-[ -d "$hub_root/.bare" ]
-[ -d "$hub_root/main" ]
-git --git-dir="$hub_root/.bare" worktree list | grep -F "$hub_root/main" >/dev/null
+(
+  cd "$checkout"
+  bash "./scripts/verify-host-bare-hub.sh" --hub-root "$hub_root" --format json >"$tmpdir/verify-first.json"
+)
+
+python3 - "$tmpdir/verify-first.json" <<'PY'
+import json
+import sys
+
+payload = json.load(open(sys.argv[1], "r", encoding="utf-8"))
+if not payload.get("ok"):
+    print("expected verifier to pass on first bootstrap run", file=sys.stderr)
+    sys.exit(1)
+PY
+
+grep -F 'gitdir: ./.bare' "$hub_root/.git" >/dev/null
+fetch_refspec="$(git --git-dir="$hub_root/.bare" config --get remote.origin.fetch)"
+[ "$fetch_refspec" = "+refs/heads/*:refs/remotes/origin/*" ]
+user_name="$(git --git-dir="$hub_root/.bare" config --get user.name)"
+user_email="$(git --git-dir="$hub_root/.bare" config --get user.email)"
+[ "$user_name" = "Bootstrap User" ]
+[ "$user_email" = "bootstrap@example.com" ]
+main_branch="$(git -C "$hub_root/main" rev-parse --abbrev-ref HEAD)"
+[ "$main_branch" = "main" ]
+install_mode_first="$(stat -c '%a' "$hub_root/main/install.sh")"
+[ "$install_mode_first" = "700" ]
+
+(
+  cd "$checkout"
+  printf 'Y\n' | bash "./scripts/setup-host-bare-hub.sh" --hub-root "$hub_root" --mode host >"$tmpdir/out-second.txt"
+)
+
+install_mode_second="$(stat -c '%a' "$hub_root/main/install.sh")"
+[ "$install_mode_second" = "700" ]
+
+(
+  cd "$checkout"
+  bash "./scripts/verify-host-bare-hub.sh" --hub-root "$hub_root" --format json >"$tmpdir/verify-second.json"
+)
+
+python3 - "$tmpdir/verify-second.json" <<'PY'
+import json
+import sys
+
+payload = json.load(open(sys.argv[1], "r", encoding="utf-8"))
+if not payload.get("ok"):
+    print("expected verifier to pass on second bootstrap run", file=sys.stderr)
+    sys.exit(1)
+PY
 
 grep -F "ok: ensured host bare-hub layout at $hub_root" "$tmpdir/out.txt" >/dev/null
+
+checkout_no_main="$tmpdir/dotfiles-checkout-no-main"
+hub_root_no_main="$tmpdir/host-workspaces/dotfiles-no-main"
+mkdir -p "$checkout_no_main/.config/opencode" "$checkout_no_main/scripts"
+printf 'export TEST_ZSHRC=1\n' > "$checkout_no_main/.zshrc"
+printf '{"ok":true}\n' > "$checkout_no_main/.config/opencode/opencode.jsonc"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$checkout_no_main/install.sh"
+chmod 600 "$checkout_no_main/install.sh"
+git init "$checkout_no_main" >/dev/null 2>&1
+(
+  cd "$checkout_no_main"
+  git add . >/dev/null 2>&1
+  git -c user.name='Test User' -c user.email='test@example.com' commit -m 'fixture' >/dev/null 2>&1
+)
+cp "$checkout/scripts/setup-host-bare-hub.sh" "$checkout_no_main/scripts/setup-host-bare-hub.sh"
+chmod +x "$checkout_no_main/scripts/setup-host-bare-hub.sh"
+
+if (
+  cd "$checkout_no_main"
+  bash "./scripts/setup-host-bare-hub.sh" \
+    --hub-root "$hub_root_no_main" \
+    --mode host \
+    --github-user-name "No Main User" \
+    --github-user-email "nomain@example.com" \
+    >"$tmpdir/no-main.out" 2>&1
+); then
+  printf 'expected main-only setup to fail when source checkout has no main branch\n' >&2
+  exit 1
+fi
+
+grep -F 'refused: main branch not found in source checkout; main-only convention enforced' "$tmpdir/no-main.out" >/dev/null
 
 printf 'PASS test_setup_host_bare_hub\n'
 ```
@@ -313,9 +381,11 @@ bash tests/bootstrap/test_setup_host_bare_hub.sh
 
 Expected: FAIL with `./scripts/setup-host-bare-hub.sh: No such file or directory`.
 
-- [ ] **Step 3: Write the minimal implementation**
+- [ ] **Step 3: Historical inline bootstrap block (superseded)**
 
-Create `scripts/setup-host-bare-hub.sh` with this exact content:
+This older inline bootstrap block is superseded. Do **not** implement it as written; instead follow Task 1B, the revised `create-hub-repo` subsection, the unified `state/`/`tmp/` layout, and the canonical `--mode` semantics below.
+
+Historical inline block retained only for context:
 
 ```bash
 #!/usr/bin/env bash
@@ -463,9 +533,13 @@ git commit -m "feat(bootstrap): add host bare-hub bootstrap"
 
 Use the `Per-worktree path discovery` section below as the authoritative behavior contract for this task.
 
-### Task 2: Validate installer source roots and symlink safety
+Deferred sequencing note: do not implement Task 1A in the current slice until Task 1B is complete and the bootstrap/worktree creation paths are stable.
 
-### Scoped plan update (2026-05-23): Host hub verification contract and migration # ADDED
+### Task 1B: Implement `verify-host-bare-hub.sh` and migrate bootstrap verification # ADDED
+
+This task is the authoritative verifier slice for Task 1 and supersedes the older inline bootstrap-only verification flow.
+
+#### Scoped plan update (2026-05-23): Host hub verification contract and migration # ADDED
 
 This scoped update refines Part 1 verification without changing broader architecture.
 
@@ -715,7 +789,7 @@ Error-handling policy:
 8. `.devpodignore` placement policy (all managed directories except `state/` paths) is documented and tested.
 9. Auto-detection precedence for `--mode auto` is documented and overridable.
 
-#### Proposed defaults for final user approval (actionable-on-accept) # ADDED
+#### Approved defaults retained for implementation # ADDED
 
 1. **Executable files under global file policy**
    - Default: keep global host target as files `0600`, but allow explicit executable carveout as `0700` for files that must execute.
@@ -734,11 +808,14 @@ Error-handling policy:
    - Tradeoff: strongest sync-safety default, with potential future friction if DevPod starts enforcing ignore semantics differently.
 
 3. **Host/container auto-detection and override**
-   - Default precedence:
-     1) explicit `--mode`; 2) `HUB_BOOTSTRAP_MODE`; 3) container markers; 4) host fallback.
-   - Tradeoff: deterministic and operator-overridable, minimizing false auto-detection lock-in.
+    - Default precedence:
+      1) explicit `--mode`; 2) `FORCE_HUB_MODE`; 3) `HUB_BOOTSTRAP_MODE`; 4) container markers; 5) host fallback.
+    - Invalid override values fail fast.
+    - Tradeoff: deterministic and operator-overridable, minimizing false auto-detection lock-in.
 
-If user accepts these defaults, this scoped update is implementation-ready with no remaining OPEN policy blockers.
+These defaults are now part of the implementation contract for this slice; there are no remaining OPEN policy blockers in this subsection.
+
+### Task 2: Validate installer source roots and symlink safety
 
 **Files:**
 - Create: `scripts/install-validate-source.sh`
@@ -2258,6 +2335,7 @@ Before claiming this work complete, run:
 
 ```bash
 bash tests/bootstrap/test_setup_host_bare_hub.sh
+bash tests/bootstrap/test_verify_host_bare_hub.sh
 bash tests/devpod/test_devpod_ensure_layout.sh
 bash tests/install/test_install_validate_source.sh
 bash tests/install/test_install_local_source_contract.sh
