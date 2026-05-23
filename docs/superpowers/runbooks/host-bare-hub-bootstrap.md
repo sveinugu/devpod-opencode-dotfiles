@@ -1,6 +1,9 @@
 # Host Bare-Hub Bootstrap
 
-This runbook sets up a **bare-repo manager hub + worktree workflow** so your host owns durable git/state layout, while day-to-day development happens in mounted worktrees inside DevPod.
+This runbook sets up a **bare-repo + worktree** layout where:
+
+- the host owns the hub and durable state
+- you do daily coding inside `/workspaces/dotfiles/main` in the pod
 
 The pattern is inspired by (and thanks to) this article:
 https://dev.to/metal3d/git-worktree-like-a-boss-2j1b
@@ -12,7 +15,7 @@ In practical terms, after bootstrap you get:
 - a predictable place for feature worktrees (`work/`)
 - repo-local durable state paths (`state/`)
 
-Run host steps before DevPod starts, then switch to in-pod steps for ongoing development.
+Run host steps first, then continue in pod for normal development work.
 
 Set `HUB_PATH` to your host-managed hub directory:
 
@@ -24,20 +27,20 @@ export HUB_PATH="/srv/devpod-workspaces/dotfiles"
 
 Mode guidance:
 
-- Use `--mode host` for host bootstrap/permission enforcement.
-- `--mode auto` is available, but explicit `--mode host` is recommended here.
+- Use `--mode host` for host bootstrap and permission enforcement.
+- `--mode auto` exists, but `--mode host` is clearer for this step.
 - Help: `bash "./scripts/setup-host-bare-hub.sh" --help`
 
 ```bash
 bash "./scripts/setup-host-bare-hub.sh" --hub-root "$HUB_PATH" --mode host
 ```
 
-Username/email behavior during bootstrap:
+Username/email behavior:
 
 - Prompt: `Use existing git username/email? Y/N`
-- `Y`: keep existing repo identity values
-- `N`: prompt for GitHub username/email and store in hub-local git config
-- Optional non-interactive override: `--github-user-name` and `--github-user-email`
+- `Y`: keep current values
+- `N`: enter GitHub username/email and save to hub-local git config
+- If needed, pass `--github-user-name` and `--github-user-email`
 
 Expected output:
 
@@ -45,9 +48,9 @@ Expected output:
 ok: ensured host bare-hub layout at /srv/devpod-workspaces/dotfiles
 ```
 
-What this gives you immediately:
+After Step 1:
 
-- `$HUB_PATH/.git` points to `./.bare` (so normal `git ...` works from hub path)
+- `$HUB_PATH/.git` points to `./.bare` (so normal `git` works from the hub path)
 - fetch refspec is configured in `$HUB_PATH/.bare/config`
 - username/email configuration is written in hub-local git config for pod reuse via mounted path
 - bootstrap enforces a **main-only** convention: source checkout must have `main`, and hub main worktree is always created from `main`
@@ -70,22 +73,24 @@ result: PASS
 Mount `$HUB_PATH` into the container as `/workspaces/dotfiles`.
 Open `/workspaces/dotfiles/main` as the workspace folder.
 
-Tip: host bootstrap establishes structure; feature branches/worktrees are best created inside the pod where you actively develop.
+Create feature worktrees inside the pod, not during host bootstrap.
 
 ## Step 4 (HOST): Recreate main (recovery only)
 
-Use this only when you need to rebuild the primary worktree from host side.
+Use this only when you need to rebuild the primary worktree from the host.
 Do **not** run this recovery step in pod.
 
 ```bash
 rm -rf "$HUB_PATH/main"
-(cd "$HUB_PATH" && git worktree add "$HUB_PATH/main" main)
+cd "$HUB_PATH"
+git worktree add "$HUB_PATH/main" main
 ```
 
 ## Step 5 (HOST): Verify host layout quickly
 
 ```bash
-(cd "$HUB_PATH" && git worktree list)
+cd "$HUB_PATH"
+git worktree list
 ls -ld "$HUB_PATH/state" "$HUB_PATH/state/opencode" "$HUB_PATH/state/opencode/exported_sessions"
 ```
 
@@ -100,14 +105,15 @@ Inside DevPod/container, confirm you are working from:
 ## Step 7 (IN POD): Create a feature worktree
 
 ```bash
-(cd "/workspaces/dotfiles" && git worktree add "/workspaces/dotfiles/work/feature-example" -b feature-example main)
+cd "/workspaces/dotfiles"
+git worktree add "/workspaces/dotfiles/work/feature-example" -b feature-example main
 ```
 
 This keeps branch/worktree lifecycle tied to your active development context.
 
 ## Step 8 (IN POD): Onboard an additional repo under `repos/`
 
-Use this when adding another managed repository into the same hub structure.
+Use this when adding another managed repository under `repos/`.
 
 ```bash
 REPO_NAME="myrepo"
@@ -118,8 +124,9 @@ mkdir -p "$REPO_HUB"
 git clone --bare "$REPO_URL" "$REPO_HUB/.bare"
 printf 'gitdir: ./.bare\n' > "$REPO_HUB/.git"
 
-(cd "$REPO_HUB" && git worktree add "$REPO_HUB/main" main)
-(cd "$REPO_HUB" && git worktree add "$REPO_HUB/work/feature-example" -b feature-example main)
+cd "$REPO_HUB"
+git worktree add "$REPO_HUB/main" main
+git worktree add "$REPO_HUB/work/feature-example" -b feature-example main
 ```
 
 After onboarding, open and work from `"$REPO_HUB/main"` (or another explicit worktree).
