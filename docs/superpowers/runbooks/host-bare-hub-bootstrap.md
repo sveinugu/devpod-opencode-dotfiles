@@ -10,6 +10,12 @@ export HUB_PATH="/srv/devpod-workspaces/dotfiles"
 
 ## Step 1 (HOST): Create the managed hub
 
+Mode note for this step:
+
+- Use `--mode host` when validating host permissions and ownership semantics.
+- `--mode auto` is the default and auto-detects container markers.
+- For host bootstrap, keep `--mode host` explicit.
+
 ```bash
 bash "./scripts/setup-host-bare-hub.sh" --hub-root "$HUB_PATH" --mode host
 ```
@@ -41,6 +47,8 @@ Feature worktrees are a day-to-day development operation and should be created f
 
 ## Step 4 (HOST): Recreate main
 
+This is a host-side recovery/bootstrap action. Do not run this recreate-main step inside the pod.
+
 ```bash
 rm -rf "$HUB_PATH/main"
 git --git-dir="$HUB_PATH/.bare" worktree add "$HUB_PATH/main" main
@@ -51,6 +59,13 @@ git --git-dir="$HUB_PATH/.bare" worktree add "$HUB_PATH/main" main
 ```bash
 git --git-dir="$HUB_PATH/.bare" worktree list
 ls -ld "$HUB_PATH/state" "$HUB_PATH/state/opencode" "$HUB_PATH/state/opencode/exported_sessions"
+```
+
+Optional host convenience helper (avoids repeating `--git-dir` for host bootstrap checks):
+
+```bash
+hubgit() { git --git-dir="$HUB_PATH/.bare" "$@"; }
+hubgit worktree list
 ```
 
 ## Step 6 (IN POD): Confirm mounted workspace
@@ -69,7 +84,26 @@ git --git-dir="/workspaces/dotfiles/.bare" worktree add "/workspaces/dotfiles/wo
 
 Run feature worktree creation inside the pod so development branches are managed from the active DevPod workspace context.
 
-### Mode note
+Optional pod convenience helper (avoids repeating `--git-dir`):
 
-Use `--mode host` when validating host permissions and ownership semantics.
-`--mode auto` is the default and auto-detects container markers; keep `--mode host` explicit for host bootstrap validation.
+```bash
+podhubgit() { git --git-dir="/workspaces/dotfiles/.bare" "$@"; }
+podhubgit worktree list
+```
+
+## Step 8 (IN POD): Onboard an additional repo under the hub
+
+Use this pattern to add a new managed repo under `repos/` (example: `myrepo`):
+
+```bash
+REPO_NAME="myrepo"
+REPO_URL="git@github.com:your-org/myrepo.git"
+REPO_HUB="/workspaces/dotfiles/repos/$REPO_NAME"
+
+mkdir -p "$REPO_HUB"
+git clone --bare "$REPO_URL" "$REPO_HUB/.bare"
+git --git-dir="$REPO_HUB/.bare" worktree add "$REPO_HUB/main" main
+git --git-dir="$REPO_HUB/.bare" worktree add "$REPO_HUB/work/feature-example" -b feature-example main
+```
+
+After onboarding, open and work from `"$REPO_HUB/main"` or another explicit worktree path.
