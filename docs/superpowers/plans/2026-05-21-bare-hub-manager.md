@@ -165,6 +165,7 @@ This repo-specific policy overrides the generic assumption that a repo root can 
 
 ### Bootstrap and layout
 - Create: `scripts/setup-host-bare-hub.sh`
+- Create: `scripts/create-hub-repo.sh` # ADDED (planned helper for repo onboarding)
 - Create: `scripts/verify-host-bare-hub.sh` # ADDED (scoped plan update 2026-05-23)
 - Create: `tests/bootstrap/test_setup_host_bare_hub.sh`
 - Create: `tests/bootstrap/test_verify_host_bare_hub.sh` # ADDED (scoped plan update 2026-05-23)
@@ -580,6 +581,41 @@ Auto-detection precedence (default contract for this slice):
   - invalid `.bare`;
   - permission mismatch against host policy (`0700` dirs, `0600` files, executable carveout `0700`).
   - `.devpodignore` missing in required managed directories.
+
+#### New planned item: `scripts/create-hub-repo.sh` # ADDED
+
+Add a small reusable helper for onboarding a new bare+worktree repo under an existing hub.
+
+Purpose:
+
+- allow `scripts/setup-host-bare-hub.sh` to reuse the same onboarding path for the top-level hub repo;
+- allow a user or Maestro-led workflow to onboard another repo under `repos/` without manually repeating runbook step 8.
+
+Minimal planned behavior:
+
+- create the target repo directory if missing;
+- clone/init the bare repo at `<repo_hub>/.bare` from a provided repo URL or source checkout;
+- write `<repo_hub>/.git` with `gitdir: ./.bare`;
+- create the `main` worktree from `main` only;
+- create baseline `.devpodignore` files and apply the same host-mode permission policy already used for the main hub flow.
+
+Minimal interface to plan for:
+
+```text
+scripts/create-hub-repo.sh --repo-hub /absolute/path --source <git-url-or-local-path> [--mode auto|host|container]
+```
+
+Usability assumptions:
+
+- caller provides an absolute repo-hub path;
+- caller provides a source with a `main` branch;
+- script is safe to run both from host bootstrap flows and directly by a human from a terminal.
+
+Error-handling policy:
+
+- fail fast on missing/relative paths, missing `main`, invalid source repo, or partial bare/worktree setup;
+- do not silently fall back to another branch;
+- keep output concise and shell-friendly, matching `setup-host-bare-hub.sh` style.
 
 #### Acceptance criteria for this scoped update # ADDED
 
