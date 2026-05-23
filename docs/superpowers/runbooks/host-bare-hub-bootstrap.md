@@ -51,6 +51,7 @@ What this gives you immediately:
 - fetch refspec is configured in `$HUB_PATH/.bare/config`
 - username/email configuration is written in hub-local git config for pod reuse via mounted path
 - bootstrap enforces a **main-only** convention: source checkout must have `main`, and hub main worktree is always created from `main`
+- bootstrap enforces/repairs `main/install.sh` to mode `700` during host runs
 
 ## Step 2 (HOST): Verify bootstrap result
 

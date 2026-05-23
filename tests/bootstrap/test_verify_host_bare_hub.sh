@@ -11,6 +11,8 @@ mkdir -p "$checkout/.config/opencode" "$checkout/scripts" "$tmpdir/host-workspac
 
 printf 'export TEST_ZSHRC=1\n' > "$checkout/.zshrc"
 printf '{"ok":true}\n' > "$checkout/.config/opencode/opencode.jsonc"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$checkout/install.sh"
+chmod 600 "$checkout/install.sh"
 
 git init "$checkout" >/dev/null 2>&1
 (
@@ -33,6 +35,9 @@ chmod +x "$checkout/scripts/setup-host-bare-hub.sh" "$checkout/scripts/verify-ho
     --github-user-email "verifier@example.com" \
     >/dev/null
 )
+
+install_mode_good="$(stat -c '%a' "$hub_root/main/install.sh")"
+[ "$install_mode_good" = "700" ]
 
 (
   cd "$checkout"
@@ -75,6 +80,9 @@ PY
   cd "$checkout"
   printf 'Y\n' | bash "./scripts/setup-host-bare-hub.sh" --hub-root "$hub_root" --mode host >/dev/null
 )
+
+install_mode_after_repair="$(stat -c '%a' "$hub_root/main/install.sh")"
+[ "$install_mode_after_repair" = "700" ]
 
 chmod 755 "$hub_root/work"
 if (
