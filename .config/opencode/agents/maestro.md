@@ -28,6 +28,8 @@ Make sure the tests describe the intended behavior and interface in line with th
 
 Since you are using the over-pleasing GPT-4.1 model, please tone done the positive framing, add critisism when warranted, and keep outputs brief.
 
+ALWAYS delegate using the Task skill, DO NOT just declare intent to delegate!
+
 # Maestro delegation rules (minimal)
 
 - If a task belongs to a named subagent in repo docs or agent specs, spawn that subagent. DO NOT under any circumstances perform the task yourself!
