@@ -179,6 +179,7 @@ This repo-specific policy overrides the generic assumption that a repo root can 
 - Create: `scripts/devpod-ensure-layout.sh`
 - Create: `tests/devpod/test_devpod_ensure_layout.sh`
 - Create: `.devcontainer/devcontainer.json` # ADDED
+- Task 1A: Add direnv to repo-root Dockerfile and implement worktree `.envrc` generation (see `Per-worktree path discovery`).
 
 ### Install safety and install behavior
 - Create: `scripts/install-validate-source.sh`
@@ -220,6 +221,8 @@ Tasks 2, 6, and 9 are intentionally preserved from the previous revision except 
 ## Part 1 — Host bootstrap and working layout
 
 ### Task 1: Bootstrap the host bare-hub layout before DevPod starts
+
+Note: Implementation of this task MUST follow the scoped updates in the 'create-hub-repo' subsection (see § 'Revised planned item: scripts/create-hub-repo.sh') — do not implement the older inline script text as-is.
 
 **Files:**
 - Create: `scripts/setup-host-bare-hub.sh`
@@ -392,6 +395,12 @@ Run this on the host from a normal dotfiles checkout before DevPod starts.
 bash "./scripts/setup-host-bare-hub.sh" --hub-root "/srv/devpod-workspaces/dotfiles"
 ```
 
+```bash
+# Verification (mandatory):
+bash "./scripts/setup-host-bare-hub.sh" --hub-root "/srv/devpod-workspaces/dotfiles"
+bash "./scripts/verify-host-bare-hub.sh" --hub-root "/srv/devpod-workspaces/dotfiles" --format human
+```
+
 Expected output:
 
 ```text
@@ -523,7 +532,7 @@ Initial policy to avoid false positives/negatives:
 
 - **Host-run verifier is authoritative** for permission checks on host bootstrap output.
 - Permission checks are **not enforcement-gated in DevPod/container context** for this slice; container-side permission observations may be reported as informational only.
-- Required host permission target for bootstrap-managed content: directories `0700`, files `0600`, executable carveout `0700`.
+- permissions: directories 0700, non-executable files 0600, executable carveouts 0700; unexpected symlink/file types cause fail-fast checks.
 - Ownership mismatches remain advisory warnings in this slice unless they create an immediately unsafe/writable-by-non-owner condition.
 - Hard-fail conditions for this slice:
   - required path missing;
@@ -547,15 +556,13 @@ Initial behavior:
 
 Implementation note for this plan: detection heuristic must be overridable via explicit `--mode` to avoid false auto-detection.
 
-Auto-detection precedence (default contract for this slice):
-
-1. If explicit `--mode host|container` is provided, use it.
-2. Else, if `HUB_BOOTSTRAP_MODE` is set to `host` or `container`, use it.
-3. Else, if any container marker is present, treat as `container`:
-   - `/.dockerenv` exists, or
-   - `/run/.containerenv` exists, or
-   - `KUBERNETES_SERVICE_HOST` is non-empty.
-4. Else, treat as `host`.
+--mode precedence (highest → lowest):
+1. explicit `--mode` argument
+2. `FORCE_HUB_MODE` environment variable (if set)
+3. `HUB_BOOTSTRAP_MODE` environment variable (if set)
+4. container detection markers (e.g., presence of `/.dockerenv` or cgroup hints)
+5. host fallback
+Invalid override values must fail fast with a clear error.
 
 #### `.devpodignore` safety net policy (future-facing, included in this slice) # ADDED
 
@@ -587,7 +594,7 @@ Auto-detection precedence (default contract for this slice):
   - permission mismatch against host policy (`0700` dirs, `0600` files, executable carveout `0700`).
   - `.devpodignore` missing in required managed directories.
 
-#### New planned item: `scripts/create-hub-repo.sh` # ADDED
+#### Revised planned item: scripts/create-hub-repo.sh # ADDED
 
 Keep two outward-facing scripts — `scripts/setup-host-bare-hub.sh` for top-level hub setup and `scripts/create-hub-repo.sh` for child-repo setup — but extract only their tiny shared repo-provisioning steps into a private core helper so the duplicated lines live in one place.
 
@@ -1746,11 +1753,7 @@ if os.path.isdir(top_state):
         for name in names:
             files.append(os.path.join(base, name))
 
-for repo_state in glob.glob(os.path.join(root, "repos", "*", "state")):
-    for base, dirs, names in os.walk(repo_state):
-        dirs[:] = [d for d in dirs if d != "tmp"]
-        for name in names:
-            files.append(os.path.join(base, name))
+# Note: Only the top-level <hub_root>/state/ tree is authoritative for durable backups — do not scan per-repo local state/ directories.
 
 for path in sorted(set(files)):
     print(path)
@@ -1985,6 +1988,8 @@ bash scripts/host-pull-and-restic-backup.sh "$namespace" "$pod" "$HOME/dotfiles-
 ```
 
 ## Restore flow
+
+On restore, durable top-level `state/*` and `exported_sessions` are restored; worktrees and git metadata are recreated by bootstrap scripts (`setup-host-bare-hub.sh` / `create-hub-repo.sh`) rather than restored verbatim.
 
 ```bash
 RESTIC_REPOSITORY="$HOME/restic-repos/dotfiles" restic restore latest --target "$HOME/dotfiles-restore"
