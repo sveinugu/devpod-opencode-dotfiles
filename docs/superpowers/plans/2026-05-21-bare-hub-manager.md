@@ -584,12 +584,18 @@ Auto-detection precedence (default contract for this slice):
 
 #### New planned item: `scripts/create-hub-repo.sh` # ADDED
 
-Add a small reusable helper for onboarding a new bare+worktree repo under an existing hub.
+Add a small reusable helper for provisioning one bare+worktree repo hub so the top-level bootstrap flow and child-repo onboarding share the same repo-creation path.
 
 Purpose:
 
-- allow `scripts/setup-host-bare-hub.sh` to reuse the same onboarding path for the top-level hub repo;
+- allow `scripts/setup-host-bare-hub.sh` to reuse the same repo-hub creation path for the top-level hub repo;
 - allow a user or Maestro-led workflow to onboard another repo under `repos/` without manually repeating runbook step 8.
+
+Shared layout boundary for this helper:
+
+- the helper owns the per-repo hub skeleton common to both top-level and child repos: `<repo_hub>/`, `<repo_hub>/.bare/`, `<repo_hub>/.git`, `<repo_hub>/main/`, `<repo_hub>/work/`, and `<repo_hub>/tmp/`;
+- when onboarding a child repo under `repos/*`, the helper must also create `<repo_hub>/state/` with the same permission policy as the other managed directories;
+- for the top-level dotfiles hub, `scripts/setup-host-bare-hub.sh` remains responsible for top-level-only companion paths such as `<repo_hub>/repos/` and `<repo_hub>/state/opencode/exported_sessions/`, but those paths must use the same exact permission policy pinned below.
 
 Minimal planned behavior:
 
@@ -597,7 +603,8 @@ Minimal planned behavior:
 - clone/init the bare repo at `<repo_hub>/.bare` from a provided repo URL or source checkout;
 - write `<repo_hub>/.git` with `gitdir: ./.bare`;
 - create the `main` worktree from `main` only;
-- create baseline `.devpodignore` files and apply the same host-mode permission policy already used for the main hub flow.
+- create baseline `.devpodignore` files for the directories it manages except `state/` paths;
+- apply the exact `--mode`-controlled permission and ownership behavior defined below.
 
 Minimal interface to plan for:
 
@@ -610,6 +617,32 @@ Usability assumptions:
 - caller provides an absolute repo-hub path;
 - caller provides a source with a `main` branch;
 - script is safe to run both from host bootstrap flows and directly by a human from a terminal.
+
+Exact permission policy for `scripts/create-hub-repo.sh` (authoritative when effective mode resolves to `host`):
+
+- managed directories MUST end at mode `0700`: `<repo_hub>/`, `<repo_hub>/.bare/`, `<repo_hub>/main/`, `<repo_hub>/work/`, `<repo_hub>/tmp/`, child-repo `<repo_hub>/state/`, and top-level companion directories `<repo_hub>/repos/`, `<repo_hub>/state/`, `<repo_hub>/state/opencode/`, and `<repo_hub>/state/opencode/exported_sessions/` when they exist;
+- managed non-executable files MUST end at mode `0600`: `<repo_hub>/.git`, all managed `.devpodignore` files, and all non-executable files under managed `.bare/` and `state/` trees;
+- managed executable carveout files MUST end at mode `0700`: `.bare/hooks/*` and `<repo_hub>/main/install.sh` when present;
+- symlinks are never chmod'ed by this helper; if a managed path is present with an unexpected file type, the helper must fail fast instead of rewriting it.
+
+Justification: repo hubs hold git metadata and durable local state, so owner-only `0700` directories, owner-only `0600` files, and owner-only `0700` executables keep the layout usable without exposing metadata or write access to other host users.
+
+Precise `--mode` semantics:
+
+- `--mode host`
+  - intended for authoritative host-side execution where on-disk mode and ownership are trustworthy;
+  - create/repair the managed layout, then validate that every pre-existing managed path is owned by the effective user before attempting chmod;
+  - perform permission checks against the exact masks above and run final chmod remediation so managed directories finish at `0700`, managed non-executable files at `0600`, and managed executable carveout files at `0700`;
+  - remediation scope is limited to known managed paths with the expected file type; do not attempt `chown`, do not delete unknown content, and fail fast on ownership mismatch, invalid `.bare`, missing `main`, or conflicting partial worktree state.
+- `--mode container`
+  - intended for DevPod/container execution where bind-mount UID/GID and mode reporting may be translated or misleading;
+  - create/repair the managed layout but skip ownership validation and skip all chmod/chown enforcement;
+  - permission observations in this mode are informational only and must not gate success;
+  - remediation for permission drift is deferred: if authoritative repair is needed, the operator must rerun from the host with `--mode host` or force host semantics via `FORCE_HUB_MODE=host`.
+- `--mode auto`
+  - when selected, resolve the effective mode in this exact order: `FORCE_HUB_MODE=host|container`, then `HUB_BOOTSTRAP_MODE=host|container`, then container markers (`/.dockerenv`, `/run/.containerenv`, or non-empty `KUBERNETES_SERVICE_HOST`), then host fallback;
+  - if `FORCE_HUB_MODE` or `HUB_BOOTSTRAP_MODE` is set to any value other than `host` or `container`, fail fast instead of silently ignoring the override;
+  - after resolution, execute exactly the same behavior as the resolved `host` or `container` mode above, with no hybrid behavior.
 
 Error-handling policy:
 
