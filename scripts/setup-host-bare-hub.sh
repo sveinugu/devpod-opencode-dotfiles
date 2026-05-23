@@ -94,7 +94,7 @@ configure_identity() {
     return
   fi
 
-  printf 'Use existing git credentials? Y/N: '
+  printf 'Use existing git username/email? Y/N: '
   read -r use_existing
 
   case "$use_existing" in
