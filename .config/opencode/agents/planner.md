@@ -25,6 +25,7 @@ Execution Handoff definition: "Execution Handoff" means the Maestro step that tu
 # Responsibilities for the following "superpowers" skills:
 - writing-plans: this is your main responsibility, except for the final "Execution Handoff", which the `maestro` performs.
 - test-driven-development: ensure that the plan supports TDD practice.
+- receiving-code-review: act on reviews on the implementation plan handed down from the `maestro`, including relevant communication with the reviewer.
 - using-superpowers: basic skill for all agents, including you.
 - verification-before-completion: ensure that the plan aligns with the spec and the expectations of the human partner, and that it allows verification against both.
 - writing-skills: this is your responsibility when delegated to you.

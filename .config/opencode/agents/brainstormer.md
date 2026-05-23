@@ -21,7 +21,9 @@ You are responsible for writing and committing spec/design documents.
 
 # Responsibilities for the following "superpowers" skills:
 - brainstorming
+- receiving-code-review: act on reviews on the design spec handed down from the `maestro`, including relevant communication with the reviewer.
 - using-superpowers: basic skill for all agents, including you.
+- verification-before-completion: ensure that the design spec aligns with expectations and intent of the human partner and other actors.
 
 ## Resume formatting
 

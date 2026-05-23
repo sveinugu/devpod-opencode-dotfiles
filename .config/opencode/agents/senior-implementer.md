@@ -26,7 +26,7 @@ You can delegate full tasks or sub-tasks to `junior-implementer` subagents.
 - systematic-debugging: you own debugging work delegated to you, but may delegate some or all of it to `junior-implementer` subagents.
 - test-driven-development: you must follow TDD yourself and ensure that delegated `junior-implementer` subagents do the same.
 - using-superpowers: basic skill for all agents, including you.
-- verification-before-completion: basic skill for all agents — especially for implementers!
+- verification-before-completion: ensure that the implementation aligns with the plan and the expectations of the human partner.
 
 ## Failed session-resume recovery (forward-to-Maestro policy)
 
