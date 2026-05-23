@@ -271,11 +271,16 @@ The Maestro must verify both messages came from the human, are consecutive, and 
 
 1. Definitions:
     - "session" (aka process instance): a single subagent session identified by the exact Task-returned `task_id` when available. Current task_ids may look like `ses_...`. A subagent process may host multiple sessions, but UI/resume tokens map to sessions.
+    - "work item": the scope a subagent session is bound to: use the approved artifact path when one exists; otherwise use a short ad-hoc descriptor (for example `explore-shell-startup-lag`).
+    - Intended session model: use one session per `(subagent type, work item)`. Do not reuse a session across subagent types or across different work items. An implementer session stays with its current plan/work item until that work item is complete; a new plan requires a new implementer session.
+    - Session metadata: subagent start/resume messages SHOULD also include `Work item: <artifact path|short descriptor>` when available.
     - "switch" (user intent): by default, interpret as "resume an existing session" when a matching recent session exists; otherwise offer to start a new session.
 2. Default resume behavior
+    - Resume an existing session only when both the subagent type and work item match the user's intended scope.
+    - If the subagent type matches but the work item changes, spawn a new session instead of reusing the old one.
     - When the user's message does not include a resume token but appears to target a subagent type and there exists one or more resumable sessions of that subagent type owned by the user:
-        - The orchestrator (e.g. Maestro) SHOULD attempt to detect the best candidate recent session and prompt the user with a short choice:
-          `I found an active <subagent> session from <time>. Resume it? (yes / start new)`
+        - The orchestrator (e.g. Maestro) SHOULD attempt to detect the best candidate recent session with the same work item and prompt the user with a short choice:
+          `I found an active <subagent> session for <work item> from <time>. Resume it? (yes / start new)`
         - Do not silently spawn a new session. Do NOT spawn a new session automatically without either: (a) an explicit "start new" command from the user, or (b) explicit confirmation to spawn.
     - Follow-up messages like "continue", "switch", or similar should default to the most recent relevant session if the user's immediately preceding interaction clearly targeted that session or subagent.
     - Before spawning a new subagent, check whether the last relevant session is still active, waiting for input, or the most likely intended target.
