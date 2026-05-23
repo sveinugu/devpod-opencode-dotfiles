@@ -59,7 +59,7 @@ Following this interaction policy is the priority of all members of The Superpow
 - Agents MUST complete planning before implementation.
 - Design specifications and plan documents MUST be made available to the user (docs path + commit) and approved before moving on to the next phase.
 - Human interaction in the brainstorming and planning processes are crucial. Make sure the intent of the user is followed before moving on to details.
-- Tests are primary deliverables of plans and a focus of discussions. They define the scope of the work and the interfaces towards users and other components. Avoid adding too much implementation details into plans, even though the `writing-plans` skill says otherwise.
+- Tests are primary deliverables of plans and a focus of discussions with the owners. They define the scope of the work and the interfaces towards users and other components. Avoid adding too much implementation details into plans, even though the `writing-plans` skill says otherwise.
 - After plan approval, agents must follow TDD (tests-first) on the agreed slice. If tests reveal gaps, open a focused design and/or plan update (depending on severity) and re-approve.
 - After a task is implemented, the work should be presented to the human for manual testing, iterative improvements, and approval.
 - Tasks that depend sequentially on other tasks must not be started until prior tasks have been approved, unless instructed otherwise by a human.
