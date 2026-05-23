@@ -48,6 +48,21 @@ required_dirs = [
     "tmp",
 ]
 
+gitfile_target = os.path.join(hub_root, ".git")
+gitfile_ok = False
+if os.path.isfile(gitfile_target):
+    try:
+        with open(gitfile_target, "r", encoding="utf-8") as fh:
+            gitfile_ok = fh.read().strip() == "gitdir: ./.bare"
+    except OSError as exc:
+        warnings.append(f"gitfile read failed: {exc}")
+
+add_check(
+    "gitfile.redirect",
+    gitfile_ok,
+    ".git file points at ./.bare" if gitfile_ok else ".git file missing or not set to 'gitdir: ./.bare'",
+)
+
 missing = []
 for rel in required_dirs:
     target = os.path.join(hub_root, rel)

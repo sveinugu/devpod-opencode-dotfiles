@@ -2,12 +2,15 @@
 set -euo pipefail
 
 usage() {
-  printf 'usage: scripts/setup-host-bare-hub.sh --hub-root /absolute/path [--mode auto|host|container]\n' >&2
+  printf 'usage: scripts/setup-host-bare-hub.sh --hub-root /absolute/path [--mode auto|host|container] [--github-user-name NAME] [--github-user-email EMAIL] [--fetch-origin yes|no]\n' >&2
   exit 1
 }
 
 hub_root=""
 mode="auto"
+github_user_name=""
+github_user_email=""
+fetch_origin="no"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -18,6 +21,18 @@ while [ "$#" -gt 0 ]; do
     --mode)
       shift
       mode="${1:-}"
+      ;;
+    --github-user-name)
+      shift
+      github_user_name="${1:-}"
+      ;;
+    --github-user-email)
+      shift
+      github_user_email="${1:-}"
+      ;;
+    --fetch-origin)
+      shift
+      fetch_origin="${1:-}"
       ;;
     *)
       usage
@@ -38,6 +53,13 @@ esac
 
 case "$mode" in
   auto|host|container) ;;
+  *)
+    usage
+    ;;
+esac
+
+case "$fetch_origin" in
+  yes|no) ;;
   *)
     usage
     ;;
@@ -65,6 +87,50 @@ resolve_mode() {
 
 effective_mode="$(resolve_mode)"
 
+configure_identity() {
+  if [ -n "$github_user_name" ] && [ -n "$github_user_email" ]; then
+    git --git-dir="$hub_root/.bare" config user.name "$github_user_name"
+    git --git-dir="$hub_root/.bare" config user.email "$github_user_email"
+    return
+  fi
+
+  printf 'Use existing git credentials? Y/N: '
+  read -r use_existing
+
+  case "$use_existing" in
+    Y|y)
+      return
+      ;;
+    N|n)
+      if [ -z "$github_user_name" ]; then
+        printf 'GitHub username: '
+        read -r github_user_name
+      fi
+
+      if [ -z "$github_user_email" ]; then
+        printf 'GitHub email: '
+        read -r github_user_email
+      fi
+
+      [ -n "$github_user_name" ] || {
+        printf 'refused: github username required\n' >&2
+        exit 1
+      }
+      [ -n "$github_user_email" ] || {
+        printf 'refused: github email required\n' >&2
+        exit 1
+      }
+
+      git --git-dir="$hub_root/.bare" config user.name "$github_user_name"
+      git --git-dir="$hub_root/.bare" config user.email "$github_user_email"
+      ;;
+    *)
+      printf 'refused: answer Y or N\n' >&2
+      exit 1
+      ;;
+  esac
+}
+
 write_devpodignore() {
   target_dir="$1"
   [ -d "$target_dir" ] || return 0
@@ -85,6 +151,8 @@ if [ ! -d "$hub_root/.bare" ]; then
   git clone --bare "$source_checkout" "$hub_root/.bare" >/dev/null
 fi
 
+printf 'gitdir: ./.bare\n' > "$hub_root/.git"
+
 mkdir -p \
   "$hub_root/work" \
   "$hub_root/repos" \
@@ -100,6 +168,14 @@ if ! git --git-dir="$hub_root/.bare" worktree list | grep -F "$hub_root/main" >/
   rm -rf "$hub_root/main"
   git --git-dir="$hub_root/.bare" worktree add "$hub_root/main" "$default_branch" >/dev/null
 fi
+
+git --git-dir="$hub_root/.bare" config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+
+if [ "$fetch_origin" = "yes" ]; then
+  git --git-dir="$hub_root/.bare" fetch origin >/dev/null 2>&1 || true
+fi
+
+configure_identity
 
 write_devpodignore "$hub_root/main"
 
