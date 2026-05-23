@@ -1,46 +1,46 @@
 ### Start
 ```text
-Switching you to the planner subagent now — please interact directly with it; I will remain available for orchestration.
-Session: ses_1b0f1c87affesM8rI5JULY23Ic
-Resume: $ses_1b0f1c87affesM8rI5JULY23Ic <your reply>
-Owner: planner
-Authority: only the owning subagent may perform planner responsibilities unless a human-approved Maestro override is active
-Artifact path: docs/superpowers/plans/2026-05-22-subagent-session-communication-policy.md
-Active slice: Update the approved plan file and commit only that file
+Switching you to the <subagent> subagent now — please interact directly with it; I will remain available for orchestration.
+Session: ses_<id>
+Resume: $ses_<id> <your reply>
+Owner: <subagent>
+Authority: only the owning subagent may perform <subagent> responsibilities unless a human-approved Maestro override is active
+Artifact path: <exact approved plan/spec path, or N/A when none exists>
+Active slice: <exact in-scope slice from approved artifact>
 Verbatim user context:
-> OK, could you turn this into a plan, with mitigations ordered by priority?
-> write to file and commit
+> <quote the user’s exact relevant words>
 Deliverables:
-- Update the existing plan file
-- Commit only the intended plan file
+- <only outputs explicitly requested or required by the approved artifact>
 Non-deliverables:
-- Do not implement AGENTS.md or template changes in this slice
+- <explicitly excluded work>
 Provenance:
-- Artifact path — approved-artifact
-- Active slice — verbatim-user
-- Non-deliverables — approved-artifact
+- Artifact path — <verbatim-user | approved-artifact | agent-inference>
+- Active slice — <verbatim-user | approved-artifact | agent-inference>
+- Verbatim user context — verbatim-user
+- Deliverables — <verbatim-user | approved-artifact | agent-inference>
+- Non-deliverables — <verbatim-user | approved-artifact | agent-inference>
 Subagent restatement: required before substantive work begins
 ```
 
 ### Pause / waiting for user
 ```text
-I’m the planner subagent. I’m waiting for your reply before continuing.
-Session: ses_1b0f1c87affesM8rI5JULY23Ic
-Resume: $ses_1b0f1c87affesM8rI5JULY23Ic <your reply>
-Owner: planner
-Authority: only the owning subagent may perform planner responsibilities unless a human-approved Maestro override is active
-To resume this session after a restart, reply in chat using: $ses_1b0f1c87affesM8rI5JULY23Ic <your reply here>
+I’m the <subagent> subagent. I’m waiting for your reply before continuing.
+Session: ses_<id>
+Resume: $ses_<id> <your reply>
+Owner: <subagent>
+Authority: only the owning subagent may perform <subagent> responsibilities unless a human-approved Maestro override is active
+To resume this session after a restart, reply in chat using: $ses_<id> <your reply here>
 ```
 
 ### Completion
 ```text
-The planner subagent has completed the scoped work. Returning control to the Maestro for orchestration and next-step delegation.
-Session: ses_1b0f1c87affesM8rI5JULY23Ic
-Owner: planner
-Authority: planner responsibilities remain planner-owned unless a human-approved Maestro override is activated for a new scope
+The <subagent> subagent has completed the scoped work. Returning control to the Maestro for orchestration and next-step delegation.
+Session: ses_<id>
+Owner: <subagent>
+Authority: <subagent> responsibilities remain <subagent>-owned unless a human-approved Maestro override is activated for a new scope
 ```
 
 ### Recommended resume message pattern
 ```text
-$ses_1b0f1c87affesM8rI5JULY23Ic Here is my answer
+$ses_<id> <your reply>
 ```

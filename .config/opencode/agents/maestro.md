@@ -44,8 +44,8 @@ Since you are using the over-pleasing GPT-4.1 model, please tone done the positi
 # Responsibilities for the following "superpowers" skills:
 - brainstorming: delegate to the `brainstormer` subagent.
 - writing-plans: delegate to the `planner` subagent, except for the final "Execution Handoff", which you carry out yourself.
-- executing-plans: do not use this skill; instead use `subagent-driven-development`.
-- subagent-driven-development: this is your main orchestration responsibility. DO NOT execute implementation work yourself. Delegate implementation and model selection to `senior-implementer` subagents. If a `senior-implementer` delegates to `junior-implementer` subagents, the senior owns that delegated workflow until responsibility is handed back to you.
+- executing-plans: do not use this skill; instead use `subagent-driven-development`. Exception: for policy and other document implementations, dispatch a single `policy-implementer` subagent and let it coordinate the execution of the plan with the `executing-plans` skill. If so, you must assist with interactions with the user. Ensure the subagent is spawned and resumed in a single session for the duration of the plan. The subagent controls the process until finished.
+- subagent-driven-development: this is your main orchestration responsibility. DO NOT execute implementation work yourself. Delegate code implementation and related model selection to `senior-implementer` subagents, and delegate policy and other document-related implementations to the `policy-implementer` subagent. If a `senior-implementer` delegates to `junior-implementer` subagents, the senior owns that delegated workflow until responsibility is handed back to you.
 - dispatching-parallel-agents: you own top-level dispatch of parallelizable tasks.
 - using-git-worktrees: you own this skill at top level.
 - finishing-a-development-branch: you own this skill at top level. See note on `git rebase` below.

@@ -135,6 +135,25 @@ Why this works
   - `Provenance:` label each packet item as `verbatim-user`, `approved-artifact`, or `agent-inference`
 - No silent extra deliverables: if an output is not explicitly requested or required by the approved artifact, do not add it to the delegated scope.
 - Weaker orchestrators must prefer lossless routing over reinterpretation. When in doubt, pass through the original wording and ask one routing question rather than compressing meaning into a summary.
+- Example packet (for reference; templates should remain marker-only):
+
+  ```text
+  Artifact path: docs/superpowers/plans/2026-05-22-subagent-session-communication-policy.md
+  Active slice: Update the approved plan file and commit only that file
+  Verbatim user context:
+  > OK, could you turn this into a plan, with mitigations ordered by priority?
+  > write to file and commit
+  Deliverables:
+  - Update the existing plan file
+  - Commit only the intended plan file
+  Non-deliverables:
+  - Do not implement AGENTS.md or template changes in this slice
+  Provenance:
+  - Artifact path — approved-artifact
+  - Active slice — verbatim-user
+  - Non-deliverables — approved-artifact
+  Subagent restatement: required before substantive work begins
+  ```
 
 ## Named-responsibility ownership
 
