@@ -17,6 +17,7 @@ git init "$checkout" >/dev/null 2>&1
   cd "$checkout"
   git add . >/dev/null 2>&1
   git -c user.name='Test User' -c user.email='test@example.com' commit -m 'fixture' >/dev/null 2>&1
+  git branch -M main >/dev/null 2>&1
 )
 
 cp "scripts/setup-host-bare-hub.sh" "$checkout/scripts/setup-host-bare-hub.sh"
