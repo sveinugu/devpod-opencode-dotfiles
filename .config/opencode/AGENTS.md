@@ -205,6 +205,7 @@ The Maestro must verify both messages came from the human, are consecutive, and 
   `"$$hello" => "$hello"` no resume).
 - Routing guarantee: when a valid
   `$ses_<id>` token is present, the reply MUST be routed DIRECTLY AND VERBATIM to that session's owning subagent rather than being re-triaged as a fresh task for the dispatching agent (e.g. Maestro).
+- Never override or reroute a user-provided $ses_<id> token. Always route to that exact session regardless of other active sessions.
 - Preserve resume tokens verbatim. Do not rewrite, normalize, shorten, or absorb them.
 
 ### Session-resume and "switch" semantics
