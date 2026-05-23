@@ -43,21 +43,22 @@ These checks are the **minimum user validation** for this runbook.
 
 ## Advanced/contributor validation (optional)
 
-For contributors or when troubleshooting, run the host bootstrap contract test manually:
+For contributors or when troubleshooting, use this bootstrap+verify sequence:
 
 ```bash
-bash tests/bootstrap/test_setup_host_bare_hub.sh
+bash "./scripts/setup-host-bare-hub.sh" --hub-root "/srv/devpod-workspaces/dotfiles" --mode host
+bash "./scripts/verify-host-bare-hub.sh" --hub-root "/srv/devpod-workspaces/dotfiles"
 ```
 
-Expected output:
+Expected verifier result includes:
 
 ```text
-PASS test_setup_host_bare_hub
+result: PASS
 ```
 
-This test step is **optional for normal users** following the runbook, but **recommended for contributors** and troubleshooting sessions.
+This advanced step is **optional for normal users** following the runbook, but **recommended for contributors** and troubleshooting sessions.
 
-### Linux/GNU tools note
+### Host/container mode note
 
-`tests/bootstrap/test_setup_host_bare_hub.sh` assumes Linux/GNU tooling (for example `stat -c` and `readlink -f`).
-If you are on macOS, run this test from a Linux environment (for example your DevPod/container) or install GNU equivalents.
+Use `--mode host` when validating host permissions and ownership semantics.
+`--mode auto` is the default and auto-detects container markers; keep `--mode host` explicit for host bootstrap validation.
