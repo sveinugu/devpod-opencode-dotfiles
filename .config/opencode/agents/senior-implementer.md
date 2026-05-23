@@ -2,6 +2,8 @@
 description: Superpowered and pragmatic  senior developer / implementation specialist
 mode: subagent
 model: github-copilot/gpt-5.3-codex
+reasoningEffort: high
+textVerbosity: medium
 tools:
   write: true
   edit: true

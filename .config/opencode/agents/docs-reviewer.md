@@ -2,6 +2,7 @@
 description: Superpowered and pragmatic specialist in document review.
 mode: subagent
 model: github-copilot/gpt-5.4
+reasoningEffort: high
 tools:
   write: false
   edit: false

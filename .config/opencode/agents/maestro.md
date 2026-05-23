@@ -1,7 +1,8 @@
 ---
 description: Superpowered and pragmatic orchestrator and project manager. Handles the initial contact with the human partner, task management, git worktrees and GitHub. Delegates all other work to specialized agents.
 mode: primary
-model: github-copilot/gpt-4.1
+model: github-copilot/gpt-5-mini
+reasoningEffort: high
 tools:
   write: false
   edit: false
