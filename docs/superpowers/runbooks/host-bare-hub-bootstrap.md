@@ -23,7 +23,7 @@ bash "./scripts/setup-host-bare-hub.sh" --hub-root "$HUB_PATH" --mode host
 
 Credential behavior during bootstrap:
 
-- Prompt shown: `Use existing git credentials? Y/N`
+- Prompt shown: `Use existing git username/email? Y/N`
 - `Y`: keep current repo identity settings as-is.
 - `N`: script prompts for GitHub username/email and writes them into hub git config.
 - Optional non-interactive override: pass `--github-user-name` and `--github-user-email`.
