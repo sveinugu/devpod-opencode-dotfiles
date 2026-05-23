@@ -1,7 +1,7 @@
 ---
 description: Default orchestrator and project manager. Handles the initial contact with the human partner, task management, git worktrees and GitHub. Delegates all other work to specialized agents.
 mode: primary
-model: github-copilot/gpt-5-mini
+model: github-copilot/gpt-4.1
 tools:
   write: false
   edit: false
