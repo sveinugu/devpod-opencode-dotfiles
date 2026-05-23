@@ -454,6 +454,15 @@ git add scripts/setup-host-bare-hub.sh tests/bootstrap/test_setup_host_bare_hub.
 git commit -m "feat(bootstrap): add host bare-hub bootstrap"
 ```
 
+### Task 1A: Add direnv to repo-root Dockerfile and implement worktree `.envrc` generation
+
+**Files:**
+- Modify: `Dockerfile`
+- Modify: `scripts/setup-host-bare-hub.sh`
+- Modify: `scripts/create-hub-repo.sh`
+
+Use the `Per-worktree path discovery` section below as the authoritative behavior contract for this task.
+
 ### Task 2: Validate installer source roots and symlink safety
 
 ### Scoped plan update (2026-05-23): Host hub verification contract and migration # ADDED
