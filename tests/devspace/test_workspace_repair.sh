@@ -211,6 +211,35 @@ switched_branch="$(git -C "$workspace_switch_existing/main" rev-parse --abbrev-r
 [ -d "$workspace_switch_existing/state/hub/$switch_branch" ] || fail "repair should ensure canonical state path for switched branch"
 [ -d "$workspace_switch_existing/tmp/hub/$switch_branch" ] || fail "repair should ensure canonical tmp path for switched branch"
 
+workspace_branch_tip="$tmpdir/workspace-branch-tip"
+home_branch_tip="$tmpdir/home-branch-tip"
+source_branch_tip="$tmpdir/source-branch-tip"
+tip_branch='work/devspace-bare-hub'
+make_workspace "$workspace_branch_tip" "$home_branch_tip" "$source_branch_tip" "$tip_branch"
+
+(
+  cd "$source_branch_tip"
+  cat > install.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+touch "$HOME/.repair-install-ran"
+touch "$HOME/.repair-branch-tip"
+EOF
+  chmod +x install.sh
+  git add install.sh
+  git commit -m 'update install to branch tip' >/dev/null 2>&1
+)
+
+repair_before_head="$(git -C "$workspace_branch_tip/main" rev-parse HEAD)"
+source_tip_head="$(git -C "$source_branch_tip" rev-parse "$tip_branch")"
+[ "$repair_before_head" != "$source_tip_head" ] || fail "fixture setup should leave workspace branch behind origin tip"
+
+HUB_WORKSPACE_ROOT="$workspace_branch_tip" HUB_HOME_DIR="$home_branch_tip" HUB_PROVISION_BRANCH="$tip_branch" bash "$script" >"$tmpdir/repair-branch-tip.out" 2>&1 || fail "repair should update existing HUB_PROVISION_BRANCH worktree to latest origin tip"
+
+repair_after_head="$(git -C "$workspace_branch_tip/main" rev-parse HEAD)"
+[ "$repair_after_head" = "$source_tip_head" ] || fail "repair should fast-forward existing HUB_PROVISION_BRANCH worktree to origin tip"
+[ -f "$home_branch_tip/.repair-branch-tip" ] || fail "repair should run install.sh from updated branch tip"
+
 workspace_install_postcheck="$tmpdir/workspace-install-postcheck"
 home_install_postcheck="$tmpdir/home-install-postcheck"
 source_install_postcheck="$tmpdir/source-install-postcheck"

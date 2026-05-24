@@ -46,15 +46,19 @@ run_step "ensure canonical tmp path tmp/hub/${provision_branch}" ensure_dir_path
 
 if git --git-dir="$workspace_root/.bare" worktree list --porcelain | grep -F "worktree $workspace_root/main" >/dev/null 2>&1; then
   main_branch="$(git -C "$workspace_root/main" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+  fetched_origin_branch=false
+  if git --git-dir="$workspace_root/.bare" fetch origin "refs/heads/$provision_branch:refs/remotes/origin/$provision_branch" >/dev/null 2>&1; then
+    fetched_origin_branch=true
+  else
+    printf 'warning: could not fetch %s from origin, using cached content\n' "$provision_branch" >&2
+  fi
+
   if [ -n "$main_branch" ] && [ "$main_branch" != "$provision_branch" ]; then
-    # Fetch latest branch content from origin before switching so the worktree gets current install.sh etc.
-    if [ "$provision_branch" != "main" ]; then
-      git --git-dir="$workspace_root/.bare" fetch origin "$provision_branch:$provision_branch" 2>/dev/null || \
-        printf 'warning: could not fetch %s from origin, using cached content\n' "$provision_branch" >&2
-    fi
     run_step "switch main worktree to branch $provision_branch" git -C "$workspace_root/main" checkout "$provision_branch"
-    run_step "ensure canonical state path state/hub/${provision_branch}" ensure_dir_path "$workspace_root/state/hub/$provision_branch"
-    run_step "ensure canonical tmp path tmp/hub/${provision_branch}" ensure_dir_path "$workspace_root/tmp/hub/$provision_branch"
+  fi
+
+  if [ "$fetched_origin_branch" = true ] && git --git-dir="$workspace_root/.bare" show-ref --verify --quiet "refs/remotes/origin/$provision_branch"; then
+    run_step "fast-forward main worktree to origin/$provision_branch" git -C "$workspace_root/main" merge --ff-only "origin/$provision_branch"
   fi
 else
   if [ -e "$workspace_root/main" ] && [ ! -d "$workspace_root/main" ]; then
