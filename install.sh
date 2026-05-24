@@ -1,45 +1,103 @@
-#!/bin/zsh
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Handle .bashrc
-# Use -f to force overwrite the default devcontainer .zshrc
-ln -sf ~/dotfiles/.zshrc ~/.zshrc
+dry_run=false
+assume_yes=false
 
-# Install oh-my-zsh theme and plugins
-# Define the custom directory
-ZSH_CUSTOM=${ZSH_CUSTOM:-~/.oh-my-zsh/custom}
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --dry-run)
+      dry_run=true
+      ;;
+    -y|--yes)
+      assume_yes=true
+      ;;
+    *)
+      printf 'usage: install.sh [--dry-run] [-y|--yes]\n' >&2
+      exit 1
+      ;;
+  esac
+  shift
+done
 
-# Function to clone if directory doesn't exist
-install_plugin() {
-    local repo_url=$1
-    local dest_path=$2
-    if [ ! -d "$dest_path" ]; then
-        echo "Installing $(basename "$dest_path")..."
-        git clone "$repo_url" "$dest_path"
-    else
-        echo "$(basename "$dest_path") already installed, skipping."
-    fi
+script_path="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "${BASH_SOURCE[0]}")"
+source_root="$(dirname "$script_path")"
+workspace_root="${WORKSPACE_ROOT:-/workspaces/dotfiles}"
+home_dir="${HOME:?HOME must be set}"
+validator="$source_root/scripts/install-validate-source.sh"
+
+if [ "$source_root" = "$workspace_root" ]; then
+  printf 'Refused — hub-root CWD detected. Provide explicit worktree path.\n' >&2
+  exit 1
+fi
+
+if [ ! -x "$validator" ]; then
+  printf 'missing validator: %s\n' "$validator" >&2
+  exit 1
+fi
+
+"$validator" "$source_root" "$source_root/.zshrc" >/dev/null
+"$validator" "$source_root" "$source_root/.config/opencode" >/dev/null
+
+zsh_custom="${ZSH_CUSTOM:-$home_dir/.oh-my-zsh/custom}"
+
+link_path() {
+  local source_path="$1"
+  local target_path="$2"
+
+  if [ "$dry_run" = true ]; then
+    printf 'DRY-RUN ln -sfn %s %s\n' "$source_path" "$target_path"
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$target_path")"
+  ln -sfn "$source_path" "$target_path"
 }
 
-# Install Theme
-install_plugin "https://github.com/reobin/typewritten" "$ZSH_CUSTOM/themes/typewritten"
+install_plugin() {
+  local repo_url="$1"
+  local dest_path="$2"
 
-# Install Plugins
-install_plugin "https://github.com/zsh-users/zsh-syntax-highlighting" "$ZSH_CUSTOM/plugins/zsh-syntax-highlighting"
-install_plugin "https://github.com/zsh-users/zsh-autosuggestions" "$ZSH_CUSTOM/plugins/zsh-autosuggestions"
+  if [ "$dry_run" = true ]; then
+    printf 'DRY-RUN git clone %s %s\n' "$repo_url" "$dest_path"
+    return 0
+  fi
 
-# Handle OpenCode config
-# Create the .config directory if it doesn't exist
-mkdir -p ~/.config
+  if [ ! -d "$dest_path" ]; then
+    git clone "$repo_url" "$dest_path"
+  else
+    printf '%s already installed, skipping.\n' "$(basename "$dest_path")"
+  fi
+}
 
-# Symlink your OpenCode folder from the repo to the expected location
-# -s = symlink, -f = force, -n = treat folder symlink as a file
-rm -rf ~/.config/opencode
-ln -sfn ~/dotfiles/.config/opencode ~/.config/opencode
+run_opencode_command() {
+  if [ "$dry_run" = true ]; then
+    printf 'DRY-RUN (cd %s && %s)\n' "$home_dir/.config/opencode" "$*"
+    return 0
+  fi
 
-# Install particular skills and plugins using npx
-cd ~/.config/opencode \
-&& npx -y skills add wondelai/skills/pragmatic-programmer \
-&& npx -y @bybrawe/opencode-loop
+  (
+    cd "$home_dir/.config/opencode"
+    "$@"
+  )
+}
 
-echo "✅ Dotfiles applied: .zshrc and OpenCode config linked."
+mkdir -p "$home_dir/.config"
+mkdir -p "$zsh_custom/themes" "$zsh_custom/plugins"
 
+link_path "$source_root/.zshrc" "$home_dir/.zshrc"
+
+install_plugin "https://github.com/reobin/typewritten" "$zsh_custom/themes/typewritten"
+install_plugin "https://github.com/zsh-users/zsh-syntax-highlighting" "$zsh_custom/plugins/zsh-syntax-highlighting"
+install_plugin "https://github.com/zsh-users/zsh-autosuggestions" "$zsh_custom/plugins/zsh-autosuggestions"
+
+link_path "$source_root/.config/opencode" "$home_dir/.config/opencode"
+
+run_opencode_command npx -y skills add wondelai/skills/pragmatic-programmer
+run_opencode_command npx -y @bybrawe/opencode-loop
+
+if [ "$assume_yes" = true ] && [ "$dry_run" = true ]; then
+  :
+fi
+
+printf 'ok: dotfiles applied from %s\n' "$source_root"

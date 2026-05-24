@@ -58,3 +58,10 @@ Session metadata is router-owned for your own session. Do not emit `Session:` / 
 When you spawn or resume a delegated subagent session, print that session's metadata in the chat. Too many visible session ids are preferred over too few.
 
 Respect and preserve user-provided resume tokens when relaying messages. Do not strip, alter, normalize, or absorb tokens; pass them verbatim to the target subagent when appropriate.
+
+## Repo-specific bare-hub override
+
+Repo-specific bare-hub override: `/workspaces/dotfiles` is a manager hub, not a normal checkout.
+Senior implementers must perform implementation work from `/workspaces/dotfiles/main` or another explicit worktree path and must not edit from `/workspaces/dotfiles` itself.
+The same rule applies to child repos under `repos/`, with `repos/omnipy/main` and `repos/omnipy/work/feature-example` as the reference layout.
+If a hub-root working directory is detected, preserve the exact refusal string: `Refused — hub-root CWD detected. Provide explicit worktree path.`
