@@ -126,10 +126,13 @@ In v1, the top-level provision source/ref contract is:
 - the authoritative bootstrap ref is `origin/main`
 - v1 provision must refuse if `origin/main` does not exist
 - the initial attached `main` worktree is created from `origin/main`
+- later phases may make the bootstrap ref configurable, but v1 must not
 
 ### `doctor`
 
-`doctor` is included in v1 because it adds significant operational clarity for relatively low complexity. It is read-only and is intended to answer whether the workspace exists, is reachable, and looks provisioned.
+`doctor` is included in v1 because it adds significant operational clarity for relatively low complexity. It is a host-side, read-only command and is intended to answer whether the workspace exists, is reachable, and looks provisioned.
+
+In v1, `doctor` is human-readable only.
 
 The minimum v1 `doctor` checklist is:
 
@@ -154,6 +157,7 @@ In v1, `repair` may:
 - recreate canonical `state/` and `tmp/` subdirectories if missing
 - reattach or recreate the top-level `main` worktree if the top-level bare repo is valid and `main` is missing
 - rerun `main/install.sh` to relink `/home/vscode` back to the default top-level `main` worktree
+- preserve a non-`main` symlink target in `/home/vscode` when it still points to an existing top-level worktree and the user has intentionally repointed home config there
 
 In v1, `repair` must refuse rather than guess when core workspace identity is ambiguous or invalid, including cases such as:
 
@@ -290,7 +294,9 @@ The onboarding script creates a child bare hub under `repos/<name>` and applies 
 - `repos/<name>/work/`
 - matching `state/` and `tmp/` paths under the canonical shared tree
 
-In v1, child onboarding uses `origin/main` as the only supported source ref. `add-repo` must refuse if `origin/main` is absent.
+In v1, child onboarding uses a repo-derived default name for `repos/<name>`. If that derived path already exists, `add-repo` must refuse rather than rename automatically.
+
+In v1, child onboarding uses `origin/main` as the only supported source ref. `add-repo` must refuse if `origin/main` is absent. Later phases may make the source ref configurable, but v1 must not.
 
 The top-level dotfiles repo remains the only `/home/vscode` authority even after child repos are added.
 
@@ -316,6 +322,8 @@ This remains the primary durability path because it better addresses cluster-los
 - phase-2 user-facing commands are expected to include `devspace run-pipeline staging` and `devspace run-pipeline backup`
 - primary phase-2 `backup` command = host-side pull + `restic`
 - manual staging-only trigger required for debugging/verification in phase 2
+- stale staging should produce a warning rather than a hard failure by default
+- the host-side staging/pull destination should be operator-configurable
 
 ### Periodic staging trigger
 
@@ -336,7 +344,7 @@ The periodic staging system must be debuggable by design:
 - staging records persistent status under the workspace `state/` tree
 - failures are visible in both Kubernetes job logs and workspace state
 - staging failures do not break normal workspace use
-- host backup can report whether staged data is fresh or stale
+- host backup can report whether staged data is fresh or stale, and stale staging should warn by default
 
 ### Fallback path 1: PVC snapshot/clone
 
@@ -416,11 +424,11 @@ The following remain intentionally open for the planning stage:
 
 1. Exact manifest decomposition and file layout
 2. Exact single-PVC mount/subPath implementation
-3. Exact `doctor` checks, output mode, and failure boundaries
+3. Exact `doctor` checks and failure boundaries
 4. Exact `repair` refusal boundaries and recovery limits
-5. Exact `add-repo` CLI/interface and refusal behavior
+5. Exact `add-repo` CLI shape beyond repo-derived naming and collision refusal
 6. Exact provision idempotency/refusal boundaries for partial states
-7. Exact host-side backup staging path, freshness checks, and failure semantics
+7. Exact host-side backup staging configuration interface and warning/failure semantics
 
 ## Phase Structure
 
@@ -448,5 +456,5 @@ Current design score: **8.5/10**
 Remaining work to reach 10/10 is mostly about tightening operational contracts rather than changing architecture:
 
 1. Make repair/provision refusal boundaries explicit in the plan
-2. Make `doctor` output and checks explicit in the plan
-3. Make host backup freshness and failure semantics explicit in the plan
+2. Make `doctor` checks and host-side invocation contract explicit in the plan
+3. Make host backup warning/failure semantics explicit in the plan
