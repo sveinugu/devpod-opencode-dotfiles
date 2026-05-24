@@ -132,7 +132,7 @@ zstyle ':omz:update' mode disabled
 
 # Initialize OpenCode
 if command -v opencode &> /dev/null; then
-    eval "$(opencode init zsh)"
+    eval "$(opencode completion zsh)"
 fi
 
 # Auto-Rehash & Venv Hooks
@@ -141,9 +141,18 @@ autoload -U add-zsh-hook
 # Run whenever you 'cd' into a directory
 add-zsh-hook chpwd auto_venv
 
-# Rehash for new binaries
-add-zsh-hook precmd pyenv rehash
+# Initialize pyenv
+if [ -d "$HOME/.pyenv" ]; then
+  export PYENV_ROOT="$HOME/.pyenv"
+  export PATH="$PYENV_ROOT/bin:$PATH"
+  eval "$(pyenv init -)" 2>/dev/null || true
+fi
 
+# Rehash for new binaries
+pyenv_rehash_hook() {
+  pyenv rehash 2>/dev/null || true
+}
+add-zsh-hook precmd pyenv_rehash_hook
 # Auto-activate uv virtualenv
 auto_venv() {
   if [[ -d .venv ]]; then
