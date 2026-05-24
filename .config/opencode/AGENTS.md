@@ -105,8 +105,8 @@ Why this works
 - Planner ownership sentence: planner-owned artifacts (plans/specs) must be authored/committed by planner unless an explicit Maestro override is active.
 - Design specifications and plan documents must be written to file and committed by the sub-agents before handed back to the Maestro.
 - Review-record policy: review feedback is conversational by default. A persistent review-record document is created only when explicitly requested or required by a plan/spec. When such a document is created, it is owned by the reviewing subagent unless explicitly reassigned. For PR-based review, GitHub review history is the default persisted review record.
-- Execution Handoff definition: "Execution Handoff" means the Maestro step that turns an approved plan into delegated implementation work.
-- Mandatory session metadata (required in EVERY subagent start, explicit resume, handoff, pause, and completion message, replace
+- Delegation Packet definition: `Delegation Packet` is the canonical Maestro-to-subagent routing wrapper for new scoped delegation. It preserves exact references and verbatim user intent; it is not an interpretation step.
+- Router-owned session metadata (required whenever a delegating/router agent dispatches, resumes, or reports handback for a subagent session, replace
   `<task_id>` with the exact returned task_id when available):
     ```text
     Session: <task_id>
@@ -127,39 +127,51 @@ Why this works
     6. When resuming an existing subagent session, explicitly say it is a resume of the existing session, not a new session.
 - Per-subagent override: a subagent file may define a more specific first-message/handoff wording; that override applies only to that subagent and must be explicit in the subagent file.
 
-## Intent-preserving delegation packet
+## Delegation Packet
 
-- Before delegating scoped work that depends on an approved plan/spec/artifact, the delegating agent MUST pass a lossless delegation packet.
-- Required packet fields:
-  - `Artifact path:` the exact approved plan/spec path when one exists
-  - `Active slice:` the exact portion of that artifact being delegated now
-  - `Verbatim user context:` a quoted block with the user’s exact relevant words
-  - `Deliverables:` only the outputs explicitly requested or required by the approved artifact
-  - `Non-deliverables:` work explicitly excluded from the delegated scope
-  - `Provenance:` label each packet item as `verbatim-user`, `approved-artifact`, or `agent-inference`
-- No silent extra deliverables: if an output is not explicitly requested or required by the approved artifact, do not add it to the delegated scope.
-- Weaker orchestrators must prefer lossless routing over reinterpretation. When in doubt, pass through the original wording and ask one routing question rather than compressing meaning into a summary.
-- Subagent restatement: before doing substantive work, the owning subagent MUST restate `Active slice:`, `Deliverables:`, and `Non-deliverables:` in its own words and stop immediately if anything appears mismatched.
-- `Preview:` optional; provide the exact outgoing delegation packet on request, or before dispatch when the orchestrator materially compressed earlier context.
+- Before Maestro delegates new scoped work to a subagent, it MUST send a `Delegation Packet`.
+- Use `Delegation Packet` only for Maestro → subagent scoped delegation. Do not force it onto resume messages, subagent questions, or subagent completion messages.
+- Allowed packet fields:
+  - `Artifact path:` or `Artifact paths:` with exact path strings when applicable
+  - `Verbatim user request:` as a quoted block
+  - `Warnings:` only when non-empty
+  - router-owned metadata: `Session:`, `Resume:`, `Owner:`, `Authority:`
+- Forbidden packet content:
+  - interpretative summaries
+  - inferred deliverables
+  - inferred scope
+  - implementation steering beyond the approved artifact
+  - “helpful corrections” to user wording
+- `Warnings:` is the only allowed Maestro-added context field in the packet and is non-authoritative. It may note ambiguity, discrepancy with an approved artifact, missing formalities, or routing/admin facts, but it MUST NOT override the artifact or the verbatim user request.
+- If delegation would require interpretation, Maestro must ask the user instead of inferring.
+- Explicit user routing requests override default routing policy. If the user explicitly requests a particular subagent, the current general agent, or an existing `$<task_id>` session, that routing choice must be honored.
+- `Preview:` optional; provide the exact outgoing delegation packet on request, or before dispatch when earlier context was materially compressed.
 - Example packet (for reference; templates should remain marker-only):
 
   ```text
+  Delegation Packet
   Artifact path: docs/superpowers/plans/2026-05-22-subagent-session-communication-policy.md
-  Active slice: Update the approved plan file and commit only that file
-  Verbatim user context:
-  > OK, could you turn this into a plan, with mitigations ordered by priority?
-  > write to file and commit
-  Deliverables:
-  - Update the existing plan file
-  - Commit only the intended plan file
-  Non-deliverables:
-  - Do not implement AGENTS.md or template changes in this slice
-  Provenance:
-  - Artifact path — approved-artifact
-  - Active slice — verbatim-user
-  - Non-deliverables — approved-artifact
-  Subagent restatement: required before substantive work begins
+  Verbatim user request:
+  > Implement the first approved slice with tests first.
+  Warnings:
+  - Possible discrepancy: the approved plan says CLI-only, while the latest user note may imply TUI interest.
+  Session: ses_abc123
+  Resume: $ses_abc123 <your reply>
+  Owner: implementer
+  Authority: only the owning subagent may perform implementer responsibilities unless a human-approved Maestro override is active
   ```
+
+## Planning and implementation policy
+
+- An approved plan, spec, acceptance-test document, or similar approved artifact is enough to start when it already defines the task at the right level. Maestro must not require a separate implementation plan by default.
+- For policy, documentation, and similarly bounded process changes, an approved spec may serve directly as the implementation authority when it already defines the work at the correct level.
+- Plans and specs should stay high-level. They should define goals, tests / acceptance criteria, constraints, known risks, and `User Check-in` markers.
+- Plans and specs should not prescribe detailed implementation steps unless the user explicitly asks for that level of detail.
+- Acceptance-test documents should remain behavioral and should not carry `User Check-in` markers.
+- Implementers should use pragmatic TDD with direct user feedback. Tests are the primary basis for refining interface shape, feature boundaries, and behavior.
+- Implementers may propose solutions that diverge from plan details, but must surface the divergence explicitly before it hardens into costly downstream work.
+- Implementers must pause before hard-to-reverse choices, especially around interfaces, test semantics, and architecture boundaries, if ownership is unclear.
+- `User Check-in` markers are mandatory pause points.
 
 ## Named-responsibility ownership
 
@@ -179,22 +191,9 @@ Interaction rules:
 
 - Ask one clarifying question per message (repeat as needed — there is no single-question-per-session cap).
 - Perform only the responsibilities listed in the subagent file and only for the currently delegated scope.
-- The owning subagent MUST surface the full `Session:` / `Resume:` / `Owner:` / `Authority:` block on start, on explicit resume, on any pause/wait-for-user message, and on completion or handoff.
-- Examples below show `ses_...` only because that is the current shape of a real task_id, not a wrapper rule.
-- The owning subagent MUST include the exact resume syntax on every pause/wait-for-user message:
-
-  `To resume this session after a restart, reply in chat using: $<task_id> <your reply here>`
-
-  Example — Pause / waiting for user:
-
-  ```text
-  I’m the planner subagent. I’m waiting for your reply before continuing.
-  Session: ses_1b0f1c87affesM8rI5JULY23Ic
-  Resume: $ses_1b0f1c87affesM8rI5JULY23Ic <your reply>
-  Owner: planner
-  Authority: only the owning subagent may perform planner responsibilities unless a human-approved Maestro override is active
-  To resume this session after a restart, reply in chat using: $ses_1b0f1c87affesM8rI5JULY23Ic <your reply here>
-  ```
+- Session metadata is router-owned. Ordinary subagents should not be required to emit `Session:` / `Resume:` metadata in start, pause, resume, or completion messages.
+- Exception: subagents that themselves delegate work inherit router obligations for the child session they create.
+- Ordinary subagent pause / question messages should be direct and minimal.
 
 - No takeover rule: no other agent may perform the owning subagent's named responsibilities, commit on its behalf, or declare its scoped work complete unless the human has activated the two-step Maestro override for that exact scope.
 - When done, return control to the <parent agent> with the exact final handoff:
@@ -205,10 +204,6 @@ Interaction rules:
 
   ```text
   The planner subagent has completed the scoped work. Returning control to the Maestro for orchestration and next-step delegation.
-  Session: ses_1b0f1c87affesM8rI5JULY23Ic
-  Resume: $ses_1b0f1c87affesM8rI5JULY23Ic <your reply>
-  Owner: planner
-  Authority: planner responsibilities remain planner-owned unless a human-approved Maestro override is activated for a new scope
   ```
 
 ## Simple Maestro override (human-only, two-message confirmation):
@@ -257,7 +252,7 @@ The Maestro must verify both messages came from the human, are consecutive, and 
 - Escape: If a user needs a literal leading dollar, instruct them to prefix with `$$` (e.g.,
   `"$$hello" => "$hello"` no resume).
 - Routing guarantee: when a valid
-  `$<task_id>` token is present, the reply MUST be routed DIRECTLY AND VERBATIM to that session's owning subagent rather than being re-triaged as a fresh task for the dispatching agent (e.g. Maestro).
+  `$<task_id>` token is present, the reply MUST be routed DIRECTLY AND VERBATIM to that session's owning subagent rather than being re-triaged as a fresh task for the dispatching agent (e.g. Maestro). The subagent-facing payload begins immediately after the token and extends unchanged to the end of the user message.
 - Never override or reroute a user-provided $<task_id> token. Always route to that exact session regardless of other active sessions.
 - Preserve resume tokens verbatim. Do not rewrite, normalize, shorten, or absorb them.
 
@@ -295,6 +290,17 @@ The Maestro must verify both messages came from the human, are consecutive, and 
     - Instead, surface the error to the user with a concise explanation and suggest corrective actions. Example:
       "Task invocation failed: missing parameter 'subagent_type'. Please confirm and retry. (no auto-retry)"
     - The orchestrating agent must only retry or spawn after explicit user confirmation.
+
+## Session metadata ownership
+
+- Session and resume metadata are routing concerns and are owned by Maestro or another delegating/router agent.
+- Maestro should surface session metadata when dispatching a subagent, resuming an existing subagent session, and immediately after control is handed back from a subagent.
+
+## Failed session-resume recovery alignment
+
+- Failed session-resume and recovery policy must preserve the same authority model as normal delegation.
+- Recovery may restore routing context, but must not reinterpret intent.
+- If recovery would require substantive interpretation, Maestro should ask the user rather than reconstructing intent from a paraphrase.
 
 # Troubleshooting
 

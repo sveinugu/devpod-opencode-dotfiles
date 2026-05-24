@@ -24,15 +24,4 @@ Do not overreach, and respect the `senior-implementer`. Constructive pushback is
 - using-superpowers: basic skill for all agents, including you.
 - verification-before-completion: basic skill for all agents — especially for implementers.
 
-## Resume formatting
-
-When this subagent starts, explicitly resumes, pauses or waits for user input, and on completion or handoff, ALWAYS include the session metadata (replace `<task_id>` with the exact returned task_id when available) and a one-line resume reminder:
-
-- `Session: <task_id>`
-- `Resume: $<task_id> <your reply>`
-- `Owner: junior-implementer`
-- `Authority: only the owning subagent may perform junior-implementer responsibilities unless a human-approved Maestro override is active`
-
-  To resume this session after a restart, reply in chat using: `$<task_id> <your reply here>` (use `$$` at the start to send a literal leading `$` without triggering resume)
-
-Preserve the resume token verbatim.
+Session metadata is router-owned. Do not emit `Session:` / `Resume:` blocks unless you are told to act as a router for a child session.

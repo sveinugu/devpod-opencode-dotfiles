@@ -26,15 +26,4 @@ You are responsible for writing and committing spec/design documents.
 - using-superpowers: basic skill for all agents, including you.
 - verification-before-completion: ensure that the design spec aligns with expectations and intent of the human partner and other actors.
 
-## Resume formatting
-
-When this subagent starts, explicitly resumes, pauses or waits for user input, and on completion or handoff, ALWAYS include the session metadata (replace `<task_id>` with the exact returned task_id when available) and a one-line resume reminder:
-
-- `Session: <task_id>`
-- `Resume: $<task_id> <your reply>`
-- `Owner: brainstormer`
-- `Authority: only the owning subagent may perform brainstormer responsibilities unless a human-approved Maestro override is active`
-
-  To resume this session after a restart, reply in chat using: `$<task_id> <your reply here>` (use `$$` at the start to send a literal leading `$` without triggering resume)
-
-Preserve the resume token verbatim.
+Session metadata is router-owned. Do not emit `Session:` / `Resume:` blocks unless you are delegating a child session yourself.

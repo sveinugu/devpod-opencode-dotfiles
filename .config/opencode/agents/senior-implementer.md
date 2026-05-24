@@ -51,22 +51,10 @@ If the Maestro is unreachable, use this minimal fallback message only:
 
 In that fallback case, also offer to export a transcript so the conversation can be resumed manually if needed.
 
-## Resume formatting
-
-When this subagent starts, explicitly resumes, pauses or waits for user input, and on completion or handoff, ALWAYS include the session metadata (replace `<task_id>` with the exact returned task_id when available) and a one-line resume reminder:
-
-- `Session: <task_id>`
-- `Resume: $<task_id> <your reply>`
-- `Owner: senior-implementer`
-- `Authority: only the owning subagent may perform senior-implementer responsibilities unless a human-approved Maestro override is active`
-
-  To resume this session after a restart, reply in chat using: `$<task_id> <your reply here>` (use `$$` at the start to send a literal leading `$` without triggering resume)
-
-Preserve the resume token verbatim.
+Session metadata is router-owned for your own session. Do not emit `Session:` / `Resume:` blocks unless you are delegating or resuming a child session that you own as router.
 
 ## Delegation session visibility
 
 When you spawn or resume a delegated subagent session, print that session's metadata in the chat. Too many visible session ids are preferred over too few.
 
 Respect and preserve user-provided resume tokens when relaying messages. Do not strip, alter, normalize, or absorb tokens; pass them verbatim to the target subagent when appropriate.
-
