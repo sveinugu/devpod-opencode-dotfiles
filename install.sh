@@ -41,6 +41,24 @@ fi
 
 zsh_custom="${ZSH_CUSTOM:-$home_dir/.oh-my-zsh/custom}"
 
+# Install oh-my-zsh if not already present
+oh_my_zsh_dir="$home_dir/.oh-my-zsh"
+if [ ! -d "$oh_my_zsh_dir" ]; then
+  if [ "$dry_run" = true ]; then
+    printf 'DRY-RUN install oh-my-zsh to %s\n' "$oh_my_zsh_dir"
+  else
+    printf 'installing oh-my-zsh...\n'
+    tmp_installer="$(mktemp)"
+    if ! curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh -o "$tmp_installer"; then
+      printf 'failed to download oh-my-zsh installer\n' >&2
+      rm -f "$tmp_installer"
+      exit 1
+    fi
+    zsh "$tmp_installer" "" --unattended --skip-chsh
+    rm -f "$tmp_installer"
+  fi
+fi
+
 link_path() {
   local source_path="$1"
   local target_path="$2"
@@ -48,6 +66,10 @@ link_path() {
   if [ "$dry_run" = true ]; then
     printf 'DRY-RUN ln -sfn %s %s\n' "$source_path" "$target_path"
     return 0
+  fi
+
+  if [ -e "$target_path" ] && [ ! -L "$target_path" ]; then
+    rm -rf "$target_path"
   fi
 
   mkdir -p "$(dirname "$target_path")"
@@ -86,6 +108,7 @@ mkdir -p "$home_dir/.config"
 mkdir -p "$zsh_custom/themes" "$zsh_custom/plugins"
 
 link_path "$source_root/.zshrc" "$home_dir/.zshrc"
+link_path "$source_root/.zprofile" "$home_dir/.zprofile"
 
 install_plugin "https://github.com/reobin/typewritten" "$zsh_custom/themes/typewritten"
 install_plugin "https://github.com/zsh-users/zsh-syntax-highlighting" "$zsh_custom/plugins/zsh-syntax-highlighting"

@@ -33,6 +33,11 @@ printf 'export FEATURE_ZSHRC=1\n' > "$workspace_root/work/feature-x/.zshrc"
 printf '{"name":"feature-x"}\n' > "$workspace_root/work/feature-x/.config/opencode/opencode.jsonc"
 
 if [ -f "install.sh" ]; then
+  grep -F 'mkdir -p "$home_dir/.config"' "install.sh" >/dev/null || {
+    printf 'expected install.sh to create $HOME/.config/opencode before opencode commands\n' >&2
+    exit 1
+  }
+
   cp "install.sh" "$workspace_root/main/install.sh"
   cp "install.sh" "$workspace_root/work/feature-x/install.sh"
   cp "install.sh" "$workspace_root/install.sh"
@@ -77,5 +82,59 @@ grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.config/opencode $target
 )
 
 grep -F "Refused — hub-root CWD detected. Provide explicit worktree path." "$tmpdir/hub.out" >/dev/null
+
+# Regression: existing non-symlink target directory must be replaced, not nested.
+workspace_reg="$tmpdir/workspace-reg"
+home_reg="$tmpdir/home-reg"
+bin_reg="$tmpdir/bin-reg"
+mkdir -p "$workspace_reg/main/.config/opencode" "$workspace_reg/main/scripts" "$home_reg/.config/opencode" "$home_reg/.oh-my-zsh" "$bin_reg"
+
+printf 'export REG_ZSHRC=1\n' > "$workspace_reg/main/.zshrc"
+printf 'source "$HOME/.zshrc"\n' > "$workspace_reg/main/.zprofile"
+printf '{"name":"reg"}\n' > "$workspace_reg/main/.config/opencode/opencode.jsonc"
+printf 'stale\n' > "$home_reg/.config/opencode/stale.txt"
+
+cp "install.sh" "$workspace_reg/main/install.sh"
+cp "scripts/install-validate-source.sh" "$workspace_reg/main/scripts/install-validate-source.sh"
+chmod +x "$workspace_reg/main/install.sh" "$workspace_reg/main/scripts/install-validate-source.sh"
+
+cat > "$bin_reg/git" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+if [ "$1" = "clone" ]; then
+  mkdir -p "$3"
+  exit 0
+fi
+command git "$@"
+EOF
+chmod +x "$bin_reg/git"
+
+cat > "$bin_reg/npx" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+exit 0
+EOF
+chmod +x "$bin_reg/npx"
+
+(
+  cd "$offcwd"
+  PATH="$bin_reg:$PATH" HOME="$home_reg" WORKSPACE_ROOT="$workspace_reg" bash "$workspace_reg/main/install.sh" >"$tmpdir/reg.out"
+)
+
+[ -L "$home_reg/.config/opencode" ] || {
+  printf 'expected ~/.config/opencode to be a symlink after install\n' >&2
+  exit 1
+}
+
+resolved_opencode="$(readlink -f "$home_reg/.config/opencode")"
+[ "$resolved_opencode" = "$workspace_reg/main/.config/opencode" ] || {
+  printf 'expected ~/.config/opencode symlink target %s, got %s\n' "$workspace_reg/main/.config/opencode" "$resolved_opencode" >&2
+  exit 1
+}
+
+[ ! -e "$home_reg/.config/opencode/stale.txt" ] || {
+  printf 'expected stale file to be removed when replacing directory target\n' >&2
+  exit 1
+}
 
 printf 'PASS test_install_local_source_contract\n'
