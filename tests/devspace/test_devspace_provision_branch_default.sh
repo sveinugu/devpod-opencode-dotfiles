@@ -13,7 +13,7 @@ runbook="$repo_root/docs/superpowers/runbooks/devspace-bare-hub-usage.md"
 [ -f "$cfg" ] || fail "devspace.yaml not found"
 [ -f "$runbook" ] || fail "runbook not found"
 
-grep -F 'HUB_PROVISION_BRANCH=${HUB_PROVISION_BRANCH:-main}' "$cfg" >/dev/null || fail "provision pipeline must default HUB_PROVISION_BRANCH to main"
+grep -F 'HUB_PROVISION_BRANCH="${HUB_PROVISION_BRANCH:-main}"' "$cfg"  >/dev/null || fail "provision pipeline must default HUB_PROVISION_BRANCH to main"
 
 if grep -F 'HUB_PROVISION_BRANCH=work/devspace-bare-hub' "$cfg" >/dev/null; then
   fail "provision pipeline must not hardcode work/devspace-bare-hub"
