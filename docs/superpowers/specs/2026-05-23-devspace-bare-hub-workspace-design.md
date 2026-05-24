@@ -110,13 +110,13 @@ The v1 DevSpace command surface is:
 
 ### `devspace dev`
 
-`devspace dev` may create or start the workspace Deployment/PVC/pod if needed, but it must not hide provisioning. If the workspace content is unprovisioned, `devspace dev` must refuse normal interactive use and tell the user to run `devspace run-pipeline provision`.
+`devspace dev` is the thin DevSpace wrapper for interactive access. In v1 it may create or start the workspace Deployment, PVC, and pod when needed, but it must not hide provisioning. If the workspace content is unprovisioned, `devspace dev` must refuse normal interactive use and tell the user to run `devspace run-pipeline provision`.
 
 This keeps the workflow helpful without reintroducing hidden auto-bootstrap behavior.
 
 ### `provision`
 
-`provision` is explicit and runs inside the workspace pod. If needed, it first ensures the Deployment/PVC/pod exist and are running, then executes the provisioning script in-pod.
+`provision` is explicit and runs inside the workspace pod. The DevSpace wrapper must first ensure the Deployment, PVC, and pod exist and are running, then execute the provisioning script in-pod.
 
 Provisioning is responsible for turning an empty or partially degraded durable workspace into a usable bare-hub workspace.
 
@@ -305,6 +305,8 @@ The onboarding script creates a child bare hub under `repos/<name>` and applies 
 - `repos/<name>/work/`
 - matching `state/` and `tmp/` paths under the canonical shared tree
 
+In v1, child repo onboarding is an in-pod script or thin pipeline invocation, not an external host-side mutation path.
+
 In v1, child onboarding uses a repo-derived default name for `repos/<name>`. If that derived path already exists, `add-repo` must refuse rather than rename automatically. A user-supplied `--name` override is deferred to later phases and is not part of v1.
 
 In v1, child onboarding uses `origin/main` as the only supported source ref. `add-repo` must refuse if `origin/main` is absent. Later phases may make the source ref configurable, but v1 must not.
@@ -329,7 +331,8 @@ This remains the primary durability path because it better addresses cluster-los
 
 ### Timing and responsibility split
 
-- periodic in-pod staging every 30 minutes
+- phase-2 in-pod staging CronJob schedule is fixed by the authoritative plan at minute 0 of every hour (`0 * * * *`)
+- phase-2 host-side backup schedule is fixed by the authoritative plan at minute 30 of every hour (`30 * * * *`)
 - phase-2 user-facing commands are expected to include `devspace run-pipeline staging` and `devspace run-pipeline backup`
 - primary phase-2 `backup` command = host-side pull + `restic`
 - manual staging-only trigger required for debugging/verification in phase 2

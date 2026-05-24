@@ -31,6 +31,8 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 ### B. Provisioning behavior
 
 - [ ] `devspace run-pipeline provision` creates or starts the workspace pod if needed, then runs the provisioning logic in-pod.
+- [ ] The DevSpace provision wrapper ensures the Deployment, PVC, and pod exist before running the in-pod provisioning script.
+- [ ] The DevSpace provision wrapper does not require the user to pre-create or separately start the pod before invoking `devspace run-pipeline provision`.
 - [ ] First-time provision creates the top-level workspace as a bare clone of the top-level dotfiles GitHub repo.
 - [ ] V1 provision uses `origin/main` as the only supported bootstrap ref.
 - [ ] Provision fails clearly if `origin/main` does not exist.
@@ -42,8 +44,10 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 ### C. Normal startup vs unprovisioned state
 
 - [ ] `devspace dev` may create or start the Deployment/PVC/pod if needed.
+- [ ] `devspace dev` performs preflight checks before opening normal interactive use.
 - [ ] If the workspace is unprovisioned, `devspace dev` refuses normal interactive use instead of auto-bootstrapping silently.
 - [ ] In the unprovisioned case, `devspace dev` instructs the user to run `devspace run-pipeline provision`.
+- [ ] If appropriate, `devspace dev` creates or starts the workload before that preflight refusal is surfaced.
 
 ### D. Bare-hub layout and canonical paths
 
@@ -102,8 +106,10 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 ### I. Child repo onboarding
 
 - [ ] V1 includes an in-pod child repo onboarding path.
+- [ ] V1 child onboarding is exposed through an in-pod script or thin pipeline invocation.
 - [ ] V1 child onboarding supports public repos only.
 - [ ] Child onboarding uses a repo-derived default name for `repos/<name>`.
+- [ ] V1 child onboarding refuses a user-supplied `--name` override.
 - [ ] Child onboarding refuses on name/path collisions.
 - [ ] Child onboarding uses `origin/main` as the only supported source ref in v1.
 - [ ] Child onboarding refuses if `origin/main` is absent.
@@ -121,7 +127,7 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 
 ### J. Periodic staging
 
-- [ ] A Kubernetes CronJob runs in-pod staging on its alternating half-hour cadence.
+- [ ] The phase-2 staging CronJob is scheduled at minute 0 of every hour (`0 * * * *`).
 - [ ] A manual one-shot staging trigger exists and uses the same staging script as the CronJob.
 - [ ] Staging writes human-readable logs.
 - [ ] Staging records persistent status under the workspace `state/` tree.
@@ -129,7 +135,7 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 
 ### K. Backup command and host pull
 
-- [ ] A host-side scheduled backup runs on the alternating half-hour cadence between staging runs.
+- [ ] The phase-2 host-side scheduled backup is scheduled at minute 30 of every hour (`30 * * * *`).
 - [ ] Phase-2 command surface includes `devspace run-pipeline staging`.
 - [ ] Phase-2 command surface includes `devspace run-pipeline backup`.
 - [ ] `backup` performs host-side pull plus `restic`.
