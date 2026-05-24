@@ -358,6 +358,32 @@ The periodic staging system must be debuggable by design:
 - staging failures do not break normal workspace use
 - host backup can report whether staged data is fresh or stale, and stale staging should warn by default
 
+### Separate OpenCode deliverables
+
+Phase 2 should treat OpenCode session export and OpenCode session recovery as separate deliverables, not merely incidental side effects of the general backup flow.
+
+#### OpenCode session export deliverable
+
+The system must produce a distinct OpenCode session export artifact under the durable workspace state tree.
+
+Minimum phase-2 contract:
+
+- exported OpenCode session artifacts are written under a documented path such as `state/opencode/exported_sessions/`
+- export is independently runnable from the rest of the backup flow
+- export success/failure is visible separately from host-side pull + `restic`
+- exported session artifacts are intended to be readable and recoverable as files, not only as part of opaque snapshots
+
+#### OpenCode session recovery deliverable
+
+The system must provide a distinct recovery path for previously exported OpenCode session artifacts.
+
+Minimum phase-2 contract:
+
+- exported session artifacts can be pulled back from backup storage and restored into the documented durable export location
+- recovery of exported session files is a separate deliverable from full workspace rebuild
+- the acceptance target is recovery of exported session artifacts as readable files and a documented recovery workflow
+- exact resumability as live OpenCode sessions is not required unless a later phase defines and verifies that behavior explicitly
+
 ### Fallback path 1: PVC snapshot/clone
 
 PVC snapshot/clone is retained as a later optional fast-recovery enhancement.
@@ -460,6 +486,8 @@ The following remain intentionally open for the planning stage:
 - manual one-shot staging trigger
 - `staging` and `backup` command surface
 - host-side pull + `restic`
+- OpenCode session export as a separate deliverable
+- OpenCode session recovery as a separate deliverable
 
 ## Pragmatic Assessment
 

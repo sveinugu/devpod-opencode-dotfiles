@@ -146,6 +146,22 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 - [ ] PVC snapshot/clone remains an explicitly deferred fast-recovery enhancement, not the primary backup path.
 - [ ] Object-store export remains an explicitly deferred later extension, not the primary backup path.
 
+### M. OpenCode session export deliverable
+
+- [ ] OpenCode session export exists as a separately testable phase-2 deliverable.
+- [ ] Exported session artifacts are written to the documented durable path under `state/opencode/exported_sessions/`.
+- [ ] Export can be verified independently of host-side pull + `restic`.
+- [ ] Export failure is reported distinctly from general backup failure.
+- [ ] Exported session artifacts are readable as files after export.
+
+### N. OpenCode session recovery deliverable
+
+- [ ] OpenCode session recovery exists as a separately testable phase-2 deliverable.
+- [ ] Previously exported session artifacts can be restored from backup storage into the documented export location.
+- [ ] Recovery can be verified independently of full workspace rebuild.
+- [ ] Recovery success is measured at minimum by restored readable export artifacts and a documented recovery workflow.
+- [ ] Exact resumability as live OpenCode sessions is not required unless a later phase defines that behavior explicitly.
+
 ---
 
 ## Exit criteria for the first implementation slice
