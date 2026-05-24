@@ -22,7 +22,9 @@ dev:
       - sh
       - -lc
       - |
-        if [ ! -d /workspaces/dotfiles/.bare ] || [ ! -d /workspaces/dotfiles/main ]; then
+        if [ -x /workspaces/dotfiles/main/scripts/devspace-dev-preflight.sh ]; then
+          /workspaces/dotfiles/main/scripts/devspace-dev-preflight.sh
+        else
           echo "workspace not provisioned; run devspace run-pipeline provision" >&2
           exit 1
         fi
@@ -34,7 +36,10 @@ dev:
 pipelines:
   provision: |-
     run_default_pipelines deploy
-    echo "provision pipeline placeholder; Task 3 wires in-pod workspace bootstrap"
+    kubectl wait --for=condition=available --timeout=120s deployment/dotfiles-workspace
+    POD_NAME=$(kubectl get pods -l app.kubernetes.io/name=dotfiles-workspace -o jsonpath='{.items[0].metadata.name}')
+    [ -n "$POD_NAME" ]
+    kubectl exec "$POD_NAME" -- sh -lc '/workspaces/dotfiles/main/scripts/workspace-provision.sh'
 
   doctor: |-
     echo "doctor pipeline placeholder; Task 4 adds checks"
