@@ -51,3 +51,29 @@ Never run the hub-root copy at `/workspaces/dotfiles/install.sh`; it must refuse
 ```text
 Refused — hub-root CWD detected. Provide explicit worktree path.
 ```
+
+## Child repo onboarding (public repos, v1)
+
+From inside the workspace pod, add a child repo as a managed bare hub under `repos/<name>`:
+
+```bash
+bash /workspaces/dotfiles/main/scripts/create-hub-repo.sh https://github.com/<owner>/<repo>.git
+```
+
+V1 constraints:
+
+- public source only
+- `origin/main` only
+- `repos/<name>` is derived from the repo URL/path
+- `--name` override is not supported
+- collisions refuse (no auto-rename)
+
+Successful onboarding creates:
+
+- `repos/<name>/.bare`
+- `repos/<name>/main`
+- `repos/<name>/work/`
+- `state/repos/<name>/main/`
+- `tmp/repos/<name>/main/`
+
+Child onboarding does not change `/home/vscode` symlink authority; top-level dotfiles remains the only authority.

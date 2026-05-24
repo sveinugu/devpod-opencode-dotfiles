@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+# shellcheck source=scripts/lib/hub-repo-core.sh
+source "$script_dir/lib/hub-repo-core.sh"
+
+workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
+
+usage() {
+  printf 'usage: create-hub-repo.sh <public-repo-source>\n' >&2
+}
+
+if [ "$#" -eq 0 ]; then
+  usage
+  exit 2
+fi
+
+if [ "$1" = "--name" ]; then
+  printf 'usage: create-hub-repo.sh <public-repo-source>\n' >&2
+  exit 2
+fi
+
+if [ "$#" -ne 1 ]; then
+  usage
+  exit 2
+fi
+
+source_repo="$1"
+
+case "$source_repo" in
+  git@*|ssh://*|*://*/*/*)
+    case "$source_repo" in
+      https://*)
+        ;;
+      *)
+        printf 'refused: public repo source is required in v1\n' >&2
+        exit 1
+        ;;
+    esac
+    ;;
+esac
+
+repo_name="${source_repo##*/}"
+repo_name="${repo_name%.git}"
+
+if [ -z "$repo_name" ] || [ "$repo_name" = "." ] || [ "$repo_name" = ".." ]; then
+  printf 'refused: could not derive repo name from source\n' >&2
+  exit 1
+fi
+
+child_root="$workspace_root/repos/$repo_name"
+
+if [ -e "$child_root" ]; then
+  printf 'refused: child repo path already exists\n' >&2
+  exit 1
+fi
+
+create_bare_hub "$child_root" "$source_repo" main
+
+mkdir -p "$workspace_root/state/repos/$repo_name/main"
+mkdir -p "$workspace_root/tmp/repos/$repo_name/main"
+
+printf 'ok: created child hub repo at %s\n' "$child_root"
