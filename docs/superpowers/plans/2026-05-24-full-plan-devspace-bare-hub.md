@@ -12,8 +12,8 @@
 
 ## Inputs and approval basis
 
-- Primary design spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-design.md` at commits `d069cf5` and `3455f13`.
-- Acceptance checklist: `docs/superpowers/plans/2026-05-24-acceptance-tests-devspace-bare-hub.md` at commits `f1d2aff`, `2a17725`, and `c242b4d`.
+Primary design spec: docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-design.md at commit cc2c89c
+Acceptance checklist: docs/superpowers/plans/2026-05-24-acceptance-tests-devspace-bare-hub.md at commit cc2c89c
 - Prior plan to reuse where still valid: `docs/superpowers/plans/2026-05-21-bare-hub-manager.md`.
 - This document replaces the older plan as the active implementation plan for this feature set, but the older plan remains in the repo for reference and verbatim reuse tracking.
 
@@ -510,8 +510,8 @@ restic snapshots
 | J. Periodic staging | Tasks 7, 8 | staging status + CronJob + manual trigger |
 | K. Backup command and host pull | Tasks 8, 9 | `staging` and `backup` pipelines, scheduled host runner, host pull + `restic` |
 | L. Backup visibility and recovery signal | Tasks 7, 8, 9 | status file, job logs, stale warning, and deferred-path documentation |
-| M. OpenCode session export deliverable | Task 6 | separate export deliverable under `state/opencode/exported_sessions/` |
-| N. OpenCode session recovery deliverable | Task 10 | separate recovery deliverable restoring readable export artifacts plus workflow |
+| M. OpenCode session export deliverable | Task 6 (GATED) | separate export deliverable under `state/opencode/exported_sessions/` |
+| N. OpenCode session recovery deliverable | Task 10 (GATED) | separate recovery deliverable restoring readable export artifacts plus workflow |
 
 ---
 
@@ -1029,7 +1029,7 @@ Phase-1 rollback order if the slice must be backed out:
 
 > **Traceability gate:** The approved spec and acceptance checklist now treat OpenCode session export (section M) and OpenCode session recovery (section N) as separate phase-2 deliverables. Keep Task 6 independently testable from host pull + `restic`, and keep Task 10 independently testable from full workspace rebuild or exact live-session resumability.
 >
-> **Plan-authoritative schedule lock:** Where older spec or acceptance wording says "every 30 minutes" or "alternating half-hour cadence," implement the locked schedule defined in this plan: staging at minute 0 of every hour (`0 * * * *`) and host backup at minute 30 of every hour (`30 * * * *`).
+> **Plan-authoritative schedule lock:** staging at minute 0 of every hour (cron: `0 * * * *`); host-side backup at minute 30 of every hour (cron: `30 * * * *`).
 
 ### Task 6: Export OpenCode sessions into `state/opencode/exported_sessions/`
 
@@ -1293,14 +1293,9 @@ Implementation contract:
 - the shared host entrypoint is `ops/host-backup/run-devspace-backup.sh` and must be used by both the recommended scheduled runner and manual `--once` execution.
 - the recommended scheduled runner is the small containerized cron runner; the runbook may also include a Linux-only user-level systemd timer example as fallback.
 
-- [ ] **Step 5: Wire the manual DevSpace backup command and document the alternating schedule**
+- [ ] **Step 5: Wire the manual DevSpace backup command and document the authoritative schedule**
 
-The runbook and task implementation must document the staggered phase-2 schedule:
-
-- cluster CronJob stages at minute 0 of every hour (cron: `0 * * * *`);
-- host-side scheduled backup runs at minute 30 of every hour (cron: `30 * * * *`);
-
-These cadences ensure staging and backup alternate every 30 minutes (staging at :00, backup at :30).
+The runbook and task implementation must document: staging at minute 0 of every hour (cron: `0 * * * *`); host-side backup at minute 30 of every hour (cron: `30 * * * *`).
 
 Do not require agents to install host services. The repo must contain the host-runner source and container assets so humans can deploy the scheduler manually on the host.
 
