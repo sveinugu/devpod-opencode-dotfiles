@@ -125,6 +125,7 @@ In v1, the top-level provision source/ref contract is:
 - the source repository is the top-level dotfiles GitHub repo
 - the authoritative bootstrap ref is `origin/main`
 - v1 provision must refuse if `origin/main` does not exist
+- v1 provision must refuse if an existing top-level `main/` path is present in a broken or detached state
 - the initial attached `main` worktree is created from `origin/main`
 - later phases may make the bootstrap ref configurable, but v1 must not
 
@@ -133,6 +134,8 @@ In v1, the top-level provision source/ref contract is:
 `doctor` is included in v1 because it adds significant operational clarity for relatively low complexity. It is a host-side, read-only command and is intended to answer whether the workspace exists, is reachable, and looks provisioned.
 
 In v1, `doctor` is human-readable only.
+
+V1 `doctor` uses one flat required checklist rather than separate required and advisory categories.
 
 The minimum v1 `doctor` checklist is:
 
@@ -144,6 +147,14 @@ The minimum v1 `doctor` checklist is:
 - `work/`, `repos/`, `state/`, and `tmp/` exist
 - canonical `state/` and `tmp/` hub paths exist for the top-level `main` worktree
 - `/home/vscode` symlinks point into the top-level dotfiles worktree as expected
+
+Exit-code semantics in v1:
+
+- exit 0: all required checks pass
+- exit 1: one or more required checks fail
+- exit 2: invalid CLI usage
+
+V1 does not define advisory-only checks.
 
 ### `repair`
 
@@ -294,7 +305,7 @@ The onboarding script creates a child bare hub under `repos/<name>` and applies 
 - `repos/<name>/work/`
 - matching `state/` and `tmp/` paths under the canonical shared tree
 
-In v1, child onboarding uses a repo-derived default name for `repos/<name>`. If that derived path already exists, `add-repo` must refuse rather than rename automatically.
+In v1, child onboarding uses a repo-derived default name for `repos/<name>`. If that derived path already exists, `add-repo` must refuse rather than rename automatically. A user-supplied `--name` override is deferred to later phases and is not part of v1.
 
 In v1, child onboarding uses `origin/main` as the only supported source ref. `add-repo` must refuse if `origin/main` is absent. Later phases may make the source ref configurable, but v1 must not.
 
@@ -323,6 +334,7 @@ This remains the primary durability path because it better addresses cluster-los
 - primary phase-2 `backup` command = host-side pull + `restic`
 - manual staging-only trigger required for debugging/verification in phase 2
 - stale staging should produce a warning rather than a hard failure by default
+- repeated stale staging warnings remain warnings rather than escalating to hard failure by default
 - the host-side staging/pull destination should be operator-configurable
 
 ### Periodic staging trigger
