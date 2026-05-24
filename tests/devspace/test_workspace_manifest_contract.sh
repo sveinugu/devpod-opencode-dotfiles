@@ -24,12 +24,13 @@ if grep -R -q -E '^kind:\s*Service\s*$' "$manifest_dir"/*.yaml; then
   fail "standalone Service manifest must not exist"
 fi
 
-grep -Eq '^\s*workingDir:\s*/workspaces/dotfiles/main\s*$' "$deployment" || fail "missing workingDir /workspaces/dotfiles/main"
-
 grep -Eq '^\s*mountPath:\s*/workspaces/dotfiles\s*$' "$deployment" || fail "missing /workspaces/dotfiles mount"
 grep -Eq '^\s*subPath:\s*workspace-root\s*$' "$deployment" || fail "missing subPath workspace-root"
 
 grep -Eq '^\s*mountPath:\s*/home/vscode\s*$' "$deployment" || fail "missing /home/vscode mount"
 grep -Eq '^\s*subPath:\s*home-vscode\s*$' "$deployment" || fail "missing subPath home-vscode"
+
+# Verify that workingDir is set explicitly for the workspace container
+grep -Eq '^\s*workingDir:\s*/workspaces/dotfiles/main\s*$' "$deployment" || fail "missing workingDir /workspaces/dotfiles/main in Deployment manifest"
 
 printf 'PASS test_workspace_manifest_contract\n'
