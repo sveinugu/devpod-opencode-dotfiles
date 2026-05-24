@@ -25,7 +25,11 @@
       "git commit*": "ask",
       "git add*": "ask",
       "git push*": "deny",
-      "rm *": "deny"
+      "rm *": "deny",
+      "ssh*": "deny",
+      "scp*": "deny",
+      "sftp*": "deny",
+      "ftp*": "deny",
     }
   },
   "agent": {
