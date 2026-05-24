@@ -121,7 +121,7 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 
 ### J. Periodic staging
 
-- [ ] A Kubernetes CronJob runs staging every 30 minutes.
+- [ ] A Kubernetes CronJob runs in-pod staging on its alternating half-hour cadence.
 - [ ] A manual one-shot staging trigger exists and uses the same staging script as the CronJob.
 - [ ] Staging writes human-readable logs.
 - [ ] Staging records persistent status under the workspace `state/` tree.
@@ -129,6 +129,7 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 
 ### K. Backup command and host pull
 
+- [ ] A host-side scheduled backup runs on the alternating half-hour cadence between staging runs.
 - [ ] Phase-2 command surface includes `devspace run-pipeline staging`.
 - [ ] Phase-2 command surface includes `devspace run-pipeline backup`.
 - [ ] `backup` performs host-side pull plus `restic`.
