@@ -45,13 +45,26 @@ pipelines:
     kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- env HUB_PROVISION_BRANCH="${HUB_PROVISION_BRANCH:-main}" sh -lc 'HUB_WORKSPACE_ROOT=/workspaces/dotfiles HUB_PROVISION_SOURCE=https://github.com/sveinugu/devpod-opencode-dotfiles.git /tmp/workspace-provision.sh ${HUB_PROVISION_ARGS:-}'
 
   doctor: |-
-    echo "doctor pipeline placeholder; Task 4 adds checks"
+    create_deployments --all
+    kubectl wait --for=condition=available --timeout=120s deployment/dotfiles-workspace -n ${DEVSPACE_NAMESPACE}
+    POD_NAME=$(kubectl get pods -l app.kubernetes.io/name=dotfiles-workspace -n ${DEVSPACE_NAMESPACE} -o jsonpath='{.items[0].metadata.name}')
+    [ -n "$POD_NAME" ]
+    HUB_CHECK_DEPLOYMENT=$(kubectl get deployment dotfiles-workspace -n ${DEVSPACE_NAMESPACE} -o name >/dev/null 2>&1 && printf yes || printf no)
+    HUB_CHECK_PVC=$(kubectl get pvc dotfiles-workspace -n ${DEVSPACE_NAMESPACE} -o name >/dev/null 2>&1 && printf yes || printf no)
+    tar cf - -C scripts devspace-doctor.sh | kubectl exec -i "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- tar xf - -C /tmp
+    kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- env DEVSPACE_NAMESPACE=${DEVSPACE_NAMESPACE} HUB_WORKSPACE_ROOT=/workspaces/dotfiles HUB_HOME_DIR=/home/vscode HUB_CHECK_DEPLOYMENT="$HUB_CHECK_DEPLOYMENT" HUB_CHECK_PVC="$HUB_CHECK_PVC" HUB_CHECK_POD="$POD_NAME" bash /tmp/devspace-doctor.sh
 
   repair: |-
-    echo "repair pipeline placeholder; Task 4 adds non-destructive repair"
+    create_deployments --all
+    kubectl wait --for=condition=available --timeout=120s deployment/dotfiles-workspace -n ${DEVSPACE_NAMESPACE}
+    POD_NAME=$(kubectl get pods -l app.kubernetes.io/name=dotfiles-workspace -n ${DEVSPACE_NAMESPACE} -o jsonpath='{.items[0].metadata.name}')
+    [ -n "$POD_NAME" ]
+    HUB_PROVISION_BRANCH="${HUB_PROVISION_BRANCH:-main}"
+    tar cf - -C scripts workspace-repair.sh | kubectl exec -i "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- tar xf - -C /tmp
+    kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- env HUB_WORKSPACE_ROOT=/workspaces/dotfiles HUB_HOME_DIR=/home/vscode HUB_PROVISION_BRANCH="$HUB_PROVISION_BRANCH" bash /tmp/workspace-repair.sh
 
   destroy: |-
-    echo "destroy pipeline placeholder; Task 4 adds destructive cleanup"
+    bash scripts/devspace-destroy.sh
 
   verify-ssh: |-
     ssh -o BatchMode=yes workspace.dotfiles.devspace 'pwd'
