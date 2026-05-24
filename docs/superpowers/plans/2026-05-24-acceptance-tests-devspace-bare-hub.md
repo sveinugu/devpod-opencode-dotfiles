@@ -139,6 +139,10 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 - [ ] Phase-2 command surface includes `devspace run-pipeline staging`.
 - [ ] Phase-2 command surface includes `devspace run-pipeline backup`.
 - [ ] `backup` performs host-side pull plus `restic`.
+- [ ] The repository provides an installable host-runner under `ops/host-backup/` that contains the default containerized cron runner (Containerfile, entrypoint.sh, and run-devspace-backup.sh).
+- [ ] The default host-runner is the containerized cron runner; it must be invocable via `ops/host-backup/run-devspace-backup.sh --once --env-file <path>` and documented in the runbook.
+- [ ] The repository documents a Linux systemd timer fallback that invokes the same `run-devspace-backup.sh` entrypoint for operators who prefer systemd.
+- [ ] The host-runner must be testable by the host-side contract test `tests/opencode/test_host_backup_runner_contract.sh` which asserts scheduled invocation and successful host-pull+restic behavior.
 - [ ] The host-side staging/pull destination is operator-configurable.
 - [ ] Stale staging causes a warning, not a hard failure.
 - [ ] Repeated stale staging still remains warning-only by default.
