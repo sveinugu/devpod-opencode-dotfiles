@@ -395,21 +395,30 @@ Recommended host setup commands:
 mkdir -p "$HOME/.config/devspace-bare-hub" "$HOME/.local/state/devspace-bare-hub/backup-stage" "$HOME/.local/state/devspace-bare-hub/runner"
 chmod 700 "$HOME/.config/devspace-bare-hub" "$HOME/.local/state/devspace-bare-hub" "$HOME/.local/state/devspace-bare-hub/backup-stage" "$HOME/.local/state/devspace-bare-hub/runner"
 printf '%s\n' \
-  'RESTIC_REPOSITORY=/absolute/path/to/restic-repo' \
-  'RESTIC_PASSWORD_FILE=/absolute/path/to/restic-password' \
-  'BACKUP_PULL_ROOT=/absolute/path/to/backup-stage' \
-  'KUBECONFIG=/absolute/path/to/kubeconfig' \
+  "RESTIC_REPOSITORY=/absolute/path/or/restic-url" \
+  "RESTIC_PASSWORD_FILE=$HOME/.config/devspace-bare-hub/restic-password" \
+  "BACKUP_PULL_ROOT=$HOME/.local/state/devspace-bare-hub/backup-stage" \
+  "KUBECONFIG=$HOME/.kube/config" \
   > "$HOME/.config/devspace-bare-hub/backup.env"
 chmod 600 "$HOME/.config/devspace-bare-hub/backup.env"
-podman build -t devspace-bare-hub-backup -f ops/host-backup/container/Containerfile ops/host-backup/container
-podman run -d --name devspace-bare-hub-backup \
+
+set -a
+. "$HOME/.config/devspace-bare-hub/backup.env"
+set +a
+CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-podman}"
+
+$CONTAINER_RUNTIME build -t devspace-bare-hub-backup -f ops/host-backup/container/Containerfile ops/host-backup/container
+$CONTAINER_RUNTIME run -d --name devspace-bare-hub-backup \
   --restart=unless-stopped \
   --env-file "$HOME/.config/devspace-bare-hub/backup.env" \
-  -v "$HOME/.config/devspace-bare-hub:/config:ro" \
-  -v "$HOME/.local/state/devspace-bare-hub:/state" \
-  -v "$HOME/.kube:/home/devspace/.kube:ro" \
+  -v "$HOME/.config/devspace-bare-hub:$HOME/.config/devspace-bare-hub:ro" \
+  -v "$HOME/.local/state/devspace-bare-hub:$HOME/.local/state/devspace-bare-hub" \
+  -v "$(dirname \"$KUBECONFIG\")":"$(dirname \"$KUBECONFIG\")":ro \
+  -v "$(dirname \"$RESTIC_PASSWORD_FILE\")":"$(dirname \"$RESTIC_PASSWORD_FILE\")":ro \
   devspace-bare-hub-backup
 ```
+
+If `RESTIC_REPOSITORY` is a local filesystem path, bind-mount it into the container at the same absolute path used in `backup.env`. If it is an object-store URL, mount only the credential files it references.
 
 Linux-only fallback:
 
@@ -431,10 +440,10 @@ EOF
 
 cat > "$HOME/.config/systemd/user/devspace-bare-hub-backup.timer" <<'EOF'
 [Unit]
-Description=Run DevSpace bare-hub backup on alternating half-hours
+Description=Run DevSpace bare-hub backup at minute 30 of every hour
 
 [Timer]
-OnCalendar=*-*-* *:15,45:00
+OnCalendar=*-*-* *:30:00
 Persistent=true
 
 [Install]
@@ -924,6 +933,7 @@ git commit -m "feat(workspace): add doctor repair and destroy flows"
 
 - public repo only in v1;
 - repo-derived default name is used for `repos/<name>`;
+- `--name` override is rejected or absent in v1; repo-derived naming is the only supported naming path for this phase;
 - collisions refuse rather than rename automatically;
 - `origin/main` is the only supported source ref;
 - successful onboarding creates `repos/<name>/.bare`, `repos/<name>/main`, `repos/<name>/work/`, `state/repos/<name>/main/`, and `tmp/repos/<name>/main/`;
@@ -945,6 +955,7 @@ Implementation contract:
 
 - keep `scripts/create-hub-repo.sh` as the public entrypoint;
 - reuse `scripts/lib/hub-repo-core.sh` only for the duplicated repo-hub steps;
+- do not add a user-supplied `--name` override in v1;
 - keep `/home/vscode` authority exclusively with the top-level dotfiles repo.
 
 - [ ] **Step 4: Run GREEN**
@@ -1011,6 +1022,8 @@ Phase-1 rollback order if the slice must be backed out:
 ---
 
 ## Phase 2 — Deferred staging and backup
+
+> **Traceability gate:** The current approved spec and acceptance checklist explicitly cover staging status, host pull, `restic`, and visibility, but they do not yet name OpenCode session export/recovery as separate acceptance deliverables. Do not start Tasks 6 or 10 until that approval is added, or remove them from the active plan scope for this slice.
 
 ### Task 6: Export OpenCode sessions into `state/opencode/exported_sessions/`
 
@@ -1145,7 +1158,7 @@ git commit -m "feat(backup): add staging core and persistent status"
 
 - the CronJob invokes `scripts/workspace-staging.sh`;
 - the manual `devspace run-pipeline staging` pipeline invokes the same script;
-- the CronJob schedule is on the half-hour cadence chosen for staging;
+- the CronJob schedule is `0 * * * *`;
 - the CronJob writes logs that remain visible through Kubernetes job logs.
 
 - [ ] **Step 2: Run RED**
@@ -1201,6 +1214,7 @@ git commit -m "feat(backup): add staging cronjob and manual pipeline"
 - Test: `tests/opencode/test_host_pull_and_restic_backup.sh`
 - Test: `tests/ops/test_host_backup_runner.sh`
 - Test: `tests/ops/test_host_backup_container_contract.sh`
+- Test: `tests/devspace/test_backup_pipeline_contract.sh`
 - Modify: `devspace.yaml`
 - Modify: `docs/superpowers/runbooks/devspace-staging-and-backup.md`
 
@@ -1229,8 +1243,17 @@ Add assertions that:
 `tests/ops/test_host_backup_container_contract.sh` must assert:
 
 - the container image wraps the same `ops/host-backup/run-devspace-backup.sh` entrypoint;
-- the cron file schedules the alternating half-hour host backup cadence;
+- the cron file schedules `30 * * * *`;
 - the runner writes logs under the host state root instead of the repo.
+
+- [ ] **Step 2B: Add a failing manual-backup pipeline contract test**
+
+`tests/devspace/test_backup_pipeline_contract.sh` must assert:
+
+- `devspace run-pipeline backup` exists in phase 2;
+- the pipeline dispatches to the shared host backup contract used by `ops/host-backup/run-devspace-backup.sh`;
+- backup reports fresh-or-stale status;
+- backup hard-fails on pull or `restic` failure.
 
 - [ ] **Step 3: Run RED**
 
@@ -1240,6 +1263,7 @@ Run:
 bash tests/opencode/test_host_pull_and_restic_backup.sh
 bash tests/ops/test_host_backup_runner.sh
 bash tests/ops/test_host_backup_container_contract.sh
+bash tests/devspace/test_backup_pipeline_contract.sh
 ```
 
 Expected: fail because the host backup script and runner sources do not exist yet.
@@ -1258,8 +1282,10 @@ Implementation contract:
 
 The runbook and task implementation must document the staggered phase-2 schedule:
 
-- cluster CronJob stages every 30 minutes;
-- host-side scheduled backup runs on the alternating half-hour cadence between staging runs.
+- cluster CronJob stages at minute 0 of every hour (cron: `0 * * * *`);
+- host-side scheduled backup runs at minute 30 of every hour (cron: `30 * * * *`);
+
+These cadences ensure staging and backup alternate every 30 minutes (staging at :00, backup at :30).
 
 Do not require agents to install host services. The repo must contain the host-runner source and container assets so humans can deploy the scheduler manually on the host.
 
@@ -1271,6 +1297,7 @@ Run:
 bash tests/opencode/test_host_pull_and_restic_backup.sh
 bash tests/ops/test_host_backup_runner.sh
 bash tests/ops/test_host_backup_container_contract.sh
+bash tests/devspace/test_backup_pipeline_contract.sh
 ```
 
 Expected: pass, including the stale-warning and repeated-stale-warning paths.
@@ -1278,7 +1305,7 @@ Expected: pass, including the stale-warning and repeated-stale-warning paths.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add scripts/host-pull-and-restic-backup.sh ops/host-backup/run-devspace-backup.sh ops/host-backup/container/Containerfile ops/host-backup/container/entrypoint.sh ops/host-backup/container/crontab tests/opencode/test_host_pull_and_restic_backup.sh tests/ops/test_host_backup_runner.sh tests/ops/test_host_backup_container_contract.sh devspace.yaml docs/superpowers/runbooks/devspace-staging-and-backup.md
+git add scripts/host-pull-and-restic-backup.sh ops/host-backup/run-devspace-backup.sh ops/host-backup/container/Containerfile ops/host-backup/container/entrypoint.sh ops/host-backup/container/crontab tests/opencode/test_host_pull_and_restic_backup.sh tests/ops/test_host_backup_runner.sh tests/ops/test_host_backup_container_contract.sh tests/devspace/test_backup_pipeline_contract.sh devspace.yaml docs/superpowers/runbooks/devspace-staging-and-backup.md
 git commit -m "feat(backup): add scheduled host runner and restic snapshot flow"
 ```
 
