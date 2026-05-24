@@ -5,4 +5,4 @@
 .opencode
 
 # Backup files
-**/*.bak.*
+**/*.bak.*.worktrees
