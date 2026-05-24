@@ -13,7 +13,7 @@
 ## Inputs and approval basis
 
 - Primary design spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-design.md` at commits `d069cf5` and `3455f13`.
-- Acceptance checklist: `docs/superpowers/plans/2026-05-24-acceptance-tests-devspace-bare-hub.md` at commits `f1d2aff` and `2a17725`.
+- Acceptance checklist: `docs/superpowers/plans/2026-05-24-acceptance-tests-devspace-bare-hub.md` at commits `f1d2aff`, `2a17725`, and `c242b4d`.
 - Prior plan to reuse where still valid: `docs/superpowers/plans/2026-05-21-bare-hub-manager.md`.
 - This document replaces the older plan as the active implementation plan for this feature set, but the older plan remains in the repo for reference and verbatim reuse tracking.
 
@@ -192,6 +192,7 @@ Those assumptions were superseded by the approved DevSpace design and must not r
 - Create: `tests/opencode/test_host_pull_and_restic_backup.sh`
 - Create: `tests/ops/test_host_backup_runner.sh`
 - Create: `tests/ops/test_host_backup_container_contract.sh`
+- Create: `tests/devspace/test_backup_pipeline_contract.sh`
 - Create: `tests/opencode/test_recover_opencode_sessions.sh`
 - Create: `docs/superpowers/runbooks/devspace-staging-and-backup.md`
 
@@ -458,7 +459,8 @@ systemctl --user list-timers devspace-bare-hub-backup.timer
 Host-runner verification commands:
 
 ```bash
-podman logs devspace-bare-hub-backup | tail -n 20
+CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-podman}"
+$CONTAINER_RUNTIME logs devspace-bare-hub-backup | tail -n 20
 test -f "$HOME/.local/state/devspace-bare-hub/backup-stage/current/state/backup/staging/latest.json" || true
 bash ops/host-backup/run-devspace-backup.sh --once --env-file "$HOME/.config/devspace-bare-hub/backup.env"
 ```
@@ -505,9 +507,11 @@ restic snapshots
 | G. `repair` behavior | Task 4 | non-destructive structural recovery only |
 | H. `destroy` behavior | Task 4 | delete Deployment/PVC, then reprovision cleanly |
 | I. Child repo onboarding | Task 5 | public repos only, repo-derived name, `origin/main` only |
-| J. Periodic staging | Tasks 6, 7, 8 | export + stage + CronJob + manual trigger |
+| J. Periodic staging | Tasks 7, 8 | staging status + CronJob + manual trigger |
 | K. Backup command and host pull | Tasks 8, 9 | `staging` and `backup` pipelines, scheduled host runner, host pull + `restic` |
-| L. Backup visibility and recovery signal | Tasks 7, 8, 9, 10 | status file, logs, stale warning, recovery |
+| L. Backup visibility and recovery signal | Tasks 7, 8, 9 | status file, job logs, stale warning, and deferred-path documentation |
+| M. OpenCode session export deliverable | Task 6 | separate export deliverable under `state/opencode/exported_sessions/` |
+| N. OpenCode session recovery deliverable | Task 10 | separate recovery deliverable restoring readable export artifacts plus workflow |
 
 ---
 
@@ -1023,13 +1027,15 @@ Phase-1 rollback order if the slice must be backed out:
 
 ## Phase 2 — Deferred staging and backup
 
-> **Traceability gate:** The current approved spec and acceptance checklist explicitly cover staging status, host pull, `restic`, and visibility, but they do not yet name OpenCode session export/recovery as separate acceptance deliverables. Do not start Tasks 6 or 10 until that approval is added, or remove them from the active plan scope for this slice.
+> **Traceability gate:** The approved spec and acceptance checklist now treat OpenCode session export (section M) and OpenCode session recovery (section N) as separate phase-2 deliverables. Keep Task 6 independently testable from host pull + `restic`, and keep Task 10 independently testable from full workspace rebuild or exact live-session resumability.
+>
+> **Plan-authoritative schedule lock:** Where older spec or acceptance wording says "every 30 minutes" or "alternating half-hour cadence," implement the locked schedule defined in this plan: staging at minute 0 of every hour (`0 * * * *`) and host backup at minute 30 of every hour (`30 * * * *`).
 
 ### Task 6: Export OpenCode sessions into `state/opencode/exported_sessions/`
 
 **Why first in phase 2:** The exported JSON files are the durable source-of-truth artifact for session recovery and downstream backup.
 
-**Acceptance:** J1-J5, L1-L4.
+**Acceptance:** M1-M5.
 
 **Reuse source:** older Task 6 is reused without contract changes.
 
@@ -1039,8 +1045,12 @@ Phase-1 rollback order if the slice must be backed out:
 
 - [ ] **Step 1: Carry over the older failing test first**
 
-Reuse the older integration/contract test for export behavior. Keep the same mocked CLI rationale and the same guarantees:
+Reuse the older integration/contract test for export behavior, but extend it so the export remains a separate deliverable. The test must assert:
 
+- exported session artifacts are written under `state/opencode/exported_sessions/`;
+- export is runnable and verifiable without invoking host-side pull + `restic`;
+- export success/failure is visible separately from the general backup flow;
+- exported session artifacts remain readable as files after export;
 - export only valid sessions;
 - remove superseded exports for the same session id;
 - leave no temp files behind.
@@ -1057,7 +1067,12 @@ Expected: fail because `scripts/opencode-export-all-sessions.sh` does not exist 
 
 - [ ] **Step 3: Implement the reused export contract**
 
-Implementation contract is unchanged from the older plan.
+Implementation contract:
+
+- keep the older export/dedupe behavior;
+- write exported artifacts under `state/opencode/exported_sessions/`;
+- keep export as a standalone script path that does not invoke host-side pull or `restic`;
+- report export failure distinctly from later host-backup failure paths.
 
 - [ ] **Step 4: Run GREEN**
 
@@ -1080,7 +1095,7 @@ git commit -m "feat(opencode): export durable session backups"
 
 **Why second in phase 2:** The older staging contract is still right, but the new design adds visible persistent status and freshness tracking.
 
-**Acceptance:** J1-J5, K6-K8, L1-L2.
+**Acceptance:** J3-J5.
 
 **Reuse source:** older Task 7 for `prepare-state-backup-set.sh`, plus one new wrapper `workspace-staging.sh`.
 
@@ -1144,7 +1159,7 @@ git commit -m "feat(backup): add staging core and persistent status"
 
 **Why third in phase 2:** The design explicitly requires the same staging script for scheduled and manual runs.
 
-**Acceptance:** J1-J5, K2-K3, L2.
+**Acceptance:** J1-J2, K2, L2.
 
 **Files:**
 - Modify: `devspace.yaml`
@@ -1201,7 +1216,7 @@ git commit -m "feat(backup): add staging cronjob and manual pipeline"
 
 **Why fourth in phase 2:** This is the actual off-cluster durability boundary.
 
-**Acceptance:** K1-K9, L1-L4.
+**Acceptance:** K1, K3-K9, L1-L4.
 
 **Reuse source:** older Task 8, with stale/freshness warnings added.
 
@@ -1313,7 +1328,7 @@ git commit -m "feat(backup): add scheduled host runner and restic snapshot flow"
 
 **Why last:** Recovery proves that the phase-2 artifacts are useful, not just collectible.
 
-**Acceptance:** L1-L4.
+**Acceptance:** N1-N5.
 
 **Reuse source:** older Task 9 is reused without contract changes.
 
@@ -1324,11 +1339,13 @@ git commit -m "feat(backup): add scheduled host runner and restic snapshot flow"
 
 - [ ] **Step 1: Carry over the older failing recovery test first**
 
-Keep the same mocked `opencode import` contract:
+Keep the older newest-first recovery shape, but align the test to the current recovery deliverable contract:
 
 - newest export wins per session id;
 - duplicate older exports are skipped;
-- restore order is newest-first.
+- restore order is newest-first;
+- restored export artifacts land back under `state/opencode/exported_sessions/`;
+- success is measured by readable restored artifacts plus a documented workflow, not by live `opencode import` or exact session resumability.
 
 - [ ] **Step 2: Run RED**
 
@@ -1342,7 +1359,12 @@ Expected: fail because the recovery script does not exist yet.
 
 - [ ] **Step 3: Implement the reused recovery contract**
 
-Implementation contract is unchanged from the older plan.
+Implementation contract:
+
+- restore previously exported session artifacts from backup storage into `state/opencode/exported_sessions/`;
+- keep the older newest-first dedupe behavior where multiple exports exist for the same session id;
+- document the recovery workflow in `docs/superpowers/runbooks/devspace-staging-and-backup.md`;
+- do not require live `opencode import` or exact live-session resumability in v1.
 
 - [ ] **Step 4: Run GREEN**
 
@@ -1375,6 +1397,7 @@ bash tests/devspace/test_staging_cronjob_contract.sh
 bash tests/opencode/test_host_pull_and_restic_backup.sh
 bash tests/ops/test_host_backup_runner.sh
 bash tests/ops/test_host_backup_container_contract.sh
+bash tests/devspace/test_backup_pipeline_contract.sh
 bash tests/opencode/test_recover_opencode_sessions.sh
 devspace run-pipeline staging
 devspace run-pipeline backup
@@ -1385,8 +1408,10 @@ git diff --check
 Expected:
 
 - all shell tests print `PASS`;
+- export leaves readable artifacts under `state/opencode/exported_sessions/` before host-side pull + `restic` runs;
 - manual `staging` produces `state/backup/staging/latest.log` and `latest.json`;
 - manual `backup` reports fresh-or-stale status and, when dependencies are healthy, a successful `restic` snapshot;
+- recovery restores readable exported-session artifacts without requiring exact live-session resumability;
 - the host runner `--once` path succeeds with the same shared script used by the scheduler;
 - repeated stale staging remains warning-only by default;
 - `git diff --check` prints no output.
@@ -1407,7 +1432,7 @@ Phase-2 rollback order:
 1. **Primary bootstrap moved from host-first to in-pod provision.** The older host bootstrap scripts remain useful reference material, but they are not the acceptance path for the DevSpace workspace.
 2. **Source of truth moved from host mount to PVC-backed cluster workspace.** The workspace is no longer a mounted host checkout.
 3. **Runtime wrapper moved from DevPod to DevSpace.** DevPod-specific docs and persistence checks are intentionally not copied forward.
-4. **Phase 2 keeps the same core data contracts, but gains persistent status and freshness reporting.** This is the main functional addition beyond the older backup tasks.
+4. **Phase 2 keeps the same core data contracts, but gains persistent status/freshness reporting and separate OpenCode export/recovery deliverables.** This is the main functional addition beyond the older backup tasks.
 
 ### Retained assumptions
 
