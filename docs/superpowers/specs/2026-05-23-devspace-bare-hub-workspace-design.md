@@ -32,6 +32,27 @@ The design covers the full intended workflow replacement, but it separates imple
 - Do not make child repos authorities for `/home/vscode` config.
 - Do not require Helm packaging in v1.
 
+## Supersedes Boundary
+
+This design supersedes only the earlier assumptions that depended on host-mounted DevPod workspace deployment.
+
+### Replaced assumptions
+
+- host-first bootstrap of the editable workspace into a host directory mount
+- host-mounted source as the workspace source of truth
+- DevPod as the runtime and workspace launcher
+- the assumption that `/workspaces/dotfiles` is populated from a host directory mount
+
+### Retained assumptions
+
+- the bare-hub/worktree editing model
+- the top-level dotfiles repo as the workspace anchor
+- `install.sh` local-source behavior
+- the canonical `state/` / `tmp/` separation intent
+- host-pull backup direction as the preferred durability boundary
+
+Unless this document explicitly replaces a bare-hub-manager assumption, anything not directly tied to host-mounted DevPod workspace deployment remains in force.
+
 ## Chosen Architecture
 
 ### Authoritative repo model
@@ -54,6 +75,7 @@ The in-cluster top-level workspace is created as a fresh bare clone of that same
 - PVC usage: separate directories on the same PVC mounted to:
   - `/workspaces/dotfiles`
   - `/home/vscode`
+- Mount model: both paths are PVC subpaths on the same volume, not nested mounts
 - Default working directory: `/workspaces/dotfiles/main`
 - Image model: prebuilt, pinned image using the current Dockerfile as the basis
 - Manifest style: plain kubectl manifests in v1
@@ -81,11 +103,10 @@ The v1 DevSpace command surface is:
 - `devspace dev`
 - `devspace run-pipeline provision`
 - `devspace run-pipeline doctor`
-- `devspace run-pipeline reset`
+- `devspace run-pipeline repair`
 - `devspace run-pipeline destroy`
-- `devspace run-pipeline backup`
 
-`repair` is intentionally deferred from v1.
+`reset` and `backup` are intentionally not part of the v1 command surface.
 
 ### `devspace dev`
 
@@ -97,23 +118,71 @@ This keeps the workflow helpful without reintroducing hidden auto-bootstrap beha
 
 `provision` is explicit and runs inside the workspace pod. If needed, it first ensures the Deployment/PVC/pod exist and are running, then executes the provisioning script in-pod.
 
-Provisioning is responsible for turning an empty or resettable durable workspace into a usable bare-hub workspace.
+Provisioning is responsible for turning an empty or partially degraded durable workspace into a usable bare-hub workspace.
+
+In v1, the top-level provision source/ref contract is:
+
+- the source repository is the top-level dotfiles GitHub repo
+- the authoritative bootstrap ref is `origin/main`
+- v1 provision must refuse if `origin/main` does not exist
+- the initial attached `main` worktree is created from `origin/main`
 
 ### `doctor`
 
 `doctor` is included in v1 because it adds significant operational clarity for relatively low complexity. It is read-only and is intended to answer whether the workspace exists, is reachable, and looks provisioned.
 
+The minimum v1 `doctor` checklist is:
+
+- the workspace Deployment exists
+- the workspace PVC exists
+- the workspace pod is reachable
+- the top-level `.bare` exists and is a usable bare Git directory
+- the top-level `main` worktree exists and is attached from that bare repo
+- `work/`, `repos/`, `state/`, and `tmp/` exist
+- canonical `state/` and `tmp/` hub paths exist for the top-level `main` worktree
+- `/home/vscode` symlinks point into the top-level dotfiles worktree as expected
+
+### `repair`
+
+`repair` is the primary v1 recovery command. It is explicitly non-destructive.
+
+`repair` must not delete existing worktrees, tracked files, untracked files, or user-home content under `/home/vscode`. Its role is to make a best effort to restore the managed workspace structure around the existing PVC contents.
+
+In v1, `repair` may:
+
+- recreate missing managed directories such as `work/`, `repos/`, `state/`, and `tmp/`
+- recreate canonical `state/` and `tmp/` subdirectories if missing
+- reattach or recreate the top-level `main` worktree if the top-level bare repo is valid and `main` is missing
+- rerun `main/install.sh` to relink `/home/vscode` back to the default top-level `main` worktree
+
+In v1, `repair` must refuse rather than guess when core workspace identity is ambiguous or invalid, including cases such as:
+
+- invalid or unreadable top-level `.bare`
+- conflicting path types at managed locations
+- missing top-level repo identity that prevents safe reattachment of `main`
+
+`repair` preserves existing uncommitted changes, dirty worktrees, live session data, and other extant PVC contents on a best-effort basis by not deleting them. It does not guarantee that previously corrupted files become valid; it guarantees only that the command itself is non-destructive and focuses on structural recovery.
+
 ### `reset`
 
-`reset` keeps the PVC and rebuilds the workspace in place. It rebuilds both `/workspaces/dotfiles` and `/home/vscode`, preserving only intentionally retained exported state.
+`reset` is not implemented in v1.
+
+The name is reserved for a possible future destructive in-place rebuild command once later phases define explicit preservation boundaries and durable backup/export paths that make such a command operationally useful.
+
+In v1:
+
+- use `repair` for non-destructive recovery
+- use `destroy`, then `provision`, for a guaranteed clean rebuild from scratch
 
 ### `destroy`
 
 `destroy` deletes both the workspace Deployment/pod and the PVC. It is the true from-scratch reset path and is especially useful during setup iteration and bootstrap debugging.
 
+After `destroy`, the next `provision` behaves as a true first creation of the workspace. No preservation guarantees are made for workspace contents, `/home/vscode`, uncommitted work, live session data, or local state on the deleted PVC.
+
 ### `backup`
 
-`backup` is phase-2 host-side pull plus `restic`, not just in-pod staging.
+`backup` is not implemented in v1. It is deferred to phase 2.
 
 ## Bare-Hub Bootstrap Model
 
@@ -126,6 +195,8 @@ Provisioning uses:
 - fresh GitHub clone during provision
 - anonymous/public access in v1
 - `git clone --bare` as the initial bootstrap shape
+- `origin/main` as the only supported bootstrap ref in v1
+- refusal if `origin/main` is absent
 
 The provisioning script then:
 
@@ -150,6 +221,31 @@ The top-level hub root is administrative, not the normal editable entrypoint. No
 
 The same pattern applies recursively to child repos under `repos/*`.
 
+### Canonical `state/` and `tmp/` mapping
+
+The managed workspace uses one canonical durable root and one canonical disposable root:
+
+- durable root: `/workspaces/dotfiles/state/`
+- disposable root: `/workspaces/dotfiles/tmp/`
+
+Each managed worktree maps to one canonical key beneath both roots.
+
+Top-level examples:
+
+- `/workspaces/dotfiles/state/hub/main/`
+- `/workspaces/dotfiles/state/hub/work/<name>/`
+- `/workspaces/dotfiles/tmp/hub/main/`
+- `/workspaces/dotfiles/tmp/hub/work/<name>/`
+
+Child repo examples:
+
+- `/workspaces/dotfiles/state/repos/<repo>/main/`
+- `/workspaces/dotfiles/state/repos/<repo>/work/<name>/`
+- `/workspaces/dotfiles/tmp/repos/<repo>/main/`
+- `/workspaces/dotfiles/tmp/repos/<repo>/work/<name>/`
+
+The top-level workspace and all child repos must use this same mapping convention in v1.
+
 ## `/home/vscode` and Install Model
 
 ### Authority boundary
@@ -165,12 +261,12 @@ Only the top-level dotfiles repo may drive `/home/vscode` configuration. Child r
 
 This preserves the existing “live config from the active worktree” behavior and supports policy/config branch work in the top-level dotfiles hub.
 
-### Persistence and reset semantics
+### Persistence and lifecycle semantics
 
 `/home/vscode` and `/workspaces/dotfiles` share one durable lifecycle. In practice, v1 uses one PVC, but the important user-facing behavior is:
 
 - normal stop/start keeps both
-- `reset` rebuilds both while keeping the PVC
+- `repair` keeps both in place and attempts non-destructive structural recovery
 - `destroy` deletes both by deleting the PVC
 
 This intentionally makes non-pushed home-directory changes disposable when a workspace is truly destroyed.
@@ -194,6 +290,8 @@ The onboarding script creates a child bare hub under `repos/<name>` and applies 
 - `repos/<name>/work/`
 - matching `state/` and `tmp/` paths under the canonical shared tree
 
+In v1, child onboarding uses `origin/main` as the only supported source ref. `add-repo` must refuse if `origin/main` is absent.
+
 The top-level dotfiles repo remains the only `/home/vscode` authority even after child repos are added.
 
 ## Backup and Export Architecture
@@ -215,8 +313,9 @@ This remains the primary durability path because it better addresses cluster-los
 ### Timing and responsibility split
 
 - periodic in-pod staging every 30 minutes
-- primary user-facing `backup` command = host-side pull + `restic`
-- manual staging-only trigger required for debugging/verification in phase 2, but not required in the v1 command surface
+- phase-2 user-facing commands are expected to include `devspace run-pipeline staging` and `devspace run-pipeline backup`
+- primary phase-2 `backup` command = host-side pull + `restic`
+- manual staging-only trigger required for debugging/verification in phase 2
 
 ### Periodic staging trigger
 
@@ -304,7 +403,7 @@ Rejected. Symlink-first better matches the existing dotfiles workflow and preser
 - broker implementation and broker manifests
 - private repo bootstrap/auth
 - multiple named workspace instances
-- `repair` command
+- `reset` as a destructive in-place rebuild command
 - always-on SSH service in the workspace
 - Helm packaging
 - StatefulSet migration
@@ -318,7 +417,7 @@ The following remain intentionally open for the planning stage:
 1. Exact manifest decomposition and file layout
 2. Exact single-PVC mount/subPath implementation
 3. Exact `doctor` checks, output mode, and failure boundaries
-4. Exact reset preservation path contract
+4. Exact `repair` refusal boundaries and recovery limits
 5. Exact `add-repo` CLI/interface and refusal behavior
 6. Exact provision idempotency/refusal boundaries for partial states
 7. Exact host-side backup staging path, freshness checks, and failure semantics
@@ -331,7 +430,7 @@ The following remain intentionally open for the planning stage:
 - explicit provision flow
 - top-level dotfiles bare-hub bootstrap
 - symlink-first `/home/vscode` model
-- `doctor`, `reset`, `destroy`
+- `doctor`, `repair`, `destroy`
 - public child-repo onboarding
 
 ### Phase 2
@@ -339,6 +438,7 @@ The following remain intentionally open for the planning stage:
 - periodic in-pod staging
 - Kubernetes CronJob for staging
 - manual one-shot staging trigger
+- `staging` and `backup` command surface
 - host-side pull + `restic`
 
 ## Pragmatic Assessment
@@ -347,6 +447,6 @@ Current design score: **8.5/10**
 
 Remaining work to reach 10/10 is mostly about tightening operational contracts rather than changing architecture:
 
-1. Make reset/provision refusal boundaries explicit in the plan
+1. Make repair/provision refusal boundaries explicit in the plan
 2. Make `doctor` output and checks explicit in the plan
 3. Make host backup freshness and failure semantics explicit in the plan
