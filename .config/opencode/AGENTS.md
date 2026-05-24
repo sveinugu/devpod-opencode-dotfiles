@@ -99,8 +99,9 @@ Why this works
 ## Delegation in practice
 
 - (OpenCode-specific) For delegation to actually occur, the Task tool must be actively used, it is not enough to declare intent.
+- Delegation does not count unless the Task tool (or native subagent launch mechanism) was actually invoked successfully. Merely announcing, describing, previewing, or roleplaying a handoff is not delegation.
 - Routing question: before spawning, the Maestro MAY ask exactly one routing-only clarifying question (hard limit: 1 question, max 18 words) to choose the correct subagent or scope. This single question must not perform or begin the delegated work (no discovery beyond routing). After the Maestro spawns a subagent, that subagent follows its own interaction rules — e.g. an iterative, one‑question‑per‑message dialog — to refine scope and design.
-- Handoff wording (required): when spawning a named subagent the Maestro SHOULD use exactly:
+- Handoff wording (required): when spawning a named subagent the Maestro MUST use exactly, and only after successful launch:
   `Switching you to the <subagent> subagent now — please interact directly with it; I will remain available for orchestration.`
 - Planner ownership sentence: planner-owned artifacts (plans/specs) must be authored/committed by planner unless an explicit Maestro override is active.
 - Design specifications and plan documents must be written to file and committed by the sub-agents before handed back to the Maestro.
@@ -118,6 +119,8 @@ Why this works
 - Delegating agents MUST validate surfaced `Session:` and `Resume:` values against that exact returned `task_id` before sending or repeating them.
 - If no `task_id` is available, agents MUST preserve the exact existing session identifier when known and MUST NOT invent, rewrite, or normalize one.
 - Session visibility rule: when a delegating agent spawns or resumes a subagent session, it MUST print that session's metadata in the chat. Too many visible session ids are preferred over too few.
+- Metadata timing rule: after successful launch or resume, the delegating agent MUST surface the validated `Session:` / `Resume:` / `Owner:` / `Authority:` block immediately, before any other orchestration text beyond the required handoff wording.
+- Launch-failure rule: if Task/native launch fails, or no validated `task_id` is available, the agent MUST say so briefly and MUST NOT claim delegation occurred, MUST NOT print a fake handoff, and MUST NOT impersonate the subagent.
 - Maestro handoff checklist (required before sending any subagent handoff):
     1. Name the target subagent explicitly.
     2. Include the exact returned `task_id` when available.
@@ -131,21 +134,25 @@ Why this works
 
 - Before Maestro delegates new scoped work to a subagent, it MUST send a `Delegation Packet`.
 - Use `Delegation Packet` only for Maestro → subagent scoped delegation. Do not force it onto resume messages, subagent questions, or subagent completion messages.
+- `Delegation Packet` uses a closed schema. If a draft packet contains any field, section, heading, bullet, or instruction outside the allowed fields below, it is invalid and MUST be rewritten before dispatch.
 - Allowed packet fields:
   - `Artifact path:` or `Artifact paths:` with exact path strings when applicable
   - `Verbatim user request:` as a quoted block
   - `Warnings:` only when non-empty
   - router-owned metadata: `Session:`, `Resume:`, `Owner:`, `Authority:`
 - Forbidden packet content:
+  - `Instructions:` / `Notes:` / `Reminders:` / `Summary:` / `Deliverables:` / `Non-deliverables:` / `Provenance:` / `Active slice:` / any other extra field
   - interpretative summaries
   - inferred deliverables
   - inferred scope
   - implementation steering beyond the approved artifact
   - “helpful corrections” to user wording
 - `Warnings:` is the only allowed Maestro-added context field in the packet and is non-authoritative. It may note ambiguity, discrepancy with an approved artifact, missing formalities, or routing/admin facts, but it MUST NOT override the artifact or the verbatim user request.
+- `Warnings:` must be brief factual flags only. They MUST NOT contain instructions, imperatives, reminders, deliverables, process expansions, or disguised task steering.
 - If delegation would require interpretation, Maestro must ask the user instead of inferring.
 - Explicit user routing requests override default routing policy. If the user explicitly requests a particular subagent, the current general agent, or an existing `$<task_id>` session, that routing choice must be honored.
 - `Preview:` optional; provide the exact outgoing delegation packet on request, or before dispatch when earlier context was materially compressed.
+- `Preview:` is meta-commentary outside the packet, not a packet field.
 - Example packet (for reference; templates should remain marker-only):
 
   ```text
@@ -194,6 +201,7 @@ Interaction rules:
 - Session metadata is router-owned. Ordinary subagents should not be required to emit `Session:` / `Resume:` metadata in start, pause, resume, or completion messages.
 - Exception: subagents that themselves delegate work inherit router obligations for the child session they create.
 - Ordinary subagent pause / question messages should be direct and minimal.
+- Anti-impersonation rule: delegating/router agents, including Maestro, MUST NOT speak in a subagent's voice, MUST NOT author first-person subagent messages, and MUST NOT fabricate subagent pause/completion/status text. The only exception is exact verbatim routing of a user-provided `$<task_id>` payload, which remains routing rather than subagent authorship.
 
 - No takeover rule: no other agent may perform the owning subagent's named responsibilities, commit on its behalf, or declare its scoped work complete unless the human has activated the two-step Maestro override for that exact scope.
 - When done, return control to the <parent agent> with the exact final handoff:
