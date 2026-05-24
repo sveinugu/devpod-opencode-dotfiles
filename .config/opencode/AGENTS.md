@@ -92,6 +92,11 @@ Why this works
 
 # Subagent delegation
 
+- `/workspaces/dotfiles` is a manager hub, not a normal checkout.
+- Agents MUST treat `/workspaces/dotfiles/main` or another explicit worktree path as the editable repository root.
+- Child repos under `repos/` follow the same pattern; `repos/omnipy/main` and `repos/omnipy/work/feature-example` are the reference examples.
+- Refused — hub-root CWD detected. Provide explicit worktree path.
+
 ## Core principle of delegating responsibility:
 
 - If a responsibility or skill in repo docs or agent specs is assigned to a named subagent, the parent agent MUST spawn that subagent to perform the work.
