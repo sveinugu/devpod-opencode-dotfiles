@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dotfiles-workspace
+  labels:
+    app.kubernetes.io/name: dotfiles-workspace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dotfiles-workspace
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dotfiles-workspace
+    spec:
+      containers:
+        - name: workspace
+          image: devspace-bare-hub:task1-20260524
+          imagePullPolicy: IfNotPresent
+          workingDir: /workspaces/dotfiles/main
+          command:
+            - sh
+            - -lc
+            - sleep infinity
+          volumeMounts:
+            - name: workspace-storage
+              mountPath: /workspaces/dotfiles
+              subPath: workspace-root
+            - name: workspace-storage
+              mountPath: /home/vscode
+              subPath: home-vscode
+      volumes:
+        - name: workspace-storage
+          persistentVolumeClaim:
+            claimName: dotfiles-workspace
