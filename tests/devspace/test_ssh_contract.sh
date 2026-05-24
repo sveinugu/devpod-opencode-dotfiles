@@ -11,16 +11,16 @@ cfg="$repo_root/devspace.yaml"
 
 [ -f "$cfg" ] || fail "devspace.yaml not found"
 
-# Task-1/Task-3 shared SSH contract placeholder.
-# In Task 1, this validates static config contracts and records host-side
-# acceptance steps that Task 3 will execute against a running dev session.
+# Task-1/Task-3 SSH static contract.
+# This test validates that DevSpace SSH is configured statically in devspace.yaml
+# and records host-side acceptance steps for live verification.
 
 grep -Eq '^\s*ssh:\s*$' "$cfg" || fail "missing ssh section"
 grep -Eq '^\s*enabled:\s*true\s*$' "$cfg" || fail "missing ssh.enabled: true"
 grep -Eq '^\s*useInclude:\s*true\s*$' "$cfg" || fail "missing ssh.useInclude: true"
 
 cat <<'EOF'
-Task 1/3 SSH acceptance placeholder (host-side completion required):
+Task 1/3 SSH acceptance contract (host-side completion required):
 - expected key path: $HOME/.devspace/ssh/id_devspace_rsa
 - expected host alias: workspace.dotfiles.devspace
 - SSH must use DevSpace-managed localhost tunnel/port-forward
