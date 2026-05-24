@@ -14,6 +14,7 @@
       "*": "ask",
       "ls *": "allow",
       "cat *": "allow",
+      "echo *": "allow",
       "grep *": "allow",
       "find *": "allow",
       "sort *": "allow",
