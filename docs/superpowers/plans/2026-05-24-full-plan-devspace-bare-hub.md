@@ -133,7 +133,7 @@ Those assumptions were superseded by the approved DevSpace design and must not r
 - Create: `k8s/devspace-bare-hub/workspace-deployment.yaml`
 - Create: `tests/devspace/test_devspace_command_surface.sh`
 - Create: `tests/devspace/test_workspace_manifest_contract.sh`
-- Create: `tests/devspace/test_devspace_ssh_contract.sh`
+- Create: `tests/devspace/test_ssh_contract.sh`
 
 #### Shared bare-hub core and provision flow
 - Create: `scripts/lib/hub-repo-core.sh`
@@ -190,7 +190,8 @@ Those assumptions were superseded by the approved DevSpace design and must not r
 - Create: `ops/host-backup/container/crontab`
 - Create: `scripts/recover-opencode-sessions.sh`
 - Create: `tests/opencode/test_host_pull_and_restic_backup.sh`
-- Create: `tests/ops/test_host_backup_runner.sh`
+- Create: `tests/opencode/test_host_backup_runner_contract.sh`
+- Create: `tests/opencode/test_stale_staging_behavior.sh`
 - Create: `tests/ops/test_host_backup_container_contract.sh`
 - Create: `tests/devspace/test_backup_pipeline_contract.sh`
 - Create: `tests/opencode/test_recover_opencode_sessions.sh`
@@ -298,7 +299,7 @@ Inside that worktree, prefer these local checks:
 ```bash
 bash tests/devspace/test_devspace_command_surface.sh
 bash tests/devspace/test_workspace_manifest_contract.sh
-bash tests/devspace/test_devspace_ssh_contract.sh
+bash tests/devspace/test_ssh_contract.sh
 kubectl apply --dry-run=client -f k8s/devspace-bare-hub
 devspace deploy --render > /tmp/devspace-rendered.yaml
 devspace dev --render > /tmp/devspace-dev-rendered.yaml
@@ -347,6 +348,8 @@ Expected outcomes:
 
 ### DevSpace-managed SSH details and verification
 
+This section is the plan-authoritative phase-1 SSH acceptance contract shared by Tasks 1 and 3.
+
 Implementation contract for v1:
 
 - define the primary dev config as `workspace` under a DevSpace project named `dotfiles`;
@@ -383,6 +386,13 @@ IDE guidance:
 ### Human host deployment of the scheduled backup runner
 
 Recommended default: a small containerized cron runner under user control.
+
+This is a repo-owned implementation deliverable under `ops/host-backup/`, not a docs-only note: phase 2 must ship the installable runner source that the human can activate on the host.
+
+Authoritative cadence for the full phase-2 flow:
+
+- staging inside the cluster runs at minute 0 of every hour (cron: `0 * * * *`);
+- the host-side backup runner runs at minute 30 of every hour (cron: `30 * * * *`).
 
 Why this is the default:
 
@@ -508,7 +518,7 @@ restic snapshots
 | H. `destroy` behavior | Task 4 | delete Deployment/PVC, then reprovision cleanly |
 | I. Child repo onboarding | Task 5 | public repos only, repo-derived name, `origin/main` only |
 | J. Periodic staging | Tasks 7, 8 | staging status + CronJob + manual trigger |
-| K. Backup command and host pull | Tasks 8, 9 | `staging` and `backup` pipelines, scheduled host runner, host pull + `restic` |
+| K. Backup command and host pull | Tasks 8, 9 | `staging` and `backup` pipelines, staging at `0 * * * *`, scheduled host runner at `30 * * * *`, host pull + `restic` |
 | L. Backup visibility and recovery signal | Tasks 7, 8, 9 | status file, job logs, stale warning, and deferred-path documentation |
 | M. OpenCode session export deliverable | Task 6 (GATED) | separate export deliverable under `state/opencode/exported_sessions/` |
 | N. OpenCode session recovery deliverable | Task 10 (GATED) | separate recovery deliverable restoring readable export artifacts plus workflow |
@@ -519,7 +529,7 @@ restic snapshots
 
 | Task | Plan owner | Execution owner | Planner → implementer handoff point |
 | --- | --- | --- | --- |
-| 1 | planner | implementer | Start once this plan is approved; no production edits before failing tests exist for command surface + manifests |
+| 1 | planner | implementer | Start once this plan is approved; no production edits before failing tests exist for command surface + manifests; `destroy` behavior acceptance stays with Task 4 |
 | 2 | planner | implementer | Start after Task 1 commit; install/policy contracts must be green before Task 3 invokes `main/install.sh` |
 | 3 | planner | implementer | Start after Task 2 commit; this task creates the usable top-level workspace |
 | 4 | planner | implementer | Start after Task 3 commit; `doctor` / `repair` / `destroy` depend on a valid provisioned workspace contract |
@@ -569,13 +579,15 @@ Working estimate: **~6 implementation days for phase 1** and **~4 implementation
 
 **Acceptance:** A1-A6, C1-C3.
 
+**Boundary:** this task owns the DevSpace command surface and SSH wiring surface only; `destroy` behavior acceptance remains owned by Task 4.
+
 **Files:**
 - Create: `devspace.yaml`
 - Create: `k8s/devspace-bare-hub/workspace-pvc.yaml`
 - Create: `k8s/devspace-bare-hub/workspace-deployment.yaml`
 - Test: `tests/devspace/test_devspace_command_surface.sh`
 - Test: `tests/devspace/test_workspace_manifest_contract.sh`
-- Test: `tests/devspace/test_devspace_ssh_contract.sh`
+- Test: `tests/devspace/test_ssh_contract.sh`
 
 - [ ] **Step 1: Write the failing command-surface test first**
 
@@ -599,15 +611,26 @@ Working estimate: **~6 implementation days for phase 1** and **~4 implementation
 - one PVC volume mounted at `/workspaces/dotfiles` with `subPath: workspace-root`;
 - the same PVC mounted at `/home/vscode` with `subPath: home-vscode`.
 
-- [ ] **Step 2A: Write the failing DevSpace SSH contract test**
+- [ ] **Step 2A: Write the failing DevSpace-managed SSH acceptance placeholder**
 
-`tests/devspace/test_devspace_ssh_contract.sh` should fail until the SSH config exists in `devspace.yaml` and must assert:
+`tests/devspace/test_ssh_contract.sh` should start as a failing contract placeholder and must spell out these exact checks for the Task-1/Task-3 SSH path:
 
-- the primary dev config exposes `ssh.enabled: true`;
+- `devspace.yaml` exposes `ssh.enabled: true`;
 - `ssh.useInclude: true` is enabled so DevSpace writes `~/.ssh/devspace_config` entries when supported;
+- the expected DevSpace-managed key path is `$HOME/.devspace/ssh/id_devspace_rsa`;
 - the local hostname/alias resolves to `workspace.dotfiles.devspace`;
 - the SSH path relies on a DevSpace-managed localhost tunnel/port-forward and not on cluster-exposed network reachability;
-- the plan does not add a Kubernetes `Service`/NodePort/LoadBalancer for SSH because DevSpace reaches the injected SSH helper via local tunnel/port-forward.
+- no Kubernetes `Service`/NodePort/LoadBalancer is added for SSH because DevSpace reaches the injected SSH helper via local tunnel/port-forward.
+
+The same placeholder must also record the host-side acceptance steps that Task 3 will complete:
+
+1. run `devspace run-pipeline provision`;
+2. run `devspace dev` on the host;
+3. verify the DevSpace-managed key exists under `~/.devspace/ssh/` and the alias exists in `~/.ssh/devspace_config` or `~/.ssh/config`;
+4. run `ssh -o BatchMode=yes workspace.dotfiles.devspace 'pwd'`;
+5. run `ssh -o BatchMode=yes workspace.dotfiles.devspace 'test -d /workspaces/dotfiles/main && printf ok\n'`.
+
+Expected outcomes recorded in the placeholder: the key-handling path is documented, the alias is present, the SSH session reaches the provisioned workspace through the DevSpace-provided tunnel/port-forward, `pwd` prints `/workspaces/dotfiles/main`, the directory check prints `ok`, and no standalone SSH Service exists.
 
 - [ ] **Step 3: Run RED**
 
@@ -616,7 +639,7 @@ Run:
 ```bash
 bash tests/devspace/test_devspace_command_surface.sh
 bash tests/devspace/test_workspace_manifest_contract.sh
-bash tests/devspace/test_devspace_ssh_contract.sh
+bash tests/devspace/test_ssh_contract.sh
 ```
 
 Expected: all fail because the DevSpace and manifest files do not exist yet.
@@ -638,7 +661,7 @@ Run the three tests again and then a manifest sanity pass:
 ```bash
 bash tests/devspace/test_devspace_command_surface.sh
 bash tests/devspace/test_workspace_manifest_contract.sh
-bash tests/devspace/test_devspace_ssh_contract.sh
+bash tests/devspace/test_ssh_contract.sh
 kubectl apply --dry-run=client -f k8s/devspace-bare-hub
 ```
 
@@ -650,6 +673,7 @@ Run after `devspace dev` starts on the host:
 
 ```bash
 test -f "$HOME/.devspace/ssh/id_devspace_rsa"
+grep -F "Host workspace.dotfiles.devspace" "$HOME/.ssh/devspace_config" || grep -F "Host workspace.dotfiles.devspace" "$HOME/.ssh/config"
 ssh -o BatchMode=yes workspace.dotfiles.devspace 'pwd'
 ssh -o BatchMode=yes workspace.dotfiles.devspace 'test -d /workspaces/dotfiles/main && printf ok\n'
 ```
@@ -664,7 +688,7 @@ ok
 - [ ] **Step 6: Commit**
 
 ```bash
-git add devspace.yaml k8s/devspace-bare-hub/workspace-pvc.yaml k8s/devspace-bare-hub/workspace-deployment.yaml tests/devspace/test_devspace_command_surface.sh tests/devspace/test_workspace_manifest_contract.sh tests/devspace/test_devspace_ssh_contract.sh
+git add devspace.yaml k8s/devspace-bare-hub/workspace-pvc.yaml k8s/devspace-bare-hub/workspace-deployment.yaml tests/devspace/test_devspace_command_surface.sh tests/devspace/test_workspace_manifest_contract.sh tests/devspace/test_ssh_contract.sh
 git commit -m "feat(devspace): add workspace command surface and manifests"
 ```
 
@@ -755,6 +779,7 @@ git commit -m "feat(workspace): carry forward install and bare-hub guardrails"
 - Modify: `devspace.yaml`
 - Test: `tests/devspace/test_workspace_provision.sh`
 - Test: `tests/devspace/test_devspace_dev_preflight.sh`
+- Test: `tests/devspace/test_ssh_contract.sh`
 
 - [ ] **Step 1: Write the failing provision tests first**
 
@@ -792,6 +817,7 @@ Implementation contract:
 - The top-level provision source is the public dotfiles repo, cloned bare in-pod.
 - V1 supports only `origin/main`; do not add branch configurability.
 - The script must create `state/hub/main/` and `tmp/hub/main/` immediately after attaching `main`.
+- Task 1's SSH placeholder must become a real acceptance path here: once `devspace dev` is active on the host, the DevSpace-managed alias must reach `/workspaces/dotfiles/main` without adding a standalone SSH Service.
 
 - [ ] **Step 4: Wire the DevSpace pipelines**
 
@@ -814,6 +840,20 @@ devspace run-pipeline doctor || true
 
 Expected: both tests pass; `provision` creates the workspace; `doctor` is now able to report a provisioned workspace once Task 4 lands.
 
+- [ ] **Step 5A: Complete the SSH acceptance path against the provisioned workspace**
+
+Run from the host after `devspace run-pipeline provision` and `devspace dev`:
+
+```bash
+bash tests/devspace/test_ssh_contract.sh
+test -f "$HOME/.devspace/ssh/id_devspace_rsa"
+grep -F "Host workspace.dotfiles.devspace" "$HOME/.ssh/devspace_config" || grep -F "Host workspace.dotfiles.devspace" "$HOME/.ssh/config"
+ssh -o BatchMode=yes workspace.dotfiles.devspace 'pwd'
+ssh -o BatchMode=yes workspace.dotfiles.devspace 'test -d /workspaces/dotfiles/main && printf ok\n'
+```
+
+Expected: the SSH contract test passes, the DevSpace-managed key and alias exist locally, `pwd` prints `/workspaces/dotfiles/main`, and the directory check prints `ok` through the DevSpace-managed tunnel/port-forward.
+
 - [ ] **Step 6: Commit**
 
 ```bash
@@ -822,6 +862,8 @@ git commit -m "feat(workspace): provision top-level devspace bare hub"
 ```
 
 **Manual review gate:** human runs `devspace run-pipeline provision` and then `devspace dev` to confirm the default directory is `/workspaces/dotfiles/main`.
+
+The same manual gate must also confirm the Task-1/Task-3 SSH acceptance path with `ssh workspace.dotfiles.devspace`.
 
 **Rollback:** if the PVC contents are untrusted, run `devspace run-pipeline destroy`, then revert this task’s commit.
 
@@ -992,7 +1034,7 @@ Before claiming phase 1 complete, run:
 ```bash
 bash tests/devspace/test_devspace_command_surface.sh
 bash tests/devspace/test_workspace_manifest_contract.sh
-bash tests/devspace/test_devspace_ssh_contract.sh
+bash tests/devspace/test_ssh_contract.sh
 bash tests/install/test_install_validate_source.sh
 bash tests/install/test_install_local_source_contract.sh
 bash tests/docs/test_bare_hub_guardrails.sh
@@ -1005,6 +1047,7 @@ bash tests/devspace/test_create_hub_repo.sh
 devspace run-pipeline provision
 devspace run-pipeline doctor
 devspace dev
+test -f "$HOME/.devspace/ssh/id_devspace_rsa"
 ssh -o BatchMode=yes workspace.dotfiles.devspace 'pwd'
 git diff --check
 ```
@@ -1227,7 +1270,8 @@ git commit -m "feat(backup): add staging cronjob and manual pipeline"
 - Create: `ops/host-backup/container/entrypoint.sh`
 - Create: `ops/host-backup/container/crontab`
 - Test: `tests/opencode/test_host_pull_and_restic_backup.sh`
-- Test: `tests/ops/test_host_backup_runner.sh`
+- Test: `tests/opencode/test_host_backup_runner_contract.sh`
+- Test: `tests/opencode/test_stale_staging_behavior.sh`
 - Test: `tests/ops/test_host_backup_container_contract.sh`
 - Test: `tests/devspace/test_backup_pipeline_contract.sh`
 - Modify: `devspace.yaml`
@@ -1243,17 +1287,26 @@ Add assertions that:
 
 - fresh staged data reports as fresh;
 - stale staged data prints a warning but does not hard-fail by default;
-- repeated stale staging still remains warning-only on the next scheduled run;
 - pull failure hard-fails;
 - `restic` failure hard-fails.
 
-- [ ] **Step 2A: Add failing tests for the host runner options and choose the default**
+- [ ] **Step 2A: Add a failing test for the installable host-runner contract**
 
-`tests/ops/test_host_backup_runner.sh` must assert:
+`tests/opencode/test_host_backup_runner_contract.sh` must assert:
 
-- `ops/host-backup/run-devspace-backup.sh --once --env-file <path>` loads the environment file, runs the shared host backup path, and exits non-zero on pull or `restic` failure;
+- the repo ships an installable host-runner option under `ops/host-backup/` that a human can activate on the host;
+- the default install path is the containerized runner using `ops/host-backup/container/Containerfile`, `entrypoint.sh`, and `crontab`;
+- the container cron schedule is `30 * * * *` and runs the shared host backup entrypoint on schedule;
+- `ops/host-backup/run-devspace-backup.sh --once --env-file <path>` loads the environment file, runs the shared host pull + `restic` path, and exits non-zero on pull or `restic` failure;
+- the Linux-only systemd fallback is documented and invokes the same shared script.
+
+- [ ] **Step 2B: Add a failing repeated-stale warning contract test**
+
+`tests/opencode/test_stale_staging_behavior.sh` must assert:
+
 - a stale staging status triggers a warning but not failure;
-- two consecutive stale runs still warn without escalating to hard failure by default.
+- repeated stale staging runs remain warning-only by default and do not escalate to hard failure on later scheduled runs;
+- warning records accumulate over time in the status/log outputs so operators can see recurring staleness.
 
 `tests/ops/test_host_backup_container_contract.sh` must assert:
 
@@ -1261,7 +1314,7 @@ Add assertions that:
 - the cron file schedules `30 * * * *`;
 - the runner writes logs under the host state root instead of the repo.
 
-- [ ] **Step 2B: Add a failing manual-backup pipeline contract test**
+- [ ] **Step 2C: Add a failing manual-backup pipeline contract test**
 
 `tests/devspace/test_backup_pipeline_contract.sh` must assert:
 
@@ -1276,7 +1329,8 @@ Run:
 
 ```bash
 bash tests/opencode/test_host_pull_and_restic_backup.sh
-bash tests/ops/test_host_backup_runner.sh
+bash tests/opencode/test_host_backup_runner_contract.sh
+bash tests/opencode/test_stale_staging_behavior.sh
 bash tests/ops/test_host_backup_container_contract.sh
 bash tests/devspace/test_backup_pipeline_contract.sh
 ```
@@ -1291,7 +1345,8 @@ Implementation contract:
 - freshness is computed from the persistent status artifact written by `workspace-staging.sh`;
 - stale data warns by default, as required by the approved design.
 - the shared host entrypoint is `ops/host-backup/run-devspace-backup.sh` and must be used by both the recommended scheduled runner and manual `--once` execution.
-- the recommended scheduled runner is the small containerized cron runner; the runbook may also include a Linux-only user-level systemd timer example as fallback.
+- the recommended scheduled runner is the small containerized cron runner shipped under `ops/host-backup/`; the runbook may also include a Linux-only user-level systemd timer example as fallback.
+- phase 2 must implement the installable host-runner source in the repo; only activation on the human's host remains manual.
 
 - [ ] **Step 5: Wire the manual DevSpace backup command and document the authoritative schedule**
 
@@ -1305,7 +1360,8 @@ Run:
 
 ```bash
 bash tests/opencode/test_host_pull_and_restic_backup.sh
-bash tests/ops/test_host_backup_runner.sh
+bash tests/opencode/test_host_backup_runner_contract.sh
+bash tests/opencode/test_stale_staging_behavior.sh
 bash tests/ops/test_host_backup_container_contract.sh
 bash tests/devspace/test_backup_pipeline_contract.sh
 ```
@@ -1315,7 +1371,7 @@ Expected: pass, including the stale-warning and repeated-stale-warning paths.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add scripts/host-pull-and-restic-backup.sh ops/host-backup/run-devspace-backup.sh ops/host-backup/container/Containerfile ops/host-backup/container/entrypoint.sh ops/host-backup/container/crontab tests/opencode/test_host_pull_and_restic_backup.sh tests/ops/test_host_backup_runner.sh tests/ops/test_host_backup_container_contract.sh tests/devspace/test_backup_pipeline_contract.sh devspace.yaml docs/superpowers/runbooks/devspace-staging-and-backup.md
+git add scripts/host-pull-and-restic-backup.sh ops/host-backup/run-devspace-backup.sh ops/host-backup/container/Containerfile ops/host-backup/container/entrypoint.sh ops/host-backup/container/crontab tests/opencode/test_host_pull_and_restic_backup.sh tests/opencode/test_host_backup_runner_contract.sh tests/opencode/test_stale_staging_behavior.sh tests/ops/test_host_backup_container_contract.sh tests/devspace/test_backup_pipeline_contract.sh devspace.yaml docs/superpowers/runbooks/devspace-staging-and-backup.md
 git commit -m "feat(backup): add scheduled host runner and restic snapshot flow"
 ```
 
@@ -1390,7 +1446,8 @@ bash tests/opencode/test_prepare_state_backup_set.sh
 bash tests/opencode/test_workspace_staging.sh
 bash tests/devspace/test_staging_cronjob_contract.sh
 bash tests/opencode/test_host_pull_and_restic_backup.sh
-bash tests/ops/test_host_backup_runner.sh
+bash tests/opencode/test_host_backup_runner_contract.sh
+bash tests/opencode/test_stale_staging_behavior.sh
 bash tests/ops/test_host_backup_container_contract.sh
 bash tests/devspace/test_backup_pipeline_contract.sh
 bash tests/opencode/test_recover_opencode_sessions.sh
