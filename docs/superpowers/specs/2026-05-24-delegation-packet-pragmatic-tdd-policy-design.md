@@ -15,6 +15,7 @@ Finally, the design simplifies session-metadata ownership. Routing metadata such
 
 - Make Maestro-mediated delegation lossless and non-interpretive.
 - Preserve the user as the primary source of truth for delegated work.
+- Honor explicit user routing requests even when they bypass the default delegation workflow.
 - Support pragmatic TDD with iterative user feedback and strong implementer discretion.
 - Keep plans/specs at the right level: goals, tests, constraints, risks, and user check-ins.
 - Prevent avoidable rework by requiring pauses before hard-to-reverse choices.
@@ -27,12 +28,17 @@ Finally, the design simplifies session-metadata ownership. Routing metadata such
 - Do not force all handoff-like messages to use the same packet structure.
 - Do not turn plans/specs into implementation scripts.
 - Do not prevent implementers from proposing solutions that diverge from plan details.
+- Do not allow Maestro to silently override an explicit user routing choice by substituting a different subagent or workflow.
 
 ## Core Problems To Solve
 
 ### Maestro reinterpretation drift
 
 The existing policy shape encourages Maestro to summarize and reformulate tasks during delegation. In practice this makes Maestro a second planner and a competing source of truth, even when an approved artifact and a direct user instruction already exist.
+
+### User routing intent being overridden by workflow defaults
+
+The current skill- and subagent-oriented workflow can cause Maestro to redirect work to the nominally “correct” specialist even when the user explicitly asked to route the request elsewhere. This is especially harmful when the user is intentionally choosing a less formal or less process-heavy interaction mode.
 
 ### Overdesigned planning for low-powered implementers
 
@@ -105,6 +111,19 @@ The subagent-facing payload begins immediately after the token and extends verba
 
 Maestro may optionally emit a separate routing notice to the chat UI, but must not prepend, append, normalize, or otherwise contaminate the subagent-facing payload.
 
+### 7. Explicit user routing requests override default routing policy
+
+When the user explicitly requests a particular subagent or explicitly requests that work stay with the currently engaged general agent, Maestro must honor that routing choice even if default policy would otherwise prefer a different specialist workflow.
+
+This override applies to routing choice, not to content authority. Once routed, the receiving agent still remains bound by the applicable approved artifact, user instructions, and repository policy for the scoped work.
+
+Maestro may ask at most one routing/formality question if needed to identify the intended target, but must not redirect the work to a different subagent on the grounds that the different subagent would be more specialized or more policy-typical.
+
+Example:
+
+- If the user explicitly asks to discuss a policy clarification with the general agent rather than the brainstormer or planner, Maestro must honor that request.
+- If the user explicitly routes to an existing `$ses_<task-id>` session, Maestro must route there verbatim even if another subagent would normally own that type of work.
+
 ## Planning And Implementation Policy
 
 ### 1. Approved artifact is enough to start
@@ -112,6 +131,8 @@ Maestro may optionally emit a separate routing notice to the chat UI, but must n
 If a plan, spec, acceptance-test document, or similar approved artifact already defines the task at the right level, Maestro must not require a separate execution or implementation plan by default.
 
 The approved artifact is the task reference. `Delegation Packet` only routes to it.
+
+For policy, documentation, and similarly bounded process changes, an approved spec may serve directly as the implementation authority when it already defines the work at the correct level. In those cases, Maestro may route directly from the approved spec to the implementing subagent without demanding a separate planner-authored implementation plan.
 
 ### 2. Planner artifacts should stay high-level
 
@@ -192,6 +213,29 @@ Maestro should print session metadata when:
 
 This keeps routing visibility at the layer that actually owns and knows the routing state.
 
+## Failed Resume And Recovery Alignment
+
+### 1. Failed resume handling must preserve the same authority model
+
+Any failed session-resume or manual-recovery policy should align with the same source-of-truth order and anti-interpretation rules as normal delegation.
+
+That means recovery policy should preserve:
+
+- strict `$ses_<task-id>` verbatim handling when the target session still exists
+- router-owned session metadata
+- direct user-to-subagent substantive interaction
+- no Maestro-authored reinterpretation during recovery
+
+### 2. Recovery may restore routing, not reinterpret intent
+
+If a session cannot be resumed directly and requires manual or transcript-based rehydration, the recovery procedure should restore the routing context as faithfully as possible without turning Maestro into a summarizer of the intended task.
+
+If recovery would require substantive interpretation, Maestro should ask the user rather than reconstructing intent from a paraphrase.
+
+### 3. Recovery policy should be updated alongside delegation policy
+
+Any repo policy sections covering failed resume recovery, manual rehydration, or expired-session handling should be reviewed and updated together with the delegation-packet policy so the system does not apply stricter non-interpretation rules to normal routing but looser reinterpretation rules to failure paths.
+
 ## Message Simplification
 
 ### Maestro → subagent dispatch
@@ -251,6 +295,7 @@ Stop after the first failing acceptance test and show me the interface sketch.
 - **More direct questions to the user:** this increases interaction count but reduces misdelegation and rework.
 - **Less planner detail:** some implementers may need more support, but strong implementers benefit from the freedom.
 - **Policy split by message type:** the rules become more differentiated, but also more honest and easier to follow.
+- **User-routed exceptions reduce automatic specialization:** this is intentional; explicit user routing is treated as a deliberate choice.
 
 ## Success Criteria
 
@@ -260,3 +305,6 @@ Stop after the first failing acceptance test and show me the interface sketch.
 4. Plans/specs are defined at the level of goals, tests, constraints, known risks, and `User Check-in`s rather than detailed execution steps.
 5. Ordinary subagent resume-formatting requirements are removed from policy/spec text.
 6. Maestro is required to surface session metadata at dispatch, resume, and handback boundaries.
+7. Policy allows qualified approved specs to be delegated directly for implementation without requiring a separate implementation plan.
+8. Failed session-resume recovery policy is aligned with the same non-interpretation and routing-authority rules.
+9. Explicit user routing requests are honored even when they bypass default specialist routing.
