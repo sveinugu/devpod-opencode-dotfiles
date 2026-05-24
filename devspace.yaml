@@ -1,0 +1,46 @@
+version: v2beta1
+name: dotfiles
+
+images:
+  workspace:
+    image: devspace-bare-hub:task1-20260524
+    dockerfile: ./Dockerfile
+
+deployments:
+  workspace:
+    kubectl:
+      manifests:
+        - k8s/devspace-bare-hub/workspace-pvc.yaml
+        - k8s/devspace-bare-hub/workspace-deployment.yaml
+
+dev:
+  workspace:
+    labelSelector:
+      app.kubernetes.io/name: dotfiles-workspace
+    container: workspace
+    command:
+      - sh
+      - -lc
+      - |
+        if [ ! -d /workspaces/dotfiles/.bare ] || [ ! -d /workspaces/dotfiles/main ]; then
+          echo "workspace not provisioned; run devspace run-pipeline provision" >&2
+          exit 1
+        fi
+        exec zsh
+    ssh:
+      enabled: true
+      useInclude: true
+
+pipelines:
+  provision: |-
+    run_default_pipelines deploy
+    echo "provision pipeline placeholder; Task 3 wires in-pod workspace bootstrap"
+
+  doctor: |-
+    echo "doctor pipeline placeholder; Task 4 adds checks"
+
+  repair: |-
+    echo "repair pipeline placeholder; Task 4 adds non-destructive repair"
+
+  destroy: |-
+    echo "destroy pipeline placeholder; Task 4 adds destructive cleanup"
