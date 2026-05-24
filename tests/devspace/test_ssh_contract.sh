@@ -18,6 +18,17 @@ cfg="$repo_root/devspace.yaml"
 grep -Eq '^\s*ssh:\s*$' "$cfg" || fail "missing ssh section"
 grep -Eq '^\s*enabled:\s*true\s*$' "$cfg" || fail "missing ssh.enabled: true"
 grep -Eq '^\s*useInclude:\s*true\s*$' "$cfg" || fail "missing ssh.useInclude: true"
+grep -Eq '^\s*verify-ssh:\s*\|-\s*$' "$cfg" || fail "missing verify-ssh pipeline"
+grep -F "ssh -o BatchMode=yes workspace.dotfiles.devspace 'pwd'" "$cfg" >/dev/null || fail "missing live ssh verification command in verify-ssh pipeline"
+grep -F "ssh -o BatchMode=yes workspace.dotfiles.devspace 'test -d /workspaces/dotfiles/main && printf ok" "$cfg" >/dev/null || fail "missing live ssh directory verification command in verify-ssh pipeline"
+
+if [ "${LIVE_SSH_VERIFY:-0}" = "1" ]; then
+  pwd_out="$(ssh -o BatchMode=yes workspace.dotfiles.devspace 'pwd' 2>/dev/null || true)"
+  [ "$pwd_out" = "/workspaces/dotfiles/main" ] || fail "live ssh pwd check failed"
+
+  dir_out="$(ssh -o BatchMode=yes workspace.dotfiles.devspace 'test -d /workspaces/dotfiles/main && printf ok' 2>/dev/null || true)"
+  [ "$dir_out" = "ok" ] || fail "live ssh directory check failed"
+fi
 
 cat <<'EOF'
 Task 1/3 SSH acceptance contract (host-side completion required):
