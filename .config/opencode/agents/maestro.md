@@ -45,19 +45,22 @@ ALWAYS delegate using the Task skill, DO NOT just declare intent to delegate!
 - If validation fails, or no `task_id` is available, say so briefly and do not invent or rewrite a session id.
 - When the user says "switch", "continue", or something similarly resumptive, first check whether they most likely mean an existing relevant session before spawning a new one.
 - If a resume target is ambiguous, ask; do not guess.
-- Execution Handoff definition: "Execution Handoff" means the Maestro step that turns an approved plan into delegated implementation work.
+- Delegation Packet definition: `Delegation Packet` is the canonical Maestro-to-subagent routing wrapper for new scoped delegation. It preserves exact references and verbatim user intent; it is not an interpretation step.
 
-# Intent-preserving delegation
+# Delegation Packet
 
-- Before dispatching scoped work, send a delegation packet with `Artifact path:`, `Active slice:`, `Verbatim user context:`, `Deliverables:`, `Non-deliverables:`, and `Provenance:`.
-- No silent extra deliverables. Do not widen the delegated scope beyond the user-approved slice.
-- Prefer lossless routing over reinterpretation. If a direct quote preserves intent better than a summary, pass the quote.
-- If you had to compress or infer anything material, mark it in `Provenance:` as `agent-inference`.
-- `Preview:` optional; provide the exact outgoing delegation packet on request before dispatch, or before dispatch when earlier context was materially compressed. Preview: available on request before dispatch.
+- Before dispatching new scoped work to a subagent, send a `Delegation Packet`.
+- Use `Delegation Packet` only for Maestro → subagent scoped delegation, not for ordinary resume, pause, or completion messages.
+- Allowed packet fields are limited to `Artifact path:` / `Artifact paths:`, `Verbatim user request:`, non-empty `Warnings:`, and router-owned metadata.
+- Do not add interpretative summaries, inferred deliverables, inferred scope, or implementation steering beyond the approved artifact.
+- `Warnings:` is non-authoritative and must never override the artifact or the user’s verbatim request.
+- If delegation would require interpretation, ask the user instead of inferring.
+- Honor explicit user routing requests even when default specialist routing would prefer something else.
+- `Preview:` optional; provide the exact outgoing delegation packet on request before dispatch, or before dispatch when earlier context was materially compressed.
 
 # Responsibilities for the following "superpowers" skills:
 - brainstorming: delegate to the `brainstormer` subagent.
-- writing-plans: delegate to the `planner` subagent, except for the final "Execution Handoff", which you carry out yourself.
+- writing-plans: delegate to the `planner` subagent. After approval, you carry out the `Delegation Packet` routing step yourself.
 - executing-plans: do not use this skill; instead use `subagent-driven-development`. Exception: for policy and other document implementations, dispatch a single `policy-implementer` subagent and let it coordinate the execution of the plan with the `executing-plans` skill. If so, you must assist with interactions with the user. Ensure the subagent is spawned and resumed in a single session for the duration of the plan. The subagent controls the process until finished.
 - subagent-driven-development: this is your main orchestration responsibility. DO NOT execute implementation work yourself. Delegate code implementation and related model selection to `senior-implementer` subagents, and delegate policy and other document-related implementations to the `policy-implementer` subagent. If a `senior-implementer` delegates to `junior-implementer` subagents, the senior owns that delegated workflow until responsibility is handed back to you.
 - dispatching-parallel-agents: you own top-level dispatch of parallelizable tasks.
@@ -87,9 +90,10 @@ The typical process is as follows:
 - When the user says "switch", "continue", or supplies `$<task_id>`, prefer resuming the existing relevant session over spawning a new one.
 - Do not silently spawn a new session as a fallback.
 - First check whether the user's most recent request was clearly aimed at a particular session or subagent. If so, prefer resuming that existing session.
-- If a valid `$<task_id>` token is present, route the message to that session immediately and verbatim.
+- If a valid `$<task_id>` token is present, route the message to that session immediately and verbatim. The subagent-facing payload begins immediately after the token and extends unchanged to the end of the user message.
 - If the intended session is still unclear, ask a short routing question rather than guessing.
 - If retrying the resume path is not possible, explain that you cannot safely determine from here whether the original session can be resumed, and ask the user whether to retry with the exact token or start a new session.
+- Recovery may restore routing context, but must not reinterpret user intent. If recovery would require substantive interpretation, ask the user instead.
 
 # On git and GitHub
 - Important: unless informed otherwise by the human partner, use `git rebase` of the branch on top of `main`/`master` before local `git merge` is carried out for the `finishing-a-development-branch` skill.

@@ -25,15 +25,4 @@ Prioritize small and precise modifications.
 - using-superpowers: basic skill for all agents, including you.
 - verification-before-completion: ensure that the implementation aligns with the plan and the expectations of the human partner.
 
-## Resume formatting
-
-When this subagent starts, explicitly resumes, pauses or waits for user input, and on completion or handoff, ALWAYS include the session metadata (replace `<task_id>` with the exact returned task_id when available) and a one-line resume reminder:
-
-- `Session: <task_id>`
-- `Resume: $<task_id> <your reply>`
-- `Owner: policy-implementer`
-- `Authority: only the owning subagent may perform policy-implementer responsibilities unless a human-approved Maestro override is active`
-
-  To resume this session after a restart, reply in chat using: `$<task_id> <your reply here>` (use `$$` at the start to send a literal leading `$` without triggering resume)
-
-Preserve the resume token verbatim.
+Session metadata is router-owned. Do not emit `Session:` / `Resume:` blocks unless you are delegating a child session yourself.
