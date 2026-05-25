@@ -1,5 +1,7 @@
 # DevSpace Bare Hub Usage
 
+> What changed for implementers: the legacy single-command install-checkout helper is replaced by `dhub`, `dre`, and `dwt`; child repos now keep their exact remote default branch names instead of being normalized to `main`.
+
 ## Provision and connect
 
 ```bash
@@ -87,12 +89,31 @@ Managed checkout environment behavior:
 /workspaces/dotfiles/state/hub/etc/install.env
 ```
 
-If `dd()` is not already available in your shell, `install.sh` prints a recommended helper snippet that prints the resolved install checkout before changing directories.
+## Convenience navigation commands
+
+The repo-managed shell package is the intended home for the interactive wrappers:
+
+- `dhub` → jump to `$HUB_INSTALL_BRANCH_DIR`
+- `dre <repo>` → jump to `/workspaces/dotfiles/repos/<repo>`
+- `dwt <name>` → jump to `work/<name>` inside the current managed repo context
+
+Behavior notes:
+
+- `dhub` prints the resolved install checkout before changing directories
+- `dre` excludes the top-level hub; use it only for child repos under `repos/`
+- `dwt` only works from an existing managed repo context and uses the canonical `work/` directory
+- invalid names may print a simple text `did you mean ...` hint
+- there is no compatibility `dd()` alias in v1
+- no `fzf` integration in v1
+
+## Child repo branch behavior
+
+Child onboarding preserves the child repo's exact remote default branch name. Example: if a child repo defaults to `master`, the managed checkout is `repos/<name>/master`, not `repos/<name>/main`.
 
 V1 constraints:
 
 - public source only
-- `origin/main` only
+- child repo default branch is detected from the remote and kept exactly as-is
 - `repos/<name>` is derived from the repo URL/path
 - `--name` override is not supported
 - collisions refuse (no auto-rename)
@@ -100,9 +121,9 @@ V1 constraints:
 Successful onboarding creates:
 
 - `repos/<name>/.bare`
-- `repos/<name>/main`
+- `repos/<name>/<default-branch>`
 - `repos/<name>/work/`
-- `state/repos/<name>/main/`
-- `tmp/repos/<name>/main/`
+- `state/repos/<name>/<default-branch>/`
+- `tmp/repos/<name>/<default-branch>/`
 
 Child onboarding does not change `/home/vscode` symlink authority; top-level dotfiles remains the only authority.

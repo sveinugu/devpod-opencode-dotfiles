@@ -3,7 +3,7 @@
 # Bundles interactive workspace navigation behavior for DevSpace bare-hub use:
 # - quiet direnv output while keeping explicit exports
 # - direnv zsh hook
-# - dd() helper to jump to current install checkout
+# - NOTE: the legacy dd() helper below still needs the approved rename/expansion to dhub()/dre()/dwt()
 # - one-time auto-cd on interactive shell startup
 
 export DIRENV_LOG_FORMAT=''
@@ -31,6 +31,8 @@ workspace_navigation_add_branch_bin_to_path() {
 
 workspace_navigation_add_branch_bin_to_path
 
+# Pending retrofit note: replace dd() with dhub()/dre()/dwt() per
+# docs/superpowers/plans/2026-05-24-full-plan-devspace-bare-hub.md Task 5b.
 dd() {
   local target="${HUB_INSTALL_BRANCH_DIR:-/workspaces/dotfiles/main}"
   printf 'cd -> %s\n' "$target"

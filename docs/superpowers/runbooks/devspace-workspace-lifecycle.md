@@ -1,5 +1,7 @@
 # DevSpace Workspace Lifecycle
 
+> What changed for implementers: `dd()` is replaced by `dhub`, `dre`, and `dwt`, and child repo default branches must be preserved exactly instead of being normalized to `main`.
+
 ## Doctor
 
 Run a read-only health checklist from the host:
@@ -28,7 +30,19 @@ Use these in-pod commands for managed repo/worktree setup:
 
 Managed checkouts get generated `.envrc` and `.envrc.local`. The managed `.envrc` exports `HUB_*`, `DYN_REPO_*`, and `DYN_WORKTREE_*`, sources `state/hub/etc/install.env` when present, then sources `.envrc.local`.
 
-For quick navigation to the active install checkout, `.zshrc` includes `dd()`; it prints the destination and then changes directory.
+For interactive navigation, the repo-managed shell package is expected to provide:
+
+- `dhub` for the active install checkout
+- `dre <repo>` for child repo roots under `repos/`
+- `dwt <name>` for switching to `work/<name>` inside the current managed repo context
+
+Navigation guardrails:
+
+- `dhub` prints the destination before changing directories
+- `dre` excludes the top-level hub
+- `dwt` fails outside managed repo context instead of guessing
+- invalid names may print a simple text `did you mean ...` hint
+- there is no compatibility `dd()` alias in v1
 
 ## Repair
 
@@ -55,6 +69,8 @@ cat /workspaces/dotfiles/state/hub/etc/install.env
 ```
 
 `repair` is best-effort and non-destructive; it does not delete existing files or worktrees.
+
+Child repo note: preserve the exact child remote default branch name when reconstructing or validating managed child checkouts.
 
 ## Destroy
 
