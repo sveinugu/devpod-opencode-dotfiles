@@ -44,6 +44,7 @@ zsh_custom="${ZSH_CUSTOM:-$home_dir/.oh-my-zsh/custom}"
 # Install oh-my-zsh if not already present
 oh_my_zsh_dir="$home_dir/.oh-my-zsh"
 if [ ! -f "$oh_my_zsh_dir/oh-my-zsh.sh" ]; then
+  if [ -d "$oh_my_zsh_dir" ]; then rm -rf "$oh_my_zsh_dir"; fi
   if [ "$dry_run" = true ]; then
     printf 'DRY-RUN install oh-my-zsh to %s\n' "$oh_my_zsh_dir"
   else
