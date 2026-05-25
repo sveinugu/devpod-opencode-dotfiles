@@ -8,6 +8,8 @@ fi
 
 workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
 home_dir="${HUB_HOME_DIR:-/home/vscode}"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+read_install_env_script="$script_dir/../scripts/lib/read-install-env.sh"
 
 refuse() {
   printf '%s\n' "$1" >&2
@@ -78,7 +80,10 @@ resolve_install_branch() {
 
   install_env="$workspace_root/state/hub/etc/install.env"
   if [ -f "$install_env" ]; then
-    install_branch="$(sed -n 's/^export[[:space:]]\{1,\}HUB_INSTALL_BRANCH=//p; s/^HUB_INSTALL_BRANCH=//p' "$install_env" | head -n1)"
+    if [ -x "$read_install_env_script" ]; then
+      eval "$(bash "$read_install_env_script" "$install_env")"
+    fi
+    install_branch="${HUB_INSTALL_BRANCH:-}"
     if [ -n "$install_branch" ]; then
       printf '%s\n' "$install_branch"
       return
