@@ -60,12 +60,12 @@ fi
   exit 1
 }
 
-grep -F "HUB_INSTALL_BRANCH=main" "$workspace_root/state/hub/etc/install.env" >/dev/null || {
+grep -F "export HUB_INSTALL_BRANCH=main" "$workspace_root/state/hub/etc/install.env" >/dev/null || {
   printf 'expected install.env to publish HUB_INSTALL_BRANCH=main\n' >&2
   exit 1
 }
 
-grep -F "HUB_INSTALL_BRANCH_DIR=$workspace_root/main" "$workspace_root/state/hub/etc/install.env" >/dev/null || {
+grep -F "export HUB_INSTALL_BRANCH_DIR=$workspace_root/main" "$workspace_root/state/hub/etc/install.env" >/dev/null || {
   printf 'expected install.env to publish HUB_INSTALL_BRANCH_DIR for main\n' >&2
   exit 1
 }
@@ -79,12 +79,12 @@ grep -F "DRY-RUN ln -sfn $workspace_root/main/.config/opencode $target_home/.con
   HOME="$target_home" bash "$workspace_root/work/feature-x/install.sh" --dry-run -y >"$tmpdir/feature.out"
 )
 
-grep -F "HUB_INSTALL_BRANCH=feature-x" "$workspace_root/state/hub/etc/install.env" >/dev/null || {
+grep -F "export HUB_INSTALL_BRANCH=feature-x" "$workspace_root/state/hub/etc/install.env" >/dev/null || {
   printf 'expected install.env to publish HUB_INSTALL_BRANCH for feature worktree\n' >&2
   exit 1
 }
 
-grep -F "HUB_INSTALL_BRANCH_DIR=$workspace_root/work/feature-x" "$workspace_root/state/hub/etc/install.env" >/dev/null || {
+grep -F "export HUB_INSTALL_BRANCH_DIR=$workspace_root/work/feature-x" "$workspace_root/state/hub/etc/install.env" >/dev/null || {
   printf 'expected install.env to publish HUB_INSTALL_BRANCH_DIR for feature worktree\n' >&2
   exit 1
 }
