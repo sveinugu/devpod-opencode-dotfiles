@@ -15,13 +15,20 @@ To force tool refresh during provision (pyenv + opencode):
 HUB_PROVISION_ARGS='--refresh-tools' devspace run-pipeline provision
 ```
 
-To provision a non-default bootstrap branch via environment override:
+To provision using a non-`main` install checkout via environment override:
 
 ```bash
-HUB_PROVISION_BRANCH=feature/env-override devspace run-pipeline provision
+HUB_INSTALL_BRANCH=feature/env-override devspace run-pipeline provision
 ```
 
-If `HUB_PROVISION_BRANCH` is not set, provision defaults to `main`.
+If `HUB_INSTALL_BRANCH` is not set, provision defaults to `main`.
+
+Workflow policy for dev/testing/production behavior changes:
+
+- develop policy in a non-`main` worktree
+- test with `HUB_INSTALL_BRANCH=<branch> devspace run-pipeline provision` or `repair`
+- merge to `main` for staging/testing
+- push `main` to origin for production/default behavior
 
 ## Rebuild workspace image
 
@@ -57,8 +64,30 @@ Refused — hub-root CWD detected. Provide explicit worktree path.
 From inside the workspace pod, add a child repo as a managed bare hub under `repos/<name>`:
 
 ```bash
-bash /workspaces/dotfiles/main/scripts/create-hub-repo.sh https://github.com/<owner>/<repo>.git
+/workspaces/dotfiles/main/bin/clone-repo https://github.com/<owner>/<repo>.git
 ```
+
+Create managed worktrees (top-level hub and child repos):
+
+```bash
+/workspaces/dotfiles/main/bin/new-worktree --repo hub feature/example
+/workspaces/dotfiles/main/bin/new-worktree --repo <child-repo-name> feature/example
+```
+
+Managed checkout environment behavior:
+
+- each managed checkout gets `.envrc` and `.envrc.local`
+- managed `.envrc` exports `HUB_*`, `DYN_REPO_*`, and `DYN_WORKTREE_*` variables
+- managed `.envrc` sources `state/hub/etc/install.env` when present
+- managed `.envrc` sources `.envrc.local` after managed exports
+
+`install.sh` writes installed-branch state to:
+
+```text
+/workspaces/dotfiles/state/hub/etc/install.env
+```
+
+If `dd()` is not already available in your shell, `install.sh` prints a recommended helper snippet that prints the resolved install checkout before changing directories.
 
 V1 constraints:
 

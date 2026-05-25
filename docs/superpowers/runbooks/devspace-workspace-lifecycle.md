@@ -14,7 +14,7 @@ Behavior:
 - exit `1`: one or more required checks failed
 - exit `2`: invalid CLI usage
 
-The v1 checklist includes Deployment/PVC presence, pod reachability, top-level bare-hub validity, managed directory existence, canonical `state/hub/main` and `tmp/hub/main` paths, and `/home/vscode` symlink targets.
+The v1 checklist includes Deployment/PVC presence, pod reachability, top-level bare-hub validity, managed directory existence, canonical `state/hub/main` and `tmp/hub/main` paths, `/home/vscode` symlink targets, and installed-branch reporting from `state/hub/etc/install.env` when present.
 
 ## Repair
 
@@ -30,7 +30,15 @@ Behavior:
 - recreates canonical top-level paths (`state/hub/main`, `tmp/hub/main`)
 - reattaches `main` only when `.bare` is valid and recognizable
 - preserves valid non-`main` `/home/vscode` symlink targets
+- resolves install source in this order: explicit `HUB_INSTALL_BRANCH`, then `state/hub/etc/install.env`, then `main`
+- keeps `/workspaces/dotfiles/main` attached to `main` even when install source is non-`main`
 - refuses when identity is ambiguous, `.bare` is invalid, or managed paths conflict by type
+
+Inspect installed-branch state before repair:
+
+```bash
+cat /workspaces/dotfiles/state/hub/etc/install.env
+```
 
 `repair` is best-effort and non-destructive; it does not delete existing files or worktrees.
 

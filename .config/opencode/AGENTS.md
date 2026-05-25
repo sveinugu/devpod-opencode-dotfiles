@@ -96,6 +96,7 @@ Why this works
 - Agents MUST treat `/workspaces/dotfiles/main` or another explicit worktree path as the editable repository root.
 - Child repos under `repos/` follow the same pattern; `repos/omnipy/main` and `repos/omnipy/work/feature-example` are the reference examples.
 - Refused — hub-root CWD detected. Provide explicit worktree path.
+- Agents should prefer `bin/clone-repo` and `bin/new-worktree` over manual `git clone` / `git worktree add`, and read `state/hub/etc/install.env` when install-branch context is relevant.
 
 ## Core principle of delegating responsibility:
 
