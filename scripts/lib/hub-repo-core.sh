@@ -71,7 +71,10 @@ create_bare_hub() {
     return
   fi
 
+  # Set location of bare clone for top-level dir
   printf 'gitdir: ./.bare\n' > "$workspace_root/.git"
+
+  # Fix "git fetch" for all worktrees
   git --git-dir="$workspace_root/.bare" config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
 
   mkdir -p \
