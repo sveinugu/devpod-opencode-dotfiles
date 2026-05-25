@@ -55,7 +55,7 @@ check_symlink_points_to_top_level_worktree() {
 
   local target_parent
   target_parent="$(dirname "$target")"
-  [ -d "$target_parent" ]
+  [ -d "$target_parent" ] && [ -e "$target" ]
 }
 
 check "/home/vscode .zshrc symlink points to existing top-level worktree" check_symlink_points_to_top_level_worktree ".zshrc"
@@ -68,7 +68,7 @@ if [ -f "$install_env" ]; then
   install_dir="$(sed -n 's/^HUB_INSTALL_BRANCH_DIR=//p' "$install_env" | head -n1)"
   printf '[PASS] installed-branch state from install.env: HUB_INSTALL_BRANCH=%s HUB_INSTALL_BRANCH_DIR=%s\n' "$install_branch" "$install_dir"
 else
-  printf '[PASS] installed-branch state from install.env: unavailable\n'
+  printf '[INFO] installed-branch state from install.env: unavailable\n'
 fi
 
 if [ "$failures" -eq 0 ]; then

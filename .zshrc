@@ -89,7 +89,6 @@ source $ZSH/oh-my-zsh.sh
 # Style configuration
 export TYPEWRITTEN_CURSOR='block'
 export TYPEWRITTEN_RELATIVE_PATH='adaptive'
-export TYPEWRITTEN_RIGHT_PROMPT_PREFIX="# "
 export TYPEWRITTEN_SYMBOL="$"
 export TYPEWRITTEN_PROMPT_LAYOUT="singleline_verbose"
 export TYPEWRITTEN_RIGHT_PROMPT_PREFIX="k8s:"

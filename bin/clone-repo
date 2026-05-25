@@ -6,6 +6,7 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$script_dir/../scripts/lib/hub-repo-core.sh"
 
 workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
+"$script_dir/../scripts/lib/validate_hub_repo_root.sh" "$workspace_root/main" >/dev/null
 
 usage() {
   printf 'usage: clone-repo <public-repo-source>\n' >&2

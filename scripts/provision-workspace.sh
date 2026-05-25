@@ -35,7 +35,7 @@ run_tool_installer() {
     return 0
   fi
 
-  zsh -lc "$command"
+  zsh -lc "set -o pipefail; $command"
   touch "$marker_path"
 }
 
@@ -61,6 +61,11 @@ if [ "$install_branch" = "main" ]; then
   install_dir="$workspace_root/main"
 else
   install_dir="$workspace_root/work/$install_branch"
+  git --git-dir="$workspace_root/.bare" fetch origin "refs/heads/$install_branch:refs/remotes/origin/$install_branch" >/dev/null 2>&1 || true
+  if ! git --git-dir="$workspace_root/.bare" show-ref --verify --quiet "refs/heads/$install_branch" && \
+     git --git-dir="$workspace_root/.bare" show-ref --verify --quiet "refs/remotes/origin/$install_branch"; then
+    git --git-dir="$workspace_root/.bare" branch "$install_branch" "origin/$install_branch" >/dev/null 2>&1 || true
+  fi
   if ! git --git-dir="$workspace_root/.bare" show-ref --verify --quiet "refs/heads/$install_branch"; then
     printf 'refused: origin/%s is required for bootstrap\n' "$install_branch" >&2
     exit 1

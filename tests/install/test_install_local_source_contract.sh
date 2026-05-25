@@ -33,11 +33,6 @@ printf 'export FEATURE_ZSHRC=1\n' > "$workspace_root/work/feature-x/.zshrc"
 printf '{"name":"feature-x"}\n' > "$workspace_root/work/feature-x/.config/opencode/opencode.jsonc"
 
 if [ -f "install.sh" ]; then
-  grep -F 'mkdir -p "$home_dir/.config"' "install.sh" >/dev/null || {
-    printf 'expected install.sh to create $HOME/.config/opencode before opencode commands\n' >&2
-    exit 1
-  }
-
   cp "install.sh" "$workspace_root/main/install.sh"
   cp "install.sh" "$workspace_root/work/feature-x/install.sh"
   cp "install.sh" "$workspace_root/install.sh"
@@ -165,6 +160,10 @@ chmod +x "$bin_reg/git"
 cat > "$bin_reg/npx" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
+if [ ! -d "$HOME/.config/opencode" ]; then
+  printf 'missing opencode config directory\n' >&2
+  exit 77
+fi
 exit 0
 EOF
 chmod +x "$bin_reg/npx"
