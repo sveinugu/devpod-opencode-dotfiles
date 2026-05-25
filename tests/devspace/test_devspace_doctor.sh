@@ -7,9 +7,9 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
-script="$repo_root/scripts/devspace-doctor.sh"
+script="$repo_root/ops/check-workspace.sh"
 
-[ -f "$script" ] || fail "scripts/devspace-doctor.sh not found"
+[ -f "$script" ] || fail "ops/check-workspace.sh not found"
 
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
@@ -41,11 +41,16 @@ ln -s "$workspace_root/main/.zshrc" "$home_dir/.zshrc"
 ln -s "$workspace_root/main/.zprofile" "$home_dir/.zprofile"
 ln -s "$workspace_root/main/.config/opencode" "$home_dir/.config/opencode"
 
+mkdir -p "$workspace_root/state/hub/etc"
+printf 'HUB_INSTALL_BRANCH=feature/install-checkout\n' > "$workspace_root/state/hub/etc/install.env"
+printf 'HUB_INSTALL_BRANCH_DIR=/workspaces/dotfiles/work/feature/install-checkout\n' >> "$workspace_root/state/hub/etc/install.env"
+
 if ! HUB_CHECK_DEPLOYMENT=yes HUB_CHECK_PVC=yes HUB_CHECK_POD=test-pod HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" >"$tmpdir/pass.out" 2>&1; then
   fail "doctor should pass when all checks are healthy"
 fi
 
 grep -F 'PASS' "$tmpdir/pass.out" >/dev/null || fail "doctor output should be human-readable checklist"
+grep -F 'installed-branch state from install.env' "$tmpdir/pass.out" >/dev/null || fail "doctor should report installed branch state"
 
 set +e
 HUB_CHECK_DEPLOYMENT=no HUB_CHECK_PVC=yes HUB_CHECK_POD=test-pod HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" >"$tmpdir/fail.out" 2>&1

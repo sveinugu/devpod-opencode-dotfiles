@@ -7,10 +7,10 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
-script="$repo_root/scripts/workspace-repair.sh"
+script="$repo_root/bin/repair-workspace"
 install_script="$repo_root/install.sh"
 
-[ -f "$script" ] || fail "scripts/workspace-repair.sh not found"
+[ -f "$script" ] || fail "bin/repair-workspace not found"
 [ -f "$install_script" ] || fail "install.sh not found"
 grep -F 'if [ ! -f "$oh_my_zsh_dir/oh-my-zsh.sh" ]; then' "$install_script" >/dev/null || fail "install.sh should use file-based oh-my-zsh guard"
 
@@ -167,58 +167,54 @@ set -e
 [ "$install_fail_rc" != "0" ] || fail "repair must return non-zero when a sub-step fails"
 grep -F 'error: workspace repair failed during run main/install.sh' "$tmpdir/repair-install-fail.out" >/dev/null || fail "repair should report sub-step failure"
 
-workspace_nondefault="$tmpdir/workspace-nondefault"
-home_nondefault="$tmpdir/home-nondefault"
-source_nondefault="$tmpdir/source-nondefault"
-nondefault_branch='work/devspace-bare-hub'
-make_workspace "$workspace_nondefault" "$home_nondefault" "$source_nondefault" "$nondefault_branch"
+workspace_install_branch="$tmpdir/workspace-install-branch"
+home_install_branch="$tmpdir/home-install-branch"
+source_install_branch="$tmpdir/source-install-branch"
+install_branch='work/devspace-bare-hub'
+make_workspace "$workspace_install_branch" "$home_install_branch" "$source_install_branch" "main"
 
-rm -rf "$workspace_nondefault/state/hub/$nondefault_branch" "$workspace_nondefault/tmp/hub/$nondefault_branch"
-git --git-dir="$workspace_nondefault/.bare" worktree remove "$workspace_nondefault/main" --force >/dev/null 2>&1
+git --git-dir="$workspace_install_branch/.bare" branch "$install_branch" main >/dev/null 2>&1
 
-HUB_WORKSPACE_ROOT="$workspace_nondefault" HUB_HOME_DIR="$home_nondefault" HUB_PROVISION_BRANCH="$nondefault_branch" bash "$script" >"$tmpdir/repair-nondefault.out" 2>&1 || fail "repair should recover non-default branch workspace when HUB_PROVISION_BRANCH is set"
+git --git-dir="$workspace_install_branch/.bare" worktree add "$workspace_install_branch/work/$install_branch" "$install_branch" >/dev/null 2>&1
+mkdir -p "$workspace_install_branch/state/hub/work/$install_branch" "$workspace_install_branch/tmp/hub/work/$install_branch"
+mkdir -p "$workspace_install_branch/state/hub/etc"
+printf 'HUB_INSTALL_BRANCH=%s\n' "$install_branch" > "$workspace_install_branch/state/hub/etc/install.env"
+printf 'HUB_INSTALL_BRANCH_DIR=%s\n' "$workspace_install_branch/work/$install_branch" >> "$workspace_install_branch/state/hub/etc/install.env"
 
-repair_branch="$(git -C "$workspace_nondefault/main" rev-parse --abbrev-ref HEAD)"
-[ "$repair_branch" = "$nondefault_branch" ] || fail "repair should reattach main worktree using HUB_PROVISION_BRANCH"
-[ -d "$workspace_nondefault/state/hub/$nondefault_branch" ] || fail "repair should create state path for HUB_PROVISION_BRANCH"
-[ -d "$workspace_nondefault/tmp/hub/$nondefault_branch" ] || fail "repair should create tmp path for HUB_PROVISION_BRANCH"
+rm -rf "$workspace_install_branch/state/hub/work/$install_branch" "$workspace_install_branch/tmp/hub/work/$install_branch"
+git --git-dir="$workspace_install_branch/.bare" worktree remove "$workspace_install_branch/work/$install_branch" --force >/dev/null 2>&1
 
-workspace_nondefault_noenv="$tmpdir/workspace-nondefault-noenv"
-home_nondefault_noenv="$tmpdir/home-nondefault-noenv"
-source_nondefault_noenv="$tmpdir/source-nondefault-noenv"
-make_workspace "$workspace_nondefault_noenv" "$home_nondefault_noenv" "$source_nondefault_noenv" "$nondefault_branch"
-git --git-dir="$workspace_nondefault_noenv/.bare" worktree remove "$workspace_nondefault_noenv/main" --force >/dev/null 2>&1
+HUB_WORKSPACE_ROOT="$workspace_install_branch" HUB_HOME_DIR="$home_install_branch" bash "$script" >"$tmpdir/repair-install-branch-state.out" 2>&1 || fail "repair should recover install branch from install.env"
 
-set +e
-HUB_WORKSPACE_ROOT="$workspace_nondefault_noenv" HUB_HOME_DIR="$home_nondefault_noenv" bash "$script" >"$tmpdir/repair-nondefault-noenv.out" 2>&1
-nondefault_noenv_rc="$?"
-set -e
+[ -d "$workspace_install_branch/work/$install_branch" ] || fail "repair should recreate non-main install worktree from install.env"
+[ -d "$workspace_install_branch/state/hub/work/$install_branch" ] || fail "repair should recreate canonical state path for install branch"
+[ -d "$workspace_install_branch/tmp/hub/work/$install_branch" ] || fail "repair should recreate canonical tmp path for install branch"
+[ "$(git -C "$workspace_install_branch/main" rev-parse --abbrev-ref HEAD)" = "main" ] || fail "repair must not retarget main away from main"
 
-[ "$nondefault_noenv_rc" = "1" ] || fail "repair should refuse non-default branch workspace without HUB_PROVISION_BRANCH"
-grep -F 'HUB_PROVISION_BRANCH' "$tmpdir/repair-nondefault-noenv.out" >/dev/null || fail "repair refusal should mention HUB_PROVISION_BRANCH when branch ref is missing"
+workspace_install_branch_env_override="$tmpdir/workspace-install-branch-env-override"
+home_install_branch_env_override="$tmpdir/home-install-branch-env-override"
+source_install_branch_env_override="$tmpdir/source-install-branch-env-override"
+make_workspace "$workspace_install_branch_env_override" "$home_install_branch_env_override" "$source_install_branch_env_override" main
+git --git-dir="$workspace_install_branch_env_override/.bare" branch feature/env-override main >/dev/null 2>&1
 
-workspace_switch_existing="$tmpdir/workspace-switch-existing"
-home_switch_existing="$tmpdir/home-switch-existing"
-source_switch_existing="$tmpdir/source-switch-existing"
-make_workspace "$workspace_switch_existing" "$home_switch_existing" "$source_switch_existing" main
-switch_branch='other-branch'
-git --git-dir="$workspace_switch_existing/.bare" branch "$switch_branch" main >/dev/null 2>&1
-
-HUB_WORKSPACE_ROOT="$workspace_switch_existing" HUB_HOME_DIR="$home_switch_existing" HUB_PROVISION_BRANCH="$switch_branch" bash "$script" >"$tmpdir/repair-switch-existing.out" 2>&1 || fail "repair should allow branch switch for existing main worktree"
-
-switched_branch="$(git -C "$workspace_switch_existing/main" rev-parse --abbrev-ref HEAD)"
-[ "$switched_branch" = "$switch_branch" ] || fail "repair should switch existing main worktree to HUB_PROVISION_BRANCH"
-[ -d "$workspace_switch_existing/state/hub/$switch_branch" ] || fail "repair should ensure canonical state path for switched branch"
-[ -d "$workspace_switch_existing/tmp/hub/$switch_branch" ] || fail "repair should ensure canonical tmp path for switched branch"
+HUB_WORKSPACE_ROOT="$workspace_install_branch_env_override" HUB_HOME_DIR="$home_install_branch_env_override" HUB_INSTALL_BRANCH='feature/env-override' bash "$script" >"$tmpdir/repair-install-branch-env-override.out" 2>&1 || fail "repair should honor HUB_INSTALL_BRANCH env override"
+[ -d "$workspace_install_branch_env_override/work/feature/env-override" ] || fail "repair should create install worktree from HUB_INSTALL_BRANCH env override"
+[ "$(git -C "$workspace_install_branch_env_override/main" rev-parse --abbrev-ref HEAD)" = "main" ] || fail "repair must keep main on main when HUB_INSTALL_BRANCH env override is set"
 
 workspace_branch_tip="$tmpdir/workspace-branch-tip"
 home_branch_tip="$tmpdir/home-branch-tip"
 source_branch_tip="$tmpdir/source-branch-tip"
 tip_branch='work/devspace-bare-hub'
-make_workspace "$workspace_branch_tip" "$home_branch_tip" "$source_branch_tip" "$tip_branch"
+make_workspace "$workspace_branch_tip" "$home_branch_tip" "$source_branch_tip" "main"
+
+git --git-dir="$workspace_branch_tip/.bare" worktree add -b "$tip_branch" "$workspace_branch_tip/work/$tip_branch" main >/dev/null 2>&1
+mkdir -p "$workspace_branch_tip/state/hub/etc"
+printf 'HUB_INSTALL_BRANCH=%s\n' "$tip_branch" > "$workspace_branch_tip/state/hub/etc/install.env"
+printf 'HUB_INSTALL_BRANCH_DIR=%s\n' "$workspace_branch_tip/work/$tip_branch" >> "$workspace_branch_tip/state/hub/etc/install.env"
 
 (
   cd "$source_branch_tip"
+  git checkout -b "$tip_branch" >/dev/null 2>&1
   cat > install.sh <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -230,14 +226,14 @@ EOF
   git commit -m 'update install to branch tip' >/dev/null 2>&1
 )
 
-repair_before_head="$(git -C "$workspace_branch_tip/main" rev-parse HEAD)"
+repair_before_head="$(git -C "$workspace_branch_tip/work/$tip_branch" rev-parse HEAD)"
 source_tip_head="$(git -C "$source_branch_tip" rev-parse "$tip_branch")"
-[ "$repair_before_head" != "$source_tip_head" ] || fail "fixture setup should leave workspace branch behind origin tip"
+[ "$repair_before_head" != "$source_tip_head" ] || fail "fixture setup should leave install worktree behind origin tip"
 
-HUB_WORKSPACE_ROOT="$workspace_branch_tip" HUB_HOME_DIR="$home_branch_tip" HUB_PROVISION_BRANCH="$tip_branch" bash "$script" >"$tmpdir/repair-branch-tip.out" 2>&1 || fail "repair should update existing HUB_PROVISION_BRANCH worktree to latest origin tip"
+HUB_WORKSPACE_ROOT="$workspace_branch_tip" HUB_HOME_DIR="$home_branch_tip" bash "$script" >"$tmpdir/repair-branch-tip.out" 2>&1 || fail "repair should update existing HUB_INSTALL_BRANCH worktree to latest origin tip"
 
-repair_after_head="$(git -C "$workspace_branch_tip/main" rev-parse HEAD)"
-[ "$repair_after_head" = "$source_tip_head" ] || fail "repair should fast-forward existing HUB_PROVISION_BRANCH worktree to origin tip"
+repair_after_head="$(git -C "$workspace_branch_tip/work/$tip_branch" rev-parse HEAD)"
+[ "$repair_after_head" = "$source_tip_head" ] || fail "repair should fast-forward existing HUB_INSTALL_BRANCH worktree to origin tip"
 [ -f "$home_branch_tip/.repair-branch-tip" ] || fail "repair should run install.sh from updated branch tip"
 
 workspace_install_postcheck="$tmpdir/workspace-install-postcheck"
@@ -262,7 +258,8 @@ install_postcheck_rc="$?"
 set -e
 
 [ "$install_postcheck_rc" = "1" ] || fail "repair should fail when install leaves broken symlink targets"
-grep -F 'error: workspace repair failed during run main/install.sh (symlink target .zshrc -> /definitely/missing/path/.zshrc does not exist)' "$tmpdir/repair-install-postcheck.out" >/dev/null || fail "repair should report install post-condition symlink failure"
+grep -F 'error: workspace repair failed during run /tmp/' "$tmpdir/repair-install-postcheck.out" >/dev/null || fail "repair should report install post-condition symlink failure"
+grep -F '(symlink target .zshrc -> /definitely/missing/path/.zshrc does not exist)' "$tmpdir/repair-install-postcheck.out" >/dev/null || fail "repair should report install post-condition symlink failure"
 
 workspace_ohmyzsh_missing="$tmpdir/workspace-ohmyzsh-missing"
 home_ohmyzsh_missing="$tmpdir/home-ohmyzsh-missing"

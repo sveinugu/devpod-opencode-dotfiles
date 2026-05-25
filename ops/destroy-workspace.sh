@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [ "$#" -ne 0 ]; then
-  printf 'usage: devspace-destroy.sh\n' >&2
+  printf 'usage: destroy-workspace.sh\n' >&2
   exit 2
 fi
 

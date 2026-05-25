@@ -22,8 +22,8 @@ dev:
       - sh
       - -lc
       - |
-        if [ -x /workspaces/dotfiles/main/scripts/devspace-dev-preflight.sh ]; then
-          /workspaces/dotfiles/main/scripts/devspace-dev-preflight.sh
+        if [ -x /workspaces/dotfiles/main/scripts/preflight-devspace-dev.sh ]; then
+          /workspaces/dotfiles/main/scripts/preflight-devspace-dev.sh
         else
           echo "workspace not provisioned; run devspace run-pipeline provision" >&2
           exit 1
@@ -41,8 +41,8 @@ pipelines:
     kubectl wait --for=condition=available --timeout=120s deployment/dotfiles-workspace -n ${DEVSPACE_NAMESPACE}
     POD_NAME=$(kubectl get pods -l app.kubernetes.io/name=dotfiles-workspace -n ${DEVSPACE_NAMESPACE} -o jsonpath='{.items[0].metadata.name}')
     [ -n "$POD_NAME" ]
-    tar cf - -C scripts lib/hub-repo-core.sh workspace-provision.sh | kubectl exec -i "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- tar xf - -C /tmp
-    kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- env HUB_PROVISION_BRANCH="${HUB_PROVISION_BRANCH:-main}" sh -lc 'HUB_WORKSPACE_ROOT=/workspaces/dotfiles HUB_PROVISION_SOURCE=https://github.com/sveinugu/devpod-opencode-dotfiles.git /tmp/workspace-provision.sh ${HUB_PROVISION_ARGS:-}'
+    tar cf - -C scripts lib/hub-repo-core.sh lib/worktree-env.sh provision-workspace.sh | kubectl exec -i "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- tar xf - -C /tmp
+    kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- env HUB_INSTALL_BRANCH="${HUB_INSTALL_BRANCH:-main}" sh -lc 'HUB_WORKSPACE_ROOT=/workspaces/dotfiles HUB_PROVISION_SOURCE=https://github.com/sveinugu/devpod-opencode-dotfiles.git /tmp/provision-workspace.sh ${HUB_PROVISION_ARGS:-}'
 
   doctor: |-
     create_deployments --all
@@ -51,20 +51,20 @@ pipelines:
     [ -n "$POD_NAME" ]
     HUB_CHECK_DEPLOYMENT=$(kubectl get deployment dotfiles-workspace -n ${DEVSPACE_NAMESPACE} -o name >/dev/null 2>&1 && printf yes || printf no)
     HUB_CHECK_PVC=$(kubectl get pvc dotfiles-workspace -n ${DEVSPACE_NAMESPACE} -o name >/dev/null 2>&1 && printf yes || printf no)
-    tar cf - -C scripts devspace-doctor.sh | kubectl exec -i "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- tar xf - -C /tmp
-    kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- env DEVSPACE_NAMESPACE=${DEVSPACE_NAMESPACE} HUB_WORKSPACE_ROOT=/workspaces/dotfiles HUB_HOME_DIR=/home/vscode HUB_CHECK_DEPLOYMENT="$HUB_CHECK_DEPLOYMENT" HUB_CHECK_PVC="$HUB_CHECK_PVC" HUB_CHECK_POD="$POD_NAME" bash /tmp/devspace-doctor.sh
+    tar cf - -C ops check-workspace.sh | kubectl exec -i "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- tar xf - -C /tmp
+    kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- env DEVSPACE_NAMESPACE=${DEVSPACE_NAMESPACE} HUB_WORKSPACE_ROOT=/workspaces/dotfiles HUB_HOME_DIR=/home/vscode HUB_CHECK_DEPLOYMENT="$HUB_CHECK_DEPLOYMENT" HUB_CHECK_PVC="$HUB_CHECK_PVC" HUB_CHECK_POD="$POD_NAME" bash /tmp/check-workspace.sh
 
   repair: |-
     create_deployments --all
     kubectl wait --for=condition=available --timeout=120s deployment/dotfiles-workspace -n ${DEVSPACE_NAMESPACE}
     POD_NAME=$(kubectl get pods -l app.kubernetes.io/name=dotfiles-workspace -n ${DEVSPACE_NAMESPACE} -o jsonpath='{.items[0].metadata.name}')
     [ -n "$POD_NAME" ]
-    HUB_PROVISION_BRANCH="${HUB_PROVISION_BRANCH:-main}"
-    tar cf - -C scripts workspace-repair.sh | kubectl exec -i "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- tar xf - -C /tmp
-    kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- env HUB_WORKSPACE_ROOT=/workspaces/dotfiles HUB_HOME_DIR=/home/vscode HUB_PROVISION_BRANCH="$HUB_PROVISION_BRANCH" bash /tmp/workspace-repair.sh
+    HUB_INSTALL_BRANCH="${HUB_INSTALL_BRANCH:-main}"
+    tar cf - -C bin repair-workspace | kubectl exec -i "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- tar xf - -C /tmp
+    kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- env HUB_WORKSPACE_ROOT=/workspaces/dotfiles HUB_HOME_DIR=/home/vscode HUB_INSTALL_BRANCH="$HUB_INSTALL_BRANCH" bash /tmp/repair-workspace
 
   destroy: |-
-    bash scripts/devspace-destroy.sh
+    bash ops/destroy-workspace.sh
 
   verify-ssh: |-
     ssh -o BatchMode=yes workspace.dotfiles.devspace 'pwd'
