@@ -122,6 +122,10 @@ cat > "$mock_bin/gh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [ "$1" = "auth" ] && [ "$2" = "status" ]; then
+  exit 0
+fi
+
 if [ "$1" != "api" ]; then
   exit 1
 fi
@@ -177,6 +181,35 @@ identity_env_name="$(git --git-dir="$workspace_identity_env/.bare" config --get 
 identity_env_email="$(git --git-dir="$workspace_identity_env/.bare" config --get user.email || true)"
 [ "$identity_env_name" = "Env User" ] || fail "provision should honor explicit HUB_GITHUB_USER_NAME"
 [ "$identity_env_email" = "env-user@example.com" ] || fail "provision should honor explicit HUB_GITHUB_USER_EMAIL"
+
+workspace_identity_partial_env="$tmpdir/workspace-identity-partial-env"
+home_identity_partial_env="$tmpdir/home-identity-partial-env"
+source_identity_partial_env="$tmpdir/source-identity-partial-env"
+mock_bin_noauth="$tmpdir/mock-bin-noauth"
+mkdir -p "$workspace_identity_partial_env" "$home_identity_partial_env"
+make_source_repo_with_main "$source_identity_partial_env"
+
+mkdir -p "$mock_bin_noauth"
+cat > "$mock_bin_noauth/gh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+exit 1
+EOF
+chmod +x "$mock_bin_noauth/gh"
+
+PATH="$mock_bin_noauth:$PATH" \
+HUB_WORKSPACE_ROOT="$workspace_identity_partial_env" \
+HUB_PROVISION_SOURCE="$source_identity_partial_env" \
+HUB_GITHUB_USER_NAME='Partial Env User' \
+HUB_PYENV_INSTALL_COMMAND=":" \
+HUB_OPENCODE_INSTALL_COMMAND=":" \
+HOME="$home_identity_partial_env" \
+bash "$script" >"$tmpdir/identity-partial-env.out"
+
+identity_partial_env_name="$(git --git-dir="$workspace_identity_partial_env/.bare" config --local --get user.name || true)"
+identity_partial_env_email="$(git --git-dir="$workspace_identity_partial_env/.bare" config --local --get user.email || true)"
+[ "$identity_partial_env_name" = "Partial Env User" ] || fail "provision should honor HUB_GITHUB_USER_NAME even when HUB_GITHUB_USER_EMAIL is unset"
+[ -z "$identity_partial_env_email" ] || fail "provision should leave user.email unset when only HUB_GITHUB_USER_NAME is provided and gh is unavailable"
 
 workspace_tools_fail="$tmpdir/workspace-tools-fail"
 home_tools_fail="$tmpdir/home-tools-fail"

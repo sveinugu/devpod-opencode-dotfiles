@@ -41,21 +41,21 @@ run_tool_installer() {
 
 configure_git_identity() {
   local bare_dir="$1"
+  local github_user_name="${HUB_GITHUB_USER_NAME:-}"
+  local github_user_email="${HUB_GITHUB_USER_EMAIL:-}"
 
-  if [ -n "${HUB_GITHUB_USER_NAME:-}" ] && [ -n "${HUB_GITHUB_USER_EMAIL:-}" ]; then
-    git --git-dir="$bare_dir" config user.name "$HUB_GITHUB_USER_NAME"
-    git --git-dir="$bare_dir" config user.email "$HUB_GITHUB_USER_EMAIL"
-    return
-  fi
-
-  if ! command -v gh >/dev/null 2>&1; then
-    return
-  fi
-
-  github_user_name="$(gh api user --jq '.name // .login' 2>/dev/null || true)"
-  github_user_email="$(gh api user --jq '.email // ""' 2>/dev/null || true)"
-  if [ -z "$github_user_email" ]; then
-    github_user_email="$(gh api user/emails --jq '.[] | select(.primary) | .email' 2>/dev/null | head -n1 || true)"
+  if command -v gh >/dev/null 2>&1 && { [ -z "$github_user_name" ] || [ -z "$github_user_email" ]; }; then
+    if gh auth status >/dev/null 2>&1; then
+      if [ -z "$github_user_name" ]; then
+        github_user_name="$(gh api user --jq '.name // .login' 2>/dev/null || true)"
+      fi
+      if [ -z "$github_user_email" ]; then
+        github_user_email="$(gh api user --jq '.email // ""' 2>/dev/null || true)"
+      fi
+      if [ -z "$github_user_email" ]; then
+        github_user_email="$(gh api user/emails --jq '.[] | select(.primary) | .email' 2>/dev/null | head -n1 || true)"
+      fi
+    fi
   fi
 
   if [ -n "$github_user_name" ]; then
