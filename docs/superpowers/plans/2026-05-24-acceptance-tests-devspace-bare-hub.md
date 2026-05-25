@@ -35,11 +35,14 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 - [ ] The DevSpace provision wrapper does not require the user to pre-create or separately start the pod before invoking `devspace run-pipeline provision`.
 - [ ] First-time provision creates the top-level workspace as a bare clone of the top-level dotfiles GitHub repo.
 - [ ] V1 provision uses `origin/main` as the only supported bootstrap ref.
+- [ ] `devspace run-pipeline provision` accepts optional `HUB_INSTALL_BRANCH=<branch>` to choose which top-level checkout supplies `install.sh`.
 - [ ] Provision fails clearly if `origin/main` does not exist.
 - [ ] Provision fails clearly if an existing top-level `main/` path is present but broken or detached.
 - [ ] Successful provision attaches `/workspaces/dotfiles/main` from the top-level bare repo.
+- [ ] If `HUB_INSTALL_BRANCH` names a non-`main` branch, provision ensures `/workspaces/dotfiles/work/<branch-name>` exists and runs that worktree's `install.sh`.
+- [ ] Provision never retargets `/workspaces/dotfiles/main` away from the `main` branch.
 - [ ] Successful provision creates `work/`, `repos/`, `state/`, and `tmp/` under `/workspaces/dotfiles`.
-- [ ] Successful provision runs `main/install.sh`.
+- [ ] Successful provision runs `install.sh` from the selected install checkout (`/workspaces/dotfiles/main` by default).
 
 ### C. Normal startup vs unprovisioned state
 
@@ -67,6 +70,11 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 - [ ] Running `main/install.sh` points `/home/vscode` symlinks at the top-level `main` worktree.
 - [ ] Running `install.sh` from a top-level feature worktree repoints `/home/vscode` symlinks to that worktree.
 - [ ] Child repos under `repos/*` do not become authorities for `/home/vscode` config.
+- [ ] `install.sh` publishes the active installed-branch state to `/workspaces/dotfiles/state/hub/etc/install.env`.
+- [ ] `install.sh` hard-fails if caller-supplied `HUB_INSTALL_BRANCH` or `HUB_INSTALL_BRANCH_DIR` do not match the checkout it is actually running from.
+- [ ] Each editable top-level checkout gets a generated `.envrc` plus `.envrc.local`, and generated `.envrc` sources `/workspaces/dotfiles/state/hub/etc/install.env` when present.
+- [ ] Per-checkout cwd-sensitive environment uses `DYN_REPO_*` and `DYN_WORKTREE_*` names without changing `HOME`.
+- [ ] The recommended `dd()` helper changes to the active install checkout and prints the destination directory before changing into it.
 
 ### F. `doctor` behavior
 
@@ -84,6 +92,7 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
   - [ ] `work/`, `repos/`, `state/`, and `tmp/` exist
   - [ ] canonical top-level hub `state/` and `tmp/` paths exist
   - [ ] `/home/vscode` symlinks point to an existing top-level worktree
+  - [ ] installed-branch state in `state/hub/etc/install.env` is reported when available
 
 ### G. `repair` behavior
 
@@ -92,7 +101,9 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 - [ ] `repair` may recreate missing managed directories.
 - [ ] `repair` may recreate missing canonical `state/` and `tmp/` subdirectories.
 - [ ] `repair` may reattach or recreate top-level `main` only when the top-level bare repo is valid and recognizable.
-- [ ] `repair` reruns `main/install.sh` to restore default top-level `main` symlinks when appropriate.
+- [ ] `repair` can honor optional `HUB_INSTALL_BRANCH=<branch>` and rerun that checkout's `install.sh` when appropriate.
+- [ ] `repair` reruns `install.sh` from the selected install checkout without retargeting `/workspaces/dotfiles/main` away from `main`.
+- [ ] `repair` can inspect existing installed-branch state via `state/hub/etc/install.env` before deciding what to restore.
 - [ ] `repair` preserves an intentionally repointed non-`main` `/home/vscode` symlink target when that target still points to an existing top-level worktree.
 - [ ] `repair` refuses rather than guessing when `.bare` is invalid, the top-level repo identity is ambiguous, or managed paths conflict by type.
 
@@ -118,6 +129,13 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
   - [ ] `repos/<name>/main`
   - [ ] `repos/<name>/work/`
   - [ ] matching canonical `state/` and `tmp/` paths
+
+### Additional phase-1 documentation and workflow guidance
+
+- [ ] `docs/superpowers/runbooks/devspace-bare-hub-usage.md` explains the dev/testing/production workflow for policy changes: develop in a non-`main` worktree, test with `HUB_INSTALL_BRANCH=<branch>` during provision/repair, merge to `main` for staging/testing, then push `main` for production/default behavior.
+- [ ] `docs/superpowers/runbooks/devspace-bare-hub-usage.md` and `docs/superpowers/runbooks/devspace-workspace-lifecycle.md` document `bin/clone-repo`, `bin/new-worktree`, `.envrc`, `.envrc.local`, `state/hub/etc/install.env`, and `dd()`.
+- [ ] Agent policy docs (`.config/opencode/AGENTS.md`, `.config/opencode/agents/maestro.md`, `.config/opencode/agents/senior-implementer.md`) tell agents to prefer `bin/clone-repo` and `bin/new-worktree` and to read `state/hub/etc/install.env`.
+- [ ] Touched runbooks and agent-policy docs include a short "what changed for implementers" note whenever this retrofit changes command names, install-branch behavior, or required files to touch.
 
 ---
 
