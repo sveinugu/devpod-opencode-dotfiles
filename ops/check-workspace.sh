@@ -8,6 +8,8 @@ fi
 
 workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
 home_dir="${HUB_HOME_DIR:-/home/vscode}"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+read_install_env_script="$script_dir/../scripts/lib/read-install-env.sh"
 
 failures=0
 
@@ -64,8 +66,13 @@ check "/home/vscode .config/opencode symlink points to existing top-level worktr
 
 install_env="$workspace_root/state/hub/etc/install.env"
 if [ -f "$install_env" ]; then
-  install_branch="$(sed -n 's/^export[[:space:]]\{1,\}HUB_INSTALL_BRANCH=//p; s/^HUB_INSTALL_BRANCH=//p' "$install_env" | head -n1)"
-  install_dir="$(sed -n 's/^export[[:space:]]\{1,\}HUB_INSTALL_BRANCH_DIR=//p; s/^HUB_INSTALL_BRANCH_DIR=//p' "$install_env" | head -n1)"
+  install_branch=''
+  install_dir=''
+  if [ -x "$read_install_env_script" ]; then
+    eval "$(bash "$read_install_env_script" "$install_env")"
+  fi
+  install_branch="${HUB_INSTALL_BRANCH:-}"
+  install_dir="${HUB_INSTALL_BRANCH_DIR:-}"
   printf '[PASS] installed-branch state from install.env: HUB_INSTALL_BRANCH=%s HUB_INSTALL_BRANCH_DIR=%s\n' "$install_branch" "$install_dir"
 else
   printf '[INFO] installed-branch state from install.env: unavailable\n'
