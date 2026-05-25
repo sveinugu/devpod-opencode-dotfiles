@@ -111,56 +111,33 @@ bash "$script" --refresh-tools > "$tmpdir/refresh-run.out"
 grep -F 'pyenv-install' "$install_log" >/dev/null || fail "--refresh-tools did not force pyenv install"
 grep -F 'opencode-install' "$install_log" >/dev/null || fail "--refresh-tools did not force opencode install"
 
-workspace_identity="$tmpdir/workspace-identity"
-home_identity="$tmpdir/home-identity"
-source_identity="$tmpdir/source-identity"
-mock_bin="$tmpdir/mock-bin"
-mkdir -p "$workspace_identity" "$home_identity" "$mock_bin"
-make_source_repo_with_main "$source_identity"
+workspace_identity_gh="$tmpdir/workspace-identity-gh"
+home_identity_gh="$tmpdir/home-identity-gh"
+source_identity_gh="$tmpdir/source-identity-gh"
+mock_bin_gh="$tmpdir/mock-bin-gh"
+mkdir -p "$workspace_identity_gh" "$home_identity_gh" "$mock_bin_gh"
+make_source_repo_with_main "$source_identity_gh"
 
-cat > "$mock_bin/gh" <<'EOF'
+cat > "$mock_bin_gh/gh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-
-if [ "$1" = "auth" ] && [ "$2" = "status" ]; then
-  exit 0
-fi
-
-if [ "$1" != "api" ]; then
-  exit 1
-fi
-
-if [ "$2" = "user" ] && [ "$3" = "--jq" ] && [ "$4" = ".name // .login" ]; then
-  printf 'Retrofit User\n'
-  exit 0
-fi
-
-if [ "$2" = "user" ] && [ "$3" = "--jq" ] && [ "$4" = ".email // \"\"" ]; then
-  printf '\n'
-  exit 0
-fi
-
-if [ "$2" = "user/emails" ] && [ "$3" = "--jq" ] && [ "$4" = ".[] | select(.primary) | .email" ]; then
-  printf 'retrofit@example.com\n'
-  exit 0
-fi
-
-exit 1
+printf 'gh should not be called for identity\n' >&2
+exit 9
 EOF
-chmod +x "$mock_bin/gh"
+chmod +x "$mock_bin_gh/gh"
 
-PATH="$mock_bin:$PATH" \
-HUB_WORKSPACE_ROOT="$workspace_identity" \
-HUB_PROVISION_SOURCE="$source_identity" \
+PATH="$mock_bin_gh:$PATH" \
+HUB_WORKSPACE_ROOT="$workspace_identity_gh" \
+HUB_PROVISION_SOURCE="$source_identity_gh" \
 HUB_PYENV_INSTALL_COMMAND=":" \
 HUB_OPENCODE_INSTALL_COMMAND=":" \
-HOME="$home_identity" \
-bash "$script" >"$tmpdir/identity.out"
+HOME="$home_identity_gh" \
+bash "$script" --no-prompts >"$tmpdir/identity-gh.out"
 
-identity_name="$(git --git-dir="$workspace_identity/.bare" config --get user.name || true)"
-identity_email="$(git --git-dir="$workspace_identity/.bare" config --get user.email || true)"
-[ "$identity_name" = "Retrofit User" ] || fail "provision should set git user.name from GitHub identity"
-[ "$identity_email" = "retrofit@example.com" ] || fail "provision should set git user.email from GitHub identity"
+identity_gh_name="$(git --git-dir="$workspace_identity_gh/.bare" config --local --get user.name || true)"
+identity_gh_email="$(git --git-dir="$workspace_identity_gh/.bare" config --local --get user.email || true)"
+[ -z "$identity_gh_name" ] || fail "provision should not set git user.name from gh identity"
+[ -z "$identity_gh_email" ] || fail "provision should not set git user.email from gh identity"
 
 workspace_identity_env="$tmpdir/workspace-identity-env"
 home_identity_env="$tmpdir/home-identity-env"
