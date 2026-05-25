@@ -2,7 +2,14 @@
 set -euo pipefail
 
 checkout_dir="${1:?usage: validate_hub_repo_root.sh CHECKOUT_DIR}"
-checkout_dir="$(readlink -f "$checkout_dir")"
+if [ ! -e "$checkout_dir" ]; then
+  printf 'refused: checkout path does not exist\n' >&2
+  exit 1
+fi
+if ! checkout_dir="$(readlink -f "$checkout_dir")"; then
+  printf 'refused: checkout path could not be resolved\n' >&2
+  exit 1
+fi
 workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
 
 case "$checkout_dir" in
