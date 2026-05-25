@@ -78,7 +78,7 @@ resolve_install_branch() {
 
   install_env="$workspace_root/state/hub/etc/install.env"
   if [ -f "$install_env" ]; then
-    install_branch="$(sed -n 's/^HUB_INSTALL_BRANCH=//p' "$install_env" | head -n1)"
+    install_branch="$(sed -n 's/^export[[:space:]]\{1,\}HUB_INSTALL_BRANCH=//p; s/^HUB_INSTALL_BRANCH=//p' "$install_env" | head -n1)"
     if [ -n "$install_branch" ]; then
       printf '%s\n' "$install_branch"
       return

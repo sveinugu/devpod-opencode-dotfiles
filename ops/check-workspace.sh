@@ -64,8 +64,8 @@ check "/home/vscode .config/opencode symlink points to existing top-level worktr
 
 install_env="$workspace_root/state/hub/etc/install.env"
 if [ -f "$install_env" ]; then
-  install_branch="$(sed -n 's/^HUB_INSTALL_BRANCH=//p' "$install_env" | head -n1)"
-  install_dir="$(sed -n 's/^HUB_INSTALL_BRANCH_DIR=//p' "$install_env" | head -n1)"
+  install_branch="$(sed -n 's/^export[[:space:]]\{1,\}HUB_INSTALL_BRANCH=//p; s/^HUB_INSTALL_BRANCH=//p' "$install_env" | head -n1)"
+  install_dir="$(sed -n 's/^export[[:space:]]\{1,\}HUB_INSTALL_BRANCH_DIR=//p; s/^HUB_INSTALL_BRANCH_DIR=//p' "$install_env" | head -n1)"
   printf '[PASS] installed-branch state from install.env: HUB_INSTALL_BRANCH=%s HUB_INSTALL_BRANCH_DIR=%s\n' "$install_branch" "$install_dir"
 else
   printf '[INFO] installed-branch state from install.env: unavailable\n'

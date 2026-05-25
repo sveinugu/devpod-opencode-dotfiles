@@ -178,8 +178,8 @@ git --git-dir="$workspace_install_branch/.bare" branch "$install_branch" main >/
 git --git-dir="$workspace_install_branch/.bare" worktree add "$workspace_install_branch/work/$install_branch" "$install_branch" >/dev/null 2>&1
 mkdir -p "$workspace_install_branch/state/hub/work/$install_branch" "$workspace_install_branch/tmp/hub/work/$install_branch"
 mkdir -p "$workspace_install_branch/state/hub/etc"
-printf 'HUB_INSTALL_BRANCH=%s\n' "$install_branch" > "$workspace_install_branch/state/hub/etc/install.env"
-printf 'HUB_INSTALL_BRANCH_DIR=%s\n' "$workspace_install_branch/work/$install_branch" >> "$workspace_install_branch/state/hub/etc/install.env"
+printf 'export HUB_INSTALL_BRANCH=%s\n' "$install_branch" > "$workspace_install_branch/state/hub/etc/install.env"
+printf 'export HUB_INSTALL_BRANCH_DIR=%s\n' "$workspace_install_branch/work/$install_branch" >> "$workspace_install_branch/state/hub/etc/install.env"
 
 rm -rf "$workspace_install_branch/state/hub/work/$install_branch" "$workspace_install_branch/tmp/hub/work/$install_branch"
 git --git-dir="$workspace_install_branch/.bare" worktree remove "$workspace_install_branch/work/$install_branch" --force >/dev/null 2>&1
@@ -209,8 +209,8 @@ make_workspace "$workspace_branch_tip" "$home_branch_tip" "$source_branch_tip" "
 
 git --git-dir="$workspace_branch_tip/.bare" worktree add -b "$tip_branch" "$workspace_branch_tip/work/$tip_branch" main >/dev/null 2>&1
 mkdir -p "$workspace_branch_tip/state/hub/etc"
-printf 'HUB_INSTALL_BRANCH=%s\n' "$tip_branch" > "$workspace_branch_tip/state/hub/etc/install.env"
-printf 'HUB_INSTALL_BRANCH_DIR=%s\n' "$workspace_branch_tip/work/$tip_branch" >> "$workspace_branch_tip/state/hub/etc/install.env"
+printf 'export HUB_INSTALL_BRANCH=%s\n' "$tip_branch" > "$workspace_branch_tip/state/hub/etc/install.env"
+printf 'export HUB_INSTALL_BRANCH_DIR=%s\n' "$workspace_branch_tip/work/$tip_branch" >> "$workspace_branch_tip/state/hub/etc/install.env"
 
 (
   cd "$source_branch_tip"
