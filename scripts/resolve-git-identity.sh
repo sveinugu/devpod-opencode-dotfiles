@@ -52,7 +52,20 @@ prompt_for_missing_fields() {
   fi
 }
 
-if [ "$no_prompts" = true ] || [ ! -t 0 ] || [ ! -t 1 ]; then
+if [ "$no_prompts" = true ]; then
+  emit_identity
+  exit 0
+fi
+
+if [ ! -t 0 ] && [ -r /dev/tty ]; then
+  exec </dev/tty
+fi
+
+if [ ! -t 1 ] && [ -w /dev/tty ]; then
+  exec >/dev/tty
+fi
+
+if [ ! -t 0 ] || [ ! -t 1 ]; then
   emit_identity
   exit 0
 fi

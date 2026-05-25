@@ -76,6 +76,14 @@ HUB_GITHUB_USER_EMAIL="$(printf '%s' "${HUB_GITHUB_USER_EMAIL:-}" | tr -d '\r')"
 [ "${HUB_GITHUB_USER_NAME:-}" = 'Manual User' ] || fail "manual fallback should emit entered user.name"
 [ "${HUB_GITHUB_USER_EMAIL:-}" = 'manual@example.com' ] || fail "manual fallback should emit entered user.email"
 
+run_interactive 'n\ny\nSubshell User\nsubshell@example.com\n' "$tmpdir/subshell.out" \
+  env HOME="$home_manual" sh -lc "identity_output=\$(bash '$script_path'); printf '%s\n' \"\$identity_output\""
+eval "$(extract_identity_assignments "$tmpdir/subshell.out")"
+HUB_GITHUB_USER_NAME="$(printf '%s' "${HUB_GITHUB_USER_NAME:-}" | tr -d '\r')"
+HUB_GITHUB_USER_EMAIL="$(printf '%s' "${HUB_GITHUB_USER_EMAIL:-}" | tr -d '\r')"
+[ "${HUB_GITHUB_USER_NAME:-}" = 'Subshell User' ] || fail "interactive command substitution should still prompt for user.name"
+[ "${HUB_GITHUB_USER_EMAIL:-}" = 'subshell@example.com' ] || fail "interactive command substitution should still prompt for user.email"
+
 run_interactive 'n\nn\n' "$tmpdir/skip.out" \
   env HOME="$home_manual" bash "$script_path"
 if grep -Eq '^HUB_GITHUB_USER_(NAME|EMAIL)=' "$tmpdir/skip.out"; then
