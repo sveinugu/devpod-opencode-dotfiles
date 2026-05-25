@@ -69,6 +69,8 @@ done
 
 [ -d "$workspace_root/state/hub/main" ] || fail "missing canonical state/hub/main path"
 [ -d "$workspace_root/tmp/hub/main" ] || fail "missing canonical tmp/hub/main path"
+[ -f "$workspace_root/main/.envrc" ] || fail "missing managed .envrc for top-level main checkout"
+[ -f "$workspace_root/main/.envrc.local" ] || fail "missing managed .envrc.local for top-level main checkout"
 
 grep -F 'gitdir: ./.bare' "$workspace_root/.git" >/dev/null || fail ".git did not point to ./.bare"
 

@@ -16,6 +16,20 @@ Behavior:
 
 The v1 checklist includes Deployment/PVC presence, pod reachability, top-level bare-hub validity, managed directory existence, canonical `state/hub/main` and `tmp/hub/main` paths, `/home/vscode` symlink targets, and installed-branch reporting from `state/hub/etc/install.env` when present.
 
+## In-pod managed repo/worktree commands
+
+Use these in-pod commands for managed repo/worktree setup:
+
+```bash
+/workspaces/dotfiles/main/bin/clone-repo https://github.com/<owner>/<repo>.git
+/workspaces/dotfiles/main/bin/new-worktree --repo hub feature/example
+/workspaces/dotfiles/main/bin/new-worktree --repo <child-repo-name> feature/example
+```
+
+Managed checkouts get generated `.envrc` and `.envrc.local`. The managed `.envrc` exports `HUB_*`, `DYN_REPO_*`, and `DYN_WORKTREE_*`, sources `state/hub/etc/install.env` when present, then sources `.envrc.local`.
+
+For quick navigation to the active install checkout, `.zshrc` includes `dd()`; it prints the destination and then changes directory.
+
 ## Repair
 
 Run non-destructive structural recovery:

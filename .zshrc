@@ -128,6 +128,12 @@ export LC_ALL="en_US.UTF-8"
 alias zshconfig="$EDITOR ~/.zshrc"
 alias ll="ls -alh"
 
+dd() {
+    local target="${HUB_INSTALL_BRANCH_DIR:-/workspaces/dotfiles/main}"
+    printf 'cd -> %s\n' "$target"
+    cd "$target"
+}
+
 zstyle ':omz:update' mode disabled
 
 # Initialize OpenCode
