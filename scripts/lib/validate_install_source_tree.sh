@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-source_root="${1:?usage: scripts/install-validate-source.sh SOURCE_ROOT CANDIDATE_PATH}"
-candidate_path="${2:?usage: scripts/install-validate-source.sh SOURCE_ROOT CANDIDATE_PATH}"
+source_root="${1:?usage: scripts/lib/validate_install_source_tree.sh SOURCE_ROOT CANDIDATE_PATH}"
+candidate_path="${2:?usage: scripts/lib/validate_install_source_tree.sh SOURCE_ROOT CANDIDATE_PATH}"
 
 source_root_abs="$(readlink -f "$source_root")"
 candidate_abs="$(readlink -f "$candidate_path")"

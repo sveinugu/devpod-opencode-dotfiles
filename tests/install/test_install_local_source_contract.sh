@@ -44,15 +44,15 @@ if [ -f "install.sh" ]; then
   chmod +x "$workspace_root/main/install.sh" "$workspace_root/work/feature-x/install.sh" "$workspace_root/install.sh"
 fi
 
-if [ -f "scripts/install-validate-source.sh" ]; then
-  mkdir -p "$workspace_root/main/scripts" "$workspace_root/work/feature-x/scripts" "$workspace_root/scripts"
-  cp "scripts/install-validate-source.sh" "$workspace_root/main/scripts/install-validate-source.sh"
-  cp "scripts/install-validate-source.sh" "$workspace_root/work/feature-x/scripts/install-validate-source.sh"
-  cp "scripts/install-validate-source.sh" "$workspace_root/scripts/install-validate-source.sh"
+if [ -f "scripts/lib/validate_install_source_tree.sh" ]; then
+  mkdir -p "$workspace_root/main/scripts/lib" "$workspace_root/work/feature-x/scripts/lib" "$workspace_root/scripts/lib"
+  cp "scripts/lib/validate_install_source_tree.sh" "$workspace_root/main/scripts/lib/validate_install_source_tree.sh"
+  cp "scripts/lib/validate_install_source_tree.sh" "$workspace_root/work/feature-x/scripts/lib/validate_install_source_tree.sh"
+  cp "scripts/lib/validate_install_source_tree.sh" "$workspace_root/scripts/lib/validate_install_source_tree.sh"
   chmod +x \
-    "$workspace_root/main/scripts/install-validate-source.sh" \
-    "$workspace_root/work/feature-x/scripts/install-validate-source.sh" \
-    "$workspace_root/scripts/install-validate-source.sh"
+    "$workspace_root/main/scripts/lib/validate_install_source_tree.sh" \
+    "$workspace_root/work/feature-x/scripts/lib/validate_install_source_tree.sh" \
+    "$workspace_root/scripts/lib/validate_install_source_tree.sh"
 fi
 
 (
@@ -88,6 +88,7 @@ workspace_reg="$tmpdir/workspace-reg"
 home_reg="$tmpdir/home-reg"
 bin_reg="$tmpdir/bin-reg"
 mkdir -p "$workspace_reg/main/.config/opencode" "$workspace_reg/main/scripts" "$home_reg/.config/opencode" "$home_reg/.oh-my-zsh" "$bin_reg"
+touch "$home_reg/.oh-my-zsh/oh-my-zsh.sh"
 
 printf 'export REG_ZSHRC=1\n' > "$workspace_reg/main/.zshrc"
 printf 'source "$HOME/.zshrc"\n' > "$workspace_reg/main/.zprofile"
@@ -95,8 +96,9 @@ printf '{"name":"reg"}\n' > "$workspace_reg/main/.config/opencode/opencode.jsonc
 printf 'stale\n' > "$home_reg/.config/opencode/stale.txt"
 
 cp "install.sh" "$workspace_reg/main/install.sh"
-cp "scripts/install-validate-source.sh" "$workspace_reg/main/scripts/install-validate-source.sh"
-chmod +x "$workspace_reg/main/install.sh" "$workspace_reg/main/scripts/install-validate-source.sh"
+mkdir -p "$workspace_reg/main/scripts/lib"
+cp "scripts/lib/validate_install_source_tree.sh" "$workspace_reg/main/scripts/lib/validate_install_source_tree.sh"
+chmod +x "$workspace_reg/main/install.sh" "$workspace_reg/main/scripts/lib/validate_install_source_tree.sh"
 
 cat > "$bin_reg/git" <<'EOF'
 #!/usr/bin/env bash
