@@ -34,7 +34,7 @@ grep -F '/workspaces/dotfiles/main/scripts/devspace-dev-preflight.sh' "$cfg" >/d
 grep -F 'if [ -d /workspaces/dotfiles/.bare ]; then' "$cfg" >/dev/null || fail "dev command should only warn when bare workspace exists"
 grep -F 'workspace not provisioned; run devspace run-pipeline provision' "$cfg" >/dev/null || fail "dev command should preserve not-provisioned guidance"
 grep -F 'scripts/resolve-git-identity.sh' "$cfg" >/dev/null || fail "provision pipeline should resolve git identity before pod provisioning"
-grep -F 'HUB_GIT_IDENTITY_ENV=$(bash scripts/resolve-git-identity.sh ${HUB_GIT_IDENTITY_ARGS:-})' "$cfg" >/dev/null || fail "provision pipeline should support HUB_GIT_IDENTITY_ARGS overrides"
+grep -F 'HUB_GIT_IDENTITY_ENV=$(bash scripts/resolve-git-identity.sh --no-prompts ${HUB_GIT_IDENTITY_ARGS:-})' "$cfg" >/dev/null || fail "provision pipeline should disable git identity prompts by default"
 grep -F 'env $HUB_GIT_IDENTITY_ENV HUB_INSTALL_BRANCH="${HUB_INSTALL_BRANCH:-main}"' "$cfg" >/dev/null || fail "provision pipeline should forward resolved identity env into pod provision"
 
 printf 'PASS test_devspace_command_surface\n'
