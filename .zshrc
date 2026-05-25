@@ -83,6 +83,7 @@ DISABLE_UNTRACKED_FILES_DIRTY="true"
 plugins=(git github zsh-syntax-highlighting zsh-autosuggestions python poetry docker docker-compose uv)
 
 source $ZSH/oh-my-zsh.sh
+eval "$(direnv hook zsh)"
 
 # User configuration
 
