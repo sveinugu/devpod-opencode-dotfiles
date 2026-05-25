@@ -8,16 +8,48 @@ hub_fail() {
   return 1
 }
 
+hub_git_non_interactive() {
+  GIT_TERMINAL_PROMPT=0 \
+  GIT_ASKPASS=/bin/false \
+  SSH_ASKPASS=/bin/false \
+  git "$@"
+}
+
+hub_is_non_interactive_access_failure() {
+  local output="$1"
+
+  printf '%s' "$output" | grep -Eqi \
+    'could not read username|terminal prompts disabled|authentication failed|repository not found|access denied|permission denied|could not resolve host|unable to access'
+}
+
 hub_source_has_branch() {
   local source="$1"
   local branch="$2"
+  local output=''
+  local rc=0
 
   if [ -d "$source/.git" ] || [ -d "$source/objects" ]; then
-    git -C "$source" show-ref --verify --quiet "refs/heads/$branch"
-    return
+    if git -C "$source" show-ref --verify --quiet "refs/heads/$branch"; then
+      return 0
+    fi
+
+    return 10
   fi
 
-  git ls-remote --exit-code --heads "$source" "$branch" >/dev/null 2>&1
+  if output="$(hub_git_non_interactive ls-remote --exit-code --heads "$source" "$branch" 2>&1)"; then
+    return 0
+  fi
+
+  rc=$?
+  if [ "$rc" = "2" ]; then
+    return 10
+  fi
+
+  if hub_is_non_interactive_access_failure "$output"; then
+    return 20
+  fi
+
+  return 20
 }
 
 hub_is_valid_worktree() {
@@ -47,11 +79,25 @@ create_bare_hub() {
   local workspace_root="$1"
   local source="$2"
   local branch="${3:-$HUB_BOOTSTRAP_BRANCH}"
+  local branch_check_rc=0
 
-  if ! hub_source_has_branch "$source" "$branch"; then
-    hub_fail "refused: origin/$branch is required for bootstrap"
-    return
+  if hub_source_has_branch "$source" "$branch"; then
+    branch_check_rc=0
+  else
+    branch_check_rc="$?"
   fi
+  case "$branch_check_rc" in
+    0)
+      ;;
+    10)
+      hub_fail "refused: origin/$branch is required for bootstrap"
+      return
+      ;;
+    *)
+      hub_fail 'refused: unable to access source repo non-interactively (verify public HTTPS URL and repository visibility)'
+      return
+      ;;
+  esac
 
   mkdir -p "$workspace_root"
 
@@ -63,7 +109,10 @@ create_bare_hub() {
   fi
 
   if [ ! -d "$workspace_root/.bare" ]; then
-    git clone --bare "$source" "$workspace_root/.bare" >/dev/null
+    if ! hub_git_non_interactive clone --bare "$source" "$workspace_root/.bare" >/dev/null 2>&1; then
+      hub_fail 'refused: unable to access source repo non-interactively (verify public HTTPS URL and repository visibility)'
+      return
+    fi
   fi
 
   if ! git --git-dir="$workspace_root/.bare" rev-parse --is-bare-repository >/dev/null 2>&1; then
