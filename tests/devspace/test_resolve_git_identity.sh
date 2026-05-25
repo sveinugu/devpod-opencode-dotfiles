@@ -21,6 +21,12 @@ run_interactive() {
   printf '%b' "$input" | script -q -e -c "$*" /dev/null >"$output_path"
 }
 
+extract_identity_assignments() {
+  local output_path="$1"
+  sed -n 's/.*\(HUB_GITHUB_USER_NAME=.*\)/\1/p' "$output_path"
+  sed -n 's/.*\(HUB_GITHUB_USER_EMAIL=.*\)/\1/p' "$output_path"
+}
+
 home_env="$tmpdir/home-env"
 mkdir -p "$home_env"
 
@@ -41,7 +47,9 @@ HOME="$home_global_complete" git config --global user.email 'global@example.com'
 
 run_interactive 'y\n' "$tmpdir/global-complete.out" \
   env HOME="$home_global_complete" bash "$script_path"
-eval "$(grep -E '^HUB_GITHUB_USER_(NAME|EMAIL)=' "$tmpdir/global-complete.out")"
+eval "$(extract_identity_assignments "$tmpdir/global-complete.out")"
+HUB_GITHUB_USER_NAME="$(printf '%s' "${HUB_GITHUB_USER_NAME:-}" | tr -d '\r')"
+HUB_GITHUB_USER_EMAIL="$(printf '%s' "${HUB_GITHUB_USER_EMAIL:-}" | tr -d '\r')"
 [ "${HUB_GITHUB_USER_NAME:-}" = 'Global User' ] || fail "accepting global config should emit global user.name"
 [ "${HUB_GITHUB_USER_EMAIL:-}" = 'global@example.com' ] || fail "accepting global config should emit global user.email"
 
@@ -51,7 +59,9 @@ HOME="$home_global_missing" git config --global user.name 'Global Name Only'
 
 run_interactive 'y\nmissing@example.com\n' "$tmpdir/global-missing.out" \
   env HOME="$home_global_missing" bash "$script_path"
-eval "$(grep -E '^HUB_GITHUB_USER_(NAME|EMAIL)=' "$tmpdir/global-missing.out")"
+eval "$(extract_identity_assignments "$tmpdir/global-missing.out")"
+HUB_GITHUB_USER_NAME="$(printf '%s' "${HUB_GITHUB_USER_NAME:-}" | tr -d '\r')"
+HUB_GITHUB_USER_EMAIL="$(printf '%s' "${HUB_GITHUB_USER_EMAIL:-}" | tr -d '\r')"
 [ "${HUB_GITHUB_USER_NAME:-}" = 'Global Name Only' ] || fail "script should keep global user.name when prompting for missing email"
 [ "${HUB_GITHUB_USER_EMAIL:-}" = 'missing@example.com' ] || fail "script should prompt for missing global email"
 
@@ -60,7 +70,9 @@ mkdir -p "$home_manual"
 
 run_interactive 'n\ny\nManual User\nmanual@example.com\n' "$tmpdir/manual.out" \
   env HOME="$home_manual" bash "$script_path"
-eval "$(grep -E '^HUB_GITHUB_USER_(NAME|EMAIL)=' "$tmpdir/manual.out")"
+eval "$(extract_identity_assignments "$tmpdir/manual.out")"
+HUB_GITHUB_USER_NAME="$(printf '%s' "${HUB_GITHUB_USER_NAME:-}" | tr -d '\r')"
+HUB_GITHUB_USER_EMAIL="$(printf '%s' "${HUB_GITHUB_USER_EMAIL:-}" | tr -d '\r')"
 [ "${HUB_GITHUB_USER_NAME:-}" = 'Manual User' ] || fail "manual fallback should emit entered user.name"
 [ "${HUB_GITHUB_USER_EMAIL:-}" = 'manual@example.com' ] || fail "manual fallback should emit entered user.email"
 

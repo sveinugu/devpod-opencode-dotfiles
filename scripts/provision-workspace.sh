@@ -12,6 +12,7 @@ source_repo="${HUB_PROVISION_SOURCE:-https://github.com/sveinugu/devpod-opencode
 install_branch="${HUB_INSTALL_BRANCH:-main}"
 home_dir="${HOME:?HOME must be set}"
 refresh_tools=false
+no_prompts=false
 tool_state_dir="$home_dir/.local/state/workspace-tools"
 
 while [ "$#" -gt 0 ]; do
@@ -19,8 +20,11 @@ while [ "$#" -gt 0 ]; do
     --refresh-tools)
       refresh_tools=true
       ;;
+    --no-prompts)
+      no_prompts=true
+      ;;
     *)
-      printf 'usage: provision-workspace.sh [--refresh-tools]\n' >&2
+      printf 'usage: provision-workspace.sh [--refresh-tools] [--no-prompts]\n' >&2
       exit 2
       ;;
   esac
@@ -43,20 +47,6 @@ configure_git_identity() {
   local bare_dir="$1"
   local github_user_name="${HUB_GITHUB_USER_NAME:-}"
   local github_user_email="${HUB_GITHUB_USER_EMAIL:-}"
-
-  if command -v gh >/dev/null 2>&1 && { [ -z "$github_user_name" ] || [ -z "$github_user_email" ]; }; then
-    if gh auth status >/dev/null 2>&1; then
-      if [ -z "$github_user_name" ]; then
-        github_user_name="$(gh api user --jq '.name // .login' 2>/dev/null || true)"
-      fi
-      if [ -z "$github_user_email" ]; then
-        github_user_email="$(gh api user --jq '.email // ""' 2>/dev/null || true)"
-      fi
-      if [ -z "$github_user_email" ]; then
-        github_user_email="$(gh api user/emails --jq '.[] | select(.primary) | .email' 2>/dev/null | head -n1 || true)"
-      fi
-    fi
-  fi
 
   if [ -n "$github_user_name" ]; then
     git --git-dir="$bare_dir" config user.name "$github_user_name"
