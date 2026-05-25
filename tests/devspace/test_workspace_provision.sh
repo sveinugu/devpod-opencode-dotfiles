@@ -111,6 +111,73 @@ bash "$script" --refresh-tools > "$tmpdir/refresh-run.out"
 grep -F 'pyenv-install' "$install_log" >/dev/null || fail "--refresh-tools did not force pyenv install"
 grep -F 'opencode-install' "$install_log" >/dev/null || fail "--refresh-tools did not force opencode install"
 
+workspace_identity="$tmpdir/workspace-identity"
+home_identity="$tmpdir/home-identity"
+source_identity="$tmpdir/source-identity"
+mock_bin="$tmpdir/mock-bin"
+mkdir -p "$workspace_identity" "$home_identity" "$mock_bin"
+make_source_repo_with_main "$source_identity"
+
+cat > "$mock_bin/gh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "$1" != "api" ]; then
+  exit 1
+fi
+
+if [ "$2" = "user" ] && [ "$3" = "--jq" ] && [ "$4" = ".name // .login" ]; then
+  printf 'Retrofit User\n'
+  exit 0
+fi
+
+if [ "$2" = "user" ] && [ "$3" = "--jq" ] && [ "$4" = ".email // \"\"" ]; then
+  printf '\n'
+  exit 0
+fi
+
+if [ "$2" = "user/emails" ] && [ "$3" = "--jq" ] && [ "$4" = ".[] | select(.primary) | .email" ]; then
+  printf 'retrofit@example.com\n'
+  exit 0
+fi
+
+exit 1
+EOF
+chmod +x "$mock_bin/gh"
+
+PATH="$mock_bin:$PATH" \
+HUB_WORKSPACE_ROOT="$workspace_identity" \
+HUB_PROVISION_SOURCE="$source_identity" \
+HUB_PYENV_INSTALL_COMMAND=":" \
+HUB_OPENCODE_INSTALL_COMMAND=":" \
+HOME="$home_identity" \
+bash "$script" >"$tmpdir/identity.out"
+
+identity_name="$(git --git-dir="$workspace_identity/.bare" config --get user.name || true)"
+identity_email="$(git --git-dir="$workspace_identity/.bare" config --get user.email || true)"
+[ "$identity_name" = "Retrofit User" ] || fail "provision should set git user.name from GitHub identity"
+[ "$identity_email" = "retrofit@example.com" ] || fail "provision should set git user.email from GitHub identity"
+
+workspace_identity_env="$tmpdir/workspace-identity-env"
+home_identity_env="$tmpdir/home-identity-env"
+source_identity_env="$tmpdir/source-identity-env"
+mkdir -p "$workspace_identity_env" "$home_identity_env"
+make_source_repo_with_main "$source_identity_env"
+
+HUB_WORKSPACE_ROOT="$workspace_identity_env" \
+HUB_PROVISION_SOURCE="$source_identity_env" \
+HUB_GITHUB_USER_NAME='Env User' \
+HUB_GITHUB_USER_EMAIL='env-user@example.com' \
+HUB_PYENV_INSTALL_COMMAND=":" \
+HUB_OPENCODE_INSTALL_COMMAND=":" \
+HOME="$home_identity_env" \
+bash "$script" >"$tmpdir/identity-env.out"
+
+identity_env_name="$(git --git-dir="$workspace_identity_env/.bare" config --get user.name || true)"
+identity_env_email="$(git --git-dir="$workspace_identity_env/.bare" config --get user.email || true)"
+[ "$identity_env_name" = "Env User" ] || fail "provision should honor explicit HUB_GITHUB_USER_NAME"
+[ "$identity_env_email" = "env-user@example.com" ] || fail "provision should honor explicit HUB_GITHUB_USER_EMAIL"
+
 workspace_tools_fail="$tmpdir/workspace-tools-fail"
 home_tools_fail="$tmpdir/home-tools-fail"
 source_tools_fail="$tmpdir/source-tools-fail"

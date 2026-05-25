@@ -39,6 +39,34 @@ run_tool_installer() {
   touch "$marker_path"
 }
 
+configure_git_identity() {
+  local bare_dir="$1"
+
+  if [ -n "${HUB_GITHUB_USER_NAME:-}" ] && [ -n "${HUB_GITHUB_USER_EMAIL:-}" ]; then
+    git --git-dir="$bare_dir" config user.name "$HUB_GITHUB_USER_NAME"
+    git --git-dir="$bare_dir" config user.email "$HUB_GITHUB_USER_EMAIL"
+    return
+  fi
+
+  if ! command -v gh >/dev/null 2>&1; then
+    return
+  fi
+
+  github_user_name="$(gh api user --jq '.name // .login' 2>/dev/null || true)"
+  github_user_email="$(gh api user --jq '.email // ""' 2>/dev/null || true)"
+  if [ -z "$github_user_email" ]; then
+    github_user_email="$(gh api user/emails --jq '.[] | select(.primary) | .email' 2>/dev/null | head -n1 || true)"
+  fi
+
+  if [ -n "$github_user_name" ]; then
+    git --git-dir="$bare_dir" config user.name "$github_user_name"
+  fi
+
+  if [ -n "$github_user_email" ]; then
+    git --git-dir="$bare_dir" config user.email "$github_user_email"
+  fi
+}
+
 pyenv_install_command="${HUB_PYENV_INSTALL_COMMAND:-curl -fsSL https://pyenv.run | zsh}"
 opencode_install_command="${HUB_OPENCODE_INSTALL_COMMAND:-curl -fsSL https://opencode.ai/install | zsh}"
 
@@ -47,6 +75,7 @@ if [ -d "$workspace_root" ] && [ "$(stat -c '%u' "$workspace_root" 2>/dev/null)"
 fi
 
 create_bare_hub "$workspace_root" "$source_repo" main
+configure_git_identity "$workspace_root/.bare"
 
 if [ ! -e "$workspace_root/main/.envrc" ]; then
   "$script_dir/lib/worktree-env.sh" "$workspace_root/main" hub >/dev/null
