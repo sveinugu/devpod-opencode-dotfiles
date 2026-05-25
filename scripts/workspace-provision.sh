@@ -42,6 +42,10 @@ run_tool_installer() {
 pyenv_install_command="${HUB_PYENV_INSTALL_COMMAND:-curl -fsSL https://pyenv.run | zsh}"
 opencode_install_command="${HUB_OPENCODE_INSTALL_COMMAND:-curl -fsSL https://opencode.ai/install | zsh}"
 
+# Ensure workspace root is owned by the runtime user (fixes git safe.directory for bare-hub layouts)
+if [ -d "$workspace_root" ] && [ "$(stat -c '%u' "$workspace_root" 2>/dev/null)" != "$(id -u)" ]; then
+  sudo chown "$(id -u):$(id -g)" "$workspace_root"
+fi
 create_bare_hub "$workspace_root" "$source_repo" "$source_branch"
 
 mkdir -p "$home_dir/.ssh" "$home_dir/.local/share/opencode"
