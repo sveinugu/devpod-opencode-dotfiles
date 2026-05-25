@@ -42,8 +42,8 @@ ln -s "$workspace_root/main/.zprofile" "$home_dir/.zprofile"
 ln -s "$workspace_root/main/.config/opencode" "$home_dir/.config/opencode"
 
 mkdir -p "$workspace_root/state/hub/etc"
-printf 'HUB_INSTALL_BRANCH=feature/install-checkout\n' > "$workspace_root/state/hub/etc/install.env"
-printf 'HUB_INSTALL_BRANCH_DIR=/workspaces/dotfiles/work/feature/install-checkout\n' >> "$workspace_root/state/hub/etc/install.env"
+printf 'export HUB_INSTALL_BRANCH=feature/install-checkout\n' > "$workspace_root/state/hub/etc/install.env"
+printf 'export HUB_INSTALL_BRANCH_DIR=/workspaces/dotfiles/work/feature/install-checkout\n' >> "$workspace_root/state/hub/etc/install.env"
 
 if ! HUB_CHECK_DEPLOYMENT=yes HUB_CHECK_PVC=yes HUB_CHECK_POD=test-pod HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" >"$tmpdir/pass.out" 2>&1; then
   fail "doctor should pass when all checks are healthy"

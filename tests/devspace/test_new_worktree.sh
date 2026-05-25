@@ -57,8 +57,8 @@ git clone --bare "$top_source" "$workspace_root/.bare" >/dev/null 2>&1
 git --git-dir="$workspace_root/.bare" worktree add "$workspace_root/main" main >/dev/null 2>&1
 
 mkdir -p "$workspace_root/state/hub/etc"
-printf 'HUB_INSTALL_BRANCH=main\n' > "$workspace_root/state/hub/etc/install.env"
-printf 'HUB_INSTALL_BRANCH_DIR=%s\n' "$workspace_root/main" >> "$workspace_root/state/hub/etc/install.env"
+printf 'export HUB_INSTALL_BRANCH=main\n' > "$workspace_root/state/hub/etc/install.env"
+printf 'export HUB_INSTALL_BRANCH_DIR=%s\n' "$workspace_root/main" >> "$workspace_root/state/hub/etc/install.env"
 
 child_source="$tmpdir/child-source"
 git init "$child_source" >/dev/null 2>&1
