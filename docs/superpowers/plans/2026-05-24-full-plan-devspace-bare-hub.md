@@ -752,7 +752,7 @@ The same task must now also lock the installed-branch publication contract used 
 - `install.sh` must export `HUB_INSTALL_BRANCH` and `HUB_INSTALL_BRANCH_DIR` for child commands during the install run;
 - `install.sh` must persist those same values to `/workspaces/dotfiles/state/hub/etc/install.env`;
 - `install.sh` must hard-fail if caller-supplied `HUB_INSTALL_BRANCH` / `HUB_INSTALL_BRANCH_DIR` do not match the actual checkout it is running from;
-- if shell helper `dd` is not already available, `install.sh` should print a recommendation snippet that users may add to their shell config later.
+- if shell helper `dd` is not already available, `install.sh` should print a recommendation snippet that users may add to their shell config later; the recommended `dd()` function should print the resolved install directory before changing into it for user convenience.
 
 This same task must also update user-facing and agent-facing guidance:
 
@@ -784,7 +784,7 @@ Implementation contract:
 - Keep the top-level dotfiles repo as the only `/home/vscode` authority.
 - Update the usage runbook so DevSpace users are directed to `/workspaces/dotfiles/main`, not the hub root.
 - Add the installed-branch publication file at `state/hub/etc/install.env` and keep it owned by `install.sh`.
-- Add `dd()` to the repo-managed `.zshrc` only when that file remains the active shell config in this repo; also keep the install-time recommendation message so a future split to user-owned shell config still has guidance.
+- Add `dd()` to the repo-managed `.zshrc` only when that file remains the active shell config in this repo; the helper should print the resolved install directory before `cd` so users can see where they are being sent; also keep the install-time recommendation message so a future split to user-owned shell config still has guidance.
 - Add an explicit short "what changed for implementers" note to the touched runbook/agent-policy docs whenever the command names or install-branch behavior differ from the already-landed implementation in this worktree.
 
 - [ ] **Step 4: Run GREEN**
@@ -1102,7 +1102,7 @@ The usage runbook updated in this task must explicitly document:
 - `bin/clone-repo` and `bin/new-worktree` as the preferred human and agent entrypoints;
 - the dev/testing/production policy-promotion idea using `HUB_INSTALL_BRANCH` and install from branch worktrees;
 - how `.envrc`, `.envrc.local`, and `state/hub/etc/install.env` interact;
-- what `dd` does and why it is optional shell customization rather than required infrastructure.
+- what `dd` does (including that it prints the destination directory before changing into it) and why it is optional shell customization rather than required infrastructure.
 
 - [ ] **Step 4: Run GREEN**
 
