@@ -72,6 +72,7 @@ create_bare_hub() {
   fi
 
   printf 'gitdir: ./.bare\n' > "$workspace_root/.git"
+  git --git-dir="$workspace_root/.bare" config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
 
   mkdir -p \
     "$workspace_root/work" \
