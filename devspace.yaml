@@ -22,8 +22,19 @@ dev:
       - sh
       - -lc
       - |
-        if [ -x /workspaces/dotfiles/main/scripts/preflight-devspace-dev.sh ]; then
-          /workspaces/dotfiles/main/scripts/preflight-devspace-dev.sh
+        install_env=/workspaces/dotfiles/state/hub/etc/install.env
+        if [ -f "$install_env" ]; then
+          # shellcheck disable=SC1090
+          . "$install_env"
+        fi
+
+        preflight_dir="${HUB_INSTALL_BRANCH_DIR:-/workspaces/dotfiles/main}"
+        if [ -x "$preflight_dir/scripts/preflight-devspace-dev.sh" ]; then
+          "$preflight_dir/scripts/preflight-devspace-dev.sh"
+        elif [ -x /workspaces/dotfiles/main/scripts/devspace-dev-preflight.sh ]; then
+          /workspaces/dotfiles/main/scripts/devspace-dev-preflight.sh
+        elif [ -d /workspaces/dotfiles/.bare ]; then
+          echo "warning: workspace provisioned but preflight script not found" >&2
         else
           echo "workspace not provisioned; run devspace run-pipeline provision" >&2
           exit 1
