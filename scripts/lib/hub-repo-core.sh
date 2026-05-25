@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Default to main for v1; can be overridden via env for dev/testing
-HUB_PROVISION_BRANCH="${HUB_PROVISION_BRANCH:-main}"
+# Default to main for v1 bootstrap behavior.
+HUB_BOOTSTRAP_BRANCH="${HUB_BOOTSTRAP_BRANCH:-main}"
 
 hub_fail() {
   printf '%s\n' "$1" >&2
@@ -46,7 +46,7 @@ hub_remove_empty_non_git_main_dir() {
 create_bare_hub() {
   local workspace_root="$1"
   local source="$2"
-  local branch="${3:-$HUB_PROVISION_BRANCH}"
+  local branch="${3:-$HUB_BOOTSTRAP_BRANCH}"
 
   if ! hub_source_has_branch "$source" "$branch"; then
     hub_fail "refused: origin/$branch is required for bootstrap"

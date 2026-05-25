@@ -8,10 +8,10 @@ fail() {
 
 repo_root="$(git rev-parse --show-toplevel)"
 install_script="$repo_root/install.sh"
-validator_script="$repo_root/scripts/install-validate-source.sh"
+validator_script="$repo_root/scripts/lib/validate_install_source_tree.sh"
 
 [ -f "$install_script" ] || fail "install.sh not found"
-[ -f "$validator_script" ] || fail "scripts/install-validate-source.sh not found"
+[ -f "$validator_script" ] || fail "scripts/lib/validate_install_source_tree.sh not found"
 
 if grep -F '2>/dev/null || true' "$install_script" >/dev/null; then
   fail "oh-my-zsh install path must not swallow errors"
@@ -25,11 +25,11 @@ source_root="$workspace_root/main"
 home_dir="$tmpdir/home"
 bin_dir="$tmpdir/bin"
 
-mkdir -p "$source_root/.config/opencode" "$source_root/scripts" "$home_dir" "$bin_dir"
+mkdir -p "$source_root/.config/opencode" "$source_root/scripts/lib" "$home_dir" "$bin_dir"
 
 cp "$install_script" "$source_root/install.sh"
-cp "$validator_script" "$source_root/scripts/install-validate-source.sh"
-chmod +x "$source_root/install.sh" "$source_root/scripts/install-validate-source.sh"
+cp "$validator_script" "$source_root/scripts/lib/validate_install_source_tree.sh"
+chmod +x "$source_root/install.sh" "$source_root/scripts/lib/validate_install_source_tree.sh"
 
 printf 'export TEST_ZSHRC=1\n' > "$source_root/.zshrc"
 printf 'source "$HOME/.zshrc"\n' > "$source_root/.zprofile"

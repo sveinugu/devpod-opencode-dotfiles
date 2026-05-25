@@ -24,7 +24,25 @@ script_path="$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' 
 source_root="$(dirname "$script_path")"
 workspace_root="${WORKSPACE_ROOT:-/workspaces/dotfiles}"
 home_dir="${HOME:?HOME must be set}"
-validator="$source_root/scripts/install-validate-source.sh"
+validator="$source_root/scripts/lib/validate_install_source_tree.sh"
+
+if [ "$source_root" = "$workspace_root/main" ]; then
+  install_branch="main"
+elif [ "${source_root#"$workspace_root/work/"}" != "$source_root" ]; then
+  install_branch="${source_root#"$workspace_root/work/"}"
+else
+  current_branch=''
+  if current_branch="$(git -C "$source_root" rev-parse --abbrev-ref HEAD 2>/dev/null)"; then
+    :
+  fi
+  if [ -n "$current_branch" ] && [ "$current_branch" != "HEAD" ]; then
+    install_branch="$current_branch"
+  else
+    install_branch="main"
+  fi
+fi
+
+install_branch_dir="$source_root"
 
 if [ "$source_root" = "$workspace_root" ]; then
   printf 'Refused — hub-root CWD detected. Provide explicit worktree path.\n' >&2
@@ -38,6 +56,38 @@ fi
 
 "$validator" "$source_root" "$source_root/.zshrc" >/dev/null
 "$validator" "$source_root" "$source_root/.config/opencode" >/dev/null
+
+if [ -n "${HUB_INSTALL_BRANCH:-}" ] && [ "$HUB_INSTALL_BRANCH" != "$install_branch" ]; then
+  printf 'refused: HUB_INSTALL_BRANCH does not match install source (expected %s, got %s)\n' "$install_branch" "$HUB_INSTALL_BRANCH" >&2
+  exit 1
+fi
+
+if [ -n "${HUB_INSTALL_BRANCH_DIR:-}" ] && [ "$HUB_INSTALL_BRANCH_DIR" != "$install_branch_dir" ]; then
+  printf 'refused: HUB_INSTALL_BRANCH_DIR does not match install source (expected %s, got %s)\n' "$install_branch_dir" "$HUB_INSTALL_BRANCH_DIR" >&2
+  exit 1
+fi
+
+export HUB_INSTALL_BRANCH="$install_branch"
+export HUB_INSTALL_BRANCH_DIR="$install_branch_dir"
+
+install_env_dir="$workspace_root/state/hub/etc"
+install_env_file="$install_env_dir/install.env"
+mkdir -p "$install_env_dir"
+cat > "$install_env_file" <<EOF
+HUB_INSTALL_BRANCH=$HUB_INSTALL_BRANCH
+HUB_INSTALL_BRANCH_DIR=$HUB_INSTALL_BRANCH_DIR
+EOF
+
+if ! declare -F dd >/dev/null 2>&1; then
+  cat >&2 <<EOF
+note: shell helper dd() was not detected. Add this snippet to your shell config for quick navigation:
+dd() {
+  local target="\${HUB_INSTALL_BRANCH_DIR:-$install_branch_dir}"
+  printf 'cd -> %s\n' "\$target"
+  cd "\$target"
+}
+EOF
+fi
 
 zsh_custom="${ZSH_CUSTOM:-$home_dir/.oh-my-zsh/custom}"
 
