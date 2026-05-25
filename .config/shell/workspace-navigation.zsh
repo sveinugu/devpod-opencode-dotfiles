@@ -12,6 +12,25 @@ if command -v direnv >/dev/null 2>&1; then
   eval "$(direnv hook zsh)"
 fi
 
+workspace_navigation_add_branch_bin_to_path() {
+  local branch_dir="${HUB_INSTALL_BRANCH_DIR:-}"
+  [ -n "$branch_dir" ] || return 0
+
+  local branch_bin="$branch_dir/bin"
+  [ -d "$branch_bin" ] || return 0
+
+  case ":$PATH:" in
+    *":$branch_bin:"*)
+      return 0
+      ;;
+  esac
+
+  # Prepend branch bin so branch-scoped tooling takes precedence.
+  export PATH="$branch_bin:$PATH"
+}
+
+workspace_navigation_add_branch_bin_to_path
+
 dd() {
   local target="${HUB_INSTALL_BRANCH_DIR:-/workspaces/dotfiles/main}"
   printf 'cd -> %s\n' "$target"
