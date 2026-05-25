@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [ "$#" -ne 0 ]; then
-  printf 'usage: devspace-doctor.sh\n' >&2
+  printf 'usage: check-workspace.sh\n' >&2
   exit 2
 fi
 
@@ -61,6 +61,15 @@ check_symlink_points_to_top_level_worktree() {
 check "/home/vscode .zshrc symlink points to existing top-level worktree" check_symlink_points_to_top_level_worktree ".zshrc"
 check "/home/vscode .zprofile symlink points to existing top-level worktree" check_symlink_points_to_top_level_worktree ".zprofile"
 check "/home/vscode .config/opencode symlink points to existing top-level worktree" check_symlink_points_to_top_level_worktree ".config/opencode"
+
+install_env="$workspace_root/state/hub/etc/install.env"
+if [ -f "$install_env" ]; then
+  install_branch="$(sed -n 's/^HUB_INSTALL_BRANCH=//p' "$install_env" | head -n1)"
+  install_dir="$(sed -n 's/^HUB_INSTALL_BRANCH_DIR=//p' "$install_env" | head -n1)"
+  printf '[PASS] installed-branch state from install.env: HUB_INSTALL_BRANCH=%s HUB_INSTALL_BRANCH_DIR=%s\n' "$install_branch" "$install_dir"
+else
+  printf '[PASS] installed-branch state from install.env: unavailable\n'
+fi
 
 if [ "$failures" -eq 0 ]; then
   printf 'doctor: all required checks passed\n'

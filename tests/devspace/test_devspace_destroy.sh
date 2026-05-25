@@ -7,10 +7,10 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
-script="$repo_root/scripts/devspace-destroy.sh"
+script="$repo_root/ops/destroy-workspace.sh"
 cfg="$repo_root/devspace.yaml"
 
-[ -f "$script" ] || fail "scripts/devspace-destroy.sh not found"
+[ -f "$script" ] || fail "ops/destroy-workspace.sh not found"
 [ -f "$cfg" ] || fail "devspace.yaml not found"
 
 tmpdir="$(mktemp -d)"
@@ -38,6 +38,6 @@ grep -F 'delete pvc dotfiles-workspace --ignore-not-found=true -n testing' "$kub
 PATH="$mock_bin:$PATH" KUBECTL_BIN=kubectl KUBECTL_LOG="$kubectl_log" DEVSPACE_NAMESPACE=testing bash "$script" >/dev/null 2>&1 || fail "destroy should also succeed when resources are already absent"
 
 grep -Eq '^\s{2}destroy:\s*\|-\s*$' "$cfg" || fail "devspace destroy pipeline must be present"
-grep -F 'scripts/devspace-destroy.sh' "$cfg" >/dev/null || fail "destroy pipeline should invoke scripts/devspace-destroy.sh"
+grep -F 'ops/destroy-workspace.sh' "$cfg" >/dev/null || fail "destroy pipeline should invoke ops/destroy-workspace.sh"
 
 printf 'PASS test_devspace_destroy\n'

@@ -9,11 +9,11 @@ fail() {
 repo_root="$(git rev-parse --show-toplevel)"
 deployment="$repo_root/k8s/devspace-bare-hub/workspace-deployment.yaml"
 dockerfile="$repo_root/Dockerfile"
-provision_script="$repo_root/scripts/workspace-provision.sh"
+provision_script="$repo_root/scripts/provision-workspace.sh"
 
 [ -f "$deployment" ] || fail "workspace-deployment.yaml not found"
 [ -f "$dockerfile" ] || fail "Dockerfile not found"
-[ -f "$provision_script" ] || fail "workspace-provision.sh not found"
+[ -f "$provision_script" ] || fail "provision-workspace.sh not found"
 
 grep -Eq '^\s*mountPath:\s*/home/vscode\s*$' "$deployment" || fail "missing /home/vscode mount from PVC"
 grep -Eq '^\s*subPath:\s*home-vscode\s*$' "$deployment" || fail "missing home-vscode PVC subPath"

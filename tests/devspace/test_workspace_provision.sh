@@ -7,9 +7,9 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
-script="$repo_root/scripts/workspace-provision.sh"
+script="$repo_root/scripts/provision-workspace.sh"
 
-[ -f "$script" ] || fail "scripts/workspace-provision.sh not found"
+[ -f "$script" ] || fail "scripts/provision-workspace.sh not found"
 
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
