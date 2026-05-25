@@ -74,7 +74,12 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 - [ ] `install.sh` hard-fails if caller-supplied `HUB_INSTALL_BRANCH` or `HUB_INSTALL_BRANCH_DIR` do not match the checkout it is actually running from.
 - [ ] Each editable top-level checkout gets a generated `.envrc` plus `.envrc.local`, and generated `.envrc` sources `/workspaces/dotfiles/state/hub/etc/install.env` when present.
 - [ ] Per-checkout cwd-sensitive environment uses `DYN_REPO_*` and `DYN_WORKTREE_*` names without changing `HOME`.
-- [ ] The recommended `dd()` helper changes to the active install checkout and prints the destination directory before changing into it.
+- [ ] `dhub` changes to the active install checkout from `$HUB_INSTALL_BRANCH_DIR` and prints the destination directory before changing into it.
+- [ ] `dre <repo>` changes to `/workspaces/dotfiles/repos/<repo>` and refuses the top-level hub as a target.
+- [ ] `dwt <name>` changes to `work/<name>` within the current managed repo context and refuses to run outside a managed repo context.
+- [ ] Zsh tab completion exists for `dhub`, `dre`, and `dwt`.
+- [ ] Invalid repo/worktree names print simple non-interactive `did you mean` hints.
+- [ ] No compatibility `dd()` alias is shipped in v1.
 
 ### F. `doctor` behavior
 
@@ -122,20 +127,20 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 - [ ] Child onboarding uses a repo-derived default name for `repos/<name>`.
 - [ ] V1 child onboarding refuses a user-supplied `--name` override.
 - [ ] Child onboarding refuses on name/path collisions.
-- [ ] Child onboarding uses `origin/main` as the only supported source ref in v1.
-- [ ] Child onboarding refuses if `origin/main` is absent.
+- [ ] Child onboarding detects the child repo's exact remote default branch name and keeps it without normalization.
+- [ ] Child onboarding refuses if the child repo default branch cannot be determined or materialized.
 - [ ] Successful child onboarding creates:
   - [ ] `repos/<name>/.bare`
-  - [ ] `repos/<name>/main`
+  - [ ] `repos/<name>/<default-branch>`
   - [ ] `repos/<name>/work/`
-  - [ ] matching canonical `state/` and `tmp/` paths
+  - [ ] matching canonical `state/` and `tmp/` paths for `<default-branch>`
 
 ### Additional phase-1 documentation and workflow guidance
 
 - [ ] `docs/superpowers/runbooks/devspace-bare-hub-usage.md` explains the dev/testing/production workflow for policy changes: develop in a non-`main` worktree, test with `HUB_INSTALL_BRANCH=<branch>` during provision/repair, merge to `main` for staging/testing, then push `main` for production/default behavior.
-- [ ] `docs/superpowers/runbooks/devspace-bare-hub-usage.md` and `docs/superpowers/runbooks/devspace-workspace-lifecycle.md` document `bin/clone-repo`, `bin/new-worktree`, `.envrc`, `.envrc.local`, `state/hub/etc/install.env`, and `dd()`.
+- [ ] `docs/superpowers/runbooks/devspace-bare-hub-usage.md` and `docs/superpowers/runbooks/devspace-workspace-lifecycle.md` document `bin/clone-repo`, `bin/new-worktree`, `dhub`, `dre`, `dwt`, `.envrc`, `.envrc.local`, `state/hub/etc/install.env`, and the no-implicit-fallback rule.
 - [ ] Agent policy docs (`.config/opencode/AGENTS.md`, `.config/opencode/agents/maestro.md`, `.config/opencode/agents/senior-implementer.md`) tell agents to prefer `bin/clone-repo` and `bin/new-worktree` and to read `state/hub/etc/install.env`.
-- [ ] Touched runbooks and agent-policy docs include a short "what changed for implementers" note whenever this retrofit changes command names, install-branch behavior, or required files to touch.
+- [ ] Touched runbooks and agent-policy docs include a short "what changed for implementers" note whenever this retrofit changes command names, install-branch behavior, child default-branch handling, or required files to touch.
 
 ---
 
