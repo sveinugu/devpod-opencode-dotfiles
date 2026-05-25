@@ -32,6 +32,7 @@ Provide one approved implementation plan for the full DevSpace bare-hub workspac
 - Local-source `install.sh` behavior and top-level-only `/home/vscode` authority.
 - Human-readable, host-side `doctor`; non-destructive `repair`; destructive `destroy`.
 - Public child-repo onboarding under `repos/*` using the same bare-hub conventions.
+- Managed per-checkout `.envrc` / `.envrc.local` generation with `direnv`, plus an in-pod worktree-creation command.
 
 ### In scope for phase 2
 
@@ -58,7 +59,7 @@ Provide one approved implementation plan for the full DevSpace bare-hub workspac
 - No DevSpace file sync as the durability model.
 - No image-seeded source snapshot replacing Git bootstrap.
 - No destructive in-place `reset` command in v1.
-- No direnv/per-worktree environment automation in this first plan; that older idea is deferred unless a later approved spec brings it back.
+- No bespoke shell-wrapper approach for per-worktree environment automation in v1.
 
 ---
 
@@ -72,6 +73,10 @@ Provide one approved implementation plan for the full DevSpace bare-hub workspac
 6. **Phase sequencing:** finish all phase-1 acceptance items before starting phase-2 CronJob/backup work.
 7. **DevSpace SSH shape:** use DevSpace's built-in `ssh` dev connection (`ssh.enabled: true`, `ssh.useInclude: true`) so DevSpace generates keys under `~/.devspace/ssh/`, writes the local SSH alias, and reaches the container through a loopback-only port-forward/tunnel instead of a Kubernetes Service.
 8. **Host-runner default:** use a small containerized cron runner under user control as the default scheduled host backup mechanism because it works on the documented macOS/colima and Linux host setups; keep a user-level systemd timer as a Linux-only fallback that invokes the same shared host backup script.
+9. **Managed envrc scope:** generate a managed `.envrc` for every managed checkout, including top-level `main/`, child-repo `main/`, and non-`main` worktrees.
+10. **Managed envrc exports:** export exactly `HUB_DIR`, `HUB_MAIN_DIR`, `HUB_STATE_DIR`, `HUB_TMP_DIR`, `CUR_REPO_DIR`, `CUR_REPO_MAIN_DIR`, `CUR_REPO_STATE_DIR`, `CUR_REPO_TMP_DIR`, `CUR_WORKTREE_DIR`, `CUR_WORKTREE_STATE_DIR`, and `CUR_WORKTREE_TMP_DIR`.
+11. **Managed envrc conflict policy:** refuse generation when `.envrc` already exists; create `.envrc.local` when missing; source `.envrc.local` from the managed `.envrc`; and let `.envrc.local` failures surface normally.
+12. **User-facing command layout:** use `bin/` for in-pod human commands without `.sh`, `scripts/` for automation entrypoints, `scripts/lib/` for helpers, and `ops/host/` for host-runner sources.
 
 ---
 
@@ -137,13 +142,13 @@ Those assumptions were superseded by the approved DevSpace design and must not r
 
 #### Shared bare-hub core and provision flow
 - Create: `scripts/lib/hub-repo-core.sh`
-- Create: `scripts/workspace-provision.sh`
-- Create: `scripts/devspace-dev-preflight.sh`
+- Create: `scripts/provision-workspace.sh`
+- Create: `scripts/preflight-devspace-dev.sh`
 - Create: `tests/devspace/test_workspace_provision.sh`
 - Create: `tests/devspace/test_devspace_dev_preflight.sh`
 
 #### Install, policy, and docs carried forward from the older plan
-- Create: `scripts/install-validate-source.sh`
+- Create: `scripts/lib/validate_install_source_tree`
 - Modify: `install.sh`
 - Modify: `.config/opencode/AGENTS.md`
 - Modify: `.config/opencode/agents/maestro.md`
@@ -154,25 +159,31 @@ Those assumptions were superseded by the approved DevSpace design and must not r
 - Create: `tests/docs/test_bare_hub_guardrails.sh`
 
 #### Doctor, repair, destroy
-- Create: `scripts/devspace-doctor.sh`
-- Create: `scripts/workspace-repair.sh`
-- Create: `scripts/devspace-destroy.sh`
+- Create: `ops/check-workspace.sh`
+- Create: `bin/repair-workspace`
+- Create: `ops/destroy-workspace.sh`
 - Create: `tests/devspace/test_devspace_doctor.sh`
 - Create: `tests/devspace/test_workspace_repair.sh`
 - Create: `tests/devspace/test_devspace_destroy.sh`
 - Create: `docs/superpowers/runbooks/devspace-workspace-lifecycle.md`
 
-#### Child repo onboarding
-- Create: `scripts/create-hub-repo.sh`
+#### Child repo onboarding and worktree environment support
+- Create: `bin/clone-repo`
+- Create: `bin/new-worktree`
+- Create: `scripts/lib/validate_hub_repo_root`
+- Create: `scripts/lib/worktree-env.sh`
+- Modify: `Dockerfile`
 - Create: `tests/devspace/test_create_hub_repo.sh`
+- Create: `tests/devspace/test_new_worktree.sh`
+- Modify: `tests/devspace/test_workspace_preinstalled_tools_contract.sh`
 - Modify: `docs/superpowers/runbooks/devspace-bare-hub-usage.md`
 
 ### Phase 2 — Staging and backup
 
 #### Export and staging core
-- Create: `scripts/opencode-export-all-sessions.sh`
-- Create: `scripts/prepare-state-backup-set.sh`
-- Create: `scripts/workspace-staging.sh`
+- Create: `bin/archive-opencode-sessions`
+- Create: `scripts/prepare-backup-set.sh`
+- Create: `bin/stage-backup`
 - Create: `tests/opencode/test_export_all_sessions.sh`
 - Create: `tests/opencode/test_prepare_state_backup_set.sh`
 - Create: `tests/opencode/test_workspace_staging.sh`
@@ -183,12 +194,12 @@ Those assumptions were superseded by the approved DevSpace design and must not r
 - Create: `tests/devspace/test_staging_cronjob_contract.sh`
 
 #### Host pull, backup, recovery, and runbooks
-- Create: `scripts/host-pull-and-restic-backup.sh`
-- Create: `ops/host-backup/run-devspace-backup.sh`
-- Create: `ops/host-backup/container/Containerfile`
-- Create: `ops/host-backup/container/entrypoint.sh`
-- Create: `ops/host-backup/container/crontab`
-- Create: `scripts/recover-opencode-sessions.sh`
+- Create: `ops/host/lib/backup-workspace.sh`
+- Create: `ops/host/run-workspace-backup.sh`
+- Create: `ops/host/backup-runner/Containerfile`
+- Create: `ops/host/backup-runner/entrypoint.sh`
+- Create: `ops/host/backup-runner/crontab`
+- Create: `bin/restore-opencode-sessions`
 - Create: `tests/opencode/test_host_pull_and_restic_backup.sh`
 - Create: `tests/opencode/test_host_backup_runner_contract.sh`
 - Create: `tests/opencode/test_stale_staging_behavior.sh`
@@ -226,26 +237,33 @@ k8s/devspace-bare-hub/                          # Kubernetes manifests owned by 
   workspace-pvc.yaml
   workspace-deployment.yaml
   staging-cronjob.yaml
-scripts/                                        # public repo-owned entrypoint scripts
-  workspace-provision.sh
-  devspace-dev-preflight.sh
-  devspace-doctor.sh
-  workspace-repair.sh
-  devspace-destroy.sh
-  create-hub-repo.sh
-  opencode-export-all-sessions.sh
-  prepare-state-backup-set.sh
-  workspace-staging.sh
-  host-pull-and-restic-backup.sh
-  recover-opencode-sessions.sh
-scripts/lib/                                    # sourced helpers only; no user-facing entrypoints
+bin/                                            # in-pod human commands on PATH
+  clone-repo
+  new-worktree
+  repair-workspace
+  stage-backup
+  archive-opencode-sessions
+  restore-opencode-sessions
+scripts/                                        # automation entrypoints called by DevSpace/tests/other scripts
+  provision-workspace.sh
+  preflight-devspace-dev.sh
+  prepare-backup-set.sh
+scripts/lib/                                    # sourced helpers only; no direct operator entrypoints
   hub-repo-core.sh
-ops/host-backup/                                # host-only runner source; committed, but executed by humans on host
-  run-devspace-backup.sh
-  container/
-    Containerfile
-    entrypoint.sh
-    crontab
+  validate_install_source_tree
+  validate_hub_repo_root
+  worktree-env.sh
+ops/                                            # host-oriented operational entrypoints and assets
+  check-workspace.sh
+  destroy-workspace.sh
+  host/
+    run-workspace-backup.sh
+    lib/
+      backup-workspace.sh
+    backup-runner/
+      Containerfile
+      entrypoint.sh
+      crontab
 tests/devspace/                                 # DevSpace/Kubernetes contract tests
 tests/install/                                  # install-source and hub-root guardrail tests
 tests/opencode/                                 # export/staging/pull/recovery tests
@@ -258,8 +276,10 @@ docs/superpowers/specs/                         # approved design specs
 
 ### Naming conventions
 
-- Public scripts in `scripts/` and `ops/host-backup/` use `verb-noun.sh` naming.
-- Files in `scripts/lib/` are sourced helpers, not direct operator entrypoints.
+- `bin/` holds in-pod human commands, has no `.sh` suffix, and favors distinct first letters when practical.
+- `scripts/` holds automation entrypoints and keeps `.sh` suffixes.
+- `scripts/lib/` holds sourced helpers and validation helpers, not direct operator entrypoints.
+- `ops/` holds host-oriented operational entrypoints; `ops/host/backup-runner/` contains the local host backup container contents.
 - Manifest files are one resource family per file and use `workspace-*` / `staging-*` prefixes.
 - Test files use `test_<subject>.sh` and live in the narrowest domain directory that matches the contract.
 - Runbooks use `devspace-*` or `host-*` prefixes and describe user/operator workflows, not internal implementation details.
@@ -874,9 +894,9 @@ The same manual gate must also confirm the Task-1/Task-3 SSH acceptance path wit
 **Acceptance:** C1-C3, F1-F8, G1-G8, H1-H4.
 
 **Files:**
-- Create: `scripts/devspace-doctor.sh`
-- Create: `scripts/workspace-repair.sh`
-- Create: `scripts/devspace-destroy.sh`
+- Create: `ops/check-workspace.sh`
+- Create: `bin/repair-workspace`
+- Create: `ops/destroy-workspace.sh`
 - Modify: `devspace.yaml`
 - Create: `docs/superpowers/runbooks/devspace-workspace-lifecycle.md`
 - Test: `tests/devspace/test_devspace_doctor.sh`
@@ -919,7 +939,7 @@ bash tests/devspace/test_workspace_repair.sh
 bash tests/devspace/test_devspace_destroy.sh
 ```
 
-Expected: fail because the scripts and lifecycle runbook do not exist yet.
+Expected: fail because the commands/scripts and lifecycle runbook do not exist yet.
 
 - [ ] **Step 3: Implement `doctor` exactly to the acceptance checklist**
 
@@ -954,26 +974,32 @@ Expected: tests pass; `doctor` prints a readable pass/fail summary.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add scripts/devspace-doctor.sh scripts/workspace-repair.sh scripts/devspace-destroy.sh devspace.yaml docs/superpowers/runbooks/devspace-workspace-lifecycle.md tests/devspace/test_devspace_doctor.sh tests/devspace/test_workspace_repair.sh tests/devspace/test_devspace_destroy.sh
+git add ops/check-workspace.sh bin/repair-workspace ops/destroy-workspace.sh devspace.yaml docs/superpowers/runbooks/devspace-workspace-lifecycle.md tests/devspace/test_devspace_doctor.sh tests/devspace/test_workspace_repair.sh tests/devspace/test_devspace_destroy.sh
 git commit -m "feat(workspace): add doctor repair and destroy flows"
 ```
 
 **Rollback:** revert this commit; if `destroy` semantics are in doubt, verify by running only the tests, not the real destructive pipeline.
 
-### Task 5: Add public child-repo onboarding with the same bare-hub conventions
+### Task 5: Add public child-repo onboarding plus managed per-worktree `.envrc` support
 
 **Why fifth:** It depends on the top-level provision contract but is otherwise isolated enough to land as the last phase-1 slice.
 
-**Acceptance:** D5, I1-I7.
+**Acceptance:** D5, I1-I7, plus the approved per-worktree direnv subtask.
 
-**Reuse source:** older `create-hub-repo.sh` design notes and shared-helper boundary.
+**Reuse source:** older `create-hub-repo.sh` design notes, shared-helper boundary, and the approved direnv notes from `2026-05-21-bare-hub-manager.md` lines 736-746.
 
 **Files:**
-- Create: `scripts/create-hub-repo.sh`
+- Create: `bin/clone-repo`
+- Create: `bin/new-worktree`
+- Create: `scripts/lib/validate_hub_repo_root`
+- Create: `scripts/lib/worktree-env.sh`
+- Modify: `Dockerfile`
 - Test: `tests/devspace/test_create_hub_repo.sh`
+- Test: `tests/devspace/test_new_worktree.sh`
+- Modify: `tests/devspace/test_workspace_preinstalled_tools_contract.sh`
 - Modify: `docs/superpowers/runbooks/devspace-bare-hub-usage.md`
 
-- [ ] **Step 1: Write the failing onboarding test first**
+- [ ] **Step 1: Write the failing onboarding and worktree-environment tests first**
 
 `tests/devspace/test_create_hub_repo.sh` must assert:
 
@@ -983,7 +1009,18 @@ git commit -m "feat(workspace): add doctor repair and destroy flows"
 - collisions refuse rather than rename automatically;
 - `origin/main` is the only supported source ref;
 - successful onboarding creates `repos/<name>/.bare`, `repos/<name>/main`, `repos/<name>/work/`, `state/repos/<name>/main/`, and `tmp/repos/<name>/main/`;
+- successful onboarding also creates managed `.envrc` and `.envrc.local` for the child repo `main/` checkout;
 - child onboarding does not change `/home/vscode` symlink authority.
+
+`tests/devspace/test_new_worktree.sh` must assert:
+
+- `bin/new-worktree` creates a managed worktree under the repo hub worktree area and the matching canonical `state/` / `tmp/` paths;
+- the generated `.envrc` exists for every managed checkout, including top-level `main/`, child-repo `main/`, and non-`main` worktrees;
+- generated `.envrc` exports exactly `HUB_DIR`, `HUB_MAIN_DIR`, `HUB_STATE_DIR`, `HUB_TMP_DIR`, `CUR_REPO_DIR`, `CUR_REPO_MAIN_DIR`, `CUR_REPO_STATE_DIR`, `CUR_REPO_TMP_DIR`, `CUR_WORKTREE_DIR`, `CUR_WORKTREE_STATE_DIR`, and `CUR_WORKTREE_TMP_DIR`;
+- generated `.envrc` sources `.envrc.local` after the managed exports, and `.envrc.local` is auto-created for new managed checkouts;
+- generation refuses if `.envrc` already exists;
+- `.envrc.local` failures surface normally through direnv instead of being swallowed;
+- `direnv` is present in the interactive image, with shell hooks available for bash and zsh.
 
 - [ ] **Step 2: Run RED**
 
@@ -991,16 +1028,23 @@ Run:
 
 ```bash
 bash tests/devspace/test_create_hub_repo.sh
+bash tests/devspace/test_new_worktree.sh
+bash tests/devspace/test_workspace_preinstalled_tools_contract.sh
 ```
 
-Expected: fail because `scripts/create-hub-repo.sh` does not exist yet.
+Expected: fail because the onboarding/worktree commands and helper wiring do not exist yet.
 
-- [ ] **Step 3: Implement the public child-repo entrypoint**
+- [ ] **Step 3: Implement the public child-repo and worktree entrypoints**
 
 Implementation contract:
 
-- keep `scripts/create-hub-repo.sh` as the public entrypoint;
+- keep `bin/clone-repo` as the in-pod public child-repo entrypoint;
+- add `bin/new-worktree` as the in-pod public worktree-creation entrypoint for both hub and child repos;
 - reuse `scripts/lib/hub-repo-core.sh` only for the duplicated repo-hub steps;
+- use a shared helper in `scripts/lib/worktree-env.sh` to generate managed `.envrc` and `.envrc.local` files and canonical `state/` / `tmp/` directories for every managed checkout;
+- `.envrc` generation must refuse when `.envrc` already exists; `.envrc.local` should be created if missing and sourced from `.envrc` with normal error propagation;
+- top-level hub `main/` and child-repo `main/` checkouts must receive the same managed env treatment as non-`main` worktrees;
+- install `direnv` in the interactive image and expose hooks for bash and zsh;
 - do not add a user-supplied `--name` override in v1;
 - keep `/home/vscode` authority exclusively with the top-level dotfiles repo.
 
@@ -1010,6 +1054,8 @@ Run:
 
 ```bash
 bash tests/devspace/test_create_hub_repo.sh
+bash tests/devspace/test_new_worktree.sh
+bash tests/devspace/test_workspace_preinstalled_tools_contract.sh
 ```
 
 Expected: pass.
@@ -1017,11 +1063,11 @@ Expected: pass.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add scripts/create-hub-repo.sh docs/superpowers/runbooks/devspace-bare-hub-usage.md tests/devspace/test_create_hub_repo.sh
-git commit -m "feat(workspace): add public child repo onboarding"
+git add bin/clone-repo bin/new-worktree scripts/lib/validate_hub_repo_root scripts/lib/worktree-env.sh Dockerfile docs/superpowers/runbooks/devspace-bare-hub-usage.md tests/devspace/test_create_hub_repo.sh tests/devspace/test_new_worktree.sh tests/devspace/test_workspace_preinstalled_tools_contract.sh
+git commit -m "feat(workspace): add repo onboarding and worktree env commands"
 ```
 
-**Manual review gate:** human provisions the top-level workspace, adds one public child repo, and confirms `~/` links still point into the top-level worktree.
+**Manual review gate:** human provisions the top-level workspace, adds one public child repo, creates one non-`main` worktree, confirms `~/` links still point into the top-level worktree, and confirms `direnv` exposes the managed variables in both a `main/` checkout and a non-`main` worktree.
 
 **Rollback:** revert this commit and remove any experimental child repo directory from the PVC manually if needed.
 
@@ -1044,6 +1090,8 @@ bash tests/devspace/test_devspace_doctor.sh
 bash tests/devspace/test_workspace_repair.sh
 bash tests/devspace/test_devspace_destroy.sh
 bash tests/devspace/test_create_hub_repo.sh
+bash tests/devspace/test_new_worktree.sh
+bash tests/devspace/test_workspace_preinstalled_tools_contract.sh
 devspace run-pipeline provision
 devspace run-pipeline doctor
 devspace dev
@@ -1058,6 +1106,7 @@ Expected:
 - `provision` succeeds from an empty or intentionally reset workspace;
 - `doctor` returns exit 0 on the healthy workspace;
 - `ssh workspace.dotfiles.devspace 'pwd'` prints `/workspaces/dotfiles/main` without a standalone workspace Service;
+- `direnv` is available in the interactive environment and the managed `.envrc` variables load for at least one `main/` checkout and one non-`main` worktree;
 - `git diff --check` prints no output.
 
 Phase-1 rollback order if the slice must be backed out:
@@ -1074,7 +1123,7 @@ Phase-1 rollback order if the slice must be backed out:
 >
 > **Plan-authoritative schedule lock:** staging at minute 0 of every hour (cron: `0 * * * *`); host-side backup at minute 30 of every hour (cron: `30 * * * *`).
 
-### Task 6: Export OpenCode sessions into `state/opencode/exported_sessions/`
+### Task 6: Archive OpenCode sessions into `state/opencode/exported_sessions/`
 
 **Why first in phase 2:** The exported JSON files are the durable source-of-truth artifact for session recovery and downstream backup.
 
@@ -1083,7 +1132,7 @@ Phase-1 rollback order if the slice must be backed out:
 **Reuse source:** older Task 6 is reused without contract changes.
 
 **Files:**
-- Create: `scripts/opencode-export-all-sessions.sh`
+- Create: `bin/archive-opencode-sessions`
 - Test: `tests/opencode/test_export_all_sessions.sh`
 
 - [ ] **Step 1: Carry over the older failing test first**
@@ -1106,7 +1155,7 @@ Run:
 bash tests/opencode/test_export_all_sessions.sh
 ```
 
-Expected: fail because `scripts/opencode-export-all-sessions.sh` does not exist yet.
+Expected: fail because `bin/archive-opencode-sessions` does not exist yet.
 
 - [ ] **Step 3: Implement the reused export contract**
 
@@ -1130,7 +1179,7 @@ Expected: pass.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add scripts/opencode-export-all-sessions.sh tests/opencode/test_export_all_sessions.sh
+git add bin/archive-opencode-sessions tests/opencode/test_export_all_sessions.sh
 git commit -m "feat(opencode): export durable session backups"
 ```
 
@@ -1140,11 +1189,11 @@ git commit -m "feat(opencode): export durable session backups"
 
 **Acceptance:** J3-J5.
 
-**Reuse source:** older Task 7 for `prepare-state-backup-set.sh`, plus one new wrapper `workspace-staging.sh`.
+**Reuse source:** older Task 7 for `prepare-state-backup-set.sh`, plus one new wrapper `bin/stage-backup`.
 
 **Files:**
-- Create: `scripts/prepare-state-backup-set.sh`
-- Create: `scripts/workspace-staging.sh`
+- Create: `scripts/prepare-backup-set.sh`
+- Create: `bin/stage-backup`
 - Test: `tests/opencode/test_prepare_state_backup_set.sh`
 - Test: `tests/opencode/test_workspace_staging.sh`
 
@@ -1156,7 +1205,7 @@ Carry over the older `tests/opencode/test_prepare_state_backup_set.sh` unchanged
 
 `tests/opencode/test_workspace_staging.sh` must assert:
 
-- the wrapper runs `opencode-export-all-sessions.sh` and `prepare-state-backup-set.sh` in that order;
+- the wrapper runs `archive-opencode-sessions` and `prepare-backup-set.sh` in that order;
 - staging writes a human-readable log under the top-level `state/` tree;
 - staging writes a machine-readable status file under the top-level `state/` tree with at least `started_at`, `finished_at`, `ok`, and `staging_root` fields;
 - failure leaves a visible non-OK status record but does not delete the previous `current` staging set.
@@ -1194,7 +1243,7 @@ Expected: both pass.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add scripts/prepare-state-backup-set.sh scripts/workspace-staging.sh tests/opencode/test_prepare_state_backup_set.sh tests/opencode/test_workspace_staging.sh
+git add scripts/prepare-backup-set.sh bin/stage-backup tests/opencode/test_prepare_state_backup_set.sh tests/opencode/test_workspace_staging.sh
 git commit -m "feat(backup): add staging core and persistent status"
 ```
 
@@ -1214,7 +1263,7 @@ git commit -m "feat(backup): add staging core and persistent status"
 
 `tests/devspace/test_staging_cronjob_contract.sh` must assert:
 
-- the CronJob invokes `scripts/workspace-staging.sh`;
+- the CronJob invokes `bin/stage-backup`;
 - the manual `devspace run-pipeline staging` pipeline invokes the same script;
 - the CronJob schedule is `0 * * * *`;
 - the CronJob writes logs that remain visible through Kubernetes job logs.
@@ -1233,7 +1282,7 @@ Expected: fail because the CronJob manifest and pipeline wiring do not exist yet
 
 Implementation contract:
 
-- the CronJob and manual pipeline both call the same `scripts/workspace-staging.sh` entrypoint;
+- the CronJob and manual pipeline both call the same `bin/stage-backup` entrypoint;
 - staging failures must not block normal `devspace dev` use;
 - phase 2 adds `devspace run-pipeline staging`, but phase 1 must not have exposed it.
 
@@ -1264,11 +1313,11 @@ git commit -m "feat(backup): add staging cronjob and manual pipeline"
 **Reuse source:** older Task 8, with stale/freshness warnings added.
 
 **Files:**
-- Create: `scripts/host-pull-and-restic-backup.sh`
-- Create: `ops/host-backup/run-devspace-backup.sh`
-- Create: `ops/host-backup/container/Containerfile`
-- Create: `ops/host-backup/container/entrypoint.sh`
-- Create: `ops/host-backup/container/crontab`
+- Create: `ops/host/lib/backup-workspace.sh`
+- Create: `ops/host/run-workspace-backup.sh`
+- Create: `ops/host/backup-runner/Containerfile`
+- Create: `ops/host/backup-runner/entrypoint.sh`
+- Create: `ops/host/backup-runner/crontab`
 - Test: `tests/opencode/test_host_pull_and_restic_backup.sh`
 - Test: `tests/opencode/test_host_backup_runner_contract.sh`
 - Test: `tests/opencode/test_stale_staging_behavior.sh`
@@ -1294,10 +1343,10 @@ Add assertions that:
 
 `tests/opencode/test_host_backup_runner_contract.sh` must assert:
 
-- the repo ships an installable host-runner option under `ops/host-backup/` that a human can activate on the host;
-- the default install path is the containerized runner using `ops/host-backup/container/Containerfile`, `entrypoint.sh`, and `crontab`;
+- the repo ships an installable host-runner option under `ops/host/` that a human can activate on the host;
+- the default install path is the containerized runner using `ops/host/backup-runner/Containerfile`, `entrypoint.sh`, and `crontab`;
 - the container cron schedule is `30 * * * *` and runs the shared host backup entrypoint on schedule;
-- `ops/host-backup/run-devspace-backup.sh --once --env-file <path>` loads the environment file, runs the shared host pull + `restic` path, and exits non-zero on pull or `restic` failure;
+- `ops/host/run-workspace-backup.sh --once --env-file <path>` loads the environment file, runs the shared host pull + `restic` path, and exits non-zero on pull or `restic` failure;
 - the Linux-only systemd fallback is documented and invokes the same shared script.
 
 - [ ] **Step 2B: Add a failing repeated-stale warning contract test**
@@ -1310,7 +1359,7 @@ Add assertions that:
 
 `tests/ops/test_host_backup_container_contract.sh` must assert:
 
-- the container image wraps the same `ops/host-backup/run-devspace-backup.sh` entrypoint;
+- the container image wraps the same `ops/host/run-workspace-backup.sh` entrypoint;
 - the cron file schedules `30 * * * *`;
 - the runner writes logs under the host state root instead of the repo.
 
@@ -1319,7 +1368,7 @@ Add assertions that:
 `tests/devspace/test_backup_pipeline_contract.sh` must assert:
 
 - `devspace run-pipeline backup` exists in phase 2;
-- the pipeline dispatches to the shared host backup contract used by `ops/host-backup/run-devspace-backup.sh`;
+- the pipeline dispatches to the shared host backup contract used by `ops/host/run-workspace-backup.sh`;
 - backup reports fresh-or-stale status;
 - backup hard-fails on pull or `restic` failure.
 
@@ -1342,10 +1391,10 @@ Expected: fail because the host backup script and runner sources do not exist ye
 Implementation contract:
 
 - the host-side script remains the only component that touches the `restic` repository;
-- freshness is computed from the persistent status artifact written by `workspace-staging.sh`;
+- freshness is computed from the persistent status artifact written by `bin/stage-backup`;
 - stale data warns by default, as required by the approved design.
-- the shared host entrypoint is `ops/host-backup/run-devspace-backup.sh` and must be used by both the recommended scheduled runner and manual `--once` execution.
-- the recommended scheduled runner is the small containerized cron runner shipped under `ops/host-backup/`; the runbook may also include a Linux-only user-level systemd timer example as fallback.
+- the shared host entrypoint is `ops/host/run-workspace-backup.sh` and must be used by both the recommended scheduled runner and manual `--once` execution.
+- the recommended scheduled runner is the small containerized cron runner shipped under `ops/host/`; the runbook may also include a Linux-only user-level systemd timer example as fallback.
 - phase 2 must implement the installable host-runner source in the repo; only activation on the human's host remains manual.
 
 - [ ] **Step 5: Wire the manual DevSpace backup command and document the authoritative schedule**
@@ -1371,7 +1420,7 @@ Expected: pass, including the stale-warning and repeated-stale-warning paths.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add scripts/host-pull-and-restic-backup.sh ops/host-backup/run-devspace-backup.sh ops/host-backup/container/Containerfile ops/host-backup/container/entrypoint.sh ops/host-backup/container/crontab tests/opencode/test_host_pull_and_restic_backup.sh tests/opencode/test_host_backup_runner_contract.sh tests/opencode/test_stale_staging_behavior.sh tests/ops/test_host_backup_container_contract.sh tests/devspace/test_backup_pipeline_contract.sh devspace.yaml docs/superpowers/runbooks/devspace-staging-and-backup.md
+git add ops/host/lib/backup-workspace.sh ops/host/run-workspace-backup.sh ops/host/backup-runner/Containerfile ops/host/backup-runner/entrypoint.sh ops/host/backup-runner/crontab tests/opencode/test_host_pull_and_restic_backup.sh tests/opencode/test_host_backup_runner_contract.sh tests/opencode/test_stale_staging_behavior.sh tests/ops/test_host_backup_container_contract.sh tests/devspace/test_backup_pipeline_contract.sh devspace.yaml docs/superpowers/runbooks/devspace-staging-and-backup.md
 git commit -m "feat(backup): add scheduled host runner and restic snapshot flow"
 ```
 
@@ -1384,7 +1433,7 @@ git commit -m "feat(backup): add scheduled host runner and restic snapshot flow"
 **Reuse source:** older Task 9 is reused without contract changes.
 
 **Files:**
-- Create: `scripts/recover-opencode-sessions.sh`
+- Create: `bin/restore-opencode-sessions`
 - Test: `tests/opencode/test_recover_opencode_sessions.sh`
 - Modify: `docs/superpowers/runbooks/devspace-staging-and-backup.md`
 
@@ -1406,7 +1455,7 @@ Run:
 bash tests/opencode/test_recover_opencode_sessions.sh
 ```
 
-Expected: fail because the recovery script does not exist yet.
+Expected: fail because `bin/restore-opencode-sessions` does not exist yet.
 
 - [ ] **Step 3: Implement the reused recovery contract**
 
@@ -1430,7 +1479,7 @@ Expected: pass.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add scripts/recover-opencode-sessions.sh tests/opencode/test_recover_opencode_sessions.sh docs/superpowers/runbooks/devspace-staging-and-backup.md
+git add bin/restore-opencode-sessions tests/opencode/test_recover_opencode_sessions.sh docs/superpowers/runbooks/devspace-staging-and-backup.md
 git commit -m "feat(opencode): recover newest durable session exports"
 ```
 
@@ -1453,7 +1502,7 @@ bash tests/devspace/test_backup_pipeline_contract.sh
 bash tests/opencode/test_recover_opencode_sessions.sh
 devspace run-pipeline staging
 devspace run-pipeline backup
-bash ops/host-backup/run-devspace-backup.sh --once --env-file "$HOME/.config/devspace-bare-hub/backup.env"
+bash ops/host/run-workspace-backup.sh --once --env-file "$HOME/.config/devspace-bare-hub/backup.env"
 git diff --check
 ```
 
@@ -1503,7 +1552,7 @@ Phase-2 rollback order:
 - **DevSpace wrapper drift:** avoid hiding provision inside `devspace dev`; keep the preflight explicit.
 - **Repair overreach:** do not let `repair` become destructive or branch-guessing.
 - **Child repo authority creep:** keep child repos away from `/home/vscode` ownership.
-- **Backup freshness ambiguity:** the status file/log written by `workspace-staging.sh` is the single source of truth for stale/fresh reporting.
+- **Backup freshness ambiguity:** the status file/log written by `bin/stage-backup` is the single source of truth for stale/fresh reporting.
 
 ---
 
