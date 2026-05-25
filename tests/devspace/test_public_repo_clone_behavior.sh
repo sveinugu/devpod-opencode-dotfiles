@@ -28,7 +28,14 @@ git init "$public_source" >/dev/null 2>&1
   git config user.email 'test@example.com'
   git branch -M main
   printf 'main\n' > README.md
+  cat > install.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+:
+EOF
+  chmod +x install.sh
   git add README.md
+  git add install.sh
   git commit -m 'public fixture main' >/dev/null 2>&1
 
   git checkout -b feature/public-fetch >/dev/null 2>&1
