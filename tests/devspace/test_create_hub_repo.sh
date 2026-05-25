@@ -7,10 +7,10 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
-script="$repo_root/scripts/create-hub-repo.sh"
+script="$repo_root/bin/clone-repo"
 runbook="$repo_root/docs/superpowers/runbooks/devspace-bare-hub-usage.md"
 
-[ -f "$script" ] || fail "scripts/create-hub-repo.sh not found"
+[ -f "$script" ] || fail "bin/clone-repo not found"
 [ -f "$runbook" ] || fail "runbook not found"
 
 tmpdir="$(mktemp -d)"
@@ -98,6 +98,6 @@ set -e
 [ "$public_only_rc" = "1" ] || fail "v1 should refuse non-public/ssh child sources"
 grep -F 'refused: public repo source is required in v1' "$tmpdir/public-only.out" >/dev/null || fail "missing public-only refusal"
 
-grep -F 'create-hub-repo.sh' "$runbook" >/dev/null || fail "runbook should document child repo onboarding usage"
+grep -F 'bin/clone-repo' "$runbook" >/dev/null || fail "runbook should document child repo onboarding usage"
 
 printf 'PASS test_create_hub_repo\n'

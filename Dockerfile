@@ -18,7 +18,7 @@ RUN apt-get update \
 # Install additional packages
 RUN apt-get update \
     && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends emacs gh ripgrep \
+    && apt-get -y install --no-install-recommends direnv emacs gh ripgrep \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
 

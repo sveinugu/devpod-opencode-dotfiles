@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+checkout_dir="${1:?usage: worktree-env.sh CHECKOUT_DIR HUB_KIND [REPO_NAME]}"
+hub_kind="${2:?usage: worktree-env.sh CHECKOUT_DIR HUB_KIND [REPO_NAME]}"
+repo_name="${3:-hub}"
+
+workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
+checkout_dir="$(readlink -f "$checkout_dir")"
+
+refuse() {
+  printf '%s\n' "$1" >&2
+  exit 1
+}
+
+case "$hub_kind" in
+  hub|child) ;;
+  *)
+    refuse 'usage: worktree-env.sh CHECKOUT_DIR HUB_KIND [REPO_NAME]'
+    ;;
+esac
+
+if [ -e "$checkout_dir/.envrc" ]; then
+  refuse 'refused: managed .envrc generation requires absent .envrc'
+fi
+
+if [ "$hub_kind" = "hub" ]; then
+  hub_dir="$workspace_root"
+  hub_main_dir="$workspace_root/main"
+  hub_state_dir="$workspace_root/state/hub"
+  hub_tmp_dir="$workspace_root/tmp/hub"
+  dyn_repo_dir="$workspace_root"
+  dyn_repo_main_dir="$workspace_root/main"
+  dyn_repo_state_dir="$workspace_root/state/hub"
+  dyn_repo_tmp_dir="$workspace_root/tmp/hub"
+  case "$checkout_dir" in
+    "$workspace_root/main")
+      dyn_worktree_state_dir="$workspace_root/state/hub/main"
+      dyn_worktree_tmp_dir="$workspace_root/tmp/hub/main"
+      ;;
+    "$workspace_root/work"/*)
+      work_rel="${checkout_dir#"$workspace_root/work/"}"
+      dyn_worktree_state_dir="$workspace_root/state/hub/work/$work_rel"
+      dyn_worktree_tmp_dir="$workspace_root/tmp/hub/work/$work_rel"
+      ;;
+    *)
+      refuse 'refused: checkout is not a managed top-level worktree'
+      ;;
+  esac
+elif [ "$hub_kind" = "child" ]; then
+  child_root="$workspace_root/repos/$repo_name"
+  hub_dir="$workspace_root"
+  hub_main_dir="$workspace_root/main"
+  hub_state_dir="$workspace_root/state/hub"
+  hub_tmp_dir="$workspace_root/tmp/hub"
+  dyn_repo_dir="$child_root"
+  dyn_repo_main_dir="$child_root/main"
+  dyn_repo_state_dir="$workspace_root/state/repos/$repo_name"
+  dyn_repo_tmp_dir="$workspace_root/tmp/repos/$repo_name"
+  case "$checkout_dir" in
+    "$child_root/main")
+      dyn_worktree_state_dir="$workspace_root/state/repos/$repo_name/main"
+      dyn_worktree_tmp_dir="$workspace_root/tmp/repos/$repo_name/main"
+      ;;
+    "$child_root/work"/*)
+      work_rel="${checkout_dir#"$child_root/work/"}"
+      dyn_worktree_state_dir="$workspace_root/state/repos/$repo_name/work/$work_rel"
+      dyn_worktree_tmp_dir="$workspace_root/tmp/repos/$repo_name/work/$work_rel"
+      ;;
+    *)
+      refuse 'refused: checkout is not a managed child worktree'
+      ;;
+  esac
+fi
+
+mkdir -p "$dyn_worktree_state_dir" "$dyn_worktree_tmp_dir"
+
+cat > "$checkout_dir/.envrc" <<EOF
+export HUB_DIR="$hub_dir"
+export HUB_MAIN_DIR="$hub_main_dir"
+export HUB_STATE_DIR="$hub_state_dir"
+export HUB_TMP_DIR="$hub_tmp_dir"
+export DYN_REPO_DIR="$dyn_repo_dir"
+export DYN_REPO_MAIN_DIR="$dyn_repo_main_dir"
+export DYN_REPO_STATE_DIR="$dyn_repo_state_dir"
+export DYN_REPO_TMP_DIR="$dyn_repo_tmp_dir"
+export DYN_WORKTREE_DIR="$checkout_dir"
+export DYN_WORKTREE_STATE_DIR="$dyn_worktree_state_dir"
+export DYN_WORKTREE_TMP_DIR="$dyn_worktree_tmp_dir"
+if [ -f /workspaces/dotfiles/state/hub/etc/install.env ]; then
+  source /workspaces/dotfiles/state/hub/etc/install.env
+fi
+source ./.envrc.local
+EOF
+
+if [ ! -e "$checkout_dir/.envrc.local" ]; then
+  : > "$checkout_dir/.envrc.local"
+fi
+
+printf 'ok: generated managed envrc at %s/.envrc\n' "$checkout_dir"
