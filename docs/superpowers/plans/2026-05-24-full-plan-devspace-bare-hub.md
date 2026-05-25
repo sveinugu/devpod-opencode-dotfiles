@@ -77,6 +77,8 @@ Provide one approved implementation plan for the full DevSpace bare-hub workspac
 10. **Managed envrc exports:** export exactly `HUB_DIR`, `HUB_MAIN_DIR`, `HUB_STATE_DIR`, `HUB_TMP_DIR`, `DYN_REPO_DIR`, `DYN_REPO_MAIN_DIR`, `DYN_REPO_STATE_DIR`, `DYN_REPO_TMP_DIR`, `DYN_WORKTREE_DIR`, `DYN_WORKTREE_STATE_DIR`, and `DYN_WORKTREE_TMP_DIR`.
 11. **Managed envrc conflict policy:** refuse generation when `.envrc` already exists; create `.envrc.local` when missing; source `.envrc.local` from the managed `.envrc`; and let `.envrc.local` failures surface normally.
 12. **User-facing command layout:** use `bin/` for in-pod human commands without `.sh`, `scripts/` for automation entrypoints, `scripts/lib/` for helpers, and `ops/host/` for host-runner sources.
+13. **Installed-branch state contract:** `install.sh` is the authoritative writer of installed-branch state. It must export and persist `HUB_INSTALL_BRANCH` and `HUB_INSTALL_BRANCH_DIR` to `/workspaces/dotfiles/state/hub/etc/install.env`, and it must hard-fail if the declared branch/dir do not match the checkout it is running from.
+14. **Installed-branch worktree policy:** keep `/workspaces/dotfiles/main` attached to `main` only. If `HUB_INSTALL_BRANCH` is set to a non-`main` branch, provision/repair must ensure a matching worktree exists under `/workspaces/dotfiles/work/<branch-name>` and then run that worktree's `install.sh` instead of repointing `main/`.
 
 ---
 
@@ -725,6 +727,7 @@ git commit -m "feat(devspace): add workspace command surface and manifests"
 **Files:**
 - Create: `scripts/install-validate-source.sh`
 - Modify: `install.sh`
+- Modify: `.zshrc`
 - Modify: `.config/opencode/AGENTS.md`
 - Modify: `.config/opencode/agents/maestro.md`
 - Modify: `.config/opencode/agents/senior-implementer.md`
@@ -742,6 +745,14 @@ Carry over the older contract tests with only the naming/docs changes needed for
 - `tests/docs/test_bare_hub_guardrails.sh`
 
 The behavioral contract must stay the same as the older plan for install source detection and hub-root refusal.
+
+The same task must now also lock the installed-branch publication contract used by later provision/repair flows:
+
+- `install.sh` must derive the branch and checkout directory it is running from;
+- `install.sh` must export `HUB_INSTALL_BRANCH` and `HUB_INSTALL_BRANCH_DIR` for child commands during the install run;
+- `install.sh` must persist those same values to `/workspaces/dotfiles/state/hub/etc/install.env`;
+- `install.sh` must hard-fail if caller-supplied `HUB_INSTALL_BRANCH` / `HUB_INSTALL_BRANCH_DIR` do not match the actual checkout it is running from;
+- if shell helper `dd` is not already available, `install.sh` should print a recommendation snippet that users may add to their shell config later.
 
 - [ ] **Step 2: Run RED**
 
@@ -763,6 +774,8 @@ Implementation contract:
 - Keep the exact refusal string: `Refused — hub-root CWD detected. Provide explicit worktree path.`
 - Keep the top-level dotfiles repo as the only `/home/vscode` authority.
 - Update the usage runbook so DevSpace users are directed to `/workspaces/dotfiles/main`, not the hub root.
+- Add the installed-branch publication file at `state/hub/etc/install.env` and keep it owned by `install.sh`.
+- Add `dd()` to the repo-managed `.zshrc` only when that file remains the active shell config in this repo; also keep the install-time recommendation message so a future split to user-owned shell config still has guidance.
 
 - [ ] **Step 4: Run GREEN**
 
@@ -780,7 +793,7 @@ Expected: tests pass; the manual dry-run uses the script’s own checkout/worktr
 - [ ] **Step 5: Commit**
 
 ```bash
-git add scripts/install-validate-source.sh install.sh .config/opencode/AGENTS.md .config/opencode/agents/maestro.md .config/opencode/agents/senior-implementer.md docs/superpowers/runbooks/devspace-bare-hub-usage.md tests/install/test_install_validate_source.sh tests/install/test_install_local_source_contract.sh tests/docs/test_bare_hub_guardrails.sh
+git add scripts/install-validate-source.sh install.sh .zshrc .config/opencode/AGENTS.md .config/opencode/agents/maestro.md .config/opencode/agents/senior-implementer.md docs/superpowers/runbooks/devspace-bare-hub-usage.md tests/install/test_install_validate_source.sh tests/install/test_install_local_source_contract.sh tests/docs/test_bare_hub_guardrails.sh
 git commit -m "feat(workspace): carry forward install and bare-hub guardrails"
 ```
 
@@ -809,8 +822,11 @@ git commit -m "feat(workspace): carry forward install and bare-hub guardrails"
 - top-level `main` is attached from the bare repo;
 - canonical top-level paths exist: `state/hub/main/` and `tmp/hub/main/`;
 - `main/install.sh` is invoked;
+- if `HUB_INSTALL_BRANCH` is unset or `main`, provision installs from `main/` and publishes `state/hub/etc/install.env` with `main` values;
+- if `HUB_INSTALL_BRANCH` is set to a non-`main` branch, provision keeps `main/` on `main`, ensures `/workspaces/dotfiles/work/<branch-name>` exists, runs that worktree's `install.sh`, and publishes matching installed-branch state;
 - provision refuses if `origin/main` is absent;
-- provision refuses if an existing `main/` path is present in a broken or detached state.
+- provision refuses if an existing `main/` path is present in a broken or detached state;
+- provision refuses if the requested install branch cannot be materialized as a matching worktree.
 
 `tests/devspace/test_devspace_dev_preflight.sh` must cover these contracts:
 
@@ -837,6 +853,9 @@ Implementation contract:
 - The top-level provision source is the public dotfiles repo, cloned bare in-pod.
 - V1 supports only `origin/main`; do not add branch configurability.
 - The script must create `state/hub/main/` and `tmp/hub/main/` immediately after attaching `main`.
+- `HUB_INSTALL_BRANCH` replaces the earlier `HUB_PROVISION_BRANCH` behavior and means "which checkout should supply install.sh", not "what branch should main/ attach to".
+- if `HUB_INSTALL_BRANCH` is non-`main`, provision must ensure `/workspaces/dotfiles/work/<branch-name>` exists and run `install.sh` from there while leaving `/workspaces/dotfiles/main` attached to `main`.
+- the chosen `install.sh` invocation must write `/workspaces/dotfiles/state/hub/etc/install.env` with `HUB_INSTALL_BRANCH` and `HUB_INSTALL_BRANCH_DIR`.
 - Task 1's SSH placeholder must become a real acceptance path here: once `devspace dev` is active on the host, the DevSpace-managed alias must reach `/workspaces/dotfiles/main` without adding a standalone SSH Service.
 
 - [ ] **Step 4: Wire the DevSpace pipelines**
@@ -918,6 +937,9 @@ The same manual gate must also confirm the Task-1/Task-3 SSH acceptance path wit
 - missing managed directories can be recreated;
 - missing canonical `state/` and `tmp/` paths can be recreated;
 - `main` can be reattached only when `.bare` is valid and recognizable;
+- if `HUB_INSTALL_BRANCH` is unset or `main`, repair reinstalls from `main/`;
+- if `HUB_INSTALL_BRANCH` is non-`main`, repair keeps `main/` on `main`, ensures `/workspaces/dotfiles/work/<branch-name>` exists, and reinstalls from that worktree;
+- repair can inspect existing installed-branch state via `state/hub/etc/install.env` and must not silently publish contradictory state;
 - existing tracked/untracked files and worktrees are not deleted;
 - a still-valid non-`main` `/home/vscode` symlink target is preserved;
 - invalid `.bare`, ambiguous identity, or conflicting path types cause refusal.
@@ -956,6 +978,8 @@ Implementation contract:
 
 - `repair` is non-destructive and structural only;
 - `destroy` is the true clean reset path;
+- `repair` may honor `HUB_INSTALL_BRANCH` as an override request, but it must resolve that into a real worktree under `work/` and then run the matching `install.sh`;
+- `repair` must never retarget `/workspaces/dotfiles/main` away from `main`;
 - neither command guesses when the top-level workspace identity is ambiguous.
 
 - [ ] **Step 5: Run GREEN**
@@ -1017,12 +1041,15 @@ git commit -m "feat(workspace): add doctor repair and destroy flows"
 - `bin/new-worktree` creates a managed worktree under the repo hub worktree area and the matching canonical `state/` / `tmp/` paths;
 - the generated `.envrc` exists for every managed checkout, including top-level `main/`, child-repo `main/`, and non-`main` worktrees;
 - generated `.envrc` exports exactly `HUB_DIR`, `HUB_MAIN_DIR`, `HUB_STATE_DIR`, `HUB_TMP_DIR`, `DYN_REPO_DIR`, `DYN_REPO_MAIN_DIR`, `DYN_REPO_STATE_DIR`, `DYN_REPO_TMP_DIR`, `DYN_WORKTREE_DIR`, `DYN_WORKTREE_STATE_DIR`, and `DYN_WORKTREE_TMP_DIR`;
+- generated `.envrc` also sources `/workspaces/dotfiles/state/hub/etc/install.env` when present so every checkout sees the current `HUB_INSTALL_BRANCH` and `HUB_INSTALL_BRANCH_DIR` values without editing each `.envrc` file;
 - generated `.envrc` sources `.envrc.local` after the managed exports, and `.envrc.local` is auto-created for new managed checkouts;
 - generation refuses if `.envrc` already exists;
 - `.envrc.local` failures surface normally through direnv instead of being swallowed;
 - `direnv` is present in the interactive image, with shell hooks available for bash and zsh.
 
 **Retrofit note for existing Tasks 1-5:** implementers must update any already-landed phase-1 code, tests, docs, and DevSpace wiring that still mention pre-rename paths or the earlier `CUR_*` variable names. In practice this means: Task 1 user-facing docs/command-surface references should match the renamed command layout where surfaced; Task 2 must use `scripts/lib/validate_install_source_tree`; Task 3 must rename the provision/preflight entrypoints to `scripts/provision-workspace.sh` and `scripts/preflight-devspace-dev.sh`; Task 4 must use `ops/check-workspace.sh`, `bin/repair-workspace`, and `ops/destroy-workspace.sh`; and Task 5 must use the final `DYN_*` env var names consistently in generated `.envrc`, tests, docs, and any helper code.
+
+The same retrofit applies to the install-branch override feature: replace `HUB_PROVISION_BRANCH` with `HUB_INSTALL_BRANCH`, stop repointing `main/` to non-`main` branches, ensure non-`main` install sources live under `/workspaces/dotfiles/work/<branch-name>`, and have `install.sh` publish verified installed-branch state to `state/hub/etc/install.env`.
 
 - [ ] **Step 2: Run RED**
 
@@ -1044,9 +1071,11 @@ Implementation contract:
 - add `bin/new-worktree` as the in-pod public worktree-creation entrypoint for both hub and child repos;
 - reuse `scripts/lib/hub-repo-core.sh` only for the duplicated repo-hub steps;
 - use a shared helper in `scripts/lib/worktree-env.sh` to generate managed `.envrc` and `.envrc.local` files and canonical `state/` / `tmp/` directories for every managed checkout;
+- have those generated `.envrc` files source the shared installed-branch state file at `/workspaces/dotfiles/state/hub/etc/install.env` when present;
 - `.envrc` generation must refuse when `.envrc` already exists; `.envrc.local` should be created if missing and sourced from `.envrc` with normal error propagation;
 - top-level hub `main/` and child-repo `main/` checkouts must receive the same managed env treatment as non-`main` worktrees;
 - install `direnv` in the interactive image and expose hooks for bash and zsh;
+- keep install-branch filesystem layout independent from branch naming policy: use `/workspaces/dotfiles/work/<branch-name>` even when branch names themselves contain slashes such as `work/devspace-bare-hub`;
 - do not add a user-supplied `--name` override in v1;
 - keep `/home/vscode` authority exclusively with the top-level dotfiles repo.
 
