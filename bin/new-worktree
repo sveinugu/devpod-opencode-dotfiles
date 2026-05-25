@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
+
+usage() {
+  printf 'usage: new-worktree --repo <hub|repo-name> <branch>\n' >&2
+}
+
+if [ "$#" -lt 3 ]; then
+  usage
+  exit 2
+fi
+
+repo_name=''
+branch=''
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --repo)
+      shift
+      repo_name="${1:-}"
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      branch="$1"
+      ;;
+  esac
+  shift
+done
+
+if [ -z "$repo_name" ] || [ -z "$branch" ]; then
+  usage
+  exit 2
+fi
+
+if [ "$repo_name" = "hub" ]; then
+  repo_root="$workspace_root"
+  bare_dir="$workspace_root/.bare"
+  target="$workspace_root/work/$branch"
+  state_dir="$workspace_root/state/hub/work/$branch"
+  tmp_dir="$workspace_root/tmp/hub/work/$branch"
+  hub_kind='hub'
+  repo_for_env='hub'
+else
+  repo_root="$workspace_root/repos/$repo_name"
+  bare_dir="$repo_root/.bare"
+  target="$repo_root/work/$branch"
+  state_dir="$workspace_root/state/repos/$repo_name/work/$branch"
+  tmp_dir="$workspace_root/tmp/repos/$repo_name/work/$branch"
+  hub_kind='child'
+  repo_for_env="$repo_name"
+fi
+
+if [ ! -d "$bare_dir" ]; then
+  printf 'refused: managed bare repository is missing\n' >&2
+  exit 1
+fi
+
+if ! git --git-dir="$bare_dir" show-ref --verify --quiet "refs/heads/$branch"; then
+  git --git-dir="$bare_dir" branch "$branch" main >/dev/null
+fi
+
+if git --git-dir="$bare_dir" worktree list --porcelain | grep -F "worktree $target" >/dev/null 2>&1; then
+  :
+else
+  mkdir -p "$(dirname "$target")"
+  git --git-dir="$bare_dir" worktree add "$target" "$branch" >/dev/null
+fi
+
+mkdir -p "$state_dir" "$tmp_dir"
+
+if [ "$repo_name" = "hub" ]; then
+  if [ ! -e "$workspace_root/main/.envrc" ]; then
+    "$script_dir/../scripts/lib/worktree-env.sh" "$workspace_root/main" "$hub_kind" "$repo_for_env" >/dev/null
+  fi
+fi
+if [ ! -e "$target/.envrc" ]; then
+  "$script_dir/../scripts/lib/worktree-env.sh" "$target" "$hub_kind" "$repo_for_env" >/dev/null
+fi
+
+if [ "$repo_name" != "hub" ]; then
+  if [ ! -e "$repo_root/main/.envrc" ]; then
+    "$script_dir/../scripts/lib/worktree-env.sh" "$repo_root/main" "$hub_kind" "$repo_for_env" >/dev/null
+  fi
+fi
+
+printf 'ok: created worktree at %s\n' "$target"

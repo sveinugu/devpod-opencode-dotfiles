@@ -3,12 +3,12 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 # shellcheck source=scripts/lib/hub-repo-core.sh
-source "$script_dir/lib/hub-repo-core.sh"
+source "$script_dir/../scripts/lib/hub-repo-core.sh"
 
 workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
 
 usage() {
-  printf 'usage: create-hub-repo.sh <public-repo-source>\n' >&2
+  printf 'usage: clone-repo <public-repo-source>\n' >&2
 }
 
 if [ "$#" -eq 0 ]; then
@@ -17,7 +17,7 @@ if [ "$#" -eq 0 ]; then
 fi
 
 if [ "$1" = "--name" ]; then
-  printf 'usage: create-hub-repo.sh <public-repo-source>\n' >&2
+  usage
   exit 2
 fi
 
@@ -31,8 +31,7 @@ source_repo="$1"
 case "$source_repo" in
   git@*|ssh://*|*://*/*/*)
     case "$source_repo" in
-      https://*)
-        ;;
+      https://*) ;;
       *)
         printf 'refused: public repo source is required in v1\n' >&2
         exit 1
@@ -60,5 +59,7 @@ create_bare_hub "$child_root" "$source_repo" main
 
 mkdir -p "$workspace_root/state/repos/$repo_name/main"
 mkdir -p "$workspace_root/tmp/repos/$repo_name/main"
+
+"$script_dir/../scripts/lib/worktree-env.sh" "$child_root/main" child "$repo_name" >/dev/null
 
 printf 'ok: created child hub repo at %s\n' "$child_root"
