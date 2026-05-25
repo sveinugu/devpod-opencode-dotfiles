@@ -10,12 +10,10 @@ repo_root="$(git rev-parse --show-toplevel)"
 new_worktree_script="$repo_root/bin/new-worktree"
 clone_repo_script="$repo_root/bin/clone-repo"
 env_helper="$repo_root/scripts/lib/worktree-env.sh"
-repo_root_validator="$repo_root/scripts/lib/validate_hub_repo_root.sh"
 
 [ -f "$new_worktree_script" ] || fail "bin/new-worktree not found"
 [ -f "$clone_repo_script" ] || fail "bin/clone-repo not found"
 [ -f "$env_helper" ] || fail "scripts/lib/worktree-env.sh not found"
-[ -f "$repo_root_validator" ] || fail "scripts/lib/validate_hub_repo_root.sh not found"
 
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
@@ -63,6 +61,40 @@ HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$clone_repo_script" 
 
 HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script" --repo hub feature/top-level >/dev/null
 HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script" --repo child-source feature/child >/dev/null
+
+set +e
+HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script" --repo hub feature/extra unexpected >"$tmpdir/extra-args.out" 2>&1
+extra_args_rc="$?"
+set -e
+
+[ "$extra_args_rc" = "2" ] || fail "new-worktree should reject unexpected extra positional args"
+grep -F 'usage: new-worktree --repo <hub|repo-name> <branch>' "$tmpdir/extra-args.out" >/dev/null || fail "new-worktree should show usage on extra positional args"
+
+validator_path="$repo_root/scripts/lib/validate_hub_repo_root.sh"
+validator_backup="$tmpdir/validate_hub_repo_root.sh.bak"
+cp "$validator_path" "$validator_backup"
+restore_validator() {
+  cp "$validator_backup" "$validator_path"
+}
+trap 'restore_validator; rm -rf "$tmpdir"' EXIT
+
+cat > "$validator_path" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'validator-invoked\n' >&2
+exit 1
+EOF
+chmod +x "$validator_path"
+
+set +e
+HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script" --repo hub feature/validator-check >"$tmpdir/validator-invocation.out" 2>&1
+validator_invocation_rc="$?"
+set -e
+
+[ "$validator_invocation_rc" = "1" ] || fail "new-worktree should fail when hub root validator fails"
+grep -F 'validator-invoked' "$tmpdir/validator-invocation.out" >/dev/null || fail "new-worktree should invoke hub root validator"
+
+restore_validator
 
 [ -d "$workspace_root/work/feature/top-level" ] || fail "missing top-level worktree"
 [ -d "$workspace_root/state/hub/work/feature/top-level" ] || fail "missing top-level canonical state path"

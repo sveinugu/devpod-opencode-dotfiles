@@ -111,6 +111,56 @@ bash "$script" --refresh-tools > "$tmpdir/refresh-run.out"
 grep -F 'pyenv-install' "$install_log" >/dev/null || fail "--refresh-tools did not force pyenv install"
 grep -F 'opencode-install' "$install_log" >/dev/null || fail "--refresh-tools did not force opencode install"
 
+workspace_tools_fail="$tmpdir/workspace-tools-fail"
+home_tools_fail="$tmpdir/home-tools-fail"
+source_tools_fail="$tmpdir/source-tools-fail"
+make_source_repo_with_main "$source_tools_fail"
+mkdir -p "$workspace_tools_fail" "$home_tools_fail"
+
+set +e
+HUB_WORKSPACE_ROOT="$workspace_tools_fail" \
+HUB_PROVISION_SOURCE="$source_tools_fail" \
+HUB_PYENV_INSTALL_COMMAND='false | true' \
+HUB_OPENCODE_INSTALL_COMMAND=':' \
+HOME="$home_tools_fail" \
+bash "$script" >"$tmpdir/tools-fail.out" 2>&1
+tools_fail_rc="$?"
+set -e
+
+[ "$tools_fail_rc" != "0" ] || fail "provision should fail when tool installer pipeline fails"
+[ ! -f "$home_tools_fail/.local/state/workspace-tools/pyenv.installed" ] || fail "pyenv success marker must not be written when installer pipeline fails"
+
+workspace_branch_fetch="$tmpdir/workspace-branch-fetch"
+home_branch_fetch="$tmpdir/home-branch-fetch"
+source_branch_fetch="$tmpdir/source-branch-fetch"
+make_source_repo_with_main "$source_branch_fetch"
+mkdir -p "$workspace_branch_fetch" "$home_branch_fetch"
+
+HUB_WORKSPACE_ROOT="$workspace_branch_fetch" \
+HUB_PROVISION_SOURCE="$source_branch_fetch" \
+HUB_PYENV_INSTALL_COMMAND=":" \
+HUB_OPENCODE_INSTALL_COMMAND=":" \
+HOME="$home_branch_fetch" \
+bash "$script" >"$tmpdir/branch-fetch-initial.out"
+
+(
+  cd "$source_branch_fetch"
+  git checkout -b feature/from-origin >/dev/null 2>&1
+  printf 'from-origin\n' > BRANCH_FETCH_MARKER
+  git add BRANCH_FETCH_MARKER
+  git commit -m 'add marker branch for fetch test' >/dev/null 2>&1
+)
+
+HUB_WORKSPACE_ROOT="$workspace_branch_fetch" \
+HUB_PROVISION_SOURCE="$source_branch_fetch" \
+HUB_INSTALL_BRANCH='feature/from-origin' \
+HUB_PYENV_INSTALL_COMMAND=":" \
+HUB_OPENCODE_INSTALL_COMMAND=":" \
+HOME="$home_branch_fetch" \
+bash "$script" >"$tmpdir/branch-fetch-followup.out"
+
+[ -f "$workspace_branch_fetch/work/feature/from-origin/BRANCH_FETCH_MARKER" ] || fail "provision should fetch and attach install branch created after first bootstrap"
+
 source_no_main="$tmpdir/source-no-main"
 workspace_no_main="$tmpdir/workspace-no-main"
 make_source_repo_without_main "$source_no_main"

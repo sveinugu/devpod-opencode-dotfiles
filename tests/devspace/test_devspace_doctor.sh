@@ -52,6 +52,13 @@ fi
 grep -F 'PASS' "$tmpdir/pass.out" >/dev/null || fail "doctor output should be human-readable checklist"
 grep -F 'installed-branch state from install.env' "$tmpdir/pass.out" >/dev/null || fail "doctor should report installed branch state"
 
+rm -f "$workspace_root/main/.zshrc"
+set +e
+HUB_CHECK_DEPLOYMENT=yes HUB_CHECK_PVC=yes HUB_CHECK_POD=test-pod HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" >"$tmpdir/broken-symlink.out" 2>&1
+broken_symlink_rc="$?"
+set -e
+[ "$broken_symlink_rc" = "1" ] || fail "doctor should fail when /home symlink points to missing target"
+
 set +e
 HUB_CHECK_DEPLOYMENT=no HUB_CHECK_PVC=yes HUB_CHECK_POD=test-pod HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" >"$tmpdir/fail.out" 2>&1
 doctor_rc="$?"

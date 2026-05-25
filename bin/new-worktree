@@ -15,11 +15,16 @@ fi
 
 repo_name=''
 branch=''
+branch_set=false
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --repo)
       shift
+      if [ "$#" -eq 0 ]; then
+        usage
+        exit 2
+      fi
       repo_name="${1:-}"
       ;;
     --help|-h)
@@ -27,7 +32,12 @@ while [ "$#" -gt 0 ]; do
       exit 0
       ;;
     *)
+      if [ "$branch_set" = true ]; then
+        usage
+        exit 2
+      fi
       branch="$1"
+      branch_set=true
       ;;
   esac
   shift
@@ -40,6 +50,7 @@ fi
 
 if [ "$repo_name" = "hub" ]; then
   repo_root="$workspace_root"
+  "$script_dir/../scripts/lib/validate_hub_repo_root.sh" "$workspace_root/main" >/dev/null
   bare_dir="$workspace_root/.bare"
   target="$workspace_root/work/$branch"
   state_dir="$workspace_root/state/hub/work/$branch"
@@ -48,6 +59,7 @@ if [ "$repo_name" = "hub" ]; then
   repo_for_env='hub'
 else
   repo_root="$workspace_root/repos/$repo_name"
+  "$script_dir/../scripts/lib/validate_hub_repo_root.sh" "$repo_root/main" >/dev/null
   bare_dir="$repo_root/.bare"
   target="$repo_root/work/$branch"
   state_dir="$workspace_root/state/repos/$repo_name/work/$branch"
