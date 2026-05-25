@@ -754,6 +754,15 @@ The same task must now also lock the installed-branch publication contract used 
 - `install.sh` must hard-fail if caller-supplied `HUB_INSTALL_BRANCH` / `HUB_INSTALL_BRANCH_DIR` do not match the actual checkout it is running from;
 - if shell helper `dd` is not already available, `install.sh` should print a recommendation snippet that users may add to their shell config later.
 
+This same task must also update user-facing and agent-facing guidance:
+
+- `docs/superpowers/runbooks/devspace-bare-hub-usage.md` must explain the dev/testing/production policy workflow:
+  - develop policy in a non-`main` worktree,
+  - test workspace-wide with `HUB_INSTALL_BRANCH=<branch> devspace run-pipeline provision` or `repair`,
+  - merge to `main` for staging/testing,
+  - push `main` to origin for production/default behavior;
+- `.config/opencode/AGENTS.md`, `.config/opencode/agents/maestro.md`, and `.config/opencode/agents/senior-implementer.md` must tell agents to prefer `bin/clone-repo` and `bin/new-worktree` over manual `git clone` / `git worktree add` commands once those commands exist.
+
 - [ ] **Step 2: Run RED**
 
 Run:
@@ -776,6 +785,7 @@ Implementation contract:
 - Update the usage runbook so DevSpace users are directed to `/workspaces/dotfiles/main`, not the hub root.
 - Add the installed-branch publication file at `state/hub/etc/install.env` and keep it owned by `install.sh`.
 - Add `dd()` to the repo-managed `.zshrc` only when that file remains the active shell config in this repo; also keep the install-time recommendation message so a future split to user-owned shell config still has guidance.
+- Add an explicit short "what changed for implementers" note to the touched runbook/agent-policy docs whenever the command names or install-branch behavior differ from the already-landed implementation in this worktree.
 
 - [ ] **Step 4: Run GREEN**
 
@@ -944,6 +954,12 @@ The same manual gate must also confirm the Task-1/Task-3 SSH acceptance path wit
 - a still-valid non-`main` `/home/vscode` symlink target is preserved;
 - invalid `.bare`, ambiguous identity, or conflicting path types cause refusal.
 
+The lifecycle runbook created in this task must also explain:
+
+- how `doctor` reports the installed branch using `state/hub/etc/install.env`;
+- how `repair` honors `HUB_INSTALL_BRANCH` without retargeting `main/`;
+- how humans can inspect current installed state before asking agents to repair.
+
 `tests/devspace/test_devspace_destroy.sh` must assert that the host-side pipeline deletes both the Deployment/pod and the PVC.
 
 The same task must also retain the SSH acceptance path established by Task 1 at the operational level:
@@ -1051,6 +1067,8 @@ git commit -m "feat(workspace): add doctor repair and destroy flows"
 
 The same retrofit applies to the install-branch override feature: replace `HUB_PROVISION_BRANCH` with `HUB_INSTALL_BRANCH`, stop repointing `main/` to non-`main` branches, ensure non-`main` install sources live under `/workspaces/dotfiles/work/<branch-name>`, and have `install.sh` publish verified installed-branch state to `state/hub/etc/install.env`.
 
+The same retrofit also applies to documentation and agent workflow guidance: update any already-landed docs or agent instructions that still point users/agents toward manual repo/worktree creation, manual branch-switching of `main/`, or older script names. The current implementation handoff must explicitly call out that implementers now need to touch `docs/superpowers/runbooks/devspace-bare-hub-usage.md`, `docs/superpowers/runbooks/devspace-workspace-lifecycle.md`, `.config/opencode/AGENTS.md`, `.config/opencode/agents/maestro.md`, and `.config/opencode/agents/senior-implementer.md` in addition to the shell scripts/tests.
+
 - [ ] **Step 2: Run RED**
 
 Run:
@@ -1078,6 +1096,13 @@ Implementation contract:
 - keep install-branch filesystem layout independent from branch naming policy: use `/workspaces/dotfiles/work/<branch-name>` even when branch names themselves contain slashes such as `work/devspace-bare-hub`;
 - do not add a user-supplied `--name` override in v1;
 - keep `/home/vscode` authority exclusively with the top-level dotfiles repo.
+
+The usage runbook updated in this task must explicitly document:
+
+- `bin/clone-repo` and `bin/new-worktree` as the preferred human and agent entrypoints;
+- the dev/testing/production policy-promotion idea using `HUB_INSTALL_BRANCH` and install from branch worktrees;
+- how `.envrc`, `.envrc.local`, and `state/hub/etc/install.env` interact;
+- what `dd` does and why it is optional shell customization rather than required infrastructure.
 
 - [ ] **Step 4: Run GREEN**
 
