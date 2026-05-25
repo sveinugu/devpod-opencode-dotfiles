@@ -83,7 +83,11 @@ DISABLE_UNTRACKED_FILES_DIRTY="true"
 plugins=(git github zsh-syntax-highlighting zsh-autosuggestions python poetry docker docker-compose uv)
 
 source $ZSH/oh-my-zsh.sh
-eval "$(direnv hook zsh)"
+
+# Workspace Navigation Package
+if [ -f "$HOME/.config/shell/workspace-navigation.zsh" ]; then
+    source "$HOME/.config/shell/workspace-navigation.zsh"
+fi
 
 # User configuration
 
@@ -127,12 +131,6 @@ export LC_ALL="en_US.UTF-8"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 alias zshconfig="$EDITOR ~/.zshrc"
 alias ll="ls -alh"
-
-dd() {
-    local target="${HUB_INSTALL_BRANCH_DIR:-/workspaces/dotfiles/main}"
-    printf 'cd -> %s\n' "$target"
-    cd "$target"
-}
 
 zstyle ':omz:update' mode disabled
 

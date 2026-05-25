@@ -161,6 +161,9 @@ mkdir -p "$zsh_custom/themes" "$zsh_custom/plugins"
 link_path "$source_root/.zshrc" "$home_dir/.zshrc"
 link_path "$source_root/.zprofile" "$home_dir/.zprofile"
 
+printf 'installing workspace navigation package...\n'
+link_path "$source_root/.config/shell/workspace-navigation.zsh" "$home_dir/.config/shell/workspace-navigation.zsh"
+
 install_plugin "https://github.com/reobin/typewritten" "$zsh_custom/themes/typewritten"
 install_plugin "https://github.com/zsh-users/zsh-syntax-highlighting" "$zsh_custom/plugins/zsh-syntax-highlighting"
 install_plugin "https://github.com/zsh-users/zsh-autosuggestions" "$zsh_custom/plugins/zsh-autosuggestions"
