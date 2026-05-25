@@ -74,7 +74,7 @@ Provide one approved implementation plan for the full DevSpace bare-hub workspac
 7. **DevSpace SSH shape:** use DevSpace's built-in `ssh` dev connection (`ssh.enabled: true`, `ssh.useInclude: true`) so DevSpace generates keys under `~/.devspace/ssh/`, writes the local SSH alias, and reaches the container through a loopback-only port-forward/tunnel instead of a Kubernetes Service.
 8. **Host-runner default:** use a small containerized cron runner under user control as the default scheduled host backup mechanism because it works on the documented macOS/colima and Linux host setups; keep a user-level systemd timer as a Linux-only fallback that invokes the same shared host backup script.
 9. **Managed envrc scope:** generate a managed `.envrc` for every managed checkout, including top-level `main/`, child-repo `main/`, and non-`main` worktrees.
-10. **Managed envrc exports:** export exactly `HUB_DIR`, `HUB_MAIN_DIR`, `HUB_STATE_DIR`, `HUB_TMP_DIR`, `CUR_REPO_DIR`, `CUR_REPO_MAIN_DIR`, `CUR_REPO_STATE_DIR`, `CUR_REPO_TMP_DIR`, `CUR_WORKTREE_DIR`, `CUR_WORKTREE_STATE_DIR`, and `CUR_WORKTREE_TMP_DIR`.
+10. **Managed envrc exports:** export exactly `HUB_DIR`, `HUB_MAIN_DIR`, `HUB_STATE_DIR`, `HUB_TMP_DIR`, `DYN_REPO_DIR`, `DYN_REPO_MAIN_DIR`, `DYN_REPO_STATE_DIR`, `DYN_REPO_TMP_DIR`, `DYN_WORKTREE_DIR`, `DYN_WORKTREE_STATE_DIR`, and `DYN_WORKTREE_TMP_DIR`.
 11. **Managed envrc conflict policy:** refuse generation when `.envrc` already exists; create `.envrc.local` when missing; source `.envrc.local` from the managed `.envrc`; and let `.envrc.local` failures surface normally.
 12. **User-facing command layout:** use `bin/` for in-pod human commands without `.sh`, `scripts/` for automation entrypoints, `scripts/lib/` for helpers, and `ops/host/` for host-runner sources.
 
@@ -1016,11 +1016,13 @@ git commit -m "feat(workspace): add doctor repair and destroy flows"
 
 - `bin/new-worktree` creates a managed worktree under the repo hub worktree area and the matching canonical `state/` / `tmp/` paths;
 - the generated `.envrc` exists for every managed checkout, including top-level `main/`, child-repo `main/`, and non-`main` worktrees;
-- generated `.envrc` exports exactly `HUB_DIR`, `HUB_MAIN_DIR`, `HUB_STATE_DIR`, `HUB_TMP_DIR`, `CUR_REPO_DIR`, `CUR_REPO_MAIN_DIR`, `CUR_REPO_STATE_DIR`, `CUR_REPO_TMP_DIR`, `CUR_WORKTREE_DIR`, `CUR_WORKTREE_STATE_DIR`, and `CUR_WORKTREE_TMP_DIR`;
+- generated `.envrc` exports exactly `HUB_DIR`, `HUB_MAIN_DIR`, `HUB_STATE_DIR`, `HUB_TMP_DIR`, `DYN_REPO_DIR`, `DYN_REPO_MAIN_DIR`, `DYN_REPO_STATE_DIR`, `DYN_REPO_TMP_DIR`, `DYN_WORKTREE_DIR`, `DYN_WORKTREE_STATE_DIR`, and `DYN_WORKTREE_TMP_DIR`;
 - generated `.envrc` sources `.envrc.local` after the managed exports, and `.envrc.local` is auto-created for new managed checkouts;
 - generation refuses if `.envrc` already exists;
 - `.envrc.local` failures surface normally through direnv instead of being swallowed;
 - `direnv` is present in the interactive image, with shell hooks available for bash and zsh.
+
+**Retrofit note for existing Tasks 1-5:** implementers must update any already-landed phase-1 code, tests, docs, and DevSpace wiring that still mention pre-rename paths or the earlier `CUR_*` variable names. In practice this means: Task 1 user-facing docs/command-surface references should match the renamed command layout where surfaced; Task 2 must use `scripts/lib/validate_install_source_tree`; Task 3 must rename the provision/preflight entrypoints to `scripts/provision-workspace.sh` and `scripts/preflight-devspace-dev.sh`; Task 4 must use `ops/check-workspace.sh`, `bin/repair-workspace`, and `ops/destroy-workspace.sh`; and Task 5 must use the final `DYN_*` env var names consistently in generated `.envrc`, tests, docs, and any helper code.
 
 - [ ] **Step 2: Run RED**
 
