@@ -18,6 +18,21 @@ env_helper="$repo_root/scripts/lib/worktree-env.sh"
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
 
+mock_bin="$tmpdir/bin"
+mkdir -p "$mock_bin"
+direnv_log="$tmpdir/direnv.log"
+
+cat > "$mock_bin/direnv" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >> "${DIRENV_LOG:?DIRENV_LOG must be set}"
+exit 0
+EOF
+chmod +x "$mock_bin/direnv"
+
+export PATH="$mock_bin:$PATH"
+export DIRENV_LOG="$direnv_log"
+
 workspace_root="$tmpdir/workspace"
 home_dir="$tmpdir/home"
 mkdir -p "$workspace_root/repos" "$workspace_root/state/repos" "$workspace_root/tmp/repos" "$home_dir"
@@ -147,8 +162,27 @@ HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$env_helper" "$works
 manual_envrc_rc="$?"
 set -e
 
-[ "$manual_envrc_rc" = "1" ] || fail "expected .envrc generation refusal for existing .envrc"
-grep -F 'refused: managed .envrc generation requires absent .envrc' "$tmpdir/manual-envrc.out" >/dev/null || fail "missing refusal message for existing .envrc"
+[ "$manual_envrc_rc" = "0" ] || fail "expected managed .envrc regeneration with backup for differing existing .envrc"
+
+backup_file="$(ls "$workspace_root/work/has-manual-envrc"/.envrc.bak.* 2>/dev/null | head -n1 || true)"
+[ -n "$backup_file" ] || fail "expected backup file when existing .envrc differs"
+grep -F 'warning: backed up existing .envrc to .envrc.bak.' "$tmpdir/manual-envrc.out" >/dev/null || fail "missing backup warning for differing existing .envrc"
+
+grep -F 'export HUB_DIR=' "$workspace_root/work/has-manual-envrc/.envrc" >/dev/null || fail "expected managed .envrc content after regeneration"
+grep -F "allow $workspace_root/work/has-manual-envrc" "$direnv_log" >/dev/null || fail "expected direnv allow after envrc generation"
+
+backup_count_before="$(ls "$workspace_root/work/has-manual-envrc"/.envrc.bak.* 2>/dev/null | wc -l | tr -d ' ')"
+
+set +e
+HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$env_helper" "$workspace_root/work/has-manual-envrc" hub >"$tmpdir/manual-envrc-identical.out" 2>&1
+manual_envrc_identical_rc="$?"
+set -e
+
+[ "$manual_envrc_identical_rc" = "0" ] || fail "expected no-op success when existing .envrc matches generated content"
+[ ! -s "$tmpdir/manual-envrc-identical.out" ] || fail "expected silent no-op when .envrc content is identical"
+
+backup_count_after="$(ls "$workspace_root/work/has-manual-envrc"/.envrc.bak.* 2>/dev/null | wc -l | tr -d ' ')"
+[ "$backup_count_after" = "$backup_count_before" ] || fail "expected no additional backup when .envrc content is identical"
 
 grep -F 'direnv' "$repo_root/Dockerfile" >/dev/null || fail "interactive image should include direnv"
 

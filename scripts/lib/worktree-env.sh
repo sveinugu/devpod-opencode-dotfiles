@@ -20,10 +20,6 @@ case "$hub_kind" in
     ;;
 esac
 
-if [ -e "$checkout_dir/.envrc" ]; then
-  refuse 'refused: managed .envrc generation requires absent .envrc'
-fi
-
 if [ "$hub_kind" = "hub" ]; then
   hub_dir="$workspace_root"
   hub_main_dir="$workspace_root/main"
@@ -74,8 +70,9 @@ elif [ "$hub_kind" = "child" ]; then
 fi
 
 mkdir -p "$dyn_worktree_state_dir" "$dyn_worktree_tmp_dir"
+generated_envrc="$checkout_dir/.envrc.generated.$$"
 
-cat > "$checkout_dir/.envrc" <<EOF
+cat > "$generated_envrc" <<EOF
 export HUB_DIR="$hub_dir"
 export HUB_MAIN_DIR="$hub_main_dir"
 export HUB_STATE_DIR="$hub_state_dir"
@@ -92,6 +89,29 @@ if [ -f /workspaces/dotfiles/state/hub/etc/install.env ]; then
 fi
 source ./.envrc.local
 EOF
+
+write_new_envrc=false
+if [ ! -e "$checkout_dir/.envrc" ]; then
+  write_new_envrc=true
+else
+  if cmp -s "$checkout_dir/.envrc" "$generated_envrc"; then
+    rm -f "$generated_envrc"
+    exit 0
+  fi
+
+  timestamp="$(date +%Y%m%d%H%M%S)"
+  backup_name=".envrc.bak.$timestamp"
+  cp "$checkout_dir/.envrc" "$checkout_dir/$backup_name"
+  printf 'warning: backed up existing .envrc to %s\n' "$backup_name" >&2
+  write_new_envrc=true
+fi
+
+if [ "$write_new_envrc" = true ]; then
+  mv "$generated_envrc" "$checkout_dir/.envrc"
+  if command -v direnv >/dev/null 2>&1; then
+    direnv allow "$checkout_dir"
+  fi
+fi
 
 if [ ! -e "$checkout_dir/.envrc.local" ]; then
   : > "$checkout_dir/.envrc.local"
