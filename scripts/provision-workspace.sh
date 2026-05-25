@@ -48,6 +48,10 @@ fi
 
 create_bare_hub "$workspace_root" "$source_repo" main
 
+if [ ! -e "$workspace_root/main/.envrc" ]; then
+  "$script_dir/lib/worktree-env.sh" "$workspace_root/main" hub >/dev/null
+fi
+
 mkdir -p "$home_dir/.ssh" "$home_dir/.local/share/opencode"
 mkdir -p "$tool_state_dir"
 run_tool_installer "$tool_state_dir/pyenv.installed" "$pyenv_install_command"
@@ -68,6 +72,9 @@ else
     git --git-dir="$workspace_root/.bare" worktree add "$install_dir" "$install_branch" >/dev/null
   fi
   mkdir -p "$workspace_root/state/hub/work/$install_branch" "$workspace_root/tmp/hub/work/$install_branch"
+  if [ ! -e "$install_dir/.envrc" ]; then
+    "$script_dir/lib/worktree-env.sh" "$install_dir" hub >/dev/null
+  fi
 fi
 
 if [ ! -x "$install_dir/install.sh" ]; then

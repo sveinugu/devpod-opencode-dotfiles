@@ -14,6 +14,12 @@ grep -F 'bash /workspaces/dotfiles/main/install.sh --dry-run -y' docs/superpower
 grep -F 'ssh -o BatchMode=yes workspace.dotfiles.devspace' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'bin/clone-repo' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'bin/new-worktree' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F 'bin/clone-repo' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F 'bin/new-worktree' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F '.envrc' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F '.envrc.local' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F 'dd()' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F 'state/hub/etc/install.env' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 
 grep -F 'prefer `bin/clone-repo` and `bin/new-worktree`' .config/opencode/AGENTS.md >/dev/null
 grep -F 'prefer `bin/clone-repo` and `bin/new-worktree`' .config/opencode/agents/maestro.md >/dev/null

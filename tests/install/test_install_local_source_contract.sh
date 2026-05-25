@@ -60,6 +60,21 @@ fi
   HOME="$target_home" bash "$workspace_root/main/install.sh" --dry-run -y >"$tmpdir/main.out"
 )
 
+[ -f "$workspace_root/state/hub/etc/install.env" ] || {
+  printf 'expected install.sh to publish state/hub/etc/install.env\n' >&2
+  exit 1
+}
+
+grep -F "HUB_INSTALL_BRANCH=main" "$workspace_root/state/hub/etc/install.env" >/dev/null || {
+  printf 'expected install.env to publish HUB_INSTALL_BRANCH=main\n' >&2
+  exit 1
+}
+
+grep -F "HUB_INSTALL_BRANCH_DIR=$workspace_root/main" "$workspace_root/state/hub/etc/install.env" >/dev/null || {
+  printf 'expected install.env to publish HUB_INSTALL_BRANCH_DIR for main\n' >&2
+  exit 1
+}
+
 grep -F "DRY-RUN ln -sfn $workspace_root/main/.zshrc $target_home/.zshrc" "$tmpdir/main.out" >/dev/null
 grep -F "DRY-RUN ln -sfn $workspace_root/main/.config/opencode $target_home/.config/opencode" "$tmpdir/main.out" >/dev/null
 ! grep -F "$workspace_root/work/feature-x/.zshrc" "$tmpdir/main.out" >/dev/null
@@ -68,6 +83,16 @@ grep -F "DRY-RUN ln -sfn $workspace_root/main/.config/opencode $target_home/.con
   cd "$offcwd"
   HOME="$target_home" bash "$workspace_root/work/feature-x/install.sh" --dry-run -y >"$tmpdir/feature.out"
 )
+
+grep -F "HUB_INSTALL_BRANCH=feature-x" "$workspace_root/state/hub/etc/install.env" >/dev/null || {
+  printf 'expected install.env to publish HUB_INSTALL_BRANCH for feature worktree\n' >&2
+  exit 1
+}
+
+grep -F "HUB_INSTALL_BRANCH_DIR=$workspace_root/work/feature-x" "$workspace_root/state/hub/etc/install.env" >/dev/null || {
+  printf 'expected install.env to publish HUB_INSTALL_BRANCH_DIR for feature worktree\n' >&2
+  exit 1
+}
 
 grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.zshrc $target_home/.zshrc" "$tmpdir/feature.out" >/dev/null
 grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.config/opencode $target_home/.config/opencode" "$tmpdir/feature.out" >/dev/null
@@ -82,6 +107,32 @@ grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.config/opencode $target
 )
 
 grep -F "Refused — hub-root CWD detected. Provide explicit worktree path." "$tmpdir/hub.out" >/dev/null
+
+(
+  cd "$offcwd"
+  if HOME="$target_home" HUB_INSTALL_BRANCH=wrong-branch bash "$workspace_root/main/install.sh" --dry-run -y >"$tmpdir/branch-mismatch.out" 2>&1; then
+    printf 'expected HUB_INSTALL_BRANCH mismatch to fail\n' >&2
+    exit 1
+  fi
+)
+
+grep -F 'refused: HUB_INSTALL_BRANCH does not match install source' "$tmpdir/branch-mismatch.out" >/dev/null || {
+  printf 'expected HUB_INSTALL_BRANCH mismatch refusal message\n' >&2
+  exit 1
+}
+
+(
+  cd "$offcwd"
+  if HOME="$target_home" HUB_INSTALL_BRANCH_DIR="$workspace_root/wrong-dir" bash "$workspace_root/main/install.sh" --dry-run -y >"$tmpdir/dir-mismatch.out" 2>&1; then
+    printf 'expected HUB_INSTALL_BRANCH_DIR mismatch to fail\n' >&2
+    exit 1
+  fi
+)
+
+grep -F 'refused: HUB_INSTALL_BRANCH_DIR does not match install source' "$tmpdir/dir-mismatch.out" >/dev/null || {
+  printf 'expected HUB_INSTALL_BRANCH_DIR mismatch refusal message\n' >&2
+  exit 1
+}
 
 # Regression: existing non-symlink target directory must be replaced, not nested.
 workspace_reg="$tmpdir/workspace-reg"
