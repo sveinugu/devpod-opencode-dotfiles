@@ -70,6 +70,14 @@ set -e
 [ "$extra_args_rc" = "2" ] || fail "new-worktree should reject unexpected extra positional args"
 grep -F 'usage: new-worktree --repo <hub|repo-name> <branch>' "$tmpdir/extra-args.out" >/dev/null || fail "new-worktree should show usage on extra positional args"
 
+set +e
+HUB_WORKSPACE_ROOT="$tmpdir/missing-workspace-root" HOME="$home_dir" bash "$new_worktree_script" --repo hub feature/missing-root >"$tmpdir/missing-root.out" 2>&1
+missing_root_rc="$?"
+set -e
+
+[ "$missing_root_rc" = "1" ] || fail "new-worktree should fail with clear message when workspace root is missing"
+grep -F 'refused: checkout path does not exist' "$tmpdir/missing-root.out" >/dev/null || fail "new-worktree should report missing checkout path refusal"
+
 validator_path="$repo_root/scripts/lib/validate_hub_repo_root.sh"
 validator_backup="$tmpdir/validate_hub_repo_root.sh.bak"
 cp "$validator_path" "$validator_backup"
