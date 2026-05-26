@@ -1,6 +1,6 @@
 # DevSpace Workspace Lifecycle
 
-> What changed for implementers: `dhub` is canonical for install-root navigation, with temporary compatibility alias `dd`; child repo default branches must be preserved exactly instead of being normalized to `main`.
+> What changed for implementers: `dhub` is the install-root navigation helper; child repo default branches must be preserved exactly instead of being normalized to `main`.
 
 ## Doctor
 
@@ -33,7 +33,6 @@ Managed checkouts get generated `.envrc` and `.envrc.local`. The managed `.envrc
 For interactive navigation, the repo-managed shell package is expected to provide:
 
 - `dhub` for the active install checkout
-- `dd` as a temporary compatibility alias to `dhub`
 - `dre <repo>` for child repo roots under `repos/`
 - `dwt <name>` for switching to `work/<name>` inside the current managed repo context
 
@@ -43,7 +42,7 @@ Navigation guardrails:
 - `dre` excludes the top-level hub
 - `dwt` fails outside managed repo context instead of guessing
 - invalid names may print a simple text `did you mean ...` hint
-- `dhub` is canonical; `dd()` remains a temporary compatibility alias
+- no `dd()` compatibility alias
 
 ## Repair
 

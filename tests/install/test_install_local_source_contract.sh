@@ -52,7 +52,7 @@ fi
 
 (
   cd "$offcwd"
-  HOME="$target_home" bash "$workspace_root/main/install.sh" --dry-run -y >"$tmpdir/main.out"
+  HOME="$target_home" bash "$workspace_root/main/install.sh" --dry-run -y >"$tmpdir/main.out" 2>&1
 )
 
 [ -f "$workspace_root/state/hub/etc/install.env" ] || {
@@ -73,10 +73,18 @@ grep -F "export HUB_INSTALL_BRANCH_DIR=$workspace_root/main" "$workspace_root/st
 grep -F "DRY-RUN ln -sfn $workspace_root/main/.zshrc $target_home/.zshrc" "$tmpdir/main.out" >/dev/null
 grep -F "DRY-RUN ln -sfn $workspace_root/main/.config/opencode $target_home/.config/opencode" "$tmpdir/main.out" >/dev/null
 ! grep -F "$workspace_root/work/feature-x/.zshrc" "$tmpdir/main.out" >/dev/null
+grep -F 'shell helper dhub() was not detected' "$tmpdir/main.out" >/dev/null || {
+  printf 'expected install helper note to reference dhub()\n' >&2
+  exit 1
+}
+if grep -F 'shell helper dd() was not detected' "$tmpdir/main.out" >/dev/null; then
+  printf 'did not expect deprecated dd() install helper note\n' >&2
+  exit 1
+fi
 
 (
   cd "$offcwd"
-  HOME="$target_home" bash "$workspace_root/work/feature-x/install.sh" --dry-run -y >"$tmpdir/feature.out"
+  HOME="$target_home" bash "$workspace_root/work/feature-x/install.sh" --dry-run -y >"$tmpdir/feature.out" 2>&1
 )
 
 grep -F "export HUB_INSTALL_BRANCH=feature-x" "$workspace_root/state/hub/etc/install.env" >/dev/null || {
@@ -170,7 +178,7 @@ chmod +x "$bin_reg/npx"
 
 (
   cd "$offcwd"
-  PATH="$bin_reg:$PATH" HOME="$home_reg" WORKSPACE_ROOT="$workspace_reg" bash "$workspace_reg/main/install.sh" >"$tmpdir/reg.out"
+  PATH="$bin_reg:$PATH" HOME="$home_reg" WORKSPACE_ROOT="$workspace_reg" bash "$workspace_reg/main/install.sh" >"$tmpdir/reg.out" 2>&1
 )
 
 [ -L "$home_reg/.config/opencode" ] || {

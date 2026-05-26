@@ -3,7 +3,7 @@
 # Bundles interactive workspace navigation behavior for DevSpace bare-hub use:
 # - quiet direnv output while keeping explicit exports
 # - direnv zsh hook
-# - dhub is canonical; dd remains temporary compatibility alias
+# - dhub is the install-root navigation helper
 # - one-time auto-cd on interactive shell startup
 
 export DIRENV_LOG_FORMAT=''
@@ -33,15 +33,13 @@ workspace_navigation_add_branch_bin_to_path
 
 dhub() {
   local target
-  if ! target="$(command dhub)"; then
+  local libexec_dir="${WORKSPACE_NAV_LIBEXEC_DIR:-/workspaces/dotfiles/main/scripts/lib}"
+  local resolver="$libexec_dir/resolve-install-target.sh"
+  if ! target="$(HUB_INSTALL_ENV_FILE="${HUB_INSTALL_ENV_FILE:-/workspaces/dotfiles/state/hub/etc/install.env}" bash "$resolver")"; then
     return 1
   fi
   printf 'cd -> %s\n' "$target"
   cd "$target"
-}
-
-dd() {
-  dhub "$@"
 }
 
 workspace_navigation_auto_cd() {
