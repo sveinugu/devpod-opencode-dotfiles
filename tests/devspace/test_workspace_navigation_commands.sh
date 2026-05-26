@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+fail() {
+  printf 'FAIL test_workspace_navigation_commands: %s\n' "$1" >&2
+  exit 1
+}
+
+repo_root="$(git rev-parse --show-toplevel)"
+dre_script="$repo_root/bin/dre"
+dwt_script="$repo_root/bin/dwt"
+resolver_script="$repo_root/scripts/lib/resolve-install-target.sh"
+
+[ -f "$dre_script" ] || fail "bin/dre not found"
+[ -f "$dwt_script" ] || fail "bin/dwt not found"
+[ -x "$resolver_script" ] || fail "scripts/lib/resolve-install-target.sh must exist and be executable"
+
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
+
+workspace_root="$tmpdir/workspace"
+mkdir -p "$workspace_root/main" "$workspace_root/work/feature-top" "$workspace_root/repos"
+
+mkdir -p "$workspace_root/repos/alpha/.bare" "$workspace_root/repos/alpha/main" "$workspace_root/repos/alpha/work/feature-child"
+mkdir -p "$workspace_root/repos/beta/.bare" "$workspace_root/repos/beta/main"
+
+mkdir -p "$workspace_root/state/hub/etc"
+cat > "$workspace_root/state/hub/etc/install.env" <<EOF
+export HUB_INSTALL_BRANCH=feature-top
+export HUB_INSTALL_BRANCH_DIR=$workspace_root/work/feature-top
+EOF
+
+resolved_hub="$(HUB_INSTALL_ENV_FILE="$workspace_root/state/hub/etc/install.env" bash "$resolver_script")"
+[ "$resolved_hub" = "$workspace_root/work/feature-top" ] || fail "resolver should print install checkout"
+
+dre_alpha="$(HUB_WORKSPACE_ROOT="$workspace_root" bash "$dre_script" alpha)"
+[ "$dre_alpha" = "$workspace_root/repos/alpha" ] || fail "dre should resolve repos/<repo>"
+
+set +e
+HUB_WORKSPACE_ROOT="$workspace_root" bash "$dre_script" hub >"$tmpdir/dre-hub.out" 2>&1
+dre_hub_rc="$?"
+set -e
+[ "$dre_hub_rc" = "1" ] || fail "dre should refuse top-level hub aliases"
+grep -F 'refused: top-level hub root is not a valid dre target' "$tmpdir/dre-hub.out" >/dev/null || fail "dre should explain top-level refusal"
+
+set +e
+HUB_WORKSPACE_ROOT="$workspace_root" bash "$dre_script" alpa >"$tmpdir/dre-hint.out" 2>&1
+dre_hint_rc="$?"
+set -e
+[ "$dre_hint_rc" = "1" ] || fail "dre should fail for unknown repo"
+grep -F 'did you mean: alpha' "$tmpdir/dre-hint.out" >/dev/null || fail "dre should print did-you-mean hint"
+
+dwt_top="$(
+  (
+    cd "$workspace_root/main"
+    HUB_WORKSPACE_ROOT="$workspace_root" bash "$dwt_script" feature-top
+  )
+)"
+[ "$dwt_top" = "$workspace_root/work/feature-top" ] || fail "dwt should resolve top-level work/<name> from main context"
+
+dwt_child="$(
+  (
+    cd "$workspace_root/repos/alpha/main"
+    HUB_WORKSPACE_ROOT="$workspace_root" bash "$dwt_script" feature-child
+  )
+)"
+[ "$dwt_child" = "$workspace_root/repos/alpha/work/feature-child" ] || fail "dwt should resolve child work/<name> from child context"
+
+set +e
+(
+  cd "$workspace_root"
+  HUB_WORKSPACE_ROOT="$workspace_root" bash "$dwt_script" feature-top >"$tmpdir/dwt-outside.out" 2>&1
+)
+dwt_outside_rc="$?"
+set -e
+[ "$dwt_outside_rc" = "1" ] || fail "dwt should refuse outside managed repo context"
+grep -F 'refused: dwt requires a managed repo checkout context' "$tmpdir/dwt-outside.out" >/dev/null || fail "dwt should explain managed context refusal"
+
+set +e
+(
+  cd "$workspace_root/repos/alpha/main"
+  HUB_WORKSPACE_ROOT="$workspace_root" bash "$dwt_script" feature-chiild >"$tmpdir/dwt-hint.out" 2>&1
+)
+dwt_hint_rc="$?"
+set -e
+[ "$dwt_hint_rc" = "1" ] || fail "dwt should fail for unknown worktree"
+grep -F 'did you mean: feature-child' "$tmpdir/dwt-hint.out" >/dev/null || fail "dwt should print did-you-mean hint"
+
+printf 'PASS test_workspace_navigation_commands\n'

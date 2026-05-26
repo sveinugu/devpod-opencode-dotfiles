@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
+pwd_dir="${PWD:-$(pwd -P)}"
+
+usage() {
+  printf 'usage: dwt <name>\n' >&2
+}
+
+did_you_mean() {
+  local needle="$1"
+  shift
+
+  [ "$#" -gt 0 ] || return 0
+
+  local suggestion
+  suggestion="$(python3 - "$needle" "$@" <<'PY'
+import difflib
+import sys
+
+needle = sys.argv[1]
+candidates = sys.argv[2:]
+matches = difflib.get_close_matches(needle, candidates, n=1, cutoff=0.5)
+if matches:
+    print(matches[0])
+PY
+)"
+
+  if [ -n "$suggestion" ]; then
+    printf 'did you mean: %s\n' "$suggestion" >&2
+  fi
+}
+
+if [ "$#" -ne 1 ]; then
+  usage
+  exit 2
+fi
+
+name="$1"
+
+repo_root=''
+if [ "$pwd_dir" = "$workspace_root/main" ] || [[ "$pwd_dir" == "$workspace_root/main/"* ]] || [[ "$pwd_dir" == "$workspace_root/work/"* ]]; then
+  repo_root="$workspace_root"
+elif [[ "$pwd_dir" == "$workspace_root/repos/"* ]]; then
+  remainder="${pwd_dir#"$workspace_root/repos/"}"
+  repo_name="${remainder%%/*}"
+  if [ -n "$repo_name" ] && [ "$repo_name" != "$remainder" ]; then
+    repo_root="$workspace_root/repos/$repo_name"
+  fi
+fi
+
+if [ -z "$repo_root" ]; then
+  printf 'refused: dwt requires a managed repo checkout context\n' >&2
+  exit 1
+fi
+
+target="$repo_root/work/$name"
+if [ ! -d "$target" ]; then
+  candidates=()
+  if [ -d "$repo_root/work" ]; then
+    while IFS= read -r path; do
+      candidates+=("${path##*/}")
+    done < <(find "$repo_root/work" -mindepth 1 -maxdepth 1 -type d)
+  fi
+  printf 'refused: worktree "%s" not found\n' "$name" >&2
+  did_you_mean "$name" "${candidates[@]:-}"
+  exit 1
+fi
+
+printf '%s\n' "$target"

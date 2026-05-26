@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
+
+usage() {
+  printf 'usage: dre <repo>\n' >&2
+}
+
+did_you_mean() {
+  local needle="$1"
+  shift
+
+  [ "$#" -gt 0 ] || return 0
+
+  local suggestion
+  suggestion="$(python3 - "$needle" "$@" <<'PY'
+import difflib
+import sys
+
+needle = sys.argv[1]
+candidates = sys.argv[2:]
+matches = difflib.get_close_matches(needle, candidates, n=1, cutoff=0.5)
+if matches:
+    print(matches[0])
+PY
+) || true)"
+
+  if [ -n "$suggestion" ]; then
+    printf 'did you mean: %s\n' "$suggestion" >&2
+  fi
+}
+
+if [ "$#" -ne 1 ]; then
+  usage
+  exit 2
+fi
+
+repo="$1"
+case "$repo" in
+  hub|dotfiles|main|work|repos|.|..|/|"$workspace_root"|"$workspace_root/main")
+    printf 'refused: top-level hub root is not a valid dre target\n' >&2
+    exit 1
+    ;;
+esac
+
+repos_root="$workspace_root/repos"
+target="$repos_root/$repo"
+
+if [ ! -d "$target" ] || [ ! -d "$target/.bare" ]; then
+  repo_candidates=()
+  if [ -d "$repos_root" ]; then
+    while IFS= read -r path; do
+      name="${path##*/}"
+      [ -d "$path/.bare" ] || continue
+      repo_candidates+=("$name")
+    done < <(find "$repos_root" -mindepth 1 -maxdepth 1 -type d)
+  fi
+
+  printf 'refused: repo "%s" not found\n' "$repo" >&2
+  did_you_mean "$repo" "${repo_candidates[@]:-}"
+  exit 1
+fi
+
+printf '%s\n' "$target"
