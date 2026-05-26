@@ -61,6 +61,10 @@ HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" "$c
 grep -F 'export DYN_REPO_DEFAULT_BRANCH=main' "$workspace_root/state/repos/child-repo/etc/repo.env" >/dev/null || fail "repo.env should record detected default branch"
 grep -F "export DYN_REPO_DEFAULT_DIR=$workspace_root/repos/child-repo/main" "$workspace_root/state/repos/child-repo/etc/repo.env" >/dev/null || fail "repo.env should record detected default directory"
 
+repo_env_out="$(set +u; source "$workspace_root/state/repos/child-repo/etc/repo.env"; printf '%s\n%s\n' "$DYN_REPO_DEFAULT_BRANCH" "$DYN_REPO_DEFAULT_DIR")"
+[ "$(printf '%s' "$repo_env_out" | sed -n '1p')" = "main" ] || fail "repo.env should remain source-able for default branch"
+[ "$(printf '%s' "$repo_env_out" | sed -n '2p')" = "$workspace_root/repos/child-repo/main" ] || fail "repo.env should remain source-able for default directory"
+
 [ "$(readlink "$home_dir/.zshrc")" = "$workspace_root/main/.zshrc" ] || fail "child onboarding must not repoint /home authority"
 
 set +e
@@ -96,6 +100,26 @@ default_branch_name="$(git -C "$workspace_root/repos/child-default-branch/master
 [ -f "$workspace_root/state/repos/child-default-branch/etc/repo.env" ] || fail "default-branch source should persist repo metadata"
 grep -F 'export DYN_REPO_DEFAULT_BRANCH=master' "$workspace_root/state/repos/child-default-branch/etc/repo.env" >/dev/null || fail "repo.env should record detected non-main default branch"
 grep -F "export DYN_REPO_DEFAULT_DIR=$workspace_root/repos/child-default-branch/master" "$workspace_root/state/repos/child-default-branch/etc/repo.env" >/dev/null || fail "repo.env should record detected non-main default directory"
+
+quoted_name='repo with space'
+quoted_source="$tmpdir/$quoted_name.git"
+git init "$quoted_source" >/dev/null 2>&1
+(
+  cd "$quoted_source"
+  git config user.name 'Test User'
+  git config user.email 'test@example.com'
+  git branch -M main
+  printf 'quoted child\n' > README.md
+  git add README.md
+  git commit -m 'quoted child fixture' >/dev/null 2>&1
+)
+
+HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" "$quoted_source" >"$tmpdir/quoted-child.out" 2>&1 || fail "onboarding should succeed for quoted-style repo names"
+[ -f "$workspace_root/state/repos/$quoted_name/etc/repo.env" ] || fail "quoted repo should persist repo.env"
+
+quoted_repo_env_out="$(set +u; source "$workspace_root/state/repos/$quoted_name/etc/repo.env"; printf '%s\n%s\n' "$DYN_REPO_DEFAULT_BRANCH" "$DYN_REPO_DEFAULT_DIR")"
+[ "$(printf '%s' "$quoted_repo_env_out" | sed -n '1p')" = "main" ] || fail "quoted repo.env should remain source-able for branch"
+[ "$(printf '%s' "$quoted_repo_env_out" | sed -n '2p')" = "$workspace_root/repos/$quoted_name/main" ] || fail "quoted repo.env should remain source-able for directory"
 
 set +e
 HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" git@github.com:owner/private.git >"$tmpdir/public-only.out" 2>&1
