@@ -98,10 +98,10 @@ _workspace_nav_complete_repos() {
     done
   fi
 
-  compadd -- "$repos[@]"
+  compadd -Q -- "$repos[@]"
 }
 
-_workspace_nav_complete_worktrees() {
+_workspace_nav_complete_dwt() {
   local workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
   local hub_dir="${HUB_INSTALL_BRANCH_DIR:-/workspaces/dotfiles/main}"
   local resolver="${WORKSPACE_NAV_REPO_ROOT_RESOLVER:-$hub_dir/scripts/lib/resolve-managed-repo-root.sh}"
@@ -113,19 +113,19 @@ _workspace_nav_complete_worktrees() {
   local -a worktrees
   worktrees=()
   if [ -d "$repo_root/work" ]; then
-    local dir
-    for dir in "$repo_root/work"/*(/N); do
-      worktrees+=("${dir:t}")
+    local git_marker
+    for git_marker in "$repo_root/work"/**/.git(N); do
+      worktrees+=("${${git_marker%/.git}#$repo_root/work/}")
     done
   fi
 
-  compadd -- "$worktrees[@]"
+  compadd -Q -- "$worktrees[@]"
 }
 
 if whence -w compdef >/dev/null 2>&1; then
   compdef _workspace_nav_complete_dhub dhub
   compdef _workspace_nav_complete_repos dre
-  compdef _workspace_nav_complete_worktrees dwt
+  compdef _workspace_nav_complete_dwt dwt
 fi
 
 workspace_navigation_auto_cd() {
