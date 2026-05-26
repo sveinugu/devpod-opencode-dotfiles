@@ -24,7 +24,7 @@ matches = difflib.get_close_matches(needle, candidates, n=1, cutoff=0.5)
 if matches:
     print(matches[0])
 PY
-) || true)"
+)"
 
   if [ -n "$suggestion" ]; then
     printf 'did you mean: %s\n' "$suggestion" >&2

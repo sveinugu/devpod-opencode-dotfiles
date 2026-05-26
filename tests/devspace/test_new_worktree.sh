@@ -204,6 +204,15 @@ set -e
 backup_count_after="$(ls "$workspace_root/work/has-manual-envrc"/.envrc.bak.* 2>/dev/null | wc -l | tr -d ' ')"
 [ "$backup_count_after" = "$backup_count_before" ] || fail "expected no additional backup when .envrc content is identical"
 
+rm -f "$workspace_root/work/has-manual-envrc/.envrc.local"
+set +e
+HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$env_helper" "$workspace_root/work/has-manual-envrc" hub >"$tmpdir/manual-envrc-local-recreate.out" 2>&1
+manual_envrc_local_recreate_rc="$?"
+set -e
+
+[ "$manual_envrc_local_recreate_rc" = "0" ] || fail "expected success when recreating missing .envrc.local on no-op .envrc"
+[ -f "$workspace_root/work/has-manual-envrc/.envrc.local" ] || fail "expected .envrc.local to be recreated when missing"
+
 grep -F 'direnv' "$repo_root/Dockerfile" >/dev/null || fail "interactive image should include direnv"
 
 printf 'PASS test_new_worktree\n'
