@@ -107,6 +107,9 @@ if [ ! -e "$checkout_dir/.envrc" ]; then
   write_new_envrc=true
 else
   if cmp -s "$checkout_dir/.envrc" "$generated_envrc"; then
+    if [ ! -e "$checkout_dir/.envrc.local" ]; then
+      : > "$checkout_dir/.envrc.local"
+    fi
     rm -f "$generated_envrc"
     exit 0
   fi

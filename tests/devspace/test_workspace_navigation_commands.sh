@@ -50,6 +50,23 @@ set -e
 [ "$dre_hint_rc" = "1" ] || fail "dre should fail for unknown repo"
 grep -F 'did you mean: alpha' "$tmpdir/dre-hint.out" >/dev/null || fail "dre should print did-you-mean hint"
 
+mock_bin="$tmpdir/mock-bin"
+mkdir -p "$mock_bin"
+cat > "$mock_bin/python3" <<'EOF'
+#!/usr/bin/env bash
+exit 1
+EOF
+chmod +x "$mock_bin/python3"
+
+set +e
+PATH="$mock_bin:$PATH" HUB_WORKSPACE_ROOT="$workspace_root" bash "$dre_script" alpa >"$tmpdir/dre-python-fail.out" 2>&1
+dre_python_fail_rc="$?"
+set -e
+[ "$dre_python_fail_rc" = "1" ] || fail "dre should still fail cleanly when python3 helper fails"
+if grep -F ') || true)' "$tmpdir/dre-python-fail.out" >/dev/null; then
+  fail "dre should not print malformed fallback literal when python3 fails"
+fi
+
 dwt_top="$(
   (
     cd "$workspace_root/main"
