@@ -85,6 +85,10 @@ _workspace_nav_complete_dhub() {
 }
 
 _workspace_nav_complete_repos() {
+  if [[ -n "${CURRENT:-}" ]] && (( CURRENT != 2 )); then
+    return 1
+  fi
+
   local workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
   local repos_root="$workspace_root/repos"
   local -a repos
@@ -98,10 +102,14 @@ _workspace_nav_complete_repos() {
     done
   fi
 
-  compadd -Q -- "$repos[@]"
+  compadd -Q -U -- "$repos[@]"
 }
 
 _workspace_nav_complete_dwt() {
+  if [[ -n "${CURRENT:-}" ]] && (( CURRENT != 2 )); then
+    return 1
+  fi
+
   local workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
   local hub_dir="${HUB_INSTALL_BRANCH_DIR:-/workspaces/dotfiles/main}"
   local resolver="${WORKSPACE_NAV_REPO_ROOT_RESOLVER:-$hub_dir/scripts/lib/resolve-managed-repo-root.sh}"
@@ -110,16 +118,9 @@ _workspace_nav_complete_dwt() {
     return 0
   fi
 
-  local -a worktrees
-  worktrees=()
-  if [ -d "$repo_root/work" ]; then
-    local git_marker
-    for git_marker in "$repo_root/work"/**/.git(N); do
-      worktrees+=("${${git_marker%/.git}#$repo_root/work/}")
-    done
-  fi
+  [ -d "$repo_root/work" ] || return 0
 
-  compadd -Q -- "$worktrees[@]"
+  _path_files -W "$repo_root/work" -/
 }
 
 if whence -w compdef >/dev/null 2>&1; then
