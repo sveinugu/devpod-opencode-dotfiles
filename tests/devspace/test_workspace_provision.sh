@@ -243,13 +243,27 @@ workspace_no_main="$tmpdir/workspace-no-main"
 make_source_repo_without_main "$source_no_main"
 mkdir -p "$workspace_no_main"
 
+(
+  cd "$source_no_main"
+  git checkout -b feature/install-only >/dev/null 2>&1
+  cat > install.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'feature install\n' > "$HOME/.feature-install-ran"
+EOF
+  chmod +x install.sh
+  git add install.sh
+  git commit -m 'add feature install branch' >/dev/null 2>&1
+)
+
 if HUB_WORKSPACE_ROOT="$workspace_no_main" \
   HUB_PROVISION_SOURCE="$source_no_main" \
+  HUB_INSTALL_BRANCH='feature/install-only' \
   HUB_PYENV_INSTALL_COMMAND=":" \
   HUB_OPENCODE_INSTALL_COMMAND=":" \
   HOME="$home_dir" \
   bash "$script" >"$tmpdir/no-main.out" 2>&1; then
-  fail "expected provision to refuse when origin/main is absent"
+  fail "expected provision to refuse when origin/main is absent even with HUB_INSTALL_BRANCH override"
 fi
 
 grep -F 'refused: origin/main is required for bootstrap' "$tmpdir/no-main.out" >/dev/null || fail "missing origin/main refusal message"

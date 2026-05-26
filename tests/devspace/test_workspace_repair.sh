@@ -139,12 +139,14 @@ make_workspace "$workspace_ambiguous" "$home_ambiguous" "$source_ambiguous"
 git --git-dir="$workspace_ambiguous/.bare" worktree remove "$workspace_ambiguous/main" --force >/dev/null 2>&1
 git --git-dir="$workspace_ambiguous/.bare" branch -D main >/dev/null 2>&1
 
+git --git-dir="$workspace_ambiguous/.bare" branch feature/install-only master >/dev/null 2>&1 || true
+
 set +e
-HUB_WORKSPACE_ROOT="$workspace_ambiguous" HUB_HOME_DIR="$home_ambiguous" bash "$script" >"$tmpdir/repair-ambiguous.out" 2>&1
+HUB_WORKSPACE_ROOT="$workspace_ambiguous" HUB_HOME_DIR="$home_ambiguous" HUB_INSTALL_BRANCH='feature/install-only' bash "$script" >"$tmpdir/repair-ambiguous.out" 2>&1
 ambiguous_rc="$?"
 set -e
 
-[ "$ambiguous_rc" = "1" ] || fail "repair should refuse ambiguous workspace identity"
+[ "$ambiguous_rc" = "1" ] || fail "repair should refuse ambiguous workspace identity even with HUB_INSTALL_BRANCH override"
 grep -F 'refused: workspace identity is ambiguous' "$tmpdir/repair-ambiguous.out" >/dev/null || fail "repair should explain ambiguous identity refusal"
 
 workspace_install_fail="$tmpdir/workspace-install-fail"
