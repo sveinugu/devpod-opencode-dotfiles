@@ -39,16 +39,20 @@
   },
   "agent": {
     "build": {
-      "model": "github-copilot/gpt-5-mini"
+      "model": "github-copilot/gpt-5-mini",
+      "reasoningEffort": "high"
     },
     "plan": {
-      "model": "github-copilot/gpt-5.4"
+      "model": "github-copilot/gpt-5.2",
+      "reasoningEffort": "high"
     },
     "general": {
-      "model": "github-copilot/gpt-5.4"
+      "model": "github-copilot/gpt-5.2",
+      "reasoningEffort": "high"
     },
     "explore": {
-      "model": "github-copilot/gpt-5.4"
+      "model": "github-copilot/gpt-5.2",
+      "reasoningEffort": "high"
     },
     "title": {
       "model": "github-copilot/gpt-5-mini"
