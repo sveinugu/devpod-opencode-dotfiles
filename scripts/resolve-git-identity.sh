@@ -55,7 +55,8 @@ prompt_for_missing_fields() {
 
 print_global_identity_confirmation() {
   if [ -n "$github_user_name" ] && [ -n "$github_user_email" ]; then
-    prompt "Using global git identity: $github_user_name <$github_user_email>\n"
+    prompt "Using global git identity: $github_user_name <$github_user_email>"
+    prompt $'\n'
   fi
 }
 
