@@ -56,7 +56,7 @@ if [ -e "$child_root" ]; then
   exit 1
 fi
 
-create_bare_hub "$child_root" "$source_repo" main
+create_bare_hub "$child_root" "$source_repo" main yes
 
 mkdir -p "$workspace_root/state/repos/$repo_name/main"
 mkdir -p "$workspace_root/tmp/repos/$repo_name/main"

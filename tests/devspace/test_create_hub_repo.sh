@@ -73,23 +73,21 @@ name_rc="$?"
 set -e
 [ "$name_rc" = "2" ] || fail "--name override should be rejected in v1"
 
-source_no_main="$tmpdir/child-no-main"
-git init "$source_no_main" >/dev/null 2>&1
+source_default_branch="$tmpdir/child-default-branch"
+git init "$source_default_branch" >/dev/null 2>&1
 (
-  cd "$source_no_main"
+  cd "$source_default_branch"
   git config user.name 'Test User'
   git config user.email 'test@example.com'
-  printf 'no-main\n' > README.md
+  printf 'default-branch\n' > README.md
   git add README.md
-  git commit -m 'no main' >/dev/null 2>&1
+  git commit -m 'default branch repo' >/dev/null 2>&1
 )
 
-set +e
-HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" "$source_no_main" >"$tmpdir/no-main.out" 2>&1
-no_main_rc="$?"
-set -e
-[ "$no_main_rc" = "1" ] || fail "onboarding should refuse when origin/main is absent"
-grep -F 'refused: origin/main is required for bootstrap' "$tmpdir/no-main.out" >/dev/null || fail "missing origin/main refusal"
+HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" "$source_default_branch" >"$tmpdir/default-branch.out" 2>&1 || fail "onboarding should use source default branch when origin/main is absent"
+[ -d "$workspace_root/repos/child-default-branch/.bare" ] || fail "missing bare repo for default-branch source"
+default_branch_name="$(git -C "$workspace_root/repos/child-default-branch/main" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+[ "$default_branch_name" = "master" ] || fail "default-branch source should attach source default branch"
 
 set +e
 HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" git@github.com:owner/private.git >"$tmpdir/public-only.out" 2>&1
