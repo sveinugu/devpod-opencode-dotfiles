@@ -15,20 +15,24 @@ grep -F 'ssh -o BatchMode=yes workspace.dotfiles.devspace' docs/superpowers/runb
 grep -F 'bin/clone-repo' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'bin/new-worktree' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'dhub' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
-grep -F 'temporary compatibility alias to `dhub`' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'dre <repo>' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'dwt <name>' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
-grep -F 'temporary compatibility alias to `dhub`' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+if grep -F 'temporary compatibility alias to `dhub`' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null; then
+  printf 'FAIL test_bare_hub_guardrails: runbook must not describe dd compatibility alias\n' >&2
+  exit 1
+fi
 grep -F 'default branch name' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'bin/clone-repo' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'bin/new-worktree' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F '.envrc' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F '.envrc.local' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'dhub' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
-grep -F 'temporary compatibility alias to `dhub`' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'dre <repo>' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'dwt <name>' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
-grep -F 'temporary compatibility alias to `dhub`' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+if grep -F 'temporary compatibility alias to `dhub`' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null; then
+  printf 'FAIL test_bare_hub_guardrails: lifecycle runbook must not describe dd compatibility alias\n' >&2
+  exit 1
+fi
 grep -F 'state/hub/etc/install.env' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 
 grep -F 'prefer `bin/clone-repo` and `bin/new-worktree`' .config/opencode/AGENTS.md >/dev/null

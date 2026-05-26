@@ -81,17 +81,17 @@ mock_bin="$tmpdir/mock-bin"
 mkdir -p "$mock_bin"
 mock_target="$tmpdir/mock-dhub-target"
 mkdir -p "$mock_target"
-cat > "$mock_bin/dhub" <<EOF
+cat > "$mock_bin/resolve-install-target.sh" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
 printf '%s\n' "$mock_target"
 EOF
-chmod +x "$mock_bin/dhub"
+chmod +x "$mock_bin/resolve-install-target.sh"
 
-dhub_output="$(PATH="$mock_bin:$base_path" WORKSPACE_NAV_SCRIPT="$nav_script" zsh -fc '. "$WORKSPACE_NAV_SCRIPT"; dhub')"
+dhub_output="$(PATH="$mock_bin:$base_path" WORKSPACE_NAV_SCRIPT="$nav_script" WORKSPACE_NAV_LIBEXEC_DIR="$mock_bin" zsh -fc '. "$WORKSPACE_NAV_SCRIPT"; dhub')"
 grep -F 'cd -> ' <<<"$dhub_output" >/dev/null || fail "dhub should print destination before changing directory"
 
-dd_output="$(PATH="$mock_bin:$base_path" WORKSPACE_NAV_SCRIPT="$nav_script" zsh -fc '. "$WORKSPACE_NAV_SCRIPT"; dd')"
-[ "$dd_output" = "$dhub_output" ] || fail "dd should behave as temporary alias to dhub"
+dd_function="$(PATH="$mock_bin:$base_path" WORKSPACE_NAV_SCRIPT="$nav_script" WORKSPACE_NAV_LIBEXEC_DIR="$mock_bin" zsh -fc '. "$WORKSPACE_NAV_SCRIPT"; typeset -f dd || true')"
+[ -z "$dd_function" ] || fail "dd helper function should not be defined"
 
 printf 'PASS test_workspace_navigation_path_contract\n'

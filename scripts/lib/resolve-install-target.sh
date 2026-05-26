@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-install_env="/workspaces/dotfiles/state/hub/etc/install.env"
+install_env="${HUB_INSTALL_ENV_FILE:-/workspaces/dotfiles/state/hub/etc/install.env}"
 
 if [ ! -f "$install_env" ]; then
   printf 'refused: install branch state is missing\n' >&2

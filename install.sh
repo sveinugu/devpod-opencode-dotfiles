@@ -78,11 +78,15 @@ export HUB_INSTALL_BRANCH=$HUB_INSTALL_BRANCH
 export HUB_INSTALL_BRANCH_DIR=$HUB_INSTALL_BRANCH_DIR
 EOF
 
-if ! declare -F dd >/dev/null 2>&1; then
+if ! declare -F dhub >/dev/null 2>&1; then
   cat >&2 <<EOF
-note: shell helper dd() was not detected. Add this snippet to your shell config for quick navigation:
-dd() {
-  local target="\${HUB_INSTALL_BRANCH_DIR:-$install_branch_dir}"
+note: shell helper dhub() was not detected. Add this snippet to your shell config for quick navigation:
+dhub() {
+  local resolver="$source_root/scripts/lib/resolve-install-target.sh"
+  local target
+  if ! target="\$(HUB_INSTALL_ENV_FILE=\"$install_env_file\" bash \"\$resolver\")"; then
+    return 1
+  fi
   printf 'cd -> %s\n' "\$target"
   cd "\$target"
 }
