@@ -5,10 +5,10 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
 
 usage() {
-  printf 'usage: new-worktree --repo <hub|repo-name> <branch>\n' >&2
+  printf 'usage: new-worktree [--repo <hub|repo-name>] <branch>\n' >&2
 }
 
-if [ "$#" -lt 3 ]; then
+if [ "$#" -lt 1 ]; then
   usage
   exit 2
 fi
@@ -43,9 +43,27 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 
-if [ -z "$repo_name" ] || [ -z "$branch" ]; then
+if [ -z "$branch" ]; then
   usage
   exit 2
+fi
+
+if [ -z "$repo_name" ]; then
+  resolver="${WORKSPACE_NAV_REPO_ROOT_RESOLVER:-$script_dir/../scripts/lib/resolve-managed-repo-root.sh}"
+  inferred_repo_root=''
+  if ! inferred_repo_root="$(HUB_WORKSPACE_ROOT="$workspace_root" bash "$resolver" "${PWD:-$(pwd -P)}" 2>/dev/null)"; then
+    printf 'refused: unable to infer managed repo context; use --repo <hub|repo-name>\n' >&2
+    exit 1
+  fi
+
+  if [ "$inferred_repo_root" = "$workspace_root" ]; then
+    repo_name='hub'
+  elif [[ "$inferred_repo_root" == "$workspace_root/repos/"* ]]; then
+    repo_name="${inferred_repo_root#"$workspace_root/repos/"}"
+  else
+    printf 'refused: unable to infer managed repo context; use --repo <hub|repo-name>\n' >&2
+    exit 1
+  fi
 fi
 
 if [ "$repo_name" = "hub" ]; then

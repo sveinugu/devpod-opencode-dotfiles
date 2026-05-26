@@ -84,6 +84,16 @@ child_default_branch="${DYN_REPO_DEFAULT_BRANCH:-}"
 HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script" --repo hub feature/top-level >/dev/null
 HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script" --repo child-source feature/child >/dev/null
 
+(
+  cd "$workspace_root/main"
+  HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script" feature/top-level-auto >/dev/null
+)
+
+(
+  cd "$workspace_root/repos/child-source/$child_default_branch"
+  HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script" feature/child-auto >/dev/null
+)
+
 [ "$(git -C "$workspace_root/work/feature/top-level" config --get "branch.feature/top-level.remote" 2>/dev/null || true)" = "origin" ] || fail "hub worktree branch should set branch.<name>.remote=origin"
 [ "$(git -C "$workspace_root/work/feature/top-level" config --get "branch.feature/top-level.merge" 2>/dev/null || true)" = "refs/heads/feature/top-level" ] || fail "hub worktree branch should set branch.<name>.merge to refs/heads/<name>"
 [ "$(git -C "$workspace_root/repos/child-source/work/feature/child" config --get "branch.feature/child.remote" 2>/dev/null || true)" = "origin" ] || fail "child worktree branch should set branch.<name>.remote=origin"
@@ -95,7 +105,7 @@ extra_args_rc="$?"
 set -e
 
 [ "$extra_args_rc" = "2" ] || fail "new-worktree should reject unexpected extra positional args"
-grep -F 'usage: new-worktree --repo <hub|repo-name> <branch>' "$tmpdir/extra-args.out" >/dev/null || fail "new-worktree should show usage on extra positional args"
+grep -F 'usage: new-worktree [--repo <hub|repo-name>] <branch>' "$tmpdir/extra-args.out" >/dev/null || fail "new-worktree should show usage on extra positional args"
 
 set +e
 HUB_WORKSPACE_ROOT="$tmpdir/missing-workspace-root" HOME="$home_dir" bash "$new_worktree_script" --repo hub feature/missing-root >"$tmpdir/missing-root.out" 2>&1
@@ -140,18 +150,26 @@ grep -F 'validator-invoked' "$tmpdir/validator-invocation.out" >/dev/null || fai
 restore_validator
 
 [ -d "$workspace_root/work/feature/top-level" ] || fail "missing top-level worktree"
+[ -d "$workspace_root/work/feature/top-level-auto" ] || fail "missing auto-detected top-level worktree"
 [ -d "$workspace_root/state/hub/work/feature/top-level" ] || fail "missing top-level canonical state path"
+[ -d "$workspace_root/state/hub/work/feature/top-level-auto" ] || fail "missing auto-detected top-level canonical state path"
 [ -d "$workspace_root/tmp/hub/work/feature/top-level" ] || fail "missing top-level canonical tmp path"
+[ -d "$workspace_root/tmp/hub/work/feature/top-level-auto" ] || fail "missing auto-detected top-level canonical tmp path"
 
 [ -d "$workspace_root/repos/child-source/work/feature/child" ] || fail "missing child worktree"
+[ -d "$workspace_root/repos/child-source/work/feature/child-auto" ] || fail "missing auto-detected child worktree"
 [ -d "$workspace_root/state/repos/child-source/work/feature/child" ] || fail "missing child canonical state path"
+[ -d "$workspace_root/state/repos/child-source/work/feature/child-auto" ] || fail "missing auto-detected child canonical state path"
 [ -d "$workspace_root/tmp/repos/child-source/work/feature/child" ] || fail "missing child canonical tmp path"
+[ -d "$workspace_root/tmp/repos/child-source/work/feature/child-auto" ] || fail "missing auto-detected child canonical tmp path"
 
 for checkout in \
   "$workspace_root/main" \
   "$workspace_root/work/feature/top-level" \
+  "$workspace_root/work/feature/top-level-auto" \
   "$workspace_root/repos/child-source/$child_default_branch" \
-  "$workspace_root/repos/child-source/work/feature/child"
+  "$workspace_root/repos/child-source/work/feature/child" \
+  "$workspace_root/repos/child-source/work/feature/child-auto"
 do
   [ -f "$checkout/.envrc" ] || fail "missing managed .envrc in $checkout"
   [ -f "$checkout/.envrc.local" ] || fail "missing managed .envrc.local in $checkout"
@@ -172,6 +190,17 @@ do
   grep -F '/workspaces/dotfiles/state/hub/etc/install.env' "$checkout/.envrc" >/dev/null || fail "missing install.env source in $checkout/.envrc"
   grep -F '.envrc.local' "$checkout/.envrc" >/dev/null || fail "missing .envrc.local source in $checkout/.envrc"
 done
+
+set +e
+(
+  cd "$workspace_root"
+  HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script" feature/no-context
+) >"$tmpdir/no-context.out" 2>&1
+no_context_rc="$?"
+set -e
+
+[ "$no_context_rc" = "1" ] || fail "new-worktree should fail without --repo outside managed repo context"
+grep -F 'refused: unable to infer managed repo context; use --repo <hub|repo-name>' "$tmpdir/no-context.out" >/dev/null || fail "new-worktree should explain no-context refusal"
 
 if grep -F 'export DYN_REPO_MAIN_DIR=' "$workspace_root/repos/child-source/$child_default_branch/.envrc" >/dev/null; then
   fail "managed child envrc should not export retired DYN_REPO_MAIN_DIR"
