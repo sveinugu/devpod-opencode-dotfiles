@@ -33,7 +33,7 @@ workspace_navigation_add_branch_bin_to_path
 
 dhub() {
   local target
-  local libexec_dir="${WORKSPACE_NAV_LIBEXEC_DIR:-/workspaces/dotfiles/main/scripts/lib}"
+  local libexec_dir="${WORKSPACE_NAV_LIBEXEC_DIR:-/workspaces/dotfiles/scripts/lib}"
   local resolver="$libexec_dir/resolve-install-target.sh"
   if ! target="$(HUB_INSTALL_ENV_FILE="${HUB_INSTALL_ENV_FILE:-/workspaces/dotfiles/state/hub/etc/install.env}" bash "$resolver")"; then
     return 1

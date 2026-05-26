@@ -10,6 +10,7 @@ repo_root="$(git rev-parse --show-toplevel)"
 nav_script="$repo_root/.config/shell/workspace-navigation.zsh"
 
 [ -f "$nav_script" ] || fail "workspace-navigation.zsh not found"
+grep -F 'local libexec_dir="${WORKSPACE_NAV_LIBEXEC_DIR:-/workspaces/dotfiles/scripts/lib}"' "$nav_script" >/dev/null || fail "dhub default resolver path should use hub root scripts/lib"
 
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
@@ -93,5 +94,22 @@ grep -F 'cd -> ' <<<"$dhub_output" >/dev/null || fail "dhub should print destina
 
 dd_function="$(PATH="$mock_bin:$base_path" WORKSPACE_NAV_SCRIPT="$nav_script" WORKSPACE_NAV_LIBEXEC_DIR="$mock_bin" zsh -fc '. "$WORKSPACE_NAV_SCRIPT"; typeset -f dd || true')"
 [ -z "$dd_function" ] || fail "dd helper function should not be defined"
+
+install_env="$tmpdir/install.env"
+feature_target="$tmpdir/work/retrofit-devspace-bare-hub"
+mkdir -p "$feature_target"
+cat > "$install_env" <<EOF
+export HUB_INSTALL_BRANCH=work/retrofit-devspace-bare-hub
+export HUB_INSTALL_BRANCH_DIR=$feature_target
+EOF
+
+feature_pwd="$(
+  PATH="$base_path" \
+  HUB_INSTALL_ENV_FILE="$install_env" \
+  WORKSPACE_NAV_SCRIPT="$nav_script" \
+  WORKSPACE_NAV_LIBEXEC_DIR="$repo_root/scripts/lib" \
+  zsh -fc '. "$WORKSPACE_NAV_SCRIPT"; dhub >/tmp/ignore-dhub-feature.out; printf "%s\n" "$PWD"'
+)"
+[ "$feature_pwd" = "$feature_target" ] || fail "dhub should navigate to non-main HUB_INSTALL_BRANCH_DIR"
 
 printf 'PASS test_workspace_navigation_path_contract\n'
