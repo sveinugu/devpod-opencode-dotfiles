@@ -32,6 +32,8 @@ git init "$source_repo" >/dev/null 2>&1
 
 git clone --bare "$source_repo" "$workspace_root/.bare" >/dev/null 2>&1
 git --git-dir="$workspace_root/.bare" worktree add "$workspace_root/main" main >/dev/null 2>&1
+git --git-dir="$workspace_root/.bare" branch feature/install-only main >/dev/null 2>&1
+git --git-dir="$workspace_root/.bare" worktree add "$workspace_root/work/feature/install-only" feature/install-only >/dev/null 2>&1
 mkdir -p "$workspace_root/work" "$workspace_root/repos" "$workspace_root/state/hub/main" "$workspace_root/tmp/hub/main"
 mkdir -p "$workspace_root/main/.config/opencode"
 touch "$workspace_root/main/.zshrc" "$workspace_root/main/.zprofile"
@@ -51,6 +53,7 @@ fi
 
 grep -F 'PASS' "$tmpdir/pass.out" >/dev/null || fail "doctor output should be human-readable checklist"
 grep -F 'installed-branch state from install.env' "$tmpdir/pass.out" >/dev/null || fail "doctor should report installed branch state"
+grep -F '[PASS] top-level main exists and is attached' "$tmpdir/pass.out" >/dev/null || fail "doctor should explicitly report main attachment check"
 
 rm -f "$workspace_root/main/.zshrc"
 set +e
