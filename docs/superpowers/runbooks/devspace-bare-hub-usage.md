@@ -1,6 +1,6 @@
 # DevSpace Bare Hub Usage
 
-> What changed for implementers: the legacy single-command install-checkout helper is replaced by `dhub`, `dre`, and `dwt`; child repos now keep their exact remote default branch names instead of being normalized to `main`.
+> What changed for implementers: `dhub` is the canonical install-checkout helper, with a temporary compatibility alias `dd`; child repos now keep their exact remote default branch names instead of being normalized to `main`.
 
 ## Provision and connect
 
@@ -94,6 +94,7 @@ Managed checkout environment behavior:
 The repo-managed shell package is the intended home for the interactive wrappers:
 
 - `dhub` → jump to `$HUB_INSTALL_BRANCH_DIR`
+- `dd` → temporary compatibility alias to `dhub`
 - `dre <repo>` → jump to `/workspaces/dotfiles/repos/<repo>`
 - `dwt <name>` → jump to `work/<name>` inside the current managed repo context
 
@@ -103,7 +104,7 @@ Behavior notes:
 - `dre` excludes the top-level hub; use it only for child repos under `repos/`
 - `dwt` only works from an existing managed repo context and uses the canonical `work/` directory
 - invalid names may print a simple text `did you mean ...` hint
-- there is no compatibility `dd()` alias in v1
+- `dhub` is canonical; `dd()` is temporary compatibility during migration
 - no `fzf` integration in v1
 
 ## Child repo branch behavior

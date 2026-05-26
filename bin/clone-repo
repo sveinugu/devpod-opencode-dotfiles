@@ -57,10 +57,29 @@ if [ -e "$child_root" ]; then
 fi
 
 create_bare_hub "$child_root" "$source_repo" main yes
+default_branch="${HUB_REPO_RESOLVED_BRANCH:-main}"
+default_dir="$child_root/$default_branch"
 
-mkdir -p "$workspace_root/state/repos/$repo_name/main"
-mkdir -p "$workspace_root/tmp/repos/$repo_name/main"
+if [ "$default_branch" != "main" ]; then
+  if git --git-dir="$child_root/.bare" worktree list --porcelain | grep -F "worktree $child_root/main" >/dev/null 2>&1; then
+    git --git-dir="$child_root/.bare" worktree remove --force "$child_root/main" >/dev/null
+  fi
+  if git --git-dir="$child_root/.bare" worktree list --porcelain | grep -F "worktree $default_dir" >/dev/null 2>&1; then
+    :
+  else
+    git --git-dir="$child_root/.bare" worktree add "$default_dir" "$default_branch" >/dev/null
+  fi
+fi
 
-"$script_dir/../scripts/lib/worktree-env.sh" "$child_root/main" child "$repo_name" >/dev/null
+mkdir -p "$workspace_root/state/repos/$repo_name/$default_branch"
+mkdir -p "$workspace_root/tmp/repos/$repo_name/$default_branch"
+mkdir -p "$workspace_root/state/repos/$repo_name/etc"
+
+cat > "$workspace_root/state/repos/$repo_name/etc/repo.env" <<EOF
+export DYN_REPO_DEFAULT_BRANCH=$default_branch
+export DYN_REPO_DEFAULT_DIR=$default_dir
+EOF
+
+"$script_dir/../scripts/lib/worktree-env.sh" "$default_dir" child "$repo_name" >/dev/null
 
 printf 'ok: created child hub repo at %s\n' "$child_root"

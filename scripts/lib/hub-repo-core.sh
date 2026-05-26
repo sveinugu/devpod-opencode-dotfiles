@@ -116,6 +116,7 @@ create_bare_hub() {
   local branch="${3:-$HUB_BOOTSTRAP_BRANCH}"
   local allow_default_branch_fallback="${4:-no}"
   local requested_branch="$branch"
+  local resolved_branch="$branch"
   local branch_check_rc=0
 
   if hub_source_has_branch "$source" "$branch"; then
@@ -126,6 +127,7 @@ create_bare_hub() {
       detected_branch="$(hub_source_default_branch "$source" 2>/dev/null || true)"
       if [ -n "$detected_branch" ]; then
         branch="$detected_branch"
+        resolved_branch="$branch"
         if hub_source_has_branch "$source" "$branch"; then
           branch_check_rc=0
         else
@@ -202,4 +204,6 @@ create_bare_hub() {
   fi
 
   mkdir -p "$workspace_root/state/hub/main" "$workspace_root/tmp/hub/main"
+
+  HUB_REPO_RESOLVED_BRANCH="$resolved_branch"
 }

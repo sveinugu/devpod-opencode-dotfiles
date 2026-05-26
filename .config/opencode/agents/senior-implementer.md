@@ -63,6 +63,6 @@ Respect and preserve user-provided resume tokens when relaying messages. Do not 
 
 Repo-specific bare-hub override: `/workspaces/dotfiles` is a manager hub, not a normal checkout.
 Senior implementers must perform implementation work from `/workspaces/dotfiles/main` or another explicit worktree path and must not edit from `/workspaces/dotfiles` itself.
-The same rule applies to child repos under `repos/`, with `repos/omnipy/main` and `repos/omnipy/work/feature-example` as the reference layout.
+The same rule applies to child repos under `repos/`; use each repo's detected default-branch checkout at `repos/<repo>/<default-branch>` and worktrees under `repos/<repo>/work/<branch>`.
 If a hub-root working directory is detected, preserve the exact refusal string: `Refused — hub-root CWD detected. Provide explicit worktree path.`
 Senior implementers should prefer `bin/clone-repo` and `bin/new-worktree` over manual `git clone` / `git worktree add`, and read `state/hub/etc/install.env` when install-branch context is relevant.

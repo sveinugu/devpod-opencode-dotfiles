@@ -3,7 +3,7 @@ set -euo pipefail
 
 grep -F '`/workspaces/dotfiles` is a manager hub, not a normal checkout.' .config/opencode/AGENTS.md >/dev/null
 grep -F 'Agents MUST treat `/workspaces/dotfiles/main` or another explicit worktree path as the editable repository root.' .config/opencode/AGENTS.md >/dev/null
-grep -F 'Child repos under `repos/` follow the same pattern; `repos/omnipy/main` and `repos/omnipy/work/feature-example` are the reference examples.' .config/opencode/AGENTS.md >/dev/null
+grep -F "Child repos under \`repos/\` follow the same pattern; use each repo's detected default-branch checkout at \`repos/<repo>/<default-branch>\` and worktrees under \`repos/<repo>/work/<branch>\`." .config/opencode/AGENTS.md >/dev/null
 grep -F 'Refused — hub-root CWD detected. Provide explicit worktree path.' .config/opencode/AGENTS.md >/dev/null
 
 grep -F 'Repo-specific bare-hub override: `/workspaces/dotfiles` is a manager hub, not a normal checkout.' .config/opencode/agents/maestro.md >/dev/null
@@ -15,18 +15,20 @@ grep -F 'ssh -o BatchMode=yes workspace.dotfiles.devspace' docs/superpowers/runb
 grep -F 'bin/clone-repo' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'bin/new-worktree' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'dhub' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F 'temporary compatibility alias to `dhub`' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'dre <repo>' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'dwt <name>' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
-grep -F 'there is no compatibility `dd()` alias in v1' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F 'temporary compatibility alias to `dhub`' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'default branch name' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'bin/clone-repo' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'bin/new-worktree' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F '.envrc' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F '.envrc.local' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'dhub' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F 'temporary compatibility alias to `dhub`' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'dre <repo>' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'dwt <name>' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
-grep -F 'there is no compatibility `dd()` alias in v1' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F 'temporary compatibility alias to `dhub`' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'state/hub/etc/install.env' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 
 grep -F 'prefer `bin/clone-repo` and `bin/new-worktree`' .config/opencode/AGENTS.md >/dev/null

@@ -45,18 +45,29 @@ if [ "$hub_kind" = "hub" ]; then
   esac
 elif [ "$hub_kind" = "child" ]; then
   child_root="$workspace_root/repos/$repo_name"
+  child_env="$workspace_root/state/repos/$repo_name/etc/repo.env"
+  dyn_repo_default_branch=''
+  dyn_repo_default_dir=''
   hub_dir="$workspace_root"
   hub_main_dir="$workspace_root/main"
   hub_state_dir="$workspace_root/state/hub"
   hub_tmp_dir="$workspace_root/tmp/hub"
   dyn_repo_dir="$child_root"
-  dyn_repo_main_dir="$child_root/main"
   dyn_repo_state_dir="$workspace_root/state/repos/$repo_name"
   dyn_repo_tmp_dir="$workspace_root/tmp/repos/$repo_name"
+  if [ -f "$child_env" ]; then
+    # shellcheck disable=SC1090
+    . "$child_env"
+    dyn_repo_default_branch="${DYN_REPO_DEFAULT_BRANCH:-}"
+    dyn_repo_default_dir="${DYN_REPO_DEFAULT_DIR:-}"
+  fi
+  if [ -z "$dyn_repo_default_branch" ] || [ -z "$dyn_repo_default_dir" ]; then
+    refuse 'refused: managed child default branch metadata is missing or invalid'
+  fi
   case "$checkout_dir" in
-    "$child_root/main")
-      dyn_worktree_state_dir="$workspace_root/state/repos/$repo_name/main"
-      dyn_worktree_tmp_dir="$workspace_root/tmp/repos/$repo_name/main"
+    "$dyn_repo_default_dir")
+      dyn_worktree_state_dir="$workspace_root/state/repos/$repo_name/$dyn_repo_default_branch"
+      dyn_worktree_tmp_dir="$workspace_root/tmp/repos/$repo_name/$dyn_repo_default_branch"
       ;;
     "$child_root/work"/*)
       work_rel="${checkout_dir#"$child_root/work/"}"
@@ -78,7 +89,8 @@ export HUB_MAIN_DIR="$hub_main_dir"
 export HUB_STATE_DIR="$hub_state_dir"
 export HUB_TMP_DIR="$hub_tmp_dir"
 export DYN_REPO_DIR="$dyn_repo_dir"
-export DYN_REPO_MAIN_DIR="$dyn_repo_main_dir"
+export DYN_REPO_DEFAULT_BRANCH="${dyn_repo_default_branch:-}"
+export DYN_REPO_DEFAULT_DIR="${dyn_repo_default_dir:-$dyn_repo_dir}"
 export DYN_REPO_STATE_DIR="$dyn_repo_state_dir"
 export DYN_REPO_TMP_DIR="$dyn_repo_tmp_dir"
 export DYN_WORKTREE_DIR="$checkout_dir"
