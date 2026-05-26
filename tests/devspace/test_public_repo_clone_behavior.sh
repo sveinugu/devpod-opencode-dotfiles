@@ -18,6 +18,7 @@ trap 'rm -rf "$tmpdir"' EXIT
 
 real_git="$(command -v git)"
 public_url='https://public.example/fixture.git'
+public_url_default='https://public.example/default.git'
 private_url='https://private.example/secret.git'
 
 public_source="$tmpdir/public-source"
@@ -45,6 +46,24 @@ EOF
   git checkout main >/dev/null 2>&1
 )
 
+public_source_default="$tmpdir/public-source-default"
+git init "$public_source_default" >/dev/null 2>&1
+(
+  cd "$public_source_default"
+  git config user.name 'Test User'
+  git config user.email 'test@example.com'
+  printf 'default-branch\n' > README.md
+  cat > install.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+:
+EOF
+  chmod +x install.sh
+  git add README.md
+  git add install.sh
+  git commit -m 'public fixture default branch' >/dev/null 2>&1
+)
+
 mock_bin="$tmpdir/mock-bin"
 mkdir -p "$mock_bin"
 cat > "$mock_bin/git" <<'EOF'
@@ -53,8 +72,10 @@ set -euo pipefail
 
 real_git="${REAL_GIT:?REAL_GIT must be set}"
 public_url="${MOCK_PUBLIC_URL:?MOCK_PUBLIC_URL must be set}"
+public_url_default="${MOCK_PUBLIC_URL_DEFAULT:?MOCK_PUBLIC_URL_DEFAULT must be set}"
 private_url="${MOCK_PRIVATE_URL:?MOCK_PRIVATE_URL must be set}"
 public_source="${MOCK_PUBLIC_SOURCE:?MOCK_PUBLIC_SOURCE must be set}"
+public_source_default="${MOCK_PUBLIC_SOURCE_DEFAULT:?MOCK_PUBLIC_SOURCE_DEFAULT must be set}"
 
 require_non_interactive() {
   if [ "${GIT_TERMINAL_PROMPT:-}" != "0" ]; then
@@ -80,10 +101,36 @@ done
 cmd="${args[0]:-}"
 
 if [ "$cmd" = "ls-remote" ]; then
-  source="${args[3]:-}"
+  source=""
+  branch=""
+  if [ "${args[1]:-}" = "--symref" ]; then
+    source="${args[2]:-}"
+  elif [ "${args[1]:-}" = "--exit-code" ] && [ "${args[2]:-}" = "--heads" ]; then
+    source="${args[3]:-}"
+    branch="${args[4]:-main}"
+  fi
+
+  if [ -z "$source" ]; then
+    exec "$real_git" "${args[@]}"
+  fi
+
   if [ "$source" = "$public_url" ]; then
     require_non_interactive "$public_url"
-    exec "$real_git" ls-remote --exit-code --heads "$public_source" "${args[4]:-main}"
+    if [ "${args[1]:-}" = "--symref" ]; then
+      exec "$real_git" ls-remote --symref "$public_source" HEAD
+    fi
+    exec "$real_git" ls-remote --exit-code --heads "$public_source" "$branch"
+  fi
+  if [ "$source" = "$public_url_default" ]; then
+    require_non_interactive "$public_url_default"
+    if [ "${args[1]:-}" = "--symref" ]; then
+      exec "$real_git" ls-remote --symref "$public_source_default" HEAD
+    fi
+    if [ "$branch" = "main" ]; then
+      printf 'fatal: no matching refs\n' >&2
+      exit 2
+    fi
+    exec "$real_git" ls-remote --exit-code --heads "$public_source_default" "$branch"
   fi
   if [ "$source" = "$private_url" ]; then
     require_non_interactive "$private_url"
@@ -98,6 +145,10 @@ if [ "$cmd" = "clone" ] && [ "${args[1]:-}" = "--bare" ]; then
   if [ "$source" = "$public_url" ]; then
     require_non_interactive "$public_url"
     exec "$real_git" clone --bare "$public_source" "$dest"
+  fi
+  if [ "$source" = "$public_url_default" ]; then
+    require_non_interactive "$public_url_default"
+    exec "$real_git" clone --bare "$public_source_default" "$dest"
   fi
   if [ "$source" = "$private_url" ]; then
     require_non_interactive "$private_url"
@@ -160,21 +211,40 @@ ln -s "$workspace_root/main/.config/opencode" "$home_dir/.config/opencode"
 PATH="$mock_bin:$PATH" \
 REAL_GIT="$real_git" \
 MOCK_PUBLIC_URL="$public_url" \
+MOCK_PUBLIC_URL_DEFAULT="$public_url_default" \
 MOCK_PRIVATE_URL="$private_url" \
 MOCK_PUBLIC_SOURCE="$public_source" \
+MOCK_PUBLIC_SOURCE_DEFAULT="$public_source_default" \
 HUB_WORKSPACE_ROOT="$workspace_root" \
 HUB_HOME_DIR="$home_dir" \
 bash "$clone_script" "$public_url" >"$tmpdir/public-clone.out" 2>&1 || fail "public HTTPS onboarding should succeed"
 
 [ -d "$workspace_root/repos/fixture/.bare" ] || fail "missing bare repo for public HTTPS clone"
 
+PATH="$mock_bin:$PATH" \
+REAL_GIT="$real_git" \
+MOCK_PUBLIC_URL="$public_url" \
+MOCK_PUBLIC_URL_DEFAULT="$public_url_default" \
+MOCK_PRIVATE_URL="$private_url" \
+MOCK_PUBLIC_SOURCE="$public_source" \
+MOCK_PUBLIC_SOURCE_DEFAULT="$public_source_default" \
+HUB_WORKSPACE_ROOT="$workspace_root" \
+HUB_HOME_DIR="$home_dir" \
+bash "$clone_script" "$public_url_default" >"$tmpdir/public-clone-default.out" 2>&1 || fail "public HTTPS onboarding should succeed when default branch is not main"
+
+[ -d "$workspace_root/repos/default/.bare" ] || fail "missing bare repo for non-main default branch clone"
+default_branch_name="$(git -C "$workspace_root/repos/default/main" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+[ "$default_branch_name" = "master" ] || fail "public HTTPS onboarding should attach source default branch when main is absent"
+
 start_private_clone="$(date +%s)"
 set +e
 PATH="$mock_bin:$PATH" \
 REAL_GIT="$real_git" \
 MOCK_PUBLIC_URL="$public_url" \
+MOCK_PUBLIC_URL_DEFAULT="$public_url_default" \
 MOCK_PRIVATE_URL="$private_url" \
 MOCK_PUBLIC_SOURCE="$public_source" \
+MOCK_PUBLIC_SOURCE_DEFAULT="$public_source_default" \
 HUB_WORKSPACE_ROOT="$workspace_root" \
 HUB_HOME_DIR="$home_dir" \
 bash "$clone_script" "$private_url" >"$tmpdir/private-clone.out" 2>&1
@@ -196,8 +266,10 @@ mkdir -p "$workspace_provision" "$home_provision"
 PATH="$mock_bin:$PATH" \
 REAL_GIT="$real_git" \
 MOCK_PUBLIC_URL="$public_url" \
+MOCK_PUBLIC_URL_DEFAULT="$public_url_default" \
 MOCK_PRIVATE_URL="$private_url" \
 MOCK_PUBLIC_SOURCE="$public_source" \
+MOCK_PUBLIC_SOURCE_DEFAULT="$public_source_default" \
 HUB_WORKSPACE_ROOT="$workspace_provision" \
 HUB_PROVISION_SOURCE="$public_url" \
 HUB_PYENV_INSTALL_COMMAND=":" \
@@ -208,8 +280,10 @@ bash "$provision_script" >"$tmpdir/public-provision-main.out" 2>&1 || fail "publ
 PATH="$mock_bin:$PATH" \
 REAL_GIT="$real_git" \
 MOCK_PUBLIC_URL="$public_url" \
+MOCK_PUBLIC_URL_DEFAULT="$public_url_default" \
 MOCK_PRIVATE_URL="$private_url" \
 MOCK_PUBLIC_SOURCE="$public_source" \
+MOCK_PUBLIC_SOURCE_DEFAULT="$public_source_default" \
 HUB_WORKSPACE_ROOT="$workspace_provision" \
 HUB_PROVISION_SOURCE="$public_url" \
 HUB_INSTALL_BRANCH='feature/public-fetch' \
@@ -225,8 +299,10 @@ set +e
 PATH="$mock_bin:$PATH" \
 REAL_GIT="$real_git" \
 MOCK_PUBLIC_URL="$public_url" \
+MOCK_PUBLIC_URL_DEFAULT="$public_url_default" \
 MOCK_PRIVATE_URL="$private_url" \
 MOCK_PUBLIC_SOURCE="$public_source" \
+MOCK_PUBLIC_SOURCE_DEFAULT="$public_source_default" \
 HUB_WORKSPACE_ROOT="$tmpdir/workspace-private-provision" \
 HUB_PROVISION_SOURCE="$private_url" \
 HUB_PYENV_INSTALL_COMMAND=":" \

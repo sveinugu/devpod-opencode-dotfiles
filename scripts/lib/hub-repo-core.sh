@@ -22,6 +22,40 @@ hub_is_non_interactive_access_failure() {
     'could not read username|terminal prompts disabled|authentication failed|repository not found|access denied|permission denied|could not resolve host|unable to access'
 }
 
+hub_source_default_branch() {
+  local source="$1"
+  local output=''
+  local rc=0
+
+  if [ -d "$source/.git" ] || [ -d "$source/objects" ]; then
+    branch_name="$(git -C "$source" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || true)"
+    branch_name="${branch_name#origin/}"
+    if [ -z "$branch_name" ]; then
+      branch_name="$(git -C "$source" symbolic-ref --quiet --short HEAD 2>/dev/null || true)"
+    fi
+    if [ -n "$branch_name" ]; then
+      printf '%s\n' "$branch_name"
+      return 0
+    fi
+    return 1
+  fi
+
+  if output="$(hub_git_non_interactive ls-remote --symref "$source" HEAD 2>&1)"; then
+    branch_name="$(printf '%s\n' "$output" | awk '/^ref:/ { print $2 }' | sed -n 's#refs/heads/##p' | head -n1)"
+    if [ -n "$branch_name" ]; then
+      printf '%s\n' "$branch_name"
+      return 0
+    fi
+  else
+    rc=$?
+    if [ "$rc" != "0" ] && hub_is_non_interactive_access_failure "$output"; then
+      return 20
+    fi
+  fi
+
+  return 1
+}
+
 hub_source_has_branch() {
   local source="$1"
   local branch="$2"
@@ -38,9 +72,10 @@ hub_source_has_branch() {
 
   if output="$(hub_git_non_interactive ls-remote --exit-code --heads "$source" "$branch" 2>&1)"; then
     return 0
+  else
+    rc=$?
   fi
 
-  rc=$?
   if [ "$rc" = "2" ]; then
     return 10
   fi
@@ -79,18 +114,31 @@ create_bare_hub() {
   local workspace_root="$1"
   local source="$2"
   local branch="${3:-$HUB_BOOTSTRAP_BRANCH}"
+  local allow_default_branch_fallback="${4:-no}"
+  local requested_branch="$branch"
   local branch_check_rc=0
 
   if hub_source_has_branch "$source" "$branch"; then
     branch_check_rc=0
   else
     branch_check_rc="$?"
+    if [ "$allow_default_branch_fallback" = "yes" ] && [ "$branch_check_rc" = "10" ] && [ "$branch" = "$HUB_BOOTSTRAP_BRANCH" ]; then
+      detected_branch="$(hub_source_default_branch "$source" 2>/dev/null || true)"
+      if [ -n "$detected_branch" ]; then
+        branch="$detected_branch"
+        if hub_source_has_branch "$source" "$branch"; then
+          branch_check_rc=0
+        else
+          branch_check_rc="$?"
+        fi
+      fi
+    fi
   fi
   case "$branch_check_rc" in
     0)
       ;;
     10)
-      hub_fail "refused: origin/$branch is required for bootstrap"
+      hub_fail "refused: origin/$requested_branch is required for bootstrap"
       return
       ;;
     *)
