@@ -83,6 +83,8 @@ printf '%s\n' "$wt_entry" | grep -F "worktree $workspace_root/main" >/dev/null |
 
 main_branch="$(git -C "$workspace_root/main" rev-parse --abbrev-ref HEAD)"
 [ "$main_branch" = "main" ] || fail "top-level main is not on main branch"
+[ "$(git -C "$workspace_root/main" config --get "branch.main.remote" 2>/dev/null || true)" = "origin" ] || fail "top-level main should set branch.main.remote=origin"
+[ "$(git -C "$workspace_root/main" config --get "branch.main.merge" 2>/dev/null || true)" = "refs/heads/main" ] || fail "top-level main should set branch.main.merge=refs/heads/main"
 
 [ -f "$home_dir/.workspace-install-ran" ] || fail "main/install.sh was not invoked"
 

@@ -110,6 +110,16 @@ hub_remove_empty_non_git_main_dir() {
   rmdir "$main_path" >/dev/null 2>&1 || true
 }
 
+hub_set_branch_upstream() {
+  local bare_dir="$1"
+  local local_branch="$2"
+  local remote_name="${3:-origin}"
+  local remote_branch="${4:-$local_branch}"
+
+  git --git-dir="$bare_dir" config "branch.$local_branch.remote" "$remote_name"
+  git --git-dir="$bare_dir" config "branch.$local_branch.merge" "refs/heads/$remote_branch"
+}
+
 create_bare_hub() {
   local workspace_root="$1"
   local source="$2"
@@ -204,6 +214,8 @@ create_bare_hub() {
   fi
 
   mkdir -p "$workspace_root/state/hub/main" "$workspace_root/tmp/hub/main"
+
+  hub_set_branch_upstream "$workspace_root/.bare" "$branch"
 
   HUB_REPO_RESOLVED_BRANCH="$resolved_branch"
 }
