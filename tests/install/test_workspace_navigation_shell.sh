@@ -17,6 +17,8 @@ trap 'rm -rf "$tmpdir"' EXIT
 workspace_root="$tmpdir/workspace"
 mkdir -p "$workspace_root/main" "$workspace_root/work/feature-top" "$workspace_root/repos"
 mkdir -p "$workspace_root/repos/alpha/.bare" "$workspace_root/repos/alpha/main" "$workspace_root/repos/alpha/work/feature-child"
+mkdir -p "$workspace_root/repos/alpha/work/spec/limit-peek-elements-design"
+touch "$workspace_root/repos/alpha/work/spec/limit-peek-elements-design/.git"
 
 mock_bin="$tmpdir/mock-bin"
 mkdir -p "$mock_bin"
@@ -113,9 +115,76 @@ set -e
 grep -F 'did you mean: feature-child' "$tmpdir/dwt-shell-hint.out" >/dev/null || fail "dwt wrapper should forward did-you-mean hint"
 
 grep -F '_workspace_nav_complete_repos' "$nav_script" >/dev/null || fail "nav script should define repo completion function"
-grep -F '_workspace_nav_complete_worktrees' "$nav_script" >/dev/null || fail "nav script should define worktree completion function"
+grep -F '_workspace_nav_complete_dwt' "$nav_script" >/dev/null || fail "nav script should define dwt completion function"
 grep -F 'compdef _workspace_nav_complete_repos dre' "$nav_script" >/dev/null || fail "dre completion should be registered"
-grep -F 'compdef _workspace_nav_complete_worktrees dwt' "$nav_script" >/dev/null || fail "dwt completion should be registered"
+grep -F 'compdef _workspace_nav_complete_dwt dwt' "$nav_script" >/dev/null || fail "dwt completion should be registered"
 grep -F 'compdef _workspace_nav_complete_dhub dhub' "$nav_script" >/dev/null || fail "dhub completion should be registered"
+
+cat > "$tmpdir/mock-resolve-repo-root.sh" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$workspace_root/repos/alpha"
+EOF
+chmod +x "$tmpdir/mock-resolve-repo-root.sh"
+
+completion_dwt="$({
+  PATH="$mock_bin:$PATH" \
+  WORKSPACE_NAV_SCRIPT="$nav_script" \
+  WORKSPACE_NAV_REPO_ROOT_RESOLVER="$tmpdir/mock-resolve-repo-root.sh" \
+  HUB_WORKSPACE_ROOT="$workspace_root" \
+  zsh -fc '
+    source "$WORKSPACE_NAV_SCRIPT"
+    typeset -ga CAPTURE
+    typeset -gi SAW_Q=0
+    compadd() {
+      local arg
+      for arg in "$@"; do
+        if [ "$arg" = "-Q" ]; then
+          SAW_Q=1
+          continue
+        fi
+        case "$arg" in
+          --|-*)
+            ;;
+          *)
+            CAPTURE+=("$arg")
+            ;;
+        esac
+      done
+    }
+
+    PWD="'$workspace_root/repos/alpha/main'"
+    _workspace_nav_complete_dwt
+    printf "q=%s\n" "$SAW_Q"
+    printf "%s\n" "${CAPTURE[@]}"
+  '
+} 2>/dev/null)"
+
+printf '%s\n' "$completion_dwt" | grep -Fx 'q=1' >/dev/null || fail "dwt completion should use compadd -Q"
+printf '%s\n' "$completion_dwt" | grep -Fx 'spec/limit-peek-elements-design' >/dev/null || fail "dwt completion should include nested worktree names"
+if printf '%s\n' "$completion_dwt" | grep -Fx 'spec' >/dev/null; then
+  fail "dwt completion should not offer partial prefix-only segments"
+fi
+
+completion_repos="$({
+  PATH="$mock_bin:$PATH" \
+  WORKSPACE_NAV_SCRIPT="$nav_script" \
+  HUB_WORKSPACE_ROOT="$workspace_root" \
+  zsh -fc '
+    source "$WORKSPACE_NAV_SCRIPT"
+    typeset -gi SAW_Q=0
+    compadd() {
+      local arg
+      for arg in "$@"; do
+        if [ "$arg" = "-Q" ]; then
+          SAW_Q=1
+        fi
+      done
+    }
+    _workspace_nav_complete_repos
+    printf "q=%s\n" "$SAW_Q"
+  '
+} 2>/dev/null)"
+printf '%s\n' "$completion_repos" | grep -Fx 'q=1' >/dev/null || fail "repo completion should use compadd -Q"
 
 printf 'PASS test_workspace_navigation_shell\n'
