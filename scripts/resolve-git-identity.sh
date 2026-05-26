@@ -53,6 +53,12 @@ prompt_for_missing_fields() {
   fi
 }
 
+print_global_identity_confirmation() {
+  if [ -n "$github_user_name" ] && [ -n "$github_user_email" ]; then
+    prompt "Using global git identity: $github_user_name <$github_user_email>\n"
+  fi
+}
+
 prompt() {
   local text="$1"
   if [ -n "$tty_fd" ]; then
@@ -97,6 +103,7 @@ case "$use_global" in
   Y|y|'')
     read_global_identity
     prompt_for_missing_fields
+    print_global_identity_confirmation
     ;;
   N|n)
     prompt 'Specify git username/email manually? [y/N]: '
