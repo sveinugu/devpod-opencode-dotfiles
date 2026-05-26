@@ -6,3 +6,8 @@
 
 # Backup files
 **/*.bak.*.worktrees
+
+# Env files
+**/*.env
+**/*.envrc
+**/*.envrc.local
