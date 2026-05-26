@@ -60,12 +60,13 @@ pipelines:
       if [ "$(get_flag "no-prompts")" = "true" ]; then
         HUB_GIT_IDENTITY_ENV=$(bash scripts/resolve-git-identity.sh --no-prompts ${HUB_GIT_IDENTITY_ARGS:-})
       fi
+      eval "$HUB_GIT_IDENTITY_ENV"
       HUB_PROVISION_RUNTIME_ARGS="${HUB_PROVISION_ARGS:-}"
       if [ "$(get_flag "refresh-tools")" = "true" ]; then
         HUB_PROVISION_RUNTIME_ARGS="--refresh-tools ${HUB_PROVISION_ARGS:-}"
       fi
       tar cf - -C scripts lib/hub-repo-core.sh lib/worktree-env.sh provision-workspace.sh | kubectl exec -i "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- tar xf - -C /tmp
-      kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- env $HUB_GIT_IDENTITY_ENV HUB_INSTALL_BRANCH="${HUB_INSTALL_BRANCH:-main}" sh -lc 'HUB_WORKSPACE_ROOT=/workspaces/dotfiles HUB_PROVISION_SOURCE=https://github.com/sveinugu/devpod-opencode-dotfiles.git /tmp/provision-workspace.sh ${HUB_PROVISION_RUNTIME_ARGS:-}'
+      kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- env HUB_GITHUB_USER_NAME="${HUB_GITHUB_USER_NAME:-}" HUB_GITHUB_USER_EMAIL="${HUB_GITHUB_USER_EMAIL:-}" HUB_INSTALL_BRANCH="${HUB_INSTALL_BRANCH:-main}" sh -lc 'HUB_WORKSPACE_ROOT=/workspaces/dotfiles HUB_PROVISION_SOURCE=https://github.com/sveinugu/devpod-opencode-dotfiles.git /tmp/provision-workspace.sh ${HUB_PROVISION_RUNTIME_ARGS:-}'
 
   doctor: |-
     create_deployments --all
