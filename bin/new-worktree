@@ -87,13 +87,20 @@ if [ ! -d "$bare_dir" ]; then
 fi
 
 if ! git --git-dir="$bare_dir" show-ref --verify --quiet "refs/heads/$branch"; then
-  if [ "$repo_name" = "hub" ]; then
-    base_branch="main"
+  if git --git-dir="$bare_dir" show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+    git --git-dir="$bare_dir" branch "$branch" "origin/$branch" >/dev/null
   else
-    base_branch="$repo_default_branch"
+    if [ "$repo_name" = "hub" ]; then
+      base_branch="main"
+    else
+      base_branch="$repo_default_branch"
+    fi
+    git --git-dir="$bare_dir" branch "$branch" "$base_branch" >/dev/null
   fi
-  git --git-dir="$bare_dir" branch "$branch" "$base_branch" >/dev/null
 fi
+
+git --git-dir="$bare_dir" config "branch.$branch.remote" "origin"
+git --git-dir="$bare_dir" config "branch.$branch.merge" "refs/heads/$branch"
 
 if git --git-dir="$bare_dir" worktree list --porcelain | grep -F "worktree $target" >/dev/null 2>&1; then
   :

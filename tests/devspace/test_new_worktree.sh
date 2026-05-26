@@ -84,6 +84,11 @@ child_default_branch="${DYN_REPO_DEFAULT_BRANCH:-}"
 HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script" --repo hub feature/top-level >/dev/null
 HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script" --repo child-source feature/child >/dev/null
 
+[ "$(git -C "$workspace_root/work/feature/top-level" config --get "branch.feature/top-level.remote" 2>/dev/null || true)" = "origin" ] || fail "hub worktree branch should set branch.<name>.remote=origin"
+[ "$(git -C "$workspace_root/work/feature/top-level" config --get "branch.feature/top-level.merge" 2>/dev/null || true)" = "refs/heads/feature/top-level" ] || fail "hub worktree branch should set branch.<name>.merge to refs/heads/<name>"
+[ "$(git -C "$workspace_root/repos/child-source/work/feature/child" config --get "branch.feature/child.remote" 2>/dev/null || true)" = "origin" ] || fail "child worktree branch should set branch.<name>.remote=origin"
+[ "$(git -C "$workspace_root/repos/child-source/work/feature/child" config --get "branch.feature/child.merge" 2>/dev/null || true)" = "refs/heads/feature/child" ] || fail "child worktree branch should set branch.<name>.merge to refs/heads/<name>"
+
 set +e
 HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script" --repo hub feature/extra unexpected >"$tmpdir/extra-args.out" 2>&1
 extra_args_rc="$?"

@@ -55,6 +55,8 @@ HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" "$c
 [ -d "$workspace_root/repos/child-repo/.bare" ] || fail "missing repos/<name>/.bare"
 [ -d "$workspace_root/repos/child-repo/main" ] || fail "missing repos/<name>/main"
 [ -d "$workspace_root/repos/child-repo/work" ] || fail "missing repos/<name>/work"
+[ "$(git -C "$workspace_root/repos/child-repo/main" config --get "branch.main.remote" 2>/dev/null || true)" = "origin" ] || fail "child default branch should set branch.<name>.remote=origin"
+[ "$(git -C "$workspace_root/repos/child-repo/main" config --get "branch.main.merge" 2>/dev/null || true)" = "refs/heads/main" ] || fail "child default branch should set branch.<name>.merge to refs/heads/<name>"
 [ -d "$workspace_root/state/repos/child-repo/main" ] || fail "missing state/repos/<name>/main"
 [ -d "$workspace_root/tmp/repos/child-repo/main" ] || fail "missing tmp/repos/<name>/main"
 [ -f "$workspace_root/state/repos/child-repo/etc/repo.env" ] || fail "missing state/repos/<name>/etc/repo.env"
@@ -95,6 +97,8 @@ HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" "$s
 [ -d "$workspace_root/repos/child-default-branch/.bare" ] || fail "missing bare repo for default-branch source"
 default_branch_name="$(git -C "$workspace_root/repos/child-default-branch/master" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
 [ "$default_branch_name" = "master" ] || fail "default-branch source should attach source default branch"
+[ "$(git -C "$workspace_root/repos/child-default-branch/master" config --get "branch.master.remote" 2>/dev/null || true)" = "origin" ] || fail "detected default branch should set branch.<name>.remote=origin"
+[ "$(git -C "$workspace_root/repos/child-default-branch/master" config --get "branch.master.merge" 2>/dev/null || true)" = "refs/heads/master" ] || fail "detected default branch should set branch.<name>.merge to refs/heads/<name>"
 [ -d "$workspace_root/state/repos/child-default-branch/master" ] || fail "default-branch source should use canonical state path for detected branch"
 [ -d "$workspace_root/tmp/repos/child-default-branch/master" ] || fail "default-branch source should use canonical tmp path for detected branch"
 [ -f "$workspace_root/state/repos/child-default-branch/etc/repo.env" ] || fail "default-branch source should persist repo metadata"
@@ -116,6 +120,8 @@ git init "$quoted_source" >/dev/null 2>&1
 
 HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" "$quoted_source" >"$tmpdir/quoted-child.out" 2>&1 || fail "onboarding should succeed for quoted-style repo names"
 [ -f "$workspace_root/state/repos/$quoted_name/etc/repo.env" ] || fail "quoted repo should persist repo.env"
+[ "$(git -C "$workspace_root/repos/$quoted_name/main" config --get "branch.main.remote" 2>/dev/null || true)" = "origin" ] || fail "quoted-style child default branch should set branch.<name>.remote=origin"
+[ "$(git -C "$workspace_root/repos/$quoted_name/main" config --get "branch.main.merge" 2>/dev/null || true)" = "refs/heads/main" ] || fail "quoted-style child default branch should set branch.<name>.merge to refs/heads/<name>"
 
 quoted_repo_env_out="$(set +u; source "$workspace_root/state/repos/$quoted_name/etc/repo.env"; printf '%s\n%s\n' "$DYN_REPO_DEFAULT_BRANCH" "$DYN_REPO_DEFAULT_DIR")"
 [ "$(printf '%s' "$quoted_repo_env_out" | sed -n '1p')" = "main" ] || fail "quoted repo.env should remain source-able for branch"
