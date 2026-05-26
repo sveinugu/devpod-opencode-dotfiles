@@ -176,7 +176,7 @@ Those assumptions were superseded by the approved DevSpace design and must not r
 #### Child repo onboarding, navigation commands, and worktree environment support
 - Create: `bin/clone-repo`
 - Create: `bin/new-worktree`
-- Create: `bin/dhub`
+- Note: `dhub` is implemented as a shell function in `.config/shell/workspace-navigation.zsh`, backed by `scripts/lib/resolve-install-target.sh` (no standalone `bin/dhub` executable)
 - Create: `bin/dre`
 - Create: `bin/dwt`
 - Create: `scripts/lib/validate_hub_repo_root`

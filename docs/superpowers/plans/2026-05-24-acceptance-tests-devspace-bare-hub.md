@@ -74,7 +74,7 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 - [ ] `install.sh` hard-fails if caller-supplied `HUB_INSTALL_BRANCH` or `HUB_INSTALL_BRANCH_DIR` do not match the checkout it is actually running from.
 - [ ] Each editable top-level checkout gets a generated `.envrc` plus `.envrc.local`, and generated `.envrc` sources `/workspaces/dotfiles/state/hub/etc/install.env` when present.
 - [ ] Per-checkout cwd-sensitive environment uses `DYN_REPO_*` and `DYN_WORKTREE_*` names without changing `HOME`.
-- [ ] `dhub` changes to the active install checkout from `$HUB_INSTALL_BRANCH_DIR` and prints the destination directory before changing into it.
+- [ ] `dhub` (shell-level helper) changes to the active install checkout from `$HUB_INSTALL_BRANCH_DIR` and prints the destination directory before changing into it.
 - [ ] `dre <repo>` changes to `/workspaces/dotfiles/repos/<repo>` and refuses the top-level hub as a target.
 - [ ] `dwt <name>` changes to `work/<name>` within the current managed repo context and refuses to run outside a managed repo context.
 - [ ] Zsh tab completion exists for `dhub`, `dre`, and `dwt`.
