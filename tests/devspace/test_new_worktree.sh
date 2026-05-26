@@ -74,6 +74,13 @@ git init "$child_source" >/dev/null 2>&1
 
 HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$clone_repo_script" "$child_source" >/dev/null
 
+child_repo_env="$workspace_root/state/repos/child-source/etc/repo.env"
+[ -f "$child_repo_env" ] || fail "missing child repo metadata env file"
+# shellcheck disable=SC1090
+. "$child_repo_env"
+child_default_branch="${DYN_REPO_DEFAULT_BRANCH:-}"
+[ -n "$child_default_branch" ] || fail "missing DYN_REPO_DEFAULT_BRANCH in child metadata"
+
 HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script" --repo hub feature/top-level >/dev/null
 HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script" --repo child-source feature/child >/dev/null
 
@@ -92,6 +99,14 @@ set -e
 
 [ "$missing_root_rc" = "1" ] || fail "new-worktree should fail with clear message when workspace root is missing"
 grep -F 'refused: checkout path does not exist' "$tmpdir/missing-root.out" >/dev/null || fail "new-worktree should report missing checkout path refusal"
+
+set +e
+HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script" --repo missing-repo feature/missing-repo >"$tmpdir/missing-repo.out" 2>&1
+missing_repo_rc="$?"
+set -e
+
+[ "$missing_repo_rc" = "1" ] || fail "new-worktree should fail when child repo metadata is missing"
+grep -F 'refused: managed child default branch metadata is missing or invalid' "$tmpdir/missing-repo.out" >/dev/null || fail "new-worktree should report missing child metadata refusal"
 
 validator_path="$repo_root/scripts/lib/validate_hub_repo_root.sh"
 validator_backup="$tmpdir/validate_hub_repo_root.sh.bak"
@@ -130,7 +145,7 @@ restore_validator
 for checkout in \
   "$workspace_root/main" \
   "$workspace_root/work/feature/top-level" \
-  "$workspace_root/repos/child-source/main" \
+  "$workspace_root/repos/child-source/$child_default_branch" \
   "$workspace_root/repos/child-source/work/feature/child"
 do
   [ -f "$checkout/.envrc" ] || fail "missing managed .envrc in $checkout"
@@ -141,7 +156,8 @@ do
   grep -F 'export HUB_STATE_DIR=' "$checkout/.envrc" >/dev/null || fail "missing HUB_STATE_DIR export in $checkout/.envrc"
   grep -F 'export HUB_TMP_DIR=' "$checkout/.envrc" >/dev/null || fail "missing HUB_TMP_DIR export in $checkout/.envrc"
   grep -F 'export DYN_REPO_DIR=' "$checkout/.envrc" >/dev/null || fail "missing DYN_REPO_DIR export in $checkout/.envrc"
-  grep -F 'export DYN_REPO_MAIN_DIR=' "$checkout/.envrc" >/dev/null || fail "missing DYN_REPO_MAIN_DIR export in $checkout/.envrc"
+  grep -F 'export DYN_REPO_DEFAULT_BRANCH=' "$checkout/.envrc" >/dev/null || fail "missing DYN_REPO_DEFAULT_BRANCH export in $checkout/.envrc"
+  grep -F 'export DYN_REPO_DEFAULT_DIR=' "$checkout/.envrc" >/dev/null || fail "missing DYN_REPO_DEFAULT_DIR export in $checkout/.envrc"
   grep -F 'export DYN_REPO_STATE_DIR=' "$checkout/.envrc" >/dev/null || fail "missing DYN_REPO_STATE_DIR export in $checkout/.envrc"
   grep -F 'export DYN_REPO_TMP_DIR=' "$checkout/.envrc" >/dev/null || fail "missing DYN_REPO_TMP_DIR export in $checkout/.envrc"
   grep -F 'export DYN_WORKTREE_DIR=' "$checkout/.envrc" >/dev/null || fail "missing DYN_WORKTREE_DIR export in $checkout/.envrc"
@@ -151,6 +167,10 @@ do
   grep -F '/workspaces/dotfiles/state/hub/etc/install.env' "$checkout/.envrc" >/dev/null || fail "missing install.env source in $checkout/.envrc"
   grep -F '.envrc.local' "$checkout/.envrc" >/dev/null || fail "missing .envrc.local source in $checkout/.envrc"
 done
+
+if grep -F 'export DYN_REPO_MAIN_DIR=' "$workspace_root/repos/child-source/$child_default_branch/.envrc" >/dev/null; then
+  fail "managed child envrc should not export retired DYN_REPO_MAIN_DIR"
+fi
 
 mkdir -p "$workspace_root/work/has-manual-envrc"
 cat > "$workspace_root/work/has-manual-envrc/.envrc" <<'EOF'

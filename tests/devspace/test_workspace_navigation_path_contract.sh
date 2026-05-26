@@ -77,4 +77,21 @@ path_without_env="$(
 
 [ "$path_without_env" = "$base_path" ] || fail "expected PATH unchanged when HUB_INSTALL_BRANCH_DIR is unset"
 
+mock_bin="$tmpdir/mock-bin"
+mkdir -p "$mock_bin"
+mock_target="$tmpdir/mock-dhub-target"
+mkdir -p "$mock_target"
+cat > "$mock_bin/dhub" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$mock_target"
+EOF
+chmod +x "$mock_bin/dhub"
+
+dhub_output="$(PATH="$mock_bin:$base_path" WORKSPACE_NAV_SCRIPT="$nav_script" zsh -fc '. "$WORKSPACE_NAV_SCRIPT"; dhub')"
+grep -F 'cd -> ' <<<"$dhub_output" >/dev/null || fail "dhub should print destination before changing directory"
+
+dd_output="$(PATH="$mock_bin:$base_path" WORKSPACE_NAV_SCRIPT="$nav_script" zsh -fc '. "$WORKSPACE_NAV_SCRIPT"; dd')"
+[ "$dd_output" = "$dhub_output" ] || fail "dd should behave as temporary alias to dhub"
+
 printf 'PASS test_workspace_navigation_path_contract\n'

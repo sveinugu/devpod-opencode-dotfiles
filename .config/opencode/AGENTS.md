@@ -94,7 +94,7 @@ Why this works
 
 - `/workspaces/dotfiles` is a manager hub, not a normal checkout.
 - Agents MUST treat `/workspaces/dotfiles/main` or another explicit worktree path as the editable repository root.
-- Child repos under `repos/` follow the same pattern; `repos/omnipy/main` and `repos/omnipy/work/feature-example` are the reference examples.
+- Child repos under `repos/` follow the same pattern; use each repo's detected default-branch checkout at `repos/<repo>/<default-branch>` and worktrees under `repos/<repo>/work/<branch>`.
 - Refused — hub-root CWD detected. Provide explicit worktree path.
 - Agents should prefer `bin/clone-repo` and `bin/new-worktree` over manual `git clone` / `git worktree add`, and read `state/hub/etc/install.env` when install-branch context is relevant.
 

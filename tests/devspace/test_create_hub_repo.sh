@@ -57,6 +57,9 @@ HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" "$c
 [ -d "$workspace_root/repos/child-repo/work" ] || fail "missing repos/<name>/work"
 [ -d "$workspace_root/state/repos/child-repo/main" ] || fail "missing state/repos/<name>/main"
 [ -d "$workspace_root/tmp/repos/child-repo/main" ] || fail "missing tmp/repos/<name>/main"
+[ -f "$workspace_root/state/repos/child-repo/etc/repo.env" ] || fail "missing state/repos/<name>/etc/repo.env"
+grep -F 'export DYN_REPO_DEFAULT_BRANCH=main' "$workspace_root/state/repos/child-repo/etc/repo.env" >/dev/null || fail "repo.env should record detected default branch"
+grep -F "export DYN_REPO_DEFAULT_DIR=$workspace_root/repos/child-repo/main" "$workspace_root/state/repos/child-repo/etc/repo.env" >/dev/null || fail "repo.env should record detected default directory"
 
 [ "$(readlink "$home_dir/.zshrc")" = "$workspace_root/main/.zshrc" ] || fail "child onboarding must not repoint /home authority"
 
@@ -86,8 +89,13 @@ git init "$source_default_branch" >/dev/null 2>&1
 
 HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" "$source_default_branch" >"$tmpdir/default-branch.out" 2>&1 || fail "onboarding should use source default branch when origin/main is absent"
 [ -d "$workspace_root/repos/child-default-branch/.bare" ] || fail "missing bare repo for default-branch source"
-default_branch_name="$(git -C "$workspace_root/repos/child-default-branch/main" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+default_branch_name="$(git -C "$workspace_root/repos/child-default-branch/master" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
 [ "$default_branch_name" = "master" ] || fail "default-branch source should attach source default branch"
+[ -d "$workspace_root/state/repos/child-default-branch/master" ] || fail "default-branch source should use canonical state path for detected branch"
+[ -d "$workspace_root/tmp/repos/child-default-branch/master" ] || fail "default-branch source should use canonical tmp path for detected branch"
+[ -f "$workspace_root/state/repos/child-default-branch/etc/repo.env" ] || fail "default-branch source should persist repo metadata"
+grep -F 'export DYN_REPO_DEFAULT_BRANCH=master' "$workspace_root/state/repos/child-default-branch/etc/repo.env" >/dev/null || fail "repo.env should record detected non-main default branch"
+grep -F "export DYN_REPO_DEFAULT_DIR=$workspace_root/repos/child-default-branch/master" "$workspace_root/state/repos/child-default-branch/etc/repo.env" >/dev/null || fail "repo.env should record detected non-main default directory"
 
 set +e
 HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" git@github.com:owner/private.git >"$tmpdir/public-only.out" 2>&1

@@ -59,7 +59,20 @@ if [ "$repo_name" = "hub" ]; then
   repo_for_env='hub'
 else
   repo_root="$workspace_root/repos/$repo_name"
-  "$script_dir/../scripts/lib/validate_hub_repo_root.sh" "$repo_root/main" >/dev/null
+  repo_env="$workspace_root/state/repos/$repo_name/etc/repo.env"
+  if [ ! -f "$repo_env" ]; then
+    printf 'refused: managed child default branch metadata is missing or invalid\n' >&2
+    exit 1
+  fi
+  # shellcheck disable=SC1090
+  . "$repo_env"
+  repo_default_branch="${DYN_REPO_DEFAULT_BRANCH:-}"
+  repo_default_dir="${DYN_REPO_DEFAULT_DIR:-}"
+  if [ -z "$repo_default_branch" ] || [ -z "$repo_default_dir" ] || [ ! -d "$repo_default_dir" ]; then
+    printf 'refused: managed child default branch metadata is missing or invalid\n' >&2
+    exit 1
+  fi
+  "$script_dir/../scripts/lib/validate_hub_repo_root.sh" "$repo_default_dir" >/dev/null
   bare_dir="$repo_root/.bare"
   target="$repo_root/work/$branch"
   state_dir="$workspace_root/state/repos/$repo_name/work/$branch"
@@ -74,7 +87,12 @@ if [ ! -d "$bare_dir" ]; then
 fi
 
 if ! git --git-dir="$bare_dir" show-ref --verify --quiet "refs/heads/$branch"; then
-  git --git-dir="$bare_dir" branch "$branch" main >/dev/null
+  if [ "$repo_name" = "hub" ]; then
+    base_branch="main"
+  else
+    base_branch="$repo_default_branch"
+  fi
+  git --git-dir="$bare_dir" branch "$branch" "$base_branch" >/dev/null
 fi
 
 if git --git-dir="$bare_dir" worktree list --porcelain | grep -F "worktree $target" >/dev/null 2>&1; then
@@ -96,8 +114,8 @@ if [ ! -e "$target/.envrc" ]; then
 fi
 
 if [ "$repo_name" != "hub" ]; then
-  if [ ! -e "$repo_root/main/.envrc" ]; then
-    "$script_dir/../scripts/lib/worktree-env.sh" "$repo_root/main" "$hub_kind" "$repo_for_env" >/dev/null
+  if [ ! -e "$repo_default_dir/.envrc" ]; then
+    "$script_dir/../scripts/lib/worktree-env.sh" "$repo_default_dir" "$hub_kind" "$repo_for_env" >/dev/null
   fi
 fi
 

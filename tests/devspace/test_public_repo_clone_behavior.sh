@@ -233,8 +233,12 @@ HUB_HOME_DIR="$home_dir" \
 bash "$clone_script" "$public_url_default" >"$tmpdir/public-clone-default.out" 2>&1 || fail "public HTTPS onboarding should succeed when default branch is not main"
 
 [ -d "$workspace_root/repos/default/.bare" ] || fail "missing bare repo for non-main default branch clone"
-default_branch_name="$(git -C "$workspace_root/repos/default/main" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+default_branch_name="$(git -C "$workspace_root/repos/default/master" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
 [ "$default_branch_name" = "master" ] || fail "public HTTPS onboarding should attach source default branch when main is absent"
+[ -d "$workspace_root/state/repos/default/master" ] || fail "public onboarding should use detected-branch state path"
+[ -d "$workspace_root/tmp/repos/default/master" ] || fail "public onboarding should use detected-branch tmp path"
+[ -f "$workspace_root/state/repos/default/etc/repo.env" ] || fail "public onboarding should persist repo metadata"
+grep -F 'export DYN_REPO_DEFAULT_BRANCH=master' "$workspace_root/state/repos/default/etc/repo.env" >/dev/null || fail "public onboarding should persist detected default branch"
 
 start_private_clone="$(date +%s)"
 set +e
