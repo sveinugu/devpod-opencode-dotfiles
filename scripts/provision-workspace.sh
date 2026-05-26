@@ -12,7 +12,6 @@ source_repo="${HUB_PROVISION_SOURCE:-https://github.com/sveinugu/devpod-opencode
 install_branch="${HUB_INSTALL_BRANCH:-main}"
 home_dir="${HOME:?HOME must be set}"
 refresh_tools=false
-no_prompts=false
 tool_state_dir="$home_dir/.local/state/workspace-tools"
 
 while [ "$#" -gt 0 ]; do
@@ -20,11 +19,8 @@ while [ "$#" -gt 0 ]; do
     --refresh-tools)
       refresh_tools=true
       ;;
-    --no-prompts)
-      no_prompts=true
-      ;;
     *)
-      printf 'usage: provision-workspace.sh [--refresh-tools] [--no-prompts]\n' >&2
+      printf 'usage: provision-workspace.sh [--refresh-tools]\n' >&2
       exit 2
       ;;
   esac
