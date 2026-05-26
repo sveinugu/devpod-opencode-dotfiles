@@ -8,12 +8,14 @@
 devspace run-pipeline provision
 devspace dev
 ssh -o BatchMode=yes workspace.dotfiles.devspace 'pwd'
+devspace run-pipeline verify-ssh
 ```
 
 To force tool refresh during provision (pyenv + opencode):
 
 ```bash
 devspace run-pipeline provision --refresh-tools
+HUB_PROVISION_ARGS='--refresh-tools' devspace run-pipeline provision
 ```
 
 To provision using a non-`main` install checkout via environment override:

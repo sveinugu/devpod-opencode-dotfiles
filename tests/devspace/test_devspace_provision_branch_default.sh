@@ -61,9 +61,8 @@ HUB_PROVISION_SOURCE="$source_repo" \
 [ "$(git -C "$workspace_root/main" rev-parse --abbrev-ref HEAD)" = "main" ] || fail "main worktree must remain on main under HUB_INSTALL_BRANCH override"
 
 grep -F "HUB_INSTALL_BRANCH=feature/env-override devspace run-pipeline provision" "$runbook" >/dev/null || fail "runbook must document HUB_INSTALL_BRANCH env override usage"
-if grep -F "devspace run-pipeline verify-ssh" "$runbook" >/dev/null; then
-  fail "runbook must keep public surface to provision/dev/ssh and not document verify-ssh helper"
-fi
+grep -F "devspace run-pipeline verify-ssh" "$runbook" >/dev/null || fail "runbook must document verify-ssh helper guidance"
 grep -F "devspace run-pipeline provision --refresh-tools" "$runbook" >/dev/null || fail "runbook must document public refresh-tools flag usage"
+grep -F "HUB_PROVISION_ARGS='--refresh-tools' devspace run-pipeline provision" "$runbook" >/dev/null || fail "runbook must document HUB_PROVISION_ARGS passthrough guidance"
 
 printf 'PASS test_devspace_provision_branch_default\n'
