@@ -3,6 +3,7 @@ set -euo pipefail
 
 workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
 pwd_dir="${PWD:-$(pwd -P)}"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 
 usage() {
   printf 'usage: dwt <name>\n' >&2
@@ -39,18 +40,9 @@ fi
 
 name="$1"
 
+resolver="${WORKSPACE_NAV_REPO_ROOT_RESOLVER:-$script_dir/../scripts/lib/resolve-managed-repo-root.sh}"
 repo_root=''
-if [ "$pwd_dir" = "$workspace_root/main" ] || [[ "$pwd_dir" == "$workspace_root/main/"* ]] || [[ "$pwd_dir" == "$workspace_root/work/"* ]]; then
-  repo_root="$workspace_root"
-elif [[ "$pwd_dir" == "$workspace_root/repos/"* ]]; then
-  remainder="${pwd_dir#"$workspace_root/repos/"}"
-  repo_name="${remainder%%/*}"
-  if [ -n "$repo_name" ] && [ "$repo_name" != "$remainder" ]; then
-    repo_root="$workspace_root/repos/$repo_name"
-  fi
-fi
-
-if [ -z "$repo_root" ]; then
+if ! repo_root="$(HUB_WORKSPACE_ROOT="$workspace_root" bash "$resolver" "$pwd_dir" 2>/dev/null)"; then
   printf 'refused: dwt requires a managed repo checkout context\n' >&2
   exit 1
 fi

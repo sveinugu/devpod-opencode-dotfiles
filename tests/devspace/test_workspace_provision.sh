@@ -11,6 +11,10 @@ script="$repo_root/scripts/provision-workspace.sh"
 
 [ -f "$script" ] || fail "scripts/provision-workspace.sh not found"
 
+if grep -F -- '--no-prompts' "$script" >/dev/null; then
+  fail "provision-workspace.sh should not expose unused --no-prompts option"
+fi
+
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
 
@@ -132,7 +136,7 @@ HUB_PROVISION_SOURCE="$source_identity_gh" \
 HUB_PYENV_INSTALL_COMMAND=":" \
 HUB_OPENCODE_INSTALL_COMMAND=":" \
 HOME="$home_identity_gh" \
-bash "$script" --no-prompts >"$tmpdir/identity-gh.out"
+bash "$script" >"$tmpdir/identity-gh.out"
 
 identity_gh_name="$(git --git-dir="$workspace_identity_gh/.bare" config --local --get user.name || true)"
 identity_gh_email="$(git --git-dir="$workspace_identity_gh/.bare" config --local --get user.email || true)"

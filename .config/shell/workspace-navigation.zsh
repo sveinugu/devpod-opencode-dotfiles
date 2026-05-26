@@ -29,11 +29,31 @@ workspace_navigation_add_branch_bin_to_path() {
   export PATH="$branch_bin:$PATH"
 }
 
-workspace_navigation_add_branch_bin_to_path
+workspace_navigation_load_install_env() {
+  [ -n "${HUB_INSTALL_BRANCH_DIR:-}" ] && return 0
+
+  local install_env="${WORKSPACE_NAV_INSTALL_ENV_FILE:-/workspaces/dotfiles/state/hub/etc/install.env}"
+  if [ -f "$install_env" ]; then
+    # shellcheck disable=SC1090
+    . "$install_env"
+  fi
+}
+
+workspace_navigation_on_chpwd() {
+  workspace_navigation_load_install_env
+  workspace_navigation_add_branch_bin_to_path
+}
+
+workspace_navigation_on_chpwd
+
+if whence -w add-zsh-hook >/dev/null 2>&1; then
+  add-zsh-hook chpwd workspace_navigation_on_chpwd
+fi
 
 dhub() {
   local target
-  local libexec_dir="${WORKSPACE_NAV_LIBEXEC_DIR:-/workspaces/dotfiles/scripts/lib}"
+  local hub_dir="${HUB_INSTALL_BRANCH_DIR:-/workspaces/dotfiles/main}"
+  local libexec_dir="${WORKSPACE_NAV_LIBEXEC_DIR:-$hub_dir/scripts/lib}"
   local resolver="$libexec_dir/resolve-install-target.sh"
   if ! target="$(HUB_INSTALL_ENV_FILE="${HUB_INSTALL_ENV_FILE:-/workspaces/dotfiles/state/hub/etc/install.env}" bash "$resolver")"; then
     return 1
@@ -83,23 +103,12 @@ _workspace_nav_complete_repos() {
 
 _workspace_nav_complete_worktrees() {
   local workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
+  local hub_dir="${HUB_INSTALL_BRANCH_DIR:-/workspaces/dotfiles/main}"
+  local resolver="${WORKSPACE_NAV_REPO_ROOT_RESOLVER:-$hub_dir/scripts/lib/resolve-managed-repo-root.sh}"
   local repo_root=''
-
-  case "$PWD" in
-    "$workspace_root/main"|"$workspace_root/main/"*|"$workspace_root/work/"*)
-      repo_root="$workspace_root"
-      ;;
-    "$workspace_root/repos/"*/*)
-      local remainder repo_name
-      remainder="${PWD#"$workspace_root/repos/"}"
-      repo_name="${remainder%%/*}"
-      [ -n "$repo_name" ] || return 0
-      repo_root="$workspace_root/repos/$repo_name"
-      ;;
-    *)
-      return 0
-      ;;
-  esac
+  if ! repo_root="$(HUB_WORKSPACE_ROOT="$workspace_root" bash "$resolver" "$PWD" 2>/dev/null)"; then
+    return 0
+  fi
 
   local -a worktrees
   worktrees=()
@@ -130,11 +139,7 @@ workspace_navigation_auto_cd() {
     return 0
   fi
 
-  local install_env="/workspaces/dotfiles/state/hub/etc/install.env"
-  if [ -f "$install_env" ]; then
-    # shellcheck disable=SC1090
-    . "$install_env"
-  fi
+  workspace_navigation_load_install_env
 
   local target="${HUB_INSTALL_BRANCH_DIR:-/workspaces/dotfiles/main}"
   if [ ! -d "$target" ] || [ "$PWD" = "$target" ]; then
@@ -143,6 +148,7 @@ workspace_navigation_auto_cd() {
 
   export HUB_WORKSPACE_NAV_AUTO_CD_DONE=1
   cd "$target"
+  workspace_navigation_add_branch_bin_to_path
 }
 
 workspace_navigation_auto_cd

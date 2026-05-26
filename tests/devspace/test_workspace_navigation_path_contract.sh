@@ -10,7 +10,8 @@ repo_root="$(git rev-parse --show-toplevel)"
 nav_script="$repo_root/.config/shell/workspace-navigation.zsh"
 
 [ -f "$nav_script" ] || fail "workspace-navigation.zsh not found"
-grep -F 'local libexec_dir="${WORKSPACE_NAV_LIBEXEC_DIR:-/workspaces/dotfiles/scripts/lib}"' "$nav_script" >/dev/null || fail "dhub default resolver path should use hub root scripts/lib"
+grep -F 'local hub_dir="${HUB_INSTALL_BRANCH_DIR:-/workspaces/dotfiles/main}"' "$nav_script" >/dev/null || fail "dhub should derive default helper path from HUB_INSTALL_BRANCH_DIR"
+grep -F 'local libexec_dir="${WORKSPACE_NAV_LIBEXEC_DIR:-$hub_dir/scripts/lib}"' "$nav_script" >/dev/null || fail "dhub default resolver path should follow resolved hub dir"
 
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
@@ -94,6 +95,38 @@ grep -F 'cd -> ' <<<"$dhub_output" >/dev/null || fail "dhub should print destina
 
 dd_function="$(PATH="$mock_bin:$base_path" WORKSPACE_NAV_SCRIPT="$nav_script" WORKSPACE_NAV_LIBEXEC_DIR="$mock_bin" zsh -fc '. "$WORKSPACE_NAV_SCRIPT"; typeset -f dd || true')"
 [ -z "$dd_function" ] || fail "dd helper function should not be defined"
+
+custom_hub_root="$tmpdir/hub-root"
+mkdir -p "$custom_hub_root/scripts/lib"
+custom_target="$tmpdir/custom-dhub-target"
+mkdir -p "$custom_target"
+cat > "$custom_hub_root/scripts/lib/resolve-install-target.sh" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$custom_target"
+EOF
+chmod +x "$custom_hub_root/scripts/lib/resolve-install-target.sh"
+
+dhub_custom_output="$(PATH="$base_path" HUB_INSTALL_BRANCH_DIR="$custom_hub_root" WORKSPACE_NAV_SCRIPT="$nav_script" zsh -fc '. "$WORKSPACE_NAV_SCRIPT"; dhub')"
+grep -F 'cd -> ' <<<"$dhub_custom_output" >/dev/null || fail "dhub should resolve helper path from HUB_INSTALL_BRANCH_DIR by default"
+
+install_env_with_branch="$tmpdir/install-with-branch.env"
+cat > "$install_env_with_branch" <<EOF
+export HUB_INSTALL_BRANCH=work/retrofit-devspace-bare-hub
+export HUB_INSTALL_BRANCH_DIR=$branch_dir
+EOF
+
+path_from_install_env="$(
+  PATH="$base_path" \
+  WORKSPACE_NAV_INSTALL_ENV_FILE="$install_env_with_branch" \
+  WORKSPACE_NAV_SCRIPT="$nav_script" \
+  zsh -fc '. "$WORKSPACE_NAV_SCRIPT"; printf "%s\n" "$PATH"'
+)"
+
+case ":$path_from_install_env:" in
+  *":$branch_bin:"*) ;;
+  *) fail "expected branch bin to be added from install.env during shell init" ;;
+esac
 
 install_env="$tmpdir/install.env"
 feature_target="$tmpdir/work/retrofit-devspace-bare-hub"
