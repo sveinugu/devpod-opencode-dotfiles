@@ -127,44 +127,7 @@ printf '%s\n' "$workspace_root/repos/alpha"
 EOF
 chmod +x "$tmpdir/mock-resolve-repo-root.sh"
 
-completion_dwt="$({
-  PATH="$mock_bin:$PATH" \
-  WORKSPACE_NAV_SCRIPT="$nav_script" \
-  WORKSPACE_NAV_REPO_ROOT_RESOLVER="$tmpdir/mock-resolve-repo-root.sh" \
-  HUB_WORKSPACE_ROOT="$workspace_root" \
-  zsh -fc '
-    source "$WORKSPACE_NAV_SCRIPT"
-    typeset -ga CAPTURE
-    typeset -gi SAW_Q=0
-    compadd() {
-      local arg
-      for arg in "$@"; do
-        if [ "$arg" = "-Q" ]; then
-          SAW_Q=1
-          continue
-        fi
-        case "$arg" in
-          --|-*)
-            ;;
-          *)
-            CAPTURE+=("$arg")
-            ;;
-        esac
-      done
-    }
-
-    PWD="'$workspace_root/repos/alpha/main'"
-    _workspace_nav_complete_dwt
-    printf "q=%s\n" "$SAW_Q"
-    printf "%s\n" "${CAPTURE[@]}"
-  '
-} 2>/dev/null)"
-
-printf '%s\n' "$completion_dwt" | grep -Fx 'q=1' >/dev/null || fail "dwt completion should use compadd -Q"
-printf '%s\n' "$completion_dwt" | grep -Fx 'spec/limit-peek-elements-design' >/dev/null || fail "dwt completion should include nested worktree names"
-if printf '%s\n' "$completion_dwt" | grep -Fx 'spec' >/dev/null; then
-  fail "dwt completion should not offer partial prefix-only segments"
-fi
+grep -F '_path_files -W "$repo_root/work" -/' "$nav_script" >/dev/null || fail "dwt completion should use _path_files path completion"
 
 completion_repos="$({
   PATH="$mock_bin:$PATH" \
@@ -173,18 +136,50 @@ completion_repos="$({
   zsh -fc '
     source "$WORKSPACE_NAV_SCRIPT"
     typeset -gi SAW_Q=0
+    typeset -gi SAW_U=0
     compadd() {
       local arg
       for arg in "$@"; do
         if [ "$arg" = "-Q" ]; then
           SAW_Q=1
         fi
+        if [ "$arg" = "-U" ]; then
+          SAW_U=1
+        fi
       done
     }
     _workspace_nav_complete_repos
     printf "q=%s\n" "$SAW_Q"
+    printf "u=%s\n" "$SAW_U"
   '
 } 2>/dev/null)"
 printf '%s\n' "$completion_repos" | grep -Fx 'q=1' >/dev/null || fail "repo completion should use compadd -Q"
+printf '%s\n' "$completion_repos" | grep -Fx 'u=1' >/dev/null || fail "repo completion should use compadd -U"
+
+dwt_completion_transcript="$tmpdir/dwt-completion.transcript"
+printf 'export HUB_WORKSPACE_ROOT="%s"\nexport HUB_INSTALL_BRANCH_DIR="%s"\nautoload -Uz compinit\ncompinit\nsource "%s"\ncd "%s/repos/alpha/main"\ndwt spec/lim\t\nexit\n' \
+  "$workspace_root" \
+  "$repo_root" \
+  "$nav_script" \
+  "$workspace_root" \
+  | script -q -c 'zsh -fi' "$dwt_completion_transcript" >/dev/null
+
+grep -F "cd -> $workspace_root/repos/alpha/work/spec/limit-peek-elements-design" "$dwt_completion_transcript" >/dev/null || fail "dwt tab completion should complete nested worktree names in interactive zsh"
+if grep -F 'refused: worktree "spec/lim" not found' "$dwt_completion_transcript" >/dev/null; then
+  fail "dwt interactive completion should not leave unresolved partial worktree"
+fi
+
+dre_completion_transcript="$tmpdir/dre-completion.transcript"
+printf 'export HUB_WORKSPACE_ROOT="%s"\nexport HUB_INSTALL_BRANCH_DIR="%s"\nautoload -Uz compinit\ncompinit\nsource "%s"\ncd "%s/main"\ndre a\t\t\t\nexit\n' \
+  "$workspace_root" \
+  "$repo_root" \
+  "$nav_script" \
+  "$workspace_root" \
+  | script -q -c 'zsh -fi' "$dre_completion_transcript" >/dev/null
+
+grep -F "cd -> $workspace_root/repos/alpha" "$dre_completion_transcript" >/dev/null || fail "dre tab completion should complete unique repo names in interactive zsh"
+if grep -F 'usage: dre <repo>' "$dre_completion_transcript" >/dev/null; then
+  fail "dre interactive completion should not duplicate completed argument"
+fi
 
 printf 'PASS test_workspace_navigation_shell\n'
