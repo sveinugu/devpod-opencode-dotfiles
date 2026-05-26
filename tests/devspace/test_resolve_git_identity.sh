@@ -17,8 +17,8 @@ trap 'rm -rf "$tmpdir"' EXIT
 run_interactive() {
   local input="$1"
   local output_path="$2"
-  shift 2
-  printf '%b' "$input" | script -q -e -c "$*" /dev/null >"$output_path"
+  local command="$3"
+  printf '%b' "$input" | script -q -e -c "$command" /dev/null >"$output_path"
 }
 
 extract_identity_assignments() {
@@ -46,7 +46,7 @@ HOME="$home_global_complete" git config --global user.name 'Global User'
 HOME="$home_global_complete" git config --global user.email 'global@example.com'
 
 run_interactive 'y\n' "$tmpdir/global-complete.out" \
-  env HOME="$home_global_complete" bash "$script_path"
+  "env HOME=\"$home_global_complete\" bash \"$script_path\""
 eval "$(extract_identity_assignments "$tmpdir/global-complete.out")"
 HUB_GITHUB_USER_NAME="$(printf '%s' "${HUB_GITHUB_USER_NAME:-}" | tr -d '\r')"
 HUB_GITHUB_USER_EMAIL="$(printf '%s' "${HUB_GITHUB_USER_EMAIL:-}" | tr -d '\r')"
@@ -58,7 +58,7 @@ mkdir -p "$home_global_missing"
 HOME="$home_global_missing" git config --global user.name 'Global Name Only'
 
 run_interactive 'y\nmissing@example.com\n' "$tmpdir/global-missing.out" \
-  env HOME="$home_global_missing" bash "$script_path"
+  "env HOME=\"$home_global_missing\" bash \"$script_path\""
 eval "$(extract_identity_assignments "$tmpdir/global-missing.out")"
 HUB_GITHUB_USER_NAME="$(printf '%s' "${HUB_GITHUB_USER_NAME:-}" | tr -d '\r')"
 HUB_GITHUB_USER_EMAIL="$(printf '%s' "${HUB_GITHUB_USER_EMAIL:-}" | tr -d '\r')"
@@ -69,7 +69,7 @@ home_manual="$tmpdir/home-manual"
 mkdir -p "$home_manual"
 
 run_interactive 'n\ny\nManual User\nmanual@example.com\n' "$tmpdir/manual.out" \
-  env HOME="$home_manual" bash "$script_path"
+  "env HOME=\"$home_manual\" bash \"$script_path\""
 eval "$(extract_identity_assignments "$tmpdir/manual.out")"
 HUB_GITHUB_USER_NAME="$(printf '%s' "${HUB_GITHUB_USER_NAME:-}" | tr -d '\r')"
 HUB_GITHUB_USER_EMAIL="$(printf '%s' "${HUB_GITHUB_USER_EMAIL:-}" | tr -d '\r')"
@@ -77,15 +77,24 @@ HUB_GITHUB_USER_EMAIL="$(printf '%s' "${HUB_GITHUB_USER_EMAIL:-}" | tr -d '\r')"
 [ "${HUB_GITHUB_USER_EMAIL:-}" = 'manual@example.com' ] || fail "manual fallback should emit entered user.email"
 
 run_interactive 'n\ny\nSubshell User\nsubshell@example.com\n' "$tmpdir/subshell.out" \
-  env HOME="$home_manual" sh -lc "identity_output=\$(bash '$script_path'); printf '%s\n' \"\$identity_output\""
+  "env HOME=\"$home_manual\" sh -lc \"identity_output=\\\$(bash '$script_path'); printf '%s\\n' \\\"\\\$identity_output\\\"\""
 eval "$(extract_identity_assignments "$tmpdir/subshell.out")"
 HUB_GITHUB_USER_NAME="$(printf '%s' "${HUB_GITHUB_USER_NAME:-}" | tr -d '\r')"
 HUB_GITHUB_USER_EMAIL="$(printf '%s' "${HUB_GITHUB_USER_EMAIL:-}" | tr -d '\r')"
 [ "${HUB_GITHUB_USER_NAME:-}" = 'Subshell User' ] || fail "interactive command substitution should still prompt for user.name"
 [ "${HUB_GITHUB_USER_EMAIL:-}" = 'subshell@example.com' ] || fail "interactive command substitution should still prompt for user.email"
 
+run_interactive 'n\ny\nTTY Prompt User\ntty-prompt@example.com\n' "$tmpdir/subshell-stderr.out" \
+  "env HOME=\"$home_manual\" sh -lc \"identity_output=\\\$(bash '$script_path' 2>'$tmpdir/subshell.stderr'); printf '%s\\n' \\\"\\\$identity_output\\\"\""
+eval "$(extract_identity_assignments "$tmpdir/subshell-stderr.out")"
+HUB_GITHUB_USER_NAME="$(printf '%s' "${HUB_GITHUB_USER_NAME:-}" | tr -d '\r')"
+HUB_GITHUB_USER_EMAIL="$(printf '%s' "${HUB_GITHUB_USER_EMAIL:-}" | tr -d '\r')"
+[ "${HUB_GITHUB_USER_NAME:-}" = 'TTY Prompt User' ] || fail "interactive prompt via subshell should still collect user.name when stderr is redirected"
+[ "${HUB_GITHUB_USER_EMAIL:-}" = 'tty-prompt@example.com' ] || fail "interactive prompt via subshell should still collect user.email when stderr is redirected"
+[ ! -s "$tmpdir/subshell.stderr" ] || fail "interactive prompts should be written to tty instead of stderr"
+
 run_interactive 'n\nn\n' "$tmpdir/skip.out" \
-  env HOME="$home_manual" bash "$script_path"
+  "env HOME=\"$home_manual\" bash \"$script_path\""
 if grep -Eq '^HUB_GITHUB_USER_(NAME|EMAIL)=' "$tmpdir/skip.out"; then
   fail "declining global and manual identity should emit no identity assignments"
 fi

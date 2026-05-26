@@ -22,6 +22,7 @@ done
 
 github_user_name="${HUB_GITHUB_USER_NAME:-}"
 github_user_email="${HUB_GITHUB_USER_EMAIL:-}"
+tty_fd=""
 
 emit_identity() {
   if [ -n "$github_user_name" ]; then
@@ -43,13 +44,33 @@ read_global_identity() {
 
 prompt_for_missing_fields() {
   if [ -z "$github_user_name" ]; then
-    printf 'Git username: ' >&2
-    read -r github_user_name
+    prompt 'Git username: '
+    read_prompt github_user_name
   fi
   if [ -z "$github_user_email" ]; then
-    printf 'Git email: ' >&2
-    read -r github_user_email
+    prompt 'Git email: '
+    read_prompt github_user_email
   fi
+}
+
+prompt() {
+  local text="$1"
+  if [ -n "$tty_fd" ]; then
+    printf '%s' "$text" >&"$tty_fd"
+  else
+    printf '%s' "$text" >&2
+  fi
+}
+
+read_prompt() {
+  local __var_name="$1"
+  local __value
+  if [ -n "$tty_fd" ] && { [ ! -t 0 ] || [ ! -t 1 ]; }; then
+    read -r -u "$tty_fd" __value
+  else
+    read -r __value
+  fi
+  printf -v "$__var_name" '%s' "$__value"
 }
 
 if [ "$no_prompts" = true ]; then
@@ -57,21 +78,20 @@ if [ "$no_prompts" = true ]; then
   exit 0
 fi
 
-if [ ! -t 0 ] && [ -r /dev/tty ]; then
-  exec </dev/tty
-fi
-
-if [ ! -t 1 ] && [ -w /dev/tty ]; then
-  exec >/dev/tty
+if [ -r /dev/tty ] && [ -w /dev/tty ]; then
+  exec 3<>/dev/tty
+  tty_fd=3
 fi
 
 if [ ! -t 0 ] || [ ! -t 1 ]; then
-  emit_identity
-  exit 0
+  if [ -z "$tty_fd" ]; then
+    emit_identity
+    exit 0
+  fi
 fi
 
-printf 'Use existing global git username/email? [Y/n]: ' >&2
-read -r use_global
+prompt 'Use existing global git username/email? [Y/n]: '
+read_prompt use_global
 
 case "$use_global" in
   Y|y|'')
@@ -79,8 +99,8 @@ case "$use_global" in
     prompt_for_missing_fields
     ;;
   N|n)
-    printf 'Specify git username/email manually? [y/N]: ' >&2
-    read -r enter_manual
+    prompt 'Specify git username/email manually? [y/N]: '
+    read_prompt enter_manual
     case "$enter_manual" in
       Y|y)
         prompt_for_missing_fields
@@ -96,3 +116,9 @@ case "$use_global" in
 esac
 
 emit_identity
+
+if [ -n "$tty_fd" ]; then
+  exec 3>&-
+fi
+
+exit 0
