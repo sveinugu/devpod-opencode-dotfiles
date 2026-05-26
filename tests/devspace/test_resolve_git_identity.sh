@@ -47,6 +47,7 @@ HOME="$home_global_complete" git config --global user.email 'global@example.com'
 
 run_interactive 'y\n' "$tmpdir/global-complete.out" \
   "env HOME=\"$home_global_complete\" bash \"$script_path\""
+grep -F 'Using global git identity: Global User <global@example.com>' "$tmpdir/global-complete.out" >/dev/null || fail "accepting global config should print resolved global identity"
 eval "$(extract_identity_assignments "$tmpdir/global-complete.out")"
 HUB_GITHUB_USER_NAME="$(printf '%s' "${HUB_GITHUB_USER_NAME:-}" | tr -d '\r')"
 HUB_GITHUB_USER_EMAIL="$(printf '%s' "${HUB_GITHUB_USER_EMAIL:-}" | tr -d '\r')"
@@ -59,6 +60,7 @@ HOME="$home_global_missing" git config --global user.name 'Global Name Only'
 
 run_interactive 'y\nmissing@example.com\n' "$tmpdir/global-missing.out" \
   "env HOME=\"$home_global_missing\" bash \"$script_path\""
+grep -F 'Using global git identity: Global Name Only <missing@example.com>' "$tmpdir/global-missing.out" >/dev/null || fail "global flow should print resolved identity after collecting missing fields"
 eval "$(extract_identity_assignments "$tmpdir/global-missing.out")"
 HUB_GITHUB_USER_NAME="$(printf '%s' "${HUB_GITHUB_USER_NAME:-}" | tr -d '\r')"
 HUB_GITHUB_USER_EMAIL="$(printf '%s' "${HUB_GITHUB_USER_EMAIL:-}" | tr -d '\r')"
