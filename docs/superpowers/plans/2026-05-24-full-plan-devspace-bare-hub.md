@@ -80,7 +80,7 @@ Provide one approved implementation plan for the full DevSpace bare-hub workspac
 12. **User-facing command layout:** use `bin/` for in-pod human commands without `.sh`, `scripts/` for automation entrypoints, `scripts/lib/` for helpers, and `ops/host/` for host-runner sources.
 13. **Installed-branch state contract:** `install.sh` is the authoritative writer of installed-branch state. It must export and persist `HUB_INSTALL_BRANCH` and `HUB_INSTALL_BRANCH_DIR` to `/workspaces/dotfiles/state/hub/etc/install.env`, and it must hard-fail if the declared branch/dir do not match the checkout it is running from.
 14. **Installed-branch worktree policy:** keep `/workspaces/dotfiles/main` attached to `main` only. If `HUB_INSTALL_BRANCH` is set to a non-`main` branch, provision/repair must ensure a matching worktree exists under `/workspaces/dotfiles/work/<branch-name>` and then run that worktree's `install.sh` instead of repointing `main/`.
-15. **Navigation command surface:** `dhub` is the canonical install-root resolver name, paired with `dre` and `dwt`. `dd` is allowed only as a temporary compatibility alias that delegates to `dhub` and may be removed after migration. Keep resolver behavior explicit and keep the "no implicit fallback" rule for all navigation commands.
+15. **Navigation command surface:** `dhub` is the canonical install-root resolver name, paired with `dre` and `dwt`. `dhub` is implemented as a shell function in `.config/shell/workspace-navigation.zsh` backed by `scripts/lib/resolve-install-target.sh`; no compatibility alias is shipped in v1. Keep resolver behavior explicit and keep the "no implicit fallback" rule for all navigation commands.
 16. **Child default-branch fidelity:** child-repo onboarding and related tooling must detect and preserve each child repo's exact remote default branch name instead of normalizing it to `main` or any other fixed branch name.
 17. **Top-level primary-branch policy in v1:** top-level provision/repair/doctor/navigation checks are `main`-only for the controlled top-level repo and must fail clearly when `main` is unavailable; no implicit mapping to hub root is allowed.
 
@@ -154,7 +154,7 @@ Those assumptions were superseded by the approved DevSpace design and must not r
 - Create: `tests/devspace/test_devspace_dev_preflight.sh`
 
 #### Install, policy, and docs carried forward from the older plan
-- Create: `scripts/lib/validate_install_source_tree`
+- Create: `scripts/lib/validate_install_source_tree.sh`
 - Modify: `install.sh`
 - Modify: `.config/opencode/AGENTS.md`
 - Modify: `.config/opencode/agents/maestro.md`
@@ -179,7 +179,7 @@ Those assumptions were superseded by the approved DevSpace design and must not r
 - Note: `dhub` is implemented as a shell function in `.config/shell/workspace-navigation.zsh`, backed by `scripts/lib/resolve-install-target.sh` (no standalone `bin/dhub` executable)
 - Create: `bin/dre`
 - Create: `bin/dwt`
-- Create: `scripts/lib/validate_hub_repo_root`
+- Create: `scripts/lib/validate_hub_repo_root.sh`
 - Create: `scripts/lib/worktree-env.sh`
 - Modify: `scripts/lib/hub-repo-core.sh`
 - Modify: `Dockerfile`
@@ -254,7 +254,6 @@ k8s/devspace-bare-hub/                          # Kubernetes manifests owned by 
   staging-cronjob.yaml
 bin/                                            # in-pod human commands on PATH
   clone-repo
-  dhub
   dre
   dwt
   new-worktree
@@ -268,8 +267,9 @@ scripts/                                        # automation entrypoints called 
   prepare-backup-set.sh
 scripts/lib/                                    # sourced helpers only; no direct operator entrypoints
   hub-repo-core.sh
-  validate_install_source_tree
-  validate_hub_repo_root
+  resolve-install-target.sh
+  validate_install_source_tree.sh
+  validate_hub_repo_root.sh
   worktree-env.sh
 ops/                                            # host-oriented operational entrypoints and assets
   check-workspace.sh
@@ -381,7 +381,7 @@ devspace dev -n "${NAMESPACE:-devspace}"
 Expected outcomes:
 
 - render and client dry-run succeed;
-- `provision` creates the top-level bare hub and runs `<bootstrap-branch>/install.sh` from fixed top-level probing (`main`, then `master`);
+- `provision` creates the top-level bare hub and runs `<bootstrap-branch>/install.sh` from fixed top-level probing (`main` only);
 - `devspace dev` opens the interactive workflow without hiding provisioning.
 
 ### DevSpace-managed SSH details and verification
@@ -547,7 +547,7 @@ restic snapshots
 | Acceptance section | Covered by | Notes |
 | --- | --- | --- |
 | A. Workspace creation and access | Tasks 1, 3 | `devspace.yaml`, manifests, DevSpace-managed SSH, working directory, no Service |
-| B. Provisioning behavior | Tasks 3, 2, 5c | top-level bare clone with fixed probing (`origin/main`, then `origin/master`) and install from selected checkout |
+| B. Provisioning behavior | Tasks 3, 2, 5c | top-level bare clone with `origin/main` bootstrap and install from selected checkout |
 | C. Normal startup vs unprovisioned state | Tasks 1, 3, 4 | explicit refusal path before interactive use |
 | D. Bare-hub layout and canonical paths | Tasks 3, 5, 5a, 5c | top-level + child repo canonical paths + canonical `work/` navigation + top-level primary-branch compatibility checks |
 | E. `/home/vscode`, install behavior, and convenience navigation | Tasks 2, 5a, 5b, 5c | top-level-only authority, local-source install, install-state publication, `dhub` / `dre` / `dwt`, explicit no-fallback primary-branch compatibility |
@@ -740,14 +740,14 @@ git commit -m "feat(devspace): add workspace command surface and manifests"
 
 ### Task 2: Carry forward the reusable install and bare-hub guardrail contracts
 
-**Why second:** The new provision flow must run `<bootstrap-branch>/install.sh` (with fixed top-level probing `main`, then `master`), so the install/policy contract must be correct before Task 3.
+**Why second:** The new provision flow must run `<bootstrap-branch>/install.sh` (with fixed top-level `main` bootstrap), so the install/policy contract must be correct before Task 3.
 
 **Acceptance:** D1-D4, E1-E4.
 
 **Reuse source:** older Tasks 2, 4, and 5.
 
 **Files:**
-- Create: `scripts/lib/validate_install_source_tree`
+- Create: `scripts/lib/validate_install_source_tree.sh`
 - Modify: `install.sh`
 - Modify: `.config/opencode/AGENTS.md`
 - Modify: `.config/opencode/agents/maestro.md`
@@ -773,7 +773,7 @@ The same task must now also lock the installed-branch publication contract used 
 - `install.sh` must export `HUB_INSTALL_BRANCH` and `HUB_INSTALL_BRANCH_DIR` for child commands during the install run;
 - `install.sh` must persist those same values to `/workspaces/dotfiles/state/hub/etc/install.env`;
 - `install.sh` must hard-fail if caller-supplied `HUB_INSTALL_BRANCH` / `HUB_INSTALL_BRANCH_DIR` do not match the actual checkout it is running from;
-- if shell helper `dhub` is not already available, `install.sh` should print a recommendation snippet that users may add to their shell config later; the recommended `dhub()` function should print the resolved install directory before changing into it for user convenience; there is no compatibility `dd()` alias in v1.
+- if shell helper `dhub` is not already available, `install.sh` should print a recommendation snippet that users may add to their shell config later; the recommended `dhub()` function should print the resolved install directory before changing into it for user convenience; there is no compatibility alias in v1.
 
 This same task must also update user-facing and agent-facing guidance:
 
@@ -805,7 +805,7 @@ Implementation contract:
 - Keep the top-level dotfiles repo as the only `/home/vscode` authority.
 - Update the usage runbook so DevSpace users are directed to `/workspaces/dotfiles/main`, not the hub root.
 - Add the installed-branch publication file at `state/hub/etc/install.env` and keep it owned by `install.sh`.
-- Keep the install-time recommendation message aligned with the approved `dhub` helper name; there is no compatibility `dd()` alias in v1.
+- Keep the install-time recommendation message aligned with the approved `dhub` helper name; there is no compatibility alias in v1.
 - Add an explicit short "what changed for implementers" note to the touched runbook/agent-policy docs whenever the command names or install-branch behavior differ from the already-landed implementation in this worktree.
 
 - [ ] **Step 4: Run GREEN**
@@ -849,13 +849,13 @@ git commit -m "feat(workspace): carry forward install and bare-hub guardrails"
 
 `tests/devspace/test_workspace_provision.sh` must cover at least these contracts:
 
-- first-time provision from an empty workspace root creates `.bare`, `.git`, top-level bootstrap checkout (`main/` or `master/`), `work`, `repos`, `state`, and `tmp`;
-- top-level bootstrap checkout is attached from the bare repo using fixed probe priority `origin/main` then `origin/master`;
+- first-time provision from an empty workspace root creates `.bare`, `.git`, top-level bootstrap checkout (`main/`), `work`, `repos`, `state`, and `tmp`;
+- top-level bootstrap checkout is attached from the bare repo using `origin/main`;
 - canonical top-level paths exist for the selected bootstrap checkout: `state/hub/<bootstrap-branch>/` and `tmp/hub/<bootstrap-branch>/`;
 - `<bootstrap-branch>/install.sh` is invoked;
 - if `HUB_INSTALL_BRANCH` is unset, provision installs from the selected top-level bootstrap checkout and publishes matching values to `state/hub/etc/install.env`;
 - if `HUB_INSTALL_BRANCH` is set to a non-bootstrap branch, provision keeps the selected bootstrap checkout attached to its branch, ensures `/workspaces/dotfiles/work/<branch-name>` exists, runs that worktree's `install.sh`, and publishes matching installed-branch state;
-- provision refuses if neither `origin/main` nor `origin/master` exists;
+- provision refuses if `origin/main` does not exist;
 - provision refuses if an existing top-level bootstrap checkout path is present in a broken or detached state;
 - provision refuses if the requested install branch cannot be materialized as a matching worktree.
 
@@ -882,7 +882,7 @@ Implementation contract:
 - `scripts/lib/hub-repo-core.sh` owns only the duplicated bare-hub creation steps.
 - `scripts/provision-workspace.sh` remains the public top-level provision entrypoint.
 - The top-level provision source is the public dotfiles repo, cloned bare in-pod.
-- V1 supports only fixed top-level bootstrap probing (`origin/main`, then `origin/master`); do not add configurable probe lists.
+- V1 supports only fixed top-level bootstrap probing (`origin/main`); do not add configurable probe lists.
 - The script must create `state/hub/<bootstrap-branch>/` and `tmp/hub/<bootstrap-branch>/` immediately after attaching the selected top-level bootstrap checkout.
 - `HUB_INSTALL_BRANCH` replaces the earlier `HUB_PROVISION_BRANCH` behavior and means "which checkout should supply install.sh", not "what branch should the bootstrap checkout attach to".
 - if `HUB_INSTALL_BRANCH` is non-bootstrap, provision must ensure `/workspaces/dotfiles/work/<branch-name>` exists and run `install.sh` from there while leaving the bootstrap checkout attached to its selected branch.
@@ -894,7 +894,7 @@ Implementation contract:
 `devspace run-pipeline provision` must:
 
 1. ensure the Deployment/PVC/pod exist and are running;
-2. execute `scripts/workspace-provision.sh` inside the pod;
+2. execute `scripts/provision-workspace.sh` inside the pod;
 3. leave `devspace dev` as a separate, non-auto-bootstrap interactive entrypoint.
 
 - [ ] **Step 5: Run GREEN**
@@ -927,7 +927,7 @@ Expected: the SSH contract test passes, the DevSpace-managed key and alias exist
 - [ ] **Step 6: Commit**
 
 ```bash
-git add scripts/lib/hub-repo-core.sh scripts/workspace-provision.sh scripts/devspace-dev-preflight.sh devspace.yaml tests/devspace/test_workspace_provision.sh tests/devspace/test_devspace_dev_preflight.sh
+git add scripts/lib/hub-repo-core.sh scripts/provision-workspace.sh scripts/preflight-devspace-dev.sh devspace.yaml tests/devspace/test_workspace_provision.sh tests/devspace/test_devspace_dev_preflight.sh
 git commit -m "feat(workspace): provision top-level devspace bare hub"
 ```
 
@@ -1049,12 +1049,12 @@ git commit -m "feat(workspace): add doctor repair and destroy flows"
 
 **Reuse source:** older `create-hub-repo.sh` design notes, shared-helper boundary, and the approved direnv notes from `2026-05-21-bare-hub-manager.md` lines 736-746.
 
-**Transitional note:** This task's child-repo `main` assumptions reflect the already-landed scaffold in the current worktree. Final v1 behavior is defined by Tasks 5a, 5b, and 5c below: preserve each child repo's exact remote default branch, replace `dd()` with `dhub`, add `dre` / `dwt`, keep the no-implicit-fallback rule, and add fixed top-level `main`/`master` compatibility probing. If starting from a fresh branch after this plan update, keep Task 5 and Task 5a on the same implementation branch so the `main`-only child scaffold never ships as an intermediate merge.
+**Transitional note:** This task's child-repo `main` assumptions reflect the already-landed scaffold in the current worktree. Final v1 behavior is defined by Tasks 5a, 5b, and 5c below: preserve each child repo's exact remote default branch, keep `dhub`/`dre`/`dwt` with no-implicit-fallback behavior, and enforce top-level `main`-only bootstrap policy. If starting from a fresh branch after this plan update, keep Task 5 and Task 5a on the same implementation branch so the `main`-only child scaffold never ships as an intermediate merge.
 
 **Files:**
 - Create: `bin/clone-repo`
 - Create: `bin/new-worktree`
-- Create: `scripts/lib/validate_hub_repo_root`
+- Create: `scripts/lib/validate_hub_repo_root.sh`
 - Create: `scripts/lib/worktree-env.sh`
 - Modify: `Dockerfile`
 - Test: `tests/devspace/test_create_hub_repo.sh`
@@ -1086,7 +1086,7 @@ git commit -m "feat(workspace): add doctor repair and destroy flows"
 - `.envrc.local` failures surface normally through direnv instead of being swallowed;
 - `direnv` is present in the interactive image, with shell hooks available for bash and zsh.
 
-**Retrofit note for existing Tasks 1-5:** implementers must update any already-landed phase-1 code, tests, docs, and DevSpace wiring that still mention pre-rename paths or the earlier `CUR_*` variable names. In practice this means: Task 1 user-facing docs/command-surface references should match the renamed command layout where surfaced; Task 2 must use `scripts/lib/validate_install_source_tree`; Task 3 must rename the provision/preflight entrypoints to `scripts/provision-workspace.sh` and `scripts/preflight-devspace-dev.sh`; Task 4 must use `ops/check-workspace.sh`, `bin/repair-workspace`, and `ops/destroy-workspace.sh`; and Task 5 must use the final `DYN_*` env var names consistently in generated `.envrc`, tests, docs, and any helper code.
+**Retrofit note for existing Tasks 1-5:** implementers must update any already-landed phase-1 code, tests, docs, and DevSpace wiring that still mention pre-rename paths or the earlier `CUR_*` variable names. In practice this means: Task 1 user-facing docs/command-surface references should match the renamed command layout where surfaced; Task 2 must use `scripts/lib/validate_install_source_tree.sh`; Task 3 must rename the provision/preflight entrypoints to `scripts/provision-workspace.sh` and `scripts/preflight-devspace-dev.sh`; Task 4 must use `ops/check-workspace.sh`, `bin/repair-workspace`, and `ops/destroy-workspace.sh`; and Task 5 must use the final `DYN_*` env var names consistently in generated `.envrc`, tests, docs, and any helper code.
 
 The same retrofit applies to the install-branch override feature: replace `HUB_PROVISION_BRANCH` with `HUB_INSTALL_BRANCH`, stop repointing `main/` to non-`main` branches, ensure non-`main` install sources live under `/workspaces/dotfiles/work/<branch-name>`, and have `install.sh` publish verified installed-branch state to `state/hub/etc/install.env`.
 
@@ -1125,7 +1125,7 @@ The usage runbook updated in this task must explicitly document:
 - `bin/clone-repo` and `bin/new-worktree` as the preferred human and agent entrypoints;
 - the dev/testing/production policy-promotion idea using `HUB_INSTALL_BRANCH` and install from branch worktrees;
 - how `.envrc`, `.envrc.local`, and `state/hub/etc/install.env` interact;
-- that the older `dd()` helper is superseded by `dhub`, `dre`, and `dwt`, and why those navigation helpers remain optional shell customization rather than required infrastructure.
+- that `dhub`, `dre`, and `dwt` are the canonical navigation helpers, and why those navigation helpers remain optional shell customization rather than required infrastructure.
 
 - [ ] **Step 4: Run GREEN**
 
@@ -1157,7 +1157,6 @@ git commit -m "feat(workspace): add repo onboarding and worktree env commands"
 **Acceptance:** updated Phase-1 section E navigation items plus section I child-repo default-branch items.
 
 **Files:**
-- Create: `bin/dhub`
 - Create: `bin/dre`
 - Create: `bin/dwt`
 - Modify: `bin/clone-repo`
@@ -1184,8 +1183,8 @@ git commit -m "feat(workspace): add repo onboarding and worktree env commands"
 
 `tests/devspace/test_workspace_navigation_commands.sh` must assert:
 
-- `bin/dhub`, `bin/dre`, and `bin/dwt` exist with no `.sh` suffix;
-- `bin/dhub` resolves exactly `$HUB_INSTALL_BRANCH_DIR` and exits non-zero with a clear message when install state is missing, unreadable, or points to a non-directory;
+- `bin/dre` and `bin/dwt` exist with no `.sh` suffix;
+- `dhub` resolves exactly `$HUB_INSTALL_BRANCH_DIR` (via `.config/shell/workspace-navigation.zsh` + `scripts/lib/resolve-install-target.sh`) and exits non-zero with a clear message when install state is missing, unreadable, or points to a non-directory;
 - `bin/dre <repo>` resolves exactly `/workspaces/dotfiles/repos/<repo>` for existing child repos and refuses top-level or hub pseudo-targets;
 - `bin/dwt <name>` resolves exactly `work/<name>` inside the current managed repo context and refuses outside that context;
 - invalid repo/worktree names print simple non-interactive `did you mean ...` hints when there is a close single match;
@@ -1208,10 +1207,10 @@ Expected: fail because the child default-branch retrofit and the navigation reso
 Implementation contract:
 
 - keep `bin/` as the authoritative home for the new command entrypoints;
-- treat `bin/dhub`, `bin/dre`, and `bin/dwt` as path resolvers that print one exact destination path on success; the interactive shell wrappers that actually `cd` are owned by Task 5b;
+- treat `bin/dre` and `bin/dwt` as path resolvers that print one exact destination path on success; `dhub` remains a shell helper backed by `scripts/lib/resolve-install-target.sh`; the interactive shell wrappers that actually `cd` are owned by Task 5b;
 - audit `bin/clone-repo`, `bin/new-worktree`, `scripts/lib/hub-repo-core.sh`, and any other touched child-repo helper for `main` assumptions and replace them with detected child default-branch handling;
 - preserve exact remote default-branch names; do not normalize `master` or any other name to `main`;
-- keep top-level hub bootstrap policy unchanged except for the fixed v1 compatibility probe (`origin/main`, then `origin/master`) with exact branch-name preservation;
+- keep top-level hub bootstrap policy main-only (`origin/main`) with exact branch-name preservation;
 - keep the no-implicit-fallback rule: `dhub`, `dre`, and `dwt` must fail clearly instead of guessing a target.
 
 - [ ] **Step 4: Run GREEN**
@@ -1229,7 +1228,7 @@ Expected: pass.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add bin/dhub bin/dre bin/dwt bin/clone-repo bin/new-worktree scripts/lib/hub-repo-core.sh tests/devspace/test_create_hub_repo.sh tests/devspace/test_new_worktree.sh tests/devspace/test_workspace_navigation_commands.sh
+git add bin/dre bin/dwt bin/clone-repo bin/new-worktree scripts/lib/hub-repo-core.sh tests/devspace/test_create_hub_repo.sh tests/devspace/test_new_worktree.sh tests/devspace/test_workspace_navigation_commands.sh
 git commit -m "feat(workspace): add navigation resolvers and child branch fidelity"
 ```
 
@@ -1254,14 +1253,14 @@ git commit -m "feat(workspace): add navigation resolvers and child branch fideli
 `tests/install/test_workspace_navigation_shell.sh` must assert:
 
 - `.config/shell/workspace-navigation.zsh` defines `dhub`, `dre`, and `dwt` shell functions that call the matching `bin/` resolver and `cd` only when the resolver succeeds;
-- `dd` is not installed as a compatibility alias in v1;
+- no compatibility alias is installed in v1;
 - zsh completion is registered for `dhub`, `dre`, and `dwt`;
 - the completion sources candidates from managed repo/worktree state and remains text-only (no `fzf`);
-- the install-time recommended helper snippet uses `dhub`, not `dd`.
+- the install-time recommended helper snippet uses `dhub` only.
 
 `tests/docs/test_bare_hub_guardrails.sh` must now assert:
 
-- the usage and lifecycle runbooks document `dhub`, `dre`, `dwt`, their failure semantics, and the lack of a compatibility `dd` alias;
+- the usage and lifecycle runbooks document `dhub`, `dre`, `dwt`, their failure semantics, and the lack of a compatibility alias;
 - the navigation docs say `dwt` only works from an existing managed repo context and that `dre` excludes the top-level hub;
 - the same docs continue to tell agents and humans to prefer `bin/clone-repo` and `bin/new-worktree`.
 
@@ -1283,7 +1282,7 @@ Implementation contract:
 - keep the actual `cd` behavior in `.config/shell/workspace-navigation.zsh`, not in a standalone binary, because child processes cannot change the caller's working directory;
 - shell wrappers should print the resolved destination before changing directories, matching the old convenience-helper ergonomics;
 - register zsh completion for `dhub`, `dre`, and `dwt` inside the repo-managed shell package that `.zshrc` already sources;
-- update install guidance so the recommended helper snippet is `dhub` and there is no compatibility `dd` alias;
+- update install guidance so the recommended helper snippet is `dhub` and there is no compatibility alias;
 - update the runbooks and guardrail docs/tests to describe the final command surface and the no-implicit-fallback rule.
 
 - [ ] **Step 4: Run GREEN**
@@ -1306,7 +1305,7 @@ git commit -m "feat(shell): add repo navigation wrappers and docs"
 
 **Manual review gate:** open a fresh interactive zsh session, confirm `dhub`, `dre`, and `dwt` are available with tab completion, verify they print the destination before changing directories, and verify invalid names emit plain-text hint output without invoking `fzf`.
 
-### Task 5c: Enforce top-level `main` policy and wire canonical `dhub` navigation with temporary `dd` compatibility alias (no implicit fallback)
+### Task 5c: Enforce top-level `main` policy and wire canonical `dhub` navigation (no implicit fallback)
 
 **Why now:** The navigation/provision retrofit must explicitly enforce top-level `main` policy for the controlled top-level repo, while keeping child repos default-branch dynamic and preserving explicit no-fallback semantics.
 
@@ -1328,10 +1327,10 @@ git commit -m "feat(shell): add repo navigation wrappers and docs"
 Update the listed tests to assert:
 
 - top-level provisioning requires `origin/main` and fails clearly if `main` is unavailable;
-- child onboarding remains dynamic-default (no `main`/`master` requirement at child roots);
+- child onboarding remains dynamic-default (no forced child-branch normalization);
 - `doctor` reports installed-branch state and fails clearly when top-level required paths/state are missing;
 - `dhub` remains anchored to installed-branch state (`HUB_INSTALL_BRANCH_DIR`) and navigation helpers keep explicit names without implicit fallback to hub root.
-- `dd` exists only as a temporary alias to `dhub` during migration.
+- no compatibility alias exists in v1.
 
 - [ ] **Step 2: Run RED**
 
@@ -1344,7 +1343,7 @@ bash tests/devspace/test_new_worktree.sh
 bash tests/devspace/test_workspace_navigation_commands.sh
 ```
 
-Expected: fail until top-level `main` policy and `dhub`-anchored navigation behavior (plus temporary `dd` compatibility alias) are implemented consistently.
+Expected: fail until top-level `main` policy and `dhub`-anchored navigation behavior are implemented consistently.
 
 - [ ] **Step 3: Implement minimal compatibility retrofit**
 
@@ -1354,7 +1353,7 @@ Implementation contract:
 - keep child repos dynamic-default and exact-name preserving;
 - keep `dwt` explicit (no hidden aliasing);
 - keep `dhub` anchored to installed-branch state (`HUB_INSTALL_BRANCH_DIR`) and fail clearly when state is missing/invalid;
-- keep `dd` as a temporary compatibility alias that delegates to `dhub`.
+- keep `dhub` as the only install-root helper in v1.
 - do not add configurable probe lists, fuzzy pickers, or implicit root fallback.
 
 - [ ] **Step 4: Run GREEN**
@@ -1370,7 +1369,7 @@ git add scripts/provision-workspace.sh ops/check-workspace.sh bin/new-worktree .
 git commit -m "feat(workspace): enforce top-level main policy and dhub navigation"
 ```
 
-**Manual review gate:** confirm top-level provisioning fails clearly when `main` is absent, confirm child onboarding succeeds for a public repo whose default branch is not `main`/`master`, and confirm navigation remains explicit (no implicit fallback to hub root).
+**Manual review gate:** confirm top-level provisioning fails clearly when `main` is absent, confirm child onboarding succeeds for a public repo whose default branch is not `main`, and confirm navigation remains explicit (no implicit fallback to hub root).
 
 ---
 
@@ -1411,7 +1410,7 @@ Expected:
 - `ssh workspace.dotfiles.devspace 'pwd'` prints `/workspaces/dotfiles/main` without a standalone workspace Service;
 - `direnv` is available in the interactive environment and the managed `.envrc` variables load for at least one `main/` checkout and one non-`main` worktree;
 - child onboarding preserves the exact default branch name for at least one non-`main` public repo fixture;
-- top-level bootstrap compatibility works with fixed priority `main`, then `master`, preserving exact names and failing clearly when neither branch exists;
+- top-level bootstrap compatibility uses `main` only and fails clearly when `origin/main` is missing;
 - `dhub`, `dre`, and `dwt` work from interactive zsh with completion enabled, print their destinations before changing directories, and fail with plain-text hints instead of implicit fallback when names are wrong;
 - `git diff --check` prints no output.
 
@@ -1844,7 +1843,7 @@ Phase-2 rollback order:
 ### Retained assumptions
 
 1. The top-level hub root is administrative, not the editable checkout.
-2. The top-level hub uses fixed-priority bootstrap compatibility in v1 (`main`, then `master`) with exact branch-name preservation; child repos preserve their exact remote default branch names.
+2. The top-level hub uses fixed-priority bootstrap compatibility in v1 (`main` only) with exact branch-name preservation; child repos preserve their exact remote default branch names.
 3. The top-level dotfiles repo remains the only `/home/vscode` authority.
 4. Canonical durable/disposable paths remain:
    - `/workspaces/dotfiles/state/hub/main/`
@@ -1870,5 +1869,5 @@ Score: **8.5/10**
 Remaining remediation tasks to reach 10/10:
 
 1. Keep `scripts/lib/hub-repo-core.sh` tiny so the public scripts stay explicit.
-2. Resist adding configurable top-level bootstrap-ref lists beyond the fixed v1 `main`/`master` probe, fuzzy navigation, or private-repo auth before a new approved spec requires them.
+2. Resist adding configurable top-level bootstrap-ref lists beyond the fixed v1 `main` probe, fuzzy navigation, or private-repo auth before a new approved spec requires them.
 3. After phase 1 lands, consider retiring or clearly labeling the older DevPod-specific runbooks to reduce future drift.

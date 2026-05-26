@@ -1,5 +1,7 @@
 # Overview
 
+> What changed for implementers: top-level bootstrap is `main`-only, `dhub` is shell-level via `.config/shell/workspace-navigation.zsh` + `scripts/lib/resolve-install-target.sh`, and no `dd` alias is shipped in v1.
+
 The current configuration allows subagent-driven-development according to the
 `obra/superpowers` plugin, with (currently) a less powerful
 `maestro` agent coordinating (mostly) more powerful subagents. This makes effective use of premium-plan request quotas by letting the top-level agent orchestrate more capable specialists.

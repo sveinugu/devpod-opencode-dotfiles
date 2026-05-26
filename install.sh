@@ -74,8 +74,8 @@ install_env_dir="$workspace_root/state/hub/etc"
 install_env_file="$install_env_dir/install.env"
 mkdir -p "$install_env_dir"
 cat > "$install_env_file" <<EOF
-export HUB_INSTALL_BRANCH=$HUB_INSTALL_BRANCH
-export HUB_INSTALL_BRANCH_DIR=$HUB_INSTALL_BRANCH_DIR
+export HUB_INSTALL_BRANCH=$(printf '%q' "$HUB_INSTALL_BRANCH")
+export HUB_INSTALL_BRANCH_DIR=$(printf '%q' "$HUB_INSTALL_BRANCH_DIR")
 EOF
 
 if ! declare -F dhub >/dev/null 2>&1; then

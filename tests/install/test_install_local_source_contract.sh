@@ -97,6 +97,54 @@ grep -F "export HUB_INSTALL_BRANCH_DIR=$workspace_root/work/feature-x" "$workspa
   exit 1
 }
 
+workspace_quoted="$tmpdir/workspace quoted"
+target_home_quoted="$tmpdir/home quoted"
+offcwd_quoted="$tmpdir/offcwd quoted"
+
+mkdir -p \
+  "$workspace_quoted/.bare" \
+  "$workspace_quoted/work/feature branch/.config/opencode" \
+  "$workspace_quoted/state" \
+  "$target_home_quoted" \
+  "$offcwd_quoted"
+
+printf 'export QUOTED=1\n' > "$workspace_quoted/work/feature branch/.zshrc"
+printf '{"name":"quoted"}\n' > "$workspace_quoted/work/feature branch/.config/opencode/opencode.jsonc"
+
+if [ -f "install.sh" ]; then
+  cp "install.sh" "$workspace_quoted/work/feature branch/install.sh"
+  chmod +x "$workspace_quoted/work/feature branch/install.sh"
+fi
+
+if [ -f "scripts/lib/validate_install_source_tree.sh" ]; then
+  mkdir -p "$workspace_quoted/work/feature branch/scripts/lib"
+  cp "scripts/lib/validate_install_source_tree.sh" "$workspace_quoted/work/feature branch/scripts/lib/validate_install_source_tree.sh"
+  chmod +x "$workspace_quoted/work/feature branch/scripts/lib/validate_install_source_tree.sh"
+fi
+
+(
+  cd "$offcwd_quoted"
+  HOME="$target_home_quoted" WORKSPACE_ROOT="$workspace_quoted" bash "$workspace_quoted/work/feature branch/install.sh" --dry-run -y >"$tmpdir/quoted.out" 2>&1
+)
+
+quoted_install_env="$workspace_quoted/state/hub/etc/install.env"
+[ -f "$quoted_install_env" ] || {
+  printf 'expected quoted install env to exist\n' >&2
+  exit 1
+}
+
+quoted_vars_out="$(set +u; source "$quoted_install_env"; printf '%s\n%s\n' "$HUB_INSTALL_BRANCH" "$HUB_INSTALL_BRANCH_DIR")"
+quoted_branch="$(printf '%s' "$quoted_vars_out" | sed -n '1p')"
+quoted_dir="$(printf '%s' "$quoted_vars_out" | sed -n '2p')"
+[ "$quoted_branch" = "feature branch" ] || {
+  printf 'expected quoted HUB_INSTALL_BRANCH round-trip, got %s\n' "$quoted_branch" >&2
+  exit 1
+}
+[ "$quoted_dir" = "$workspace_quoted/work/feature branch" ] || {
+  printf 'expected quoted HUB_INSTALL_BRANCH_DIR round-trip, got %s\n' "$quoted_dir" >&2
+  exit 1
+}
+
 grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.zshrc $target_home/.zshrc" "$tmpdir/feature.out" >/dev/null
 grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.config/opencode $target_home/.config/opencode" "$tmpdir/feature.out" >/dev/null
 ! grep -F "$workspace_root/main/.zshrc" "$tmpdir/feature.out" >/dev/null
