@@ -47,6 +47,15 @@ Forbidden inside the packet block (unchanged policy):
 
 **Important:** The Annex defined below is explicitly **outside** the Delegation Packet block and is not part of the packet schema.
 
+### 1.1 Reconciliation with “closed schema” readers (AGENTS.md)
+
+Some policy readers interpret “closed schema” as “nothing else may appear in the dispatch message.” This design is stricter:
+
+- **The closed schema applies only to the contiguous `Delegation Packet` block** (from the line `Delegation Packet` through the last allowed packet field).
+- **The Annex is allowed only after the packet ends** and is explicitly not part of the packet.
+
+Implementation note: `.config/opencode/AGENTS.md`, the Maestro prompt, and any handoff templates must explicitly state that Annex content is permitted **after** the packet block (and forbidden **inside** it).
+
 ---
 
 ## 2) Verbatim quoting contract
@@ -54,6 +63,23 @@ Forbidden inside the packet block (unchanged policy):
 ### 2.1 Contract (format)
 
 Under `Verbatim user request:`, every non-empty line MUST be a Markdown blockquote line starting with `>`.
+
+### 2.1.1 Multi-message verbatim quoting
+
+Delegations often depend on multiple user messages.
+
+If multiple user messages are relevant, include them in `Verbatim user request:` in chronological order (oldest first, newest last) as `>` lines.
+
+To make message boundaries mechanically checkable **without** paraphrase, the following message-boundary separator line is allowed as the only non-user-authored line within `Verbatim user request:`:
+
+```text
+> ---
+```
+
+Rules:
+
+- `> ---` MAY appear between quoted messages.
+- No other non-user-authored boundary markers are permitted inside `Verbatim user request:`.
 
 Example:
 
@@ -113,6 +139,17 @@ Hypotheses:
 Evidence (verbatim, source: <label>):
 ```
 
+### 3.2.1 Packet/Annex delimiter (required)
+
+To avoid ambiguity about where the packet ends and the Annex begins:
+
+- The Annex MUST begin with the **exact** header line:
+  
+  `Annex (non-authoritative; not part of Delegation Packet)`
+
+- The Annex header MUST be preceded by a blank line.
+- No text is allowed between the end of the packet block and the Annex header besides that blank line.
+
 #### Pointers
 
 - May include file paths and URLs.
@@ -158,6 +195,32 @@ Highlight (derived from verbatim; must match after stripping markup):
 
 Highlight is OPTIONAL (recommended when the user message is multi-topic).
 
+### 3.3 Forbidden content in the Annex (explicit)
+
+The Annex is non-authoritative and must not become a backdoor for requirements or step-by-step task steering.
+
+The following are FORBIDDEN anywhere in the Annex:
+
+- Imperatives and instruction lists (e.g. “Do X”, “Implement Y”, “Follow these steps”, numbered step plans)
+- Deliverables / non-deliverables / acceptance criteria
+- New requirements language (e.g. “must/should/required to”) intended to bind the subagent
+- Interpretative summaries of the user’s intent (the verbatim block is the source of truth)
+- Anything that substitutes for the approved artifact as the requirements source
+
+Clarification:
+
+- `Open questions:` must be questions.
+- `Hypotheses:` may speculate, but cannot instruct; it must remain explicitly non-authoritative.
+
+### 3.4 Implementer prompt template conflict (explicit resolution)
+
+Some upstream workflow templates encourage the delegator to paste full step-by-step task text and rich context directly into the implementer prompt.
+
+This design requires the opposite:
+
+- If an implementer needs step-by-step instructions or full task text, those MUST live in the approved artifact at `Artifact path:` (plan/spec), not in the Annex.
+- The Annex may only provide pointers/questions/hypotheses/evidence, never a replacement “mini-plan”.
+
 #### Open questions
 
 - Questions the subagent should ask before committing to a choice.
@@ -166,7 +229,7 @@ Highlight is OPTIONAL (recommended when the user message is multi-topic).
 #### Hypotheses
 
 - Must be explicitly non-authoritative.
-- Each bullet MUST include “confirm before relying” (or equivalent).
+- Each bullet MUST include the literal phrase: `confirm before relying`.
 
 #### Evidence (verbatim)
 
@@ -183,9 +246,9 @@ Example:
 
 ```text
 Evidence (verbatim, source: maestro-local-bash):
-```text
+````text
 rg: error: ...
-```
+````
 ```
 
 ---
@@ -208,6 +271,44 @@ If there is a material conflict between:
 
 the subagent MUST stop and ask for clarification rather than “resolving” the conflict silently.
 
+### 4.2.1 Concrete examples of “mismatch” / “material conflict”
+
+These examples are intentionally blunt. When in doubt, stop and ask rather than guessing.
+
+**Example A — unrelated artifact (stop):**
+
+- `Artifact path:` points to a plan about Kubernetes deployment.
+- `Verbatim user request:` is about shell alias behavior.
+
+Action: stop and ask delegator/user to confirm/correct artifact selection.
+
+**Example B — policy conflict (stop):**
+
+- Global policy forbids adding new deliverables via delegation.
+- Artifact/Annex attempts to introduce a new deliverable (“also add a dashboard”) not present in user verbatim and not required by the artifact.
+
+Action: stop and ask for clarification; do not implement the extra deliverable.
+
+**Example C — artifact vs verbatim scope conflict (stop):**
+
+- Artifact requires “CLI-only”.
+- Verbatim user request explicitly asks for a TUI.
+
+Action: stop and ask which source should govern; do not choose silently.
+
+**Example D — highlight mismatch (stop):**
+
+- `Highlight (derived from verbatim...)` contains words not present in the verbatim line after stripping markup.
+
+Action: stop and request correction.
+
+**Example E — non-material differences (proceed):**
+
+- Artifact contains extra background sections that are not referenced by the verbatim request.
+- No contradictions exist with policy or verbatim.
+
+Action: proceed; treat artifact as binding requirements source, but ignore irrelevant sections unless needed.
+
 ### 4.3 Artifact handshake (all subagents)
 
 If `Artifact path:` is present, the subagent MUST:
@@ -221,6 +322,12 @@ If `Artifact path:` is present, the subagent MUST:
    - if unresolved, ask the user
 
 Note: “Mismatch” does NOT mean “the delegated task must already be written in the artifact.” Adjacent/connecting work is fine; the handshake is about ensuring the artifact is a plausible authoritative context anchor for the delegated work.
+
+### 4.4 Handshake statement visibility (required)
+
+To enable fast correction, the subagent MUST include its 1–2 sentence artifact-summary statement in its **first response after receiving the delegation**.
+
+If the subagent believes there is a mismatch, it must say so in that first response and ask for confirmation/correction before doing substantive work.
 
 ---
 
@@ -248,9 +355,9 @@ Open questions:
 Hypotheses:
 - Hypothesis: “C” means a second pass after initial findings; confirm before relying.
 Evidence (verbatim, source: user-pasted):
-```text
+````text
 [optional raw output]
-```
+````
 ```
 
 ---
