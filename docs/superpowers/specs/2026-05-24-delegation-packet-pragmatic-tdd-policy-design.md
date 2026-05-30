@@ -1,3 +1,6 @@
+> **Historical — superseded by the approved design.** See `docs/superpowers/specs/2026-05-26-delegation-packet-annex-and-verbatim-contract-design.md` for the current binding spec.
+> This earlier spec is retained for context/history.
+
 # Delegation Packet And Pragmatic TDD Policy Design
 
 Date: 2026-05-24  

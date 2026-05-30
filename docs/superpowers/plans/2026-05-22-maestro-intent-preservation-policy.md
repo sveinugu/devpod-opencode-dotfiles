@@ -1,3 +1,6 @@
+> **Historical — superseded.** This plan predates the Delegation Packet Annex design and the policy consolidation plan. See `docs/superpowers/specs/2026-05-26-delegation-packet-annex-and-verbatim-contract-design.md` and `.config/opencode/AGENTS.md` → “Delegation & Sessions (canonical)”.
+> Do not use for new work.
+
 # Maestro Intent-Preservation Mitigations Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
