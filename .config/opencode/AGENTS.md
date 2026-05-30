@@ -140,6 +140,9 @@ Why this works
 
 ## Delegation Packet
 
+> **Deprecated:** superseded by “Delegation & Sessions (canonical)”. Do not use for new delegations.
+
+
 - Before Maestro delegates new scoped work to a subagent, it MUST send a `Delegation Packet`.
 - Use `Delegation Packet` only for Maestro → subagent scoped delegation. Do not force it onto resume messages, subagent questions, or subagent completion messages.
 - `Delegation Packet` uses a closed schema. If a draft packet contains any field, section, heading, bullet, or instruction outside the allowed fields below, it is invalid and MUST be rewritten before dispatch.
@@ -175,6 +178,153 @@ Why this works
   Owner: implementer
   Authority: only the owning subagent may perform implementer responsibilities unless a human-approved Maestro override is active
   ```
+
+
+
+# Delegation & Sessions (canonical)
+
+> This chapter is the single source of truth for delegation packet and session policy.
+> All other surfaces (agent prompts, templates) are pointers to this chapter.
+> Binding design spec: `docs/superpowers/specs/2026-05-26-delegation-packet-annex-and-verbatim-contract-design.md`
+
+## Delegation Packet (closed schema; Maestro → subagent only)
+
+The Delegation Packet is a closed-schema block used only for **Maestro → subagent scoped delegation**.
+It is not for resume messages, subagent questions, or subagent completion messages.
+
+### Allowed packet fields (only these)
+
+- `Artifact path:` or `Artifact paths:` with exact path strings when applicable
+- `Verbatim user request:` as a `>`-quoted block (see verbatim quoting contract below)
+- `Warnings:` only when non-empty; brief factual flags only; non-authoritative
+- router-owned metadata: `Session:`, `Resume:`, `Owner:`, `Authority:`
+
+### Forbidden packet content (includes, but not limited to)
+
+- `Instructions:` / `Notes:` / `Reminders:` / `Summary:` / `Deliverables:` / `Non-deliverables:` / `Provenance:` / `Active slice:` / any other extra field
+- interpretative summaries
+- inferred deliverables or scope
+- implementation steering beyond the approved artifact
+- "helpful corrections" to user wording
+- `Preview:` is meta-commentary outside the packet, not a packet field
+
+### Packet/Annex boundary
+
+The packet block ends after the last allowed field. After a blank line, the optional Annex may begin.
+No text is permitted between the end of the packet and the Annex header (besides a blank line).
+
+## Verbatim quoting contract
+
+Under `Verbatim user request:`, every non-empty line MUST be a Markdown blockquote line starting with `>`.
+
+### Multi-message quoting
+
+- If 2+ user messages are included, `> ---` MUST appear between messages.
+- If exactly 1 message is included, `> ---` MUST NOT appear.
+- Messages appear in chronological order (oldest first, newest last).
+- No other non-user-authored boundary markers are permitted inside `Verbatim user request:`.
+
+### Content rules
+
+- Quoted text MUST be **verbatim user-authored text**.
+- Raw fragments and shorthand are allowed and encouraged.
+- Do not paraphrase. Do not rewrite into full sentences.
+- Prefer quoting the **entire** relevant user message.
+
+### Subagent stop-rule (all subagents)
+
+If a subagent receives a Delegation Packet where `Verbatim user request:` contains **zero** `>`-quoted lines
+(or is `N/A`), the subagent MUST:
+
+1. Stop before doing substantive work.
+2. Ask the delegator (chain of command) to provide the exact user text as `>` quotes.
+3. If the delegator cannot/will not provide it, ask the user directly.
+
+## Annex (non-authoritative; not part of Delegation Packet)
+
+The Annex is a safe outlet for helpful context that does NOT modify the Delegation Packet schema
+and does NOT turn helpful prose into requirements.
+
+### Allowed Annex headings (fixed)
+
+```text
+Annex (non-authoritative; not part of Delegation Packet)
+
+Pointers:
+
+Highlight (derived from verbatim; must match after stripping markup):
+
+Open questions:
+
+Hypotheses:
+
+Evidence (verbatim, source: <label>):
+```
+
+### Highlight rules
+
+- Each highlighted `>` line MUST be a **full-line copy** of a line from `Verbatim user request:`.
+- Highlight may add ONLY:
+  - emphasis markers: `**bold**` only (`_italic_` is forbidden due to variable naming collisions)
+  - inline code markers: `` `like this` ``
+- Highlight MUST NOT:
+  - delete words, add words, use ellipses (`...`), or re-order text
+- Mechanically: the highlighted line MUST match an original verbatim line after stripping allowed markup.
+
+### Forbidden Annex content
+
+- Imperatives and instruction lists
+- Deliverables / non-deliverables / acceptance criteria
+- New requirements language
+- Interpretative summaries of the user's intent
+- Anything that substitutes for the approved artifact as the requirements source
+
+## Artifact semantics + handshake
+
+### Default semantics
+
+When `Artifact path:` is present, the referenced artifact is treated as a **binding requirements source by default**.
+
+### Handshake (all subagents — required)
+
+If `Artifact path:` is present, the subagent MUST:
+
+1. Open/read the artifact.
+2. Form a short statement of what the artifact appears to specify (1–2 sentences).
+3. Compare it to the verbatim user request.
+4. If the artifact seems unrelated or materially conflicting with verbatim intent/global policy:
+   - stop before substantive work
+   - ask the delegator to confirm/correct the artifact selection (chain of command)
+   - if unresolved, ask the user
+
+The subagent MUST include its 1–2 sentence artifact-summary statement in its **first response after receiving the delegation**.
+
+### Authority ordering (on conflict)
+
+If there is a material conflict between global policy, verbatim user request, and the artifact,
+the subagent MUST stop and ask for clarification rather than resolving silently.
+
+## Required handoff wording
+
+When spawning a named subagent, the Maestro MUST use exactly, and only after successful launch:
+
+```text
+Switching you to the <subagent> subagent now — please interact directly with it; I will remain available for orchestration.
+```
+
+## Session metadata visibility timing
+
+After successful launch or resume of a subagent session, the delegating agent MUST surface the
+validated `Session:` / `Resume:` / `Owner:` / `Authority:` block **immediately**,
+before any other orchestration text beyond the required handoff wording.
+
+## Anti-scatter checklist (sequential; Maestro must follow)
+
+1. **Required handoff wording line** — emit the exact handoff wording.
+2. **Delegation Packet block** — emit with allowed fields only; no forbidden fields.
+3. **Optional Annex block** — may follow packet after a blank line.
+4. **Session metadata** — print `Session:` / `Resume:` / `Owner:` / `Authority:` immediately after successful launch.
+5. **Verify** — after dispatch, confirm the packet contains no forbidden fields and verbatim has `>` lines.
 
 ## Planning and implementation policy
 
@@ -308,6 +458,9 @@ The Maestro must verify both messages came from the human, are consecutive, and 
     - The orchestrating agent must only retry or spawn after explicit user confirmation.
 
 ## Session metadata ownership
+
+> **Deprecated:** superseded by “Delegation & Sessions (canonical)” → Session metadata visibility timing.
+
 
 - Session and resume metadata are routing concerns and are owned by Maestro or another delegating/router agent.
 - Maestro should surface session metadata when dispatching a subagent, resuming an existing subagent session, and immediately after control is handed back from a subagent.
