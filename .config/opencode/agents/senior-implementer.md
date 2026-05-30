@@ -2,7 +2,10 @@
 description: Superpowered and pragmatic  senior developer / implementation specialist
 mode: subagent
 model: github-copilot/gpt-5.3-codex
+# model: github-copilot/claude-opus-4.6
+# model: github-copilot/gpt-5.4
 reasoningEffort: high
+# reasoningEffort: medium
 textVerbosity: medium
 tools:
   write: true
