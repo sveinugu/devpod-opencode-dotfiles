@@ -1,7 +1,7 @@
 ---
 description: Superpowered and pragmatic  brainstorming specialist.
 mode: subagent
-model: github-copilot/gpt-5.2
+model: github-copilot/gpt-5.4
 temperature: 0.8
 reasoningEffort: high
 tools:

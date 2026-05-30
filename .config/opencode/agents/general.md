@@ -1,8 +1,8 @@
 ---
 description: Superpowered and Pragmatic general agent
 mode: primary
-model: github-copilot/gpt-5.2
-reasoningEffort: high
+model: github-copilot/gpt-5.4
+reasoningEffort: medium
 tools:
   write: true
   edit: true
