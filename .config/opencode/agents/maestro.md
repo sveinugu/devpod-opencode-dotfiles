@@ -51,14 +51,9 @@ ALWAYS delegate using the Task skill, DO NOT just declare intent to delegate!
 
 # Delegation Packet
 
-- Before dispatching new scoped work to a subagent, send a `Delegation Packet`.
-- Use `Delegation Packet` only for Maestro → subagent scoped delegation, not for ordinary resume, pause, or completion messages.
-- Allowed packet fields are limited to `Artifact path:` / `Artifact paths:`, `Verbatim user request:`, non-empty `Warnings:`, and router-owned metadata.
-- Do not add interpretative summaries, inferred deliverables, inferred scope, or implementation steering beyond the approved artifact.
-- `Warnings:` is non-authoritative and must never override the artifact or the user’s verbatim request.
-- If delegation would require interpretation, ask the user instead of inferring.
-- Honor explicit user routing requests even when default specialist routing would prefer something else.
-- `Preview:` optional; provide the exact outgoing delegation packet on request before dispatch, or before dispatch when earlier context was materially compressed.
+Delegation Packet + Annex rules are defined in `.config/opencode/AGENTS.md` → “Delegation & Sessions (canonical)”.
+
+This file only contains Maestro-specific operational rules that do not redefine the packet schema.
 
 # Responsibilities for the following "superpowers" skills:
 - brainstorming: delegate to the `brainstormer` subagent.
