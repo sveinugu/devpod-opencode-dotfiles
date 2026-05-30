@@ -83,13 +83,13 @@ Rationale: this plan treats the approved spec as binding; it must exist in the s
 **Files:**
 - Create/Modify: `docs/superpowers/specs/2026-05-26-delegation-packet-annex-and-verbatim-contract-design.md`
 
-- [ ] **Step 1: If the spec file is missing, bring it in from the branch that contains it**
+- [x] **Step 1: If the spec file is missing, bring it in from the branch that contains it**
 
 Acceptable approaches:
 - `git cherry-pick <commit>` that introduced the spec, or
 - copy the file from the other worktree and commit it.
 
-- [ ] **Step 2: Commit (only if this step changed files)**
+- [x] **Step 2: Commit (only if this step changed files)**
 
 ```bash
 git add docs/superpowers/specs/2026-05-26-delegation-packet-annex-and-verbatim-contract-design.md
@@ -103,7 +103,7 @@ git commit -m "docs(spec): import approved delegation packet design"
 **Files:**
 - Modify: `docs/superpowers/specs/2026-05-26-delegation-packet-annex-and-verbatim-contract-design.md`
 
-- [ ] **Step 1: Add nit #1 — require `> ---` when 2+ messages are quoted**
+- [x] **Step 1: Add nit #1 — require `> ---` when 2+ messages are quoted**
 
 In “Multi-message verbatim quoting”, add/adjust:
 
@@ -112,7 +112,7 @@ If 2+ user messages are included, `> ---` MUST appear between messages.
 If exactly 1 message is included, `> ---` MUST NOT appear.
 ```
 
-- [ ] **Step 2: Add nit #2 — tighten non-packet text allowance**
+- [x] **Step 2: Add nit #2 — tighten non-packet text allowance**
 
 In “Reconciliation with ‘closed schema’ readers”, add/adjust:
 
@@ -121,7 +121,7 @@ Outside the packet block and optional Annex, the ONLY permitted text in the disp
 No other free-form context is permitted outside the packet/Annex.
 ```
 
-- [ ] **Step 3: Tighten Highlight markup to `**` only**
+- [x] **Step 3: Tighten Highlight markup to `**` only**
 
 In “Highlight (derived from verbatim)”, allow only `**bold**` and explicitly forbid `_italic_`.
 
@@ -132,7 +132,7 @@ git add docs/superpowers/specs/2026-05-26-delegation-packet-annex-and-verbatim-c
 git commit -m "docs(spec): tighten delegation packet addendum nits"
 ```
 
-**User Check-in:** user reviews the updated spec before consolidation work begins.
+**User Check-in (resolved):** spec addendum review approved per inventory decisions.
 
 ---
 
@@ -141,7 +141,7 @@ git commit -m "docs(spec): tighten delegation packet addendum nits"
 **Files:**
 - Create: `docs/superpowers/review-records/2026-05-29-delegation-policy-packet-inventory.md`
 
-- [ ] **Step 1: Draft the inventory document (do NOT commit yet)**
+- [x] **Step 1: Draft the inventory document (do NOT commit yet)**
 
 Inventory format:
 
@@ -155,7 +155,7 @@ Rules:
 - Include “adopted by reference” items: if AGENTS.md references a skill/template for delegation/prompting, list that reference.
 - Do **not** read or quote upstream skill files; inventory only what we reference locally.
 
-- [ ] **Step 2: Fill the inventory by searching local markdown**
+- [x] **Step 2: Fill the inventory by searching local markdown**
 
 Suggested commands:
 
@@ -164,7 +164,7 @@ rg -n "^Delegation Packet$|^## Delegation Packet$|## Intent-preserving delegatio
 rg -n "subagent-handoff-templates|implementer-prompt|subagent-driven-development" .config/opencode docs
 ```
 
-- [ ] **Step 3: User Check-in — walk items one by one**
+- [x] **Step 3: User Check-in — walk items one by one**
 
 For each item, user chooses one:
 - keep (unchanged)
@@ -172,7 +172,7 @@ For each item, user chooses one:
 - mark deprecated/historical
 - remove
 
-- [ ] **Step 4: Record decisions in the inventory file and commit it**
+- [x] **Step 4: Record decisions in the inventory file and commit it**
 
 ```bash
 git add docs/superpowers/review-records/2026-05-29-delegation-policy-packet-inventory.md
@@ -186,7 +186,7 @@ git commit -m "docs(review-record): inventory delegation packet formats"
 **Files:**
 - Modify: `.config/opencode/AGENTS.md`
 
-- [ ] **Step 1: Add the canonical chapter skeleton**
+- [x] **Step 1: Add the canonical chapter skeleton**
 
 Add:
 
@@ -202,7 +202,7 @@ Add:
 ## Stop-on-mismatch rules
 ```
 
-- [ ] **Step 2: Populate it from the binding spec**
+- [x] **Step 2: Populate it from the binding spec**
 
 Must include:
 - Allowed packet fields (and *only* those)
@@ -212,7 +212,7 @@ Must include:
 - Subagent stop-rules (missing verbatim, highlight mismatch, artifact mismatch)
 - Artifact handshake statement visibility requirement
 
-- [ ] **Step 3: Add a single sequential “anti-scatter” checklist**
+- [x] **Step 3: Add a single sequential “anti-scatter” checklist**
 
 3–5 steps max, in one place, covering:
 1) required handoff wording line
@@ -220,7 +220,7 @@ Must include:
 3) optional Annex block
 4) timing: session metadata printed immediately after successful launch (router rule)
 
-- [ ] **Step 4: Mark any legacy packet sections as deprecated (do not delete yet)**
+- [x] **Step 4: Mark any legacy packet sections as deprecated (do not delete yet)**
 
 ```markdown
 > Deprecated: superseded by “Delegation & Sessions (canonical)”. Do not use for new delegations.
@@ -233,7 +233,7 @@ git add .config/opencode/AGENTS.md
 git commit -m "docs(policy): add canonical delegation & sessions chapter"
 ```
 
-**User Check-in:** user reviews canonical chapter before we convert other surfaces into pointers.
+**User Check-in (resolved):** canonical chapter review approved per inventory decisions.
 
 ---
 
@@ -243,7 +243,7 @@ git commit -m "docs(policy): add canonical delegation & sessions chapter"
 - Modify: `.config/opencode/agents/maestro.md`
 - Modify: `.config/opencode/agents/*.md` (only where they redefine packet schema)
 
-- [ ] **Step 1: Remove conflicting packet schema from maestro.md**
+- [x] **Step 1: Remove conflicting packet schema from maestro.md**
 
 Replace legacy schema definitions (e.g. `Active slice/Deliverables/Provenance`) with a pointer:
 
@@ -253,12 +253,12 @@ Delegation Packet + Annex rules are defined in `.config/opencode/AGENTS.md` → 
 
 Keep Maestro-only operational rules that do not redefine the packet schema.
 
-- [ ] **Step 2: Ensure any Maestro example handoff contains only permitted non-packet text**
+- [x] **Step 2: Ensure any Maestro example handoff contains only permitted non-packet text**
 
 If maestro.md includes example dispatch messages:
 - The only non-packet/Annex text must be the required handoff wording line.
 
-- [ ] **Step 3: Update other agents only if they restate packet schema**
+- [x] **Step 3: Update other agents only if they restate packet schema**
 
 Goal: avoid “context spam” by keeping packet schema centralized in AGENTS.md.
 
@@ -276,7 +276,7 @@ git commit -m "docs(agents): de-duplicate delegation packet rules"
 **Files:**
 - Modify: `docs/superpowers/templates/subagent-handoff-templates.md`
 
-- [ ] **Step 1: Replace any legacy packet fields in the template**
+- [x] **Step 1: Replace any legacy packet fields in the template**
 
 “Start” must include:
 - required handoff wording line
@@ -297,7 +297,7 @@ git commit -m "docs(templates): align handoff template with packet+annex"
 **Files:**
 - Create: `tests/docs/test_delegation_packet_policy_contract.sh`
 
-- [ ] **Step 1: Write the failing doc-contract test**
+- [x] **Step 1: Write the failing doc-contract test**
 
 ```bash
 #!/usr/bin/env bash
@@ -323,11 +323,11 @@ fi
 printf 'PASS test_delegation_packet_policy_contract\n'
 ```
 
-- [ ] **Step 2: Run and verify it fails before migration completes**
+- [x] **Step 2: Run and verify it fails before migration completes**
 
 Run: `bash tests/docs/test_delegation_packet_policy_contract.sh`
 
-- [ ] **Step 3: Iterate test strictness to match final policy**
+- [x] **Step 3: Iterate test strictness to match final policy**
 
 If too brittle, relax to anchor-phrase checks rather than exact text.
 
@@ -342,17 +342,17 @@ git commit -m "test(docs): add delegation policy drift contract"
 
 ## Task 7: Legacy packet removal/migration (per inventory; user-approved)
 
-- [ ] **Step 1: Apply the user decision for each inventory item**
+- [x] **Step 1: Apply the user decision for each inventory item**
 
 Rules:
 - Removing/migrating is only allowed after the user decision is recorded in the inventory doc.
 - Migration target is always the canonical AGENTS chapter + (optionally) one compliant example.
 
-- [ ] **Step 2: Run doc-contract tests**
+- [x] **Step 2: Run doc-contract tests**
 
 Run: `bash tests/docs/test_delegation_packet_policy_contract.sh`
 
-- [ ] **Step 3: Commit in small batches**
+- [x] **Step 3: Commit in small batches**
 
 ```bash
 git add -A
