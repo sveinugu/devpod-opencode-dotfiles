@@ -56,6 +56,9 @@ Some policy readers interpret “closed schema” as “nothing else may appear 
 
 Implementation note: `.config/opencode/AGENTS.md`, the Maestro prompt, and any handoff templates must explicitly state that Annex content is permitted **after** the packet block (and forbidden **inside** it).
 
+Outside the packet block and optional Annex, the ONLY permitted text in the dispatch message is the required handoff wording line.
+No other free-form context is permitted outside the packet/Annex.
+
 ---
 
 ## 2) Verbatim quoting contract
@@ -78,7 +81,8 @@ To make message boundaries mechanically checkable **without** paraphrase, the fo
 
 Rules:
 
-- `> ---` MAY appear between quoted messages.
+- If 2+ user messages are included, `> ---` MUST appear between messages.
+- If exactly 1 message is included, `> ---` MUST NOT appear.
 - No other non-user-authored boundary markers are permitted inside `Verbatim user request:`.
 
 Example:
@@ -86,11 +90,11 @@ Example:
 ```text
 Verbatim user request:
 > do A
+> ---
 > then B
+> ---
 > then resume them for C
 ```
-
-### 2.2 Contract (content)
 
 - The quoted text MUST be **verbatim user-authored text**.
 - Raw fragments and shorthand are allowed and encouraged (no “cleaning up”).
@@ -172,7 +176,7 @@ Rules:
 
 - Each highlighted `>` line MUST be a **full-line copy** of a line from `Verbatim user request:`.
 - Highlight may add ONLY:
-  - emphasis markers: `**bold**`, `_italic_`
+  - emphasis markers: `**bold**` only (`_italic_` is forbidden due to variable naming collisions)
   - inline code markers: `` `like this` ``
 - Highlight MUST NOT:
   - delete words
