@@ -1,3 +1,5 @@
+# Managed default ignore patterns for bare-repo info/exclude.
+# Update this file when changing generated artifact ignore policy.
 .envrc
 .envrc.local
 .envrc.bak.*

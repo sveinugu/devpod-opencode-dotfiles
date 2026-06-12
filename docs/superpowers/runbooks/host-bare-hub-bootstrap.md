@@ -55,6 +55,7 @@ After Step 1:
 - username/email configuration is written in hub-local git config for pod reuse via mounted path
 - bootstrap enforces a **main-only** convention: source checkout must have `main`, and hub main worktree is always created from `main`
 - bootstrap enforces/repairs `main/install.sh` to mode `700` during host runs
+- bootstrap resets top-level bare-repo excludes from `scripts/lib/bare-excludes.list` (managed default pattern set)
 
 ## Step 2 (HOST): Verify bootstrap result
 
