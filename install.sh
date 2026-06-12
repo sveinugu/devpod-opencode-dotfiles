@@ -43,6 +43,8 @@ else
 fi
 
 install_branch_dir="$source_root"
+install_env_dir="$workspace_root/state/hub/etc"
+install_env_file="$install_env_dir/install.env"
 
 if [ "$source_root" = "$workspace_root" ]; then
   printf 'Refused — hub-root CWD detected. Provide explicit worktree path.\n' >&2
@@ -57,6 +59,20 @@ fi
 "$validator" "$source_root" "$source_root/.zshrc" >/dev/null
 "$validator" "$source_root" "$source_root/.config/opencode" >/dev/null
 
+if [ -f "$install_env_file" ]; then
+  install_env_values="$(set +u; source "$install_env_file"; printf '%s\n%s\n' "${HUB_INSTALL_BRANCH:-}" "${HUB_INSTALL_BRANCH_DIR:-}")"
+  install_env_branch="$(printf '%s' "$install_env_values" | sed -n '1p')"
+  install_env_branch_dir="$(printf '%s' "$install_env_values" | sed -n '2p')"
+
+  if [ -n "${HUB_INSTALL_BRANCH:-}" ] && [ "$HUB_INSTALL_BRANCH" = "$install_env_branch" ]; then
+    unset HUB_INSTALL_BRANCH
+  fi
+
+  if [ -n "${HUB_INSTALL_BRANCH_DIR:-}" ] && [ "$HUB_INSTALL_BRANCH_DIR" = "$install_env_branch_dir" ]; then
+    unset HUB_INSTALL_BRANCH_DIR
+  fi
+fi
+
 if [ -n "${HUB_INSTALL_BRANCH:-}" ] && [ "$HUB_INSTALL_BRANCH" != "$install_branch" ]; then
   printf 'refused: HUB_INSTALL_BRANCH does not match install source (expected %s, got %s)\n' "$install_branch" "$HUB_INSTALL_BRANCH" >&2
   exit 1
@@ -70,8 +86,6 @@ fi
 export HUB_INSTALL_BRANCH="$install_branch"
 export HUB_INSTALL_BRANCH_DIR="$install_branch_dir"
 
-install_env_dir="$workspace_root/state/hub/etc"
-install_env_file="$install_env_dir/install.env"
 mkdir -p "$install_env_dir"
 cat > "$install_env_file" <<EOF
 export HUB_INSTALL_BRANCH=$(printf '%q' "$HUB_INSTALL_BRANCH")
