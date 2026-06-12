@@ -24,7 +24,10 @@ git init "$checkout" >/dev/null 2>&1
 
 cp "scripts/setup-host-bare-hub.sh" "$checkout/scripts/setup-host-bare-hub.sh"
 cp "scripts/verify-host-bare-hub.sh" "$checkout/scripts/verify-host-bare-hub.sh"
+mkdir -p "$checkout/scripts/lib"
+cp "scripts/lib/ensure-bare-excludes.sh" "$checkout/scripts/lib/ensure-bare-excludes.sh"
 chmod +x "$checkout/scripts/setup-host-bare-hub.sh" "$checkout/scripts/verify-host-bare-hub.sh"
+chmod +x "$checkout/scripts/lib/ensure-bare-excludes.sh"
 
 (
   cd "$checkout"
@@ -52,7 +55,22 @@ payload = json.load(open(sys.argv[1], 'r', encoding='utf-8'))
 if not payload.get('ok'):
     print('expected verifier to pass for valid hub', file=sys.stderr)
     sys.exit(1)
+if not any(c.get('id') == 'bare.exclude' and c.get('ok') is True for c in payload.get('checks', [])):
+    print('expected bare.exclude check to pass', file=sys.stderr)
+    sys.exit(1)
 PY
+
+exclude_file="$hub_root/.bare/info/exclude"
+[ -f "$exclude_file" ] || {
+  printf 'expected .bare/info/exclude to exist after setup\n' >&2
+  exit 1
+}
+for pattern in '.envrc' '.envrc.local' '.envrc.bak.*' '.opencode/'; do
+  grep -Fx "$pattern" "$exclude_file" >/dev/null || {
+    printf 'expected %s in .bare/info/exclude\n' "$pattern" >&2
+    exit 1
+  }
+done
 
 rm -f "$hub_root/tmp/.devpodignore"
 if (

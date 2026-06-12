@@ -3,6 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
+exclude_helper="$script_dir/../scripts/lib/ensure-bare-excludes.sh"
 
 usage() {
   printf 'usage: new-worktree [--repo <hub|repo-name>] <branch>\n' >&2
@@ -103,6 +104,13 @@ if [ ! -d "$bare_dir" ]; then
   printf 'refused: managed bare repository is missing\n' >&2
   exit 1
 fi
+
+if [ ! -f "$exclude_helper" ]; then
+  printf 'refused: missing bare exclude helper\n' >&2
+  exit 1
+fi
+
+bash "$exclude_helper" "$bare_dir"
 
 if ! git --git-dir="$bare_dir" show-ref --verify --quiet "refs/heads/$branch"; then
   if git --git-dir="$bare_dir" show-ref --verify --quiet "refs/remotes/origin/$branch"; then

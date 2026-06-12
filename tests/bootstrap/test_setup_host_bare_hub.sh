@@ -34,6 +34,12 @@ if [ -f "scripts/setup-host-bare-hub.sh" ]; then
   chmod +x "$checkout/scripts/setup-host-bare-hub.sh"
 fi
 
+if [ -f "scripts/lib/ensure-bare-excludes.sh" ]; then
+  mkdir -p "$checkout/scripts/lib"
+  cp "scripts/lib/ensure-bare-excludes.sh" "$checkout/scripts/lib/ensure-bare-excludes.sh"
+  chmod +x "$checkout/scripts/lib/ensure-bare-excludes.sh"
+fi
+
 if [ -f "scripts/verify-host-bare-hub.sh" ]; then
   cp "scripts/verify-host-bare-hub.sh" "$checkout/scripts/verify-host-bare-hub.sh"
   chmod +x "$checkout/scripts/verify-host-bare-hub.sh"
@@ -71,6 +77,17 @@ user_name="$(git --git-dir="$hub_root/.bare" config --get user.name)"
 user_email="$(git --git-dir="$hub_root/.bare" config --get user.email)"
 [ "$user_name" = "Bootstrap User" ]
 [ "$user_email" = "bootstrap@example.com" ]
+exclude_file="$hub_root/.bare/info/exclude"
+[ -f "$exclude_file" ] || {
+  printf 'expected .bare/info/exclude to exist after setup\n' >&2
+  exit 1
+}
+for pattern in '.envrc' '.envrc.local' '.envrc.bak.*' '.opencode/'; do
+  grep -Fx "$pattern" "$exclude_file" >/dev/null || {
+    printf 'expected %s in .bare/info/exclude\n' "$pattern" >&2
+    exit 1
+  }
+done
 main_branch="$(git -C "$hub_root/main" rev-parse --abbrev-ref HEAD)"
 [ "$main_branch" = "main" ]
 install_mode_first="$(stat -c '%a' "$hub_root/main/install.sh")"
@@ -116,6 +133,9 @@ git init "$checkout_no_main" >/dev/null 2>&1
 )
 cp "$checkout/scripts/setup-host-bare-hub.sh" "$checkout_no_main/scripts/setup-host-bare-hub.sh"
 chmod +x "$checkout_no_main/scripts/setup-host-bare-hub.sh"
+mkdir -p "$checkout_no_main/scripts/lib"
+cp "$checkout/scripts/lib/ensure-bare-excludes.sh" "$checkout_no_main/scripts/lib/ensure-bare-excludes.sh"
+chmod +x "$checkout_no_main/scripts/lib/ensure-bare-excludes.sh"
 
 if (
   cd "$checkout_no_main"

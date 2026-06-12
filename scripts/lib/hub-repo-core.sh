@@ -120,6 +120,22 @@ hub_set_branch_upstream() {
   git --git-dir="$bare_dir" config "branch.$local_branch.merge" "refs/heads/$remote_branch"
 }
 
+hub_ensure_bare_excludes() {
+  local bare_dir="$1"
+  local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+  local helper="$script_dir/ensure-bare-excludes.sh"
+
+  if [ ! -f "$helper" ]; then
+    hub_fail 'refused: missing bare exclude helper'
+    return 1
+  fi
+
+  if ! bash "$helper" "$bare_dir"; then
+    hub_fail 'refused: unable to configure bare exclude patterns'
+    return 1
+  fi
+}
+
 create_bare_hub() {
   local workspace_root="$1"
   local source="$2"
@@ -177,6 +193,10 @@ create_bare_hub() {
 
   if ! git --git-dir="$workspace_root/.bare" rev-parse --is-bare-repository >/dev/null 2>&1; then
     hub_fail 'refused: existing .bare path is invalid'
+    return
+  fi
+
+  if ! hub_ensure_bare_excludes "$workspace_root/.bare"; then
     return
   fi
 

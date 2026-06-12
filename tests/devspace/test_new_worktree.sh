@@ -163,6 +163,29 @@ restore_validator
 [ -d "$workspace_root/tmp/repos/child-source/work/feature/child" ] || fail "missing child canonical tmp path"
 [ -d "$workspace_root/tmp/repos/child-source/work/feature/child-auto" ] || fail "missing auto-detected child canonical tmp path"
 
+hub_exclude="$workspace_root/.bare/info/exclude"
+[ -f "$hub_exclude" ] || fail "missing hub bare info/exclude"
+
+child_exclude="$workspace_root/repos/child-source/.bare/info/exclude"
+[ -f "$child_exclude" ] || fail "missing child bare info/exclude"
+
+for exclude_file in "$hub_exclude" "$child_exclude"; do
+  grep -Fx '.envrc' "$exclude_file" >/dev/null || fail "missing .envrc exclude in $exclude_file"
+  grep -Fx '.envrc.local' "$exclude_file" >/dev/null || fail "missing .envrc.local exclude in $exclude_file"
+  grep -Fx '.envrc.bak.*' "$exclude_file" >/dev/null || fail "missing .envrc.bak.* exclude in $exclude_file"
+  grep -Fx '.opencode/' "$exclude_file" >/dev/null || fail "missing .opencode/ exclude in $exclude_file"
+done
+
+mkdir -p "$workspace_root/work/feature/top-level/.opencode"
+printf 'hub backup\n' > "$workspace_root/work/feature/top-level/.envrc.bak.20260612000000"
+hub_status="$(git -C "$workspace_root/work/feature/top-level" status --porcelain)"
+[ -z "$hub_status" ] || fail "expected clean hub worktree status with generated artifacts ignored"
+
+mkdir -p "$workspace_root/repos/child-source/work/feature/child/.opencode"
+printf 'child backup\n' > "$workspace_root/repos/child-source/work/feature/child/.envrc.bak.20260612000000"
+child_status="$(git -C "$workspace_root/repos/child-source/work/feature/child" status --porcelain)"
+[ -z "$child_status" ] || fail "expected clean child worktree status with generated artifacts ignored"
+
 for checkout in \
   "$workspace_root/main" \
   "$workspace_root/work/feature/top-level" \

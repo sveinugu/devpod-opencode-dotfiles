@@ -109,6 +109,31 @@ add_check(
     "main is attached as a worktree" if worktree_ok else "main is not attached as a worktree",
 )
 
+exclude_required = [
+    ".envrc",
+    ".envrc.local",
+    ".envrc.bak.*",
+    ".opencode/",
+]
+exclude_missing = []
+exclude_file = os.path.join(hub_root, ".bare", "info", "exclude")
+if not os.path.isfile(exclude_file):
+    exclude_missing = list(exclude_required)
+else:
+    try:
+        with open(exclude_file, "r", encoding="utf-8") as fh:
+            exclude_lines = {line.rstrip("\n") for line in fh}
+        exclude_missing = [entry for entry in exclude_required if entry not in exclude_lines]
+    except OSError as exc:
+        warnings.append(f"exclude read failed: {exc}")
+        exclude_missing = list(exclude_required)
+
+add_check(
+    "bare.exclude",
+    len(exclude_missing) == 0,
+    "bare exclude patterns present" if not exclude_missing else f"missing bare exclude patterns: {', '.join(exclude_missing)}",
+)
+
 devpodignore_required = [
     ".devpodignore",
     "main/.devpodignore",

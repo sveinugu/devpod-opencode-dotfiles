@@ -149,6 +149,7 @@ EOF
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 source_checkout="$(cd "$script_dir/.." && pwd -P)"
+exclude_helper="$source_checkout/scripts/lib/ensure-bare-excludes.sh"
 
 if ! (cd "$source_checkout" && git show-ref --verify --quiet refs/heads/main); then
   printf 'refused: main branch not found in source checkout; main-only convention enforced\n' >&2
@@ -160,6 +161,13 @@ mkdir -p "$hub_root"
 if [ ! -d "$hub_root/.bare" ]; then
   git clone --bare "$source_checkout" "$hub_root/.bare" >/dev/null
 fi
+
+if [ ! -f "$exclude_helper" ]; then
+  printf 'refused: missing bare exclude helper\n' >&2
+  exit 1
+fi
+
+bash "$exclude_helper" "$hub_root/.bare"
 
 printf 'gitdir: ./.bare\n' > "$hub_root/.git"
 
