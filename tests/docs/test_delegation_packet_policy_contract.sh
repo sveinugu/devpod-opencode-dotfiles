@@ -98,6 +98,10 @@ check_anchor "$agents" "Resume token routing semantics" "Resume token routing se
 check_anchor "$agents" "Recovery alignment" "Recovery alignment section"
 check_anchor "$agents" "Anti-scatter checklist" "Anti-scatter checklist"
 check_anchor "$agents" "If Highlight is present but does not match verbatim lines after stripping markup" "Highlight mismatch stop-rule"
+check_anchor "$agents" "ONLY permitted text in the dispatch message is the required handoff wording line" "Outer-boundary handoff-only rule"
+check_anchor "$agents" 'Open questions:` entries must be questions' "Open questions must be questions"
+check_anchor "$agents" 'Hypotheses:` bullet MUST include the literal phrase `confirm before relying`' "Hypotheses confirm-before-relying rule"
+check_anchor "$agents" 'Evidence blocks MUST contain raw output only inside a fenced block and MUST include a `source:` label' "Evidence raw-output source-label rule"
 
 # --- Required anchors in spec ---
 echo ""

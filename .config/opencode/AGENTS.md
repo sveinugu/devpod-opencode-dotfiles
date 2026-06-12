@@ -178,6 +178,8 @@ It is not for resume messages, subagent questions, or subagent completion messag
 
 The packet block ends after the last allowed field. After a blank line, the optional Annex may begin.
 No text is permitted between the end of the packet and the Annex header (besides a blank line).
+Outside the packet block and optional Annex, the ONLY permitted text in the dispatch message is the required handoff wording line.
+No other free-form context is permitted outside the packet/Annex.
 
 ## Verbatim quoting contract
 
@@ -246,6 +248,12 @@ If Highlight is present but does not match verbatim lines after stripping markup
 - New requirements language
 - Interpretative summaries of the user's intent
 - Anything that substitutes for the approved artifact as the requirements source
+
+### Annex subrules
+
+- `Open questions:` entries must be questions.
+- Each `Hypotheses:` bullet MUST include the literal phrase `confirm before relying`.
+- Evidence blocks MUST contain raw output only inside a fenced block and MUST include a `source:` label.
 
 ## Artifact semantics + handshake
 
