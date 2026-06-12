@@ -78,6 +78,11 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 - [ ] `install.sh` does not treat stale `HUB_INSTALL_BRANCH` or `HUB_INSTALL_BRANCH_DIR` values inherited from `/workspaces/dotfiles/state/hub/etc/install.env` via managed `.envrc` as an explicit override; a run started from a different checkout succeeds and republishes the new installed-branch state.
 - [ ] `install.sh` validates explicit branch and directory override fields independently, so mixed explicit/inherited cases fail only on an explicit mismatch and otherwise republish the actual checkout state.
 - [ ] Each editable top-level checkout gets a generated `.envrc` plus `.envrc.local`, and generated `.envrc` sources `/workspaces/dotfiles/state/hub/etc/install.env` when present.
+- [ ] Managed generated-artifact ignore patterns are defined centrally in `scripts/lib/bare-excludes.list`.
+- [ ] Managed generated-artifact ignore patterns include `.envrc`, `.envrc.local`, `.envrc.bak.*`, and `.opencode/`.
+- [ ] `scripts/lib/ensure-bare-excludes.sh` overwrites a bare repo's `info/exclude` from the managed list rather than appending.
+- [ ] Top-level bootstrap/provision management paths can deterministically reset `/workspaces/dotfiles/.bare/info/exclude` from the managed list.
+- [ ] Routine runtime commands such as `scripts/lib/worktree-env.sh` and `bin/new-worktree` do not rewrite bare excludes.
 - [ ] Per-checkout cwd-sensitive environment uses `DYN_REPO_*` and `DYN_WORKTREE_*` names without changing `HOME`.
 - [ ] `dhub` (shell-level helper) changes to the active install checkout from `$HUB_INSTALL_BRANCH_DIR` and prints the destination directory before changing into it.
 - [ ] `dre <repo>` changes to `/workspaces/dotfiles/repos/<repo>` and refuses the top-level hub as a target.
@@ -103,6 +108,7 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
   - [ ] canonical top-level hub `state/` and `tmp/` paths exist
   - [ ] `/home/vscode` symlinks point to an existing top-level worktree
   - [ ] installed-branch state in `state/hub/etc/install.env` is reported when available
+- [ ] Top-level bare-exclude drift is surfaced as a warning, and exclude mismatch alone does not fail verification.
 
 ### G. `repair` behavior
 
@@ -143,6 +149,8 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
   - [ ] `repos/<name>/<default-branch>`
   - [ ] `repos/<name>/work/`
   - [ ] matching canonical `state/` and `tmp/` paths for `<default-branch>`
+- [ ] New child bare repos seed their `.bare/info/exclude` file from the managed default list at creation time.
+- [ ] Existing child bare repos preserve local `info/exclude` edits after creation.
 
 ### Additional phase-1 documentation and workflow guidance
 

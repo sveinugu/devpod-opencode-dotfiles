@@ -261,6 +261,21 @@ Child repo examples:
 
 The top-level workspace and all child repos must use this same mapping convention in v1.
 
+### Managed bare-repo excludes for generated artifacts
+
+Generated local artifacts such as `.envrc`, `.envrc.local`, `.envrc.bak.*`, and `.opencode/` should not rely on tracked repo `.gitignore` files in this model. They are local runtime artifacts, and the ignore mechanism in v1 is each bare repo's local exclude file at `<bare>/info/exclude`.
+
+The default pattern set is maintained in tracked `scripts/lib/bare-excludes.list`, one pattern per line. Contributors update that file to change the managed default exclude policy.
+
+`scripts/lib/ensure-bare-excludes.sh` reads that list and overwrites the target exclude file rather than appending to it. This gives explicit management paths deterministic reset semantics.
+
+The application policy is intentionally role-based:
+
+- the top-level `.bare` is managed infrastructure, so bootstrap/provision management paths may reapply the managed exclude set there;
+- child repo bare directories are seeded with the managed exclude set at creation time, but later local edits to child `info/exclude` files are preserved.
+
+Routine runtime commands such as worktree environment generation and new-worktree creation must not silently self-heal or rewrite exclude files. Drift for the top-level `.bare/info/exclude` should remain visible through verification, but mismatch is warning-only rather than a hard failure.
+
 ## `/home/vscode` and Install Model
 
 ### Authority boundary
