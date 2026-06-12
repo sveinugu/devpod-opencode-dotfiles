@@ -78,11 +78,12 @@ Provide one approved implementation plan for the full DevSpace bare-hub workspac
 10. **Managed envrc exports:** export exactly `HUB_DIR`, `HUB_MAIN_DIR`, `HUB_STATE_DIR`, `HUB_TMP_DIR`, `DYN_REPO_DIR`, `DYN_REPO_DEFAULT_BRANCH`, `DYN_REPO_DEFAULT_DIR`, `DYN_REPO_STATE_DIR`, `DYN_REPO_TMP_DIR`, `DYN_WORKTREE_DIR`, `DYN_WORKTREE_STATE_DIR`, and `DYN_WORKTREE_TMP_DIR`; do not export `DYN_REPO_MAIN_DIR`.
 11. **Managed envrc conflict policy:** refuse generation when `.envrc` already exists; create `.envrc.local` when missing; source `.envrc.local` from the managed `.envrc`; and let `.envrc.local` failures surface normally.
 12. **User-facing command layout:** use `bin/` for in-pod human commands without `.sh`, `scripts/` for automation entrypoints, `scripts/lib/` for helpers, and `ops/host/` for host-runner sources.
-13. **Installed-branch state contract:** `install.sh` is the authoritative writer of installed-branch state. It must export and persist `HUB_INSTALL_BRANCH` and `HUB_INSTALL_BRANCH_DIR` to `/workspaces/dotfiles/state/hub/etc/install.env`. It must hard-fail when an explicit caller override declares a different branch/dir than the checkout it is running from, but it must not treat stale values inherited from prior `/workspaces/dotfiles/state/hub/etc/install.env` state as such an override; a fresh run from another checkout must replace the previous installed-branch state.
-14. **Installed-branch worktree policy:** keep `/workspaces/dotfiles/main` attached to `main` only. If `HUB_INSTALL_BRANCH` is set to a non-`main` branch, provision/repair must ensure a matching worktree exists under `/workspaces/dotfiles/work/<branch-name>` and then run that worktree's `install.sh` instead of repointing `main/`.
-15. **Navigation command surface:** `dhub` is the canonical install-root resolver name, paired with `dre` and `dwt`. `dhub` is implemented as a shell function in `.config/shell/workspace-navigation.zsh` backed by `scripts/lib/resolve-install-target.sh`; no compatibility alias is shipped in v1. Keep resolver behavior explicit and keep the "no implicit fallback" rule for all navigation commands.
-16. **Child default-branch fidelity:** child-repo onboarding and related tooling must detect and preserve each child repo's exact remote default branch name instead of normalizing it to `main` or any other fixed branch name.
-17. **Top-level primary-branch policy in v1:** top-level provision/repair/doctor/navigation checks are `main`-only for the controlled top-level repo and must fail clearly when `main` is unavailable; no implicit mapping to hub root is allowed.
+13. **Explicit install-branch override term:** in this plan, an **explicit install-branch override** means a current-run, caller-intended override for branch selection (for example `HUB_INSTALL_BRANCH=<branch> devspace run-pipeline provision` or `repair`, or equivalent direct `install.sh` inputs). Ambient values inherited from managed `.envrc` after sourcing prior `state/hub/etc/install.env` are installed-state context, not an explicit install-branch override.
+14. **Installed-branch state contract:** `install.sh` is the authoritative writer of installed-branch state. It must export and persist `HUB_INSTALL_BRANCH` and `HUB_INSTALL_BRANCH_DIR` to `/workspaces/dotfiles/state/hub/etc/install.env`. It must hard-fail when an explicit install-branch override declares a different branch/dir than the checkout it is running from, but it must not treat stale values inherited from prior `/workspaces/dotfiles/state/hub/etc/install.env` state as such an override; a fresh run from another checkout must replace the previous installed-branch state.
+15. **Installed-branch worktree policy:** keep `/workspaces/dotfiles/main` attached to `main` only. When an explicit install-branch override selects a non-`main` branch, provision/repair must ensure a matching worktree exists under `/workspaces/dotfiles/work/<branch-name>` and then run that worktree's `install.sh` instead of repointing `main/`. Without an explicit install-branch override, provision defaults to `main`, while repair first consults current installed-branch state from `state/hub/etc/install.env` and uses that non-`main` worktree when it is still valid.
+16. **Navigation command surface:** `dhub` is the canonical install-root resolver name, paired with `dre` and `dwt`. `dhub` is implemented as a shell function in `.config/shell/workspace-navigation.zsh` backed by `scripts/lib/resolve-install-target.sh`; no compatibility alias is shipped in v1. Keep resolver behavior explicit and keep the "no implicit fallback" rule for all navigation commands.
+17. **Child default-branch fidelity:** child-repo onboarding and related tooling must detect and preserve each child repo's exact remote default branch name instead of normalizing it to `main` or any other fixed branch name.
+18. **Top-level primary-branch policy in v1:** top-level provision/repair/doctor/navigation checks are `main`-only for the controlled top-level repo and must fail clearly when `main` is unavailable; no implicit mapping to hub root is allowed.
 
 ---
 
@@ -765,7 +766,7 @@ Carry over the older contract tests with only the naming/docs changes needed for
 - `tests/install/test_install_local_source_contract.sh`
 - `tests/docs/test_bare_hub_guardrails.sh`
 
-Extend `tests/install/test_install_local_source_contract.sh` so it distinguishes between an explicit mismatch supplied for the current run (still RED/fail) and stale `HUB_INSTALL_BRANCH` / `HUB_INSTALL_BRANCH_DIR` values inherited from prior `state/hub/etc/install.env` state through managed `.envrc` (must stay GREEN/succeed and rewrite state).
+Extend `tests/install/test_install_local_source_contract.sh` so it distinguishes between an explicit install-branch override mismatch supplied for the current run (still RED/fail) and stale `HUB_INSTALL_BRANCH` / `HUB_INSTALL_BRANCH_DIR` values inherited from prior `state/hub/etc/install.env` state through managed `.envrc` (must stay GREEN/succeed and rewrite state).
 
 The behavioral contract must stay the same as the older plan for install source detection and hub-root refusal.
 
@@ -774,8 +775,9 @@ The same task must now also lock the installed-branch publication contract used 
 - `install.sh` must derive the branch and checkout directory it is running from;
 - `install.sh` must export `HUB_INSTALL_BRANCH` and `HUB_INSTALL_BRANCH_DIR` for child commands during the install run;
 - `install.sh` must persist those same values to `/workspaces/dotfiles/state/hub/etc/install.env`;
-- `install.sh` must hard-fail if explicitly caller-supplied `HUB_INSTALL_BRANCH` / `HUB_INSTALL_BRANCH_DIR` do not match the actual checkout it is running from;
-- `install.sh` must not treat stale `HUB_INSTALL_BRANCH` / `HUB_INSTALL_BRANCH_DIR` values inherited from `/workspaces/dotfiles/state/hub/etc/install.env` via managed `.envrc` as explicit caller intent; if the script is started from a different checkout, it must succeed and rewrite installed-branch state to the new checkout;
+- `install.sh` must hard-fail if any explicit install-branch override field (`HUB_INSTALL_BRANCH` and/or `HUB_INSTALL_BRANCH_DIR`) does not match the actual checkout it is running from;
+- `install.sh` must not treat stale `HUB_INSTALL_BRANCH` / `HUB_INSTALL_BRANCH_DIR` values inherited from `/workspaces/dotfiles/state/hub/etc/install.env` via managed `.envrc` as explicit install-branch override intent; if the script is started from a different checkout, it must succeed and rewrite installed-branch state to the new checkout;
+- `install.sh` must validate explicit branch and explicit directory inputs independently so mixed explicit/inherited cases behave predictably and only explicit mismatches fail;
 - if shell helper `dhub` is not already available, `install.sh` should print a recommendation snippet that users may add to their shell config later; the recommended `dhub()` function should print the resolved install directory before changing into it for user convenience; there is no compatibility alias in v1.
 
 This same task must also update user-facing and agent-facing guidance:
@@ -808,7 +810,7 @@ Implementation contract:
 - Keep the top-level dotfiles repo as the only `/home/vscode` authority.
 - Update the usage runbook so DevSpace users are directed to `/workspaces/dotfiles/main`, not the hub root.
 - Add the installed-branch publication file at `state/hub/etc/install.env` and keep it owned by `install.sh`.
-- Treat environment-variable presence alone as insufficient evidence of explicit caller override, because managed `.envrc` files auto-source the prior installed-branch state.
+- Treat environment-variable presence alone as insufficient evidence of an explicit install-branch override, because managed `.envrc` files auto-source the prior installed-branch state.
 - Keep the install-time recommendation message aligned with the approved `dhub` helper name; there is no compatibility alias in v1.
 - Add an explicit short "what changed for implementers" note to the touched runbook/agent-policy docs whenever the command names or install-branch behavior differ from the already-landed implementation in this worktree.
 
@@ -857,8 +859,9 @@ git commit -m "feat(workspace): carry forward install and bare-hub guardrails"
 - top-level bootstrap checkout is attached from the bare repo using `origin/main`;
 - canonical top-level paths exist for the selected bootstrap checkout: `state/hub/<bootstrap-branch>/` and `tmp/hub/<bootstrap-branch>/`;
 - `<bootstrap-branch>/install.sh` is invoked;
-- if `HUB_INSTALL_BRANCH` is unset, provision installs from the selected top-level bootstrap checkout and publishes matching values to `state/hub/etc/install.env`;
-- if `HUB_INSTALL_BRANCH` is set to a non-bootstrap branch, provision keeps the selected bootstrap checkout attached to its branch, ensures `/workspaces/dotfiles/work/<branch-name>` exists, runs that worktree's `install.sh`, and publishes matching installed-branch state;
+- without an explicit install-branch override, provision installs from the selected top-level bootstrap checkout and publishes matching values to `state/hub/etc/install.env`, even if the invoking checkout inherited a different installed-branch state through managed `.envrc`;
+- with an explicit install-branch override selecting a non-bootstrap branch, provision keeps the selected bootstrap checkout attached to its branch, ensures `/workspaces/dotfiles/work/<branch-name>` exists, runs that worktree's `install.sh`, and publishes matching installed-branch state;
+- provision derives the install checkout directory from the resolved branch/worktree and ignores ambient `HUB_INSTALL_BRANCH_DIR` as a branch-selection signal;
 - provision refuses if `origin/main` does not exist;
 - provision refuses if an existing top-level bootstrap checkout path is present in a broken or detached state;
 - provision refuses if the requested install branch cannot be materialized as a matching worktree.
@@ -888,8 +891,10 @@ Implementation contract:
 - The top-level provision source is the public dotfiles repo, cloned bare in-pod.
 - V1 supports only fixed top-level bootstrap probing (`origin/main`); do not add configurable probe lists.
 - The script must create `state/hub/<bootstrap-branch>/` and `tmp/hub/<bootstrap-branch>/` immediately after attaching the selected top-level bootstrap checkout.
-- `HUB_INSTALL_BRANCH` replaces the earlier `HUB_PROVISION_BRANCH` behavior and means "which checkout should supply install.sh", not "what branch should the bootstrap checkout attach to".
-- if `HUB_INSTALL_BRANCH` is non-bootstrap, provision must ensure `/workspaces/dotfiles/work/<branch-name>` exists and run `install.sh` from there while leaving the bootstrap checkout attached to its selected branch.
+- `HUB_INSTALL_BRANCH` replaces the earlier `HUB_PROVISION_BRANCH` behavior and means "which checkout should supply install.sh" only when it is provided as an explicit install-branch override for the current run, not merely inherited from managed `.envrc`.
+- without an explicit install-branch override, provision must install from the bootstrap checkout (`main` in v1).
+- with an explicit install-branch override naming a non-bootstrap branch, provision must ensure `/workspaces/dotfiles/work/<branch-name>` exists and run `install.sh` from there while leaving the bootstrap checkout attached to its selected branch.
+- provision must derive the install checkout directory from the resolved branch/worktree and must not use ambient `HUB_INSTALL_BRANCH_DIR` as a branch-selection input.
 - the chosen `install.sh` invocation must write `/workspaces/dotfiles/state/hub/etc/install.env` with `HUB_INSTALL_BRANCH` and `HUB_INSTALL_BRANCH_DIR`.
 - Task 1's SSH placeholder must become a real acceptance path here: once `devspace dev` is active on the host, the DevSpace-managed alias must reach `/workspaces/dotfiles/main` without adding a standalone SSH Service.
 
@@ -972,9 +977,12 @@ The same manual gate must also confirm the Task-1/Task-3 SSH acceptance path wit
 - missing managed directories can be recreated;
 - missing canonical `state/` and `tmp/` paths can be recreated;
 - `main` can be reattached only when `.bare` is valid and recognizable;
-- if `HUB_INSTALL_BRANCH` is unset or `main`, repair reinstalls from `main/`;
-- if `HUB_INSTALL_BRANCH` is non-`main`, repair keeps `main/` on `main`, ensures `/workspaces/dotfiles/work/<branch-name>` exists, and reinstalls from that worktree;
-- repair can inspect existing installed-branch state via `state/hub/etc/install.env` and must not silently publish contradictory state;
+- without an explicit install-branch override, repair inspects existing installed-branch state via `state/hub/etc/install.env` before choosing the install checkout;
+- without an explicit install-branch override, repair reinstalls from a valid installed non-`main` worktree when present, otherwise falls back to `main/`;
+- with an explicit install-branch override naming a non-`main` branch, repair keeps `main/` on `main`, ensures `/workspaces/dotfiles/work/<branch-name>` exists, and reinstalls from that worktree;
+- repair derives the install checkout directory from the resolved branch/worktree and ignores ambient `HUB_INSTALL_BRANCH_DIR` as a branch-selection signal;
+- inherited managed-`.envrc` install state does not by itself count as an explicit install-branch override for repair;
+- repair must not silently publish contradictory state;
 - existing tracked/untracked files and worktrees are not deleted;
 - a still-valid non-`main` `/home/vscode` symlink target is preserved;
 - invalid `.bare`, ambiguous identity, or conflicting path types cause refusal.
@@ -1019,7 +1027,9 @@ Implementation contract:
 
 - `repair` is non-destructive and structural only;
 - `destroy` is the true clean reset path;
-- `repair` may honor `HUB_INSTALL_BRANCH` as an override request, but it must resolve that into a real worktree under `work/` and then run the matching `install.sh`;
+- without an explicit install-branch override, `repair` must resolve the install checkout from current installed-branch state in `state/hub/etc/install.env` when that state points to a still-valid top-level worktree, otherwise fall back to `main`;
+- `repair` may honor `HUB_INSTALL_BRANCH` as an explicit install-branch override, but it must resolve that into a real worktree under `work/` and then run the matching `install.sh`;
+- `repair` must derive the install checkout directory from the resolved branch/worktree and must not use ambient `HUB_INSTALL_BRANCH_DIR` as a branch-selection input;
 - `repair` must never retarget `/workspaces/dotfiles/main` away from `main`;
 - neither command guesses when the top-level workspace identity is ambiguous.
 
@@ -1085,7 +1095,7 @@ git commit -m "feat(workspace): add doctor repair and destroy flows"
 - the generated `.envrc` exists for every managed checkout, including top-level `main/`, child-repo `main/`, and non-`main` worktrees;
 - generated `.envrc` exports exactly `HUB_DIR`, `HUB_MAIN_DIR`, `HUB_STATE_DIR`, `HUB_TMP_DIR`, `DYN_REPO_DIR`, `DYN_REPO_MAIN_DIR`, `DYN_REPO_STATE_DIR`, `DYN_REPO_TMP_DIR`, `DYN_WORKTREE_DIR`, `DYN_WORKTREE_STATE_DIR`, and `DYN_WORKTREE_TMP_DIR`;
 - generated `.envrc` also sources `/workspaces/dotfiles/state/hub/etc/install.env` when present so every checkout sees the current `HUB_INSTALL_BRANCH` and `HUB_INSTALL_BRANCH_DIR` values without editing each `.envrc` file;
-- that inherited installed-state visibility is for navigation/repair context only and must not by itself block a later direct `install.sh` run from a different checkout;
+- that inherited installed-state visibility is for navigation and repair-state discovery only; it must not by itself count as an explicit install-branch override or block a later direct `install.sh` run from a different checkout;
 - generated `.envrc` sources `.envrc.local` after the managed exports, and `.envrc.local` is auto-created for new managed checkouts;
 - generation refuses if `.envrc` already exists;
 - `.envrc.local` failures surface normally through direnv instead of being swallowed;

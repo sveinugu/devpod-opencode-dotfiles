@@ -40,6 +40,9 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 - [ ] Provision fails clearly if an existing top-level `main/` path is present but broken or detached.
 - [ ] Successful provision attaches `/workspaces/dotfiles/main` from the top-level bare repo.
 - [ ] If `HUB_INSTALL_BRANCH` names a non-`main` branch, provision ensures `/workspaces/dotfiles/work/<branch-name>` exists and runs that worktree's `install.sh`.
+- [ ] Without an explicit install-branch override for the current run, provision installs from `/workspaces/dotfiles/main` even if the invoking checkout inherited a different installed-branch state through managed `.envrc`.
+- [ ] An explicit `HUB_INSTALL_BRANCH=<branch>` override wins over inherited installed-branch state for that `provision` run.
+- [ ] Provision derives the install checkout directory from the resolved branch/worktree and does not use ambient `HUB_INSTALL_BRANCH_DIR` as a branch-selection signal.
 - [ ] Provision never retargets `/workspaces/dotfiles/main` away from the `main` branch.
 - [ ] Successful provision creates `work/`, `repos/`, `state/`, and `tmp/` under `/workspaces/dotfiles`.
 - [ ] Successful provision runs `install.sh` from the selected install checkout (`/workspaces/dotfiles/main` by default).
@@ -71,8 +74,9 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 - [ ] Running `install.sh` from a top-level feature worktree repoints `/home/vscode` symlinks to that worktree.
 - [ ] Child repos under `repos/*` do not become authorities for `/home/vscode` config.
 - [ ] `install.sh` publishes the active installed-branch state to `/workspaces/dotfiles/state/hub/etc/install.env`.
-- [ ] `install.sh` hard-fails if the caller explicitly supplies `HUB_INSTALL_BRANCH` or `HUB_INSTALL_BRANCH_DIR` and those values do not match the checkout it is actually running from.
+- [ ] `install.sh` treats only current-run, explicit `HUB_INSTALL_BRANCH` / `HUB_INSTALL_BRANCH_DIR` inputs as an explicit install-branch override and hard-fails when any explicit value does not match the checkout it is actually running from.
 - [ ] `install.sh` does not treat stale `HUB_INSTALL_BRANCH` or `HUB_INSTALL_BRANCH_DIR` values inherited from `/workspaces/dotfiles/state/hub/etc/install.env` via managed `.envrc` as an explicit override; a run started from a different checkout succeeds and republishes the new installed-branch state.
+- [ ] `install.sh` validates explicit branch and directory override fields independently, so mixed explicit/inherited cases fail only on an explicit mismatch and otherwise republish the actual checkout state.
 - [ ] Each editable top-level checkout gets a generated `.envrc` plus `.envrc.local`, and generated `.envrc` sources `/workspaces/dotfiles/state/hub/etc/install.env` when present.
 - [ ] Per-checkout cwd-sensitive environment uses `DYN_REPO_*` and `DYN_WORKTREE_*` names without changing `HOME`.
 - [ ] `dhub` (shell-level helper) changes to the active install checkout from `$HUB_INSTALL_BRANCH_DIR` and prints the destination directory before changing into it.
@@ -109,7 +113,11 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 - [ ] `repair` may reattach or recreate top-level `main` only when the top-level bare repo is valid and recognizable.
 - [ ] `repair` can honor optional `HUB_INSTALL_BRANCH=<branch>` and rerun that checkout's `install.sh` when appropriate.
 - [ ] `repair` reruns `install.sh` from the selected install checkout without retargeting `/workspaces/dotfiles/main` away from `main`.
-- [ ] `repair` can inspect existing installed-branch state via `state/hub/etc/install.env` before deciding what to restore.
+- [ ] Without an explicit install-branch override for the current run, `repair` inspects existing installed-branch state via `state/hub/etc/install.env` before deciding what to restore.
+- [ ] Without an explicit install-branch override, `repair` prefers a valid installed non-`main` worktree from `state/hub/etc/install.env` and falls back to `main` only when no valid installed state is available.
+- [ ] An explicit `HUB_INSTALL_BRANCH=<branch>` override wins over prior installed-branch state for that `repair` run.
+- [ ] `repair` derives the install checkout directory from the resolved branch/worktree and does not use ambient `HUB_INSTALL_BRANCH_DIR` as a branch-selection signal.
+- [ ] Inherited `HUB_INSTALL_BRANCH` / `HUB_INSTALL_BRANCH_DIR` values from managed `.envrc` do not by themselves count as an explicit install-branch override for `repair`.
 - [ ] `repair` preserves an intentionally repointed non-`main` `/home/vscode` symlink target when that target still points to an existing top-level worktree.
 - [ ] `repair` refuses rather than guessing when `.bare` is invalid, the top-level repo identity is ambiguous, or managed paths conflict by type.
 
