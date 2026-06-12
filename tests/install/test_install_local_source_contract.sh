@@ -18,8 +18,6 @@ workspace_root="$tmpdir/ws-root"
 workspace_install_env="$workspace_root/state/hub/etc/install.env"
 target_home="$tmpdir/home"
 offcwd="$tmpdir/unrelated-cwd"
-export DYN_WORKTREE_TMP_DIR="$tmpdir/dyn-tmp"
-
 unset HUB_INSTALL_BRANCH HUB_INSTALL_BRANCH_DIR
 
 mkdir -p \
@@ -27,7 +25,6 @@ mkdir -p \
   "$workspace_root/main/.config/opencode" \
   "$workspace_root/work/feature-x/.config/opencode" \
   "$workspace_root/state" \
-  "$DYN_WORKTREE_TMP_DIR" \
   "$target_home" \
   "$offcwd"
 
