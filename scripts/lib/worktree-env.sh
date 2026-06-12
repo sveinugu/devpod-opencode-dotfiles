@@ -96,6 +96,9 @@ export DYN_REPO_TMP_DIR="$dyn_repo_tmp_dir"
 export DYN_WORKTREE_DIR="$checkout_dir"
 export DYN_WORKTREE_STATE_DIR="$dyn_worktree_state_dir"
 export DYN_WORKTREE_TMP_DIR="$dyn_worktree_tmp_dir"
+export TMPDIR="$dyn_worktree_tmp_dir"
+export TMP="$dyn_worktree_tmp_dir"
+export TEMP="$dyn_worktree_tmp_dir"
 if [ -f /workspaces/dotfiles/state/hub/etc/install.env ]; then
   source /workspaces/dotfiles/state/hub/etc/install.env
 fi

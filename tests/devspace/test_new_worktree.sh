@@ -212,6 +212,30 @@ do
   grep -F 'export DYN_WORKTREE_DIR=' "$checkout/.envrc" >/dev/null || fail "missing DYN_WORKTREE_DIR export in $checkout/.envrc"
   grep -F 'export DYN_WORKTREE_STATE_DIR=' "$checkout/.envrc" >/dev/null || fail "missing DYN_WORKTREE_STATE_DIR export in $checkout/.envrc"
   grep -F 'export DYN_WORKTREE_TMP_DIR=' "$checkout/.envrc" >/dev/null || fail "missing DYN_WORKTREE_TMP_DIR export in $checkout/.envrc"
+  grep -F 'export TMPDIR=' "$checkout/.envrc" >/dev/null || fail "missing TMPDIR export in $checkout/.envrc"
+  grep -F 'export TMP=' "$checkout/.envrc" >/dev/null || fail "missing TMP export in $checkout/.envrc"
+  grep -F 'export TEMP=' "$checkout/.envrc" >/dev/null || fail "missing TEMP export in $checkout/.envrc"
+
+  dyn_worktree_tmp_line="$(grep -F 'export DYN_WORKTREE_TMP_DIR=' "$checkout/.envrc" || true)"
+  tmpdir_line="$(grep -F 'export TMPDIR=' "$checkout/.envrc" || true)"
+  tmp_line="$(grep -F 'export TMP=' "$checkout/.envrc" || true)"
+  temp_line="$(grep -F 'export TEMP=' "$checkout/.envrc" || true)"
+
+  dyn_worktree_tmp_value="${dyn_worktree_tmp_line#export DYN_WORKTREE_TMP_DIR=\"}"
+  dyn_worktree_tmp_value="${dyn_worktree_tmp_value%\"}"
+
+  tmpdir_value="${tmpdir_line#export TMPDIR=\"}"
+  tmpdir_value="${tmpdir_value%\"}"
+
+  tmp_value="${tmp_line#export TMP=\"}"
+  tmp_value="${tmp_value%\"}"
+
+  temp_value="${temp_line#export TEMP=\"}"
+  temp_value="${temp_value%\"}"
+
+  [ "$tmpdir_value" = "$dyn_worktree_tmp_value" ] || fail "TMPDIR should match DYN_WORKTREE_TMP_DIR in $checkout/.envrc"
+  [ "$tmp_value" = "$dyn_worktree_tmp_value" ] || fail "TMP should match DYN_WORKTREE_TMP_DIR in $checkout/.envrc"
+  [ "$temp_value" = "$dyn_worktree_tmp_value" ] || fail "TEMP should match DYN_WORKTREE_TMP_DIR in $checkout/.envrc"
 
   grep -F '/workspaces/dotfiles/state/hub/etc/install.env' "$checkout/.envrc" >/dev/null || fail "missing install.env source in $checkout/.envrc"
   grep -F '.envrc.local' "$checkout/.envrc" >/dev/null || fail "missing .envrc.local source in $checkout/.envrc"

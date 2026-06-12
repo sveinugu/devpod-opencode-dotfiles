@@ -84,6 +84,7 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 - [ ] Top-level bootstrap/provision management paths can deterministically reset `/workspaces/dotfiles/.bare/info/exclude` from the managed list.
 - [ ] Routine runtime commands such as `scripts/lib/worktree-env.sh` and `bin/new-worktree` do not rewrite bare excludes.
 - [ ] Per-checkout cwd-sensitive environment uses `DYN_REPO_*` and `DYN_WORKTREE_*` names without changing `HOME`.
+- [ ] Generated `.envrc` exports `TMPDIR`, `TMP`, and `TEMP`, and each matches the generated `DYN_WORKTREE_TMP_DIR` value.
 - [ ] `dhub` (shell-level helper) changes to the active install checkout from `$HUB_INSTALL_BRANCH_DIR` and prints the destination directory before changing into it.
 - [ ] `dre <repo>` changes to `/workspaces/dotfiles/repos/<repo>` and refuses the top-level hub as a target.
 - [ ] `dwt <name>` changes to `work/<name>` within the current managed repo context and refuses to run outside a managed repo context.
