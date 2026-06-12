@@ -71,7 +71,8 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 - [ ] Running `install.sh` from a top-level feature worktree repoints `/home/vscode` symlinks to that worktree.
 - [ ] Child repos under `repos/*` do not become authorities for `/home/vscode` config.
 - [ ] `install.sh` publishes the active installed-branch state to `/workspaces/dotfiles/state/hub/etc/install.env`.
-- [ ] `install.sh` hard-fails if caller-supplied `HUB_INSTALL_BRANCH` or `HUB_INSTALL_BRANCH_DIR` do not match the checkout it is actually running from.
+- [ ] `install.sh` hard-fails if the caller explicitly supplies `HUB_INSTALL_BRANCH` or `HUB_INSTALL_BRANCH_DIR` and those values do not match the checkout it is actually running from.
+- [ ] `install.sh` does not treat stale `HUB_INSTALL_BRANCH` or `HUB_INSTALL_BRANCH_DIR` values inherited from `/workspaces/dotfiles/state/hub/etc/install.env` via managed `.envrc` as an explicit override; a run started from a different checkout succeeds and republishes the new installed-branch state.
 - [ ] Each editable top-level checkout gets a generated `.envrc` plus `.envrc.local`, and generated `.envrc` sources `/workspaces/dotfiles/state/hub/etc/install.env` when present.
 - [ ] Per-checkout cwd-sensitive environment uses `DYN_REPO_*` and `DYN_WORKTREE_*` names without changing `HOME`.
 - [ ] `dhub` (shell-level helper) changes to the active install checkout from `$HUB_INSTALL_BRANCH_DIR` and prints the destination directory before changing into it.
