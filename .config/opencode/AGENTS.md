@@ -142,42 +142,8 @@ Why this works
 
 > **Deprecated:** superseded by “Delegation & Sessions (canonical)”. Do not use for new delegations.
 
-
-- Before Maestro delegates new scoped work to a subagent, it MUST send a `Delegation Packet`.
-- Use `Delegation Packet` only for Maestro → subagent scoped delegation. Do not force it onto resume messages, subagent questions, or subagent completion messages.
-- `Delegation Packet` uses a closed schema. If a draft packet contains any field, section, heading, bullet, or instruction outside the allowed fields below, it is invalid and MUST be rewritten before dispatch.
-- Allowed packet fields:
-  - `Artifact path:` or `Artifact paths:` with exact path strings when applicable
-  - `Verbatim user request:` as a quoted block
-  - `Warnings:` only when non-empty
-  - router-owned metadata: `Session:`, `Resume:`, `Owner:`, `Authority:`
-- Forbidden packet content:
-  - `Instructions:` / `Notes:` / `Reminders:` / `Summary:` / `Deliverables:` / `Non-deliverables:` / `Provenance:` / `Active slice:` / any other extra field
-  - interpretative summaries
-  - inferred deliverables
-  - inferred scope
-  - implementation steering beyond the approved artifact
-  - “helpful corrections” to user wording
-- `Warnings:` is the only allowed Maestro-added context field in the packet and is non-authoritative. It may note ambiguity, discrepancy with an approved artifact, missing formalities, or routing/admin facts, but it MUST NOT override the artifact or the verbatim user request.
-- `Warnings:` must be brief factual flags only. They MUST NOT contain instructions, imperatives, reminders, deliverables, process expansions, or disguised task steering.
-- If delegation would require interpretation, Maestro must ask the user instead of inferring.
-- Explicit user routing requests override default routing policy. If the user explicitly requests a particular subagent, the current general agent, or an existing `$<task_id>` session, that routing choice must be honored.
-- `Preview:` optional; provide the exact outgoing delegation packet on request, or before dispatch when earlier context was materially compressed.
-- `Preview:` is meta-commentary outside the packet, not a packet field.
-- Example packet (for reference; templates should remain marker-only):
-
-  ```text
-  Delegation Packet
-  Artifact path: docs/superpowers/plans/2026-05-22-subagent-session-communication-policy.md
-  Verbatim user request:
-  > Implement the first approved slice with tests first.
-  Warnings:
-  - Possible discrepancy: the approved plan says CLI-only, while the latest user note may imply TUI interest.
-  Session: ses_abc123
-  Resume: $ses_abc123 <your reply>
-  Owner: implementer
-  Authority: only the owning subagent may perform implementer responsibilities unless a human-approved Maestro override is active
-  ```
+- Canonical source: `# Delegation & Sessions (canonical)` below.
+- For packet schema, allowed fields, forbidden fields, Annex rules, and stop-rules, use only the canonical chapter.
 
 
 
@@ -271,6 +237,8 @@ Evidence (verbatim, source: <label>):
   - delete words, add words, use ellipses (`...`), or re-order text
 - Mechanically: the highlighted line MUST match an original verbatim line after stripping allowed markup.
 
+If Highlight is present but does not match verbatim lines after stripping markup, the subagent MUST stop and request correction.
+
 ### Forbidden Annex content
 
 - Imperatives and instruction lists
@@ -317,6 +285,57 @@ Switching you to the <subagent> subagent now — please interact directly with i
 After successful launch or resume of a subagent session, the delegating agent MUST surface the
 validated `Session:` / `Resume:` / `Owner:` / `Authority:` block **immediately**,
 before any other orchestration text beyond the required handoff wording.
+
+## Resume token routing semantics
+
+- Purpose: provide the canonical routing policy for resuming subagent sessions after process restarts.
+- User-facing resume syntax: a user may resume a waiting subagent by sending a single-line message that begins with:
+
+  `$<task_id> <their reply>`
+
+  Example: `$ses_1beff32adffex42WsKM8Hks5PF Here is my answer`
+
+- Token requirements: `task_id` is opaque. It must not encode user identity, permissions, or internal routing metadata.
+- Matching: task_id matching should be treated as case-insensitive when manual lookup is required.
+- Escape: if a user needs a literal leading dollar, instruct them to prefix with `$$` (for example, `"$$hello" => "$hello"` no resume).
+- Routing guarantee: when a valid `$<task_id>` token is present, the reply MUST be routed directly and verbatim to that session's owning subagent rather than being re-triaged as a fresh task for the dispatching agent. The subagent-facing payload begins immediately after the token and extends unchanged to the end of the user message.
+- Never override or reroute a user-provided `$<task_id>` token. Always route to that exact session regardless of other active sessions.
+- Preserve resume tokens verbatim. Do not rewrite, normalize, shorten, or absorb them.
+
+### Session-resume and "switch" semantics
+
+1. Definitions:
+    - "session" (aka process instance): a single subagent session identified by the exact Task-returned `task_id` when available. Current task_ids may look like `ses_...`. A subagent process may host multiple sessions, but UI/resume tokens map to sessions.
+    - "work item": the scope a subagent session is bound to: use the approved artifact path when one exists; otherwise use a short ad-hoc descriptor (for example `explore-shell-startup-lag`).
+    - Intended session model: use one session per `(subagent type, work item)`. Do not reuse a session across subagent types or across different work items. An implementer session stays with its current plan/work item until that work item is complete; a new plan requires a new implementer session.
+    - Session metadata: subagent start/resume messages SHOULD also include `Work item: <artifact path|short descriptor>` when available.
+    - "switch" (user intent): by default, interpret as "resume an existing session" when a matching recent session exists; otherwise offer to start a new session.
+2. Default resume behavior:
+    - Resume an existing session only when both the subagent type and work item match the user's intended scope.
+    - If the subagent type matches but the work item changes, spawn a new session instead of reusing the old one.
+    - When the user's message does not include a resume token but appears to target a subagent type and there exists one or more resumable sessions of that subagent type owned by the user:
+        - The orchestrator (for example Maestro) SHOULD attempt to detect the best candidate recent session with the same work item and prompt the user with a short choice:
+          `I found an active <subagent> session for <work item> from <time>. Resume it? (yes / start new)`
+        - Do not silently spawn a new session. Do not spawn a new session automatically without either: (a) an explicit "start new" command from the user, or (b) explicit confirmation to spawn.
+    - Follow-up messages like "continue", "switch", or similar should default to the most recent relevant session if the user's immediately preceding interaction clearly targeted that session or subagent.
+    - Before spawning a new subagent, check whether the last relevant session is still active, waiting for input, or the most likely intended target.
+    - If more than one session is a plausible match, ask rather than guessing.
+3. Explicit resume precedence:
+    - If the user supplies a resume token in the message (line begins with `$<task_id>`), route the message to that session immediately and verbatim (no spawn).
+    - If the user uses "switch to <subagent>" and provides a resume token, route to that token.
+    - If the user uses "switch" without a token and the orchestrator cannot find any reasonable candidate session, ask: `No recent <subagent> session found. Start a new one?` and wait for confirmation.
+4. Error / tool-failure behavior:
+    - On Task/tool schema errors (for example, missing required params) or other tool-level failures, do not auto-retry or spawn a new subagent.
+    - Instead, surface the error to the user with a concise explanation and suggest corrective actions. Example: `Task invocation failed: missing parameter 'subagent_type'. Please confirm and retry. (no auto-retry)`
+    - The orchestrating agent must only retry or spawn after explicit user confirmation.
+
+## Recovery alignment
+
+- Session and resume metadata are routing concerns and are owned by Maestro or another delegating/router agent.
+- Maestro should surface session metadata when dispatching a subagent, resuming an existing subagent session, and immediately after control is handed back from a subagent.
+- Failed session-resume and recovery policy must preserve the same authority model as normal delegation.
+- Recovery may restore routing context, but must not reinterpret intent.
+- If recovery would require substantive interpretation, Maestro should ask the user rather than reconstructing intent from a paraphrase.
 
 ## Anti-scatter checklist (sequential; Maestro must follow)
 
@@ -399,77 +418,21 @@ The Maestro must verify both messages came from the human, are consecutive, and 
 
 ## Subagent resume token policy
 
-- Purpose: Provide a simple agent-facing policy for resuming subagent sessions after process restarts.
-- User-facing resume syntax: A user may resume a waiting subagent by sending a single-line message that begins with:
+> **Deprecated:** superseded by “Delegation & Sessions (canonical)” → Resume token routing semantics.
 
-  `$<task_id> <their reply>`
-
-  Example: `$ses_1beff32adffex42WsKM8Hks5PF Here is my answer`
-
-  Recommended resume message pattern (example):
-
-  ```text
-  $ses_1b0f1c87affesM8rI5JULY23Ic Here is my answer
-  ```
-
-- Token requirements:
-  `task_id` should be treated as opaque. It must not encode user identity, permissions, or internal routing metadata.
-- Matching: task_id matching should be treated as case-insensitive when manual lookup is required.
-- Escape: If a user needs a literal leading dollar, instruct them to prefix with `$$` (e.g.,
-  `"$$hello" => "$hello"` no resume).
-- Routing guarantee: when a valid
-  `$<task_id>` token is present, the reply MUST be routed DIRECTLY AND VERBATIM to that session's owning subagent rather than being re-triaged as a fresh task for the dispatching agent (e.g. Maestro). The subagent-facing payload begins immediately after the token and extends unchanged to the end of the user message.
-- Never override or reroute a user-provided $<task_id> token. Always route to that exact session regardless of other active sessions.
-- Preserve resume tokens verbatim. Do not rewrite, normalize, shorten, or absorb them.
-
-### Session-resume and "switch" semantics
-
-#### Motivation
-
-- Users commonly use "switch" or "continue" intending to resume an existing conversation/session/process. This policy clarifies that intent and avoids duplicate sessions.
-
-#### Policy
-
-1. Definitions:
-    - "session" (aka process instance): a single subagent session identified by the exact Task-returned `task_id` when available. Current task_ids may look like `ses_...`. A subagent process may host multiple sessions, but UI/resume tokens map to sessions.
-    - "work item": the scope a subagent session is bound to: use the approved artifact path when one exists; otherwise use a short ad-hoc descriptor (for example `explore-shell-startup-lag`).
-    - Intended session model: use one session per `(subagent type, work item)`. Do not reuse a session across subagent types or across different work items. An implementer session stays with its current plan/work item until that work item is complete; a new plan requires a new implementer session.
-    - Session metadata: subagent start/resume messages SHOULD also include `Work item: <artifact path|short descriptor>` when available.
-    - "switch" (user intent): by default, interpret as "resume an existing session" when a matching recent session exists; otherwise offer to start a new session.
-2. Default resume behavior
-    - Resume an existing session only when both the subagent type and work item match the user's intended scope.
-    - If the subagent type matches but the work item changes, spawn a new session instead of reusing the old one.
-    - When the user's message does not include a resume token but appears to target a subagent type and there exists one or more resumable sessions of that subagent type owned by the user:
-        - The orchestrator (e.g. Maestro) SHOULD attempt to detect the best candidate recent session with the same work item and prompt the user with a short choice:
-          `I found an active <subagent> session for <work item> from <time>. Resume it? (yes / start new)`
-        - Do not silently spawn a new session. Do NOT spawn a new session automatically without either: (a) an explicit "start new" command from the user, or (b) explicit confirmation to spawn.
-    - Follow-up messages like "continue", "switch", or similar should default to the most recent relevant session if the user's immediately preceding interaction clearly targeted that session or subagent.
-    - Before spawning a new subagent, check whether the last relevant session is still active, waiting for input, or the most likely intended target.
-    - If more than one session is a plausible match, ask rather than guessing.
-3. Explicit resume precedence
-    - If the user supplies a resume token in the message (line begins with
-      `$<task_id>`), route the message to that session immediately and verbatim (no spawn).
-    - If the user uses "switch to <subagent>" and provides a resume token, route to that token.
-    - If the user uses "switch" without a token and the orchestrator cannot find any reasonable candidate session, ask: "No recent <subagent> session found. Start a new one?" and wait for confirmation.
-4. Error / tool-failure behavior
-    - On Task/tool schema errors (e.g., missing required params) or other tool-level failures, DO NOT auto-retry or spawn a new subagent.
-    - Instead, surface the error to the user with a concise explanation and suggest corrective actions. Example:
-      "Task invocation failed: missing parameter 'subagent_type'. Please confirm and retry. (no auto-retry)"
-    - The orchestrating agent must only retry or spawn after explicit user confirmation.
+- Canonical source: `# Delegation & Sessions (canonical)` → `## Resume token routing semantics`.
 
 ## Session metadata ownership
 
 > **Deprecated:** superseded by “Delegation & Sessions (canonical)” → Session metadata visibility timing.
 
-
-- Session and resume metadata are routing concerns and are owned by Maestro or another delegating/router agent.
-- Maestro should surface session metadata when dispatching a subagent, resuming an existing subagent session, and immediately after control is handed back from a subagent.
+- Canonical source: `# Delegation & Sessions (canonical)` → `## Session metadata visibility timing` and `## Recovery alignment`.
 
 ## Failed session-resume recovery alignment
 
-- Failed session-resume and recovery policy must preserve the same authority model as normal delegation.
-- Recovery may restore routing context, but must not reinterpret intent.
-- If recovery would require substantive interpretation, Maestro should ask the user rather than reconstructing intent from a paraphrase.
+> **Deprecated:** superseded by “Delegation & Sessions (canonical)” → Recovery alignment.
+
+- Canonical source: `# Delegation & Sessions (canonical)` → `## Recovery alignment`.
 
 # Troubleshooting
 

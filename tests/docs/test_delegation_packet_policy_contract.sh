@@ -13,6 +13,13 @@ agents="$repo_root/.config/opencode/AGENTS.md"
 maestro="$repo_root/.config/opencode/agents/maestro.md"
 templates="$repo_root/docs/superpowers/templates/subagent-handoff-templates.md"
 spec="$repo_root/docs/superpowers/specs/2026-05-26-delegation-packet-annex-and-verbatim-contract-design.md"
+tmpdir="$(mktemp -d)"
+
+cleanup() {
+    rm -rf "$tmpdir"
+}
+
+trap cleanup EXIT
 
 fail=0
 
@@ -47,8 +54,36 @@ forbidden_in() {
     fi
 }
 
+extract_pre_canonical_agents() {
+    local destination="$1"
+    local canonical_start
+
+    canonical_start="$(rg -n "^# Delegation & Sessions \(canonical\)$" "$agents" | cut -d: -f1)"
+    if [ -z "$canonical_start" ]; then
+        printf '  FAIL  Cannot extract pre-canonical AGENTS.md region — canonical chapter heading missing\n' >&2
+        fail=1
+        : > "$destination"
+        return
+    fi
+
+    python - "$agents" "$canonical_start" "$destination" <<'PY'
+from pathlib import Path
+import sys
+
+source = Path(sys.argv[1])
+canonical_start = int(sys.argv[2])
+destination = Path(sys.argv[3])
+
+lines = source.read_text().splitlines()
+destination.write_text("\n".join(lines[: canonical_start - 1]) + "\n")
+PY
+}
+
 echo "=== Delegation Packet Policy Contract Test ==="
 echo ""
+
+pre_canonical_agents="$tmpdir/agents-pre-canonical.md"
+extract_pre_canonical_agents "$pre_canonical_agents"
 
 # --- Required anchors in canonical chapter ---
 echo "--- Required anchors in AGENTS.md canonical chapter ---"
@@ -59,7 +94,10 @@ check_anchor "$agents" "Verbatim quoting contract" "Verbatim quoting section"
 check_anchor "$agents" "Artifact semantics + handshake" "Artifact semantics section"
 check_anchor "$agents" "Required handoff wording" "Handoff wording section"
 check_anchor "$agents" "Session metadata visibility timing" "Session metadata visibility"
+check_anchor "$agents" "Resume token routing semantics" "Resume token routing section"
+check_anchor "$agents" "Recovery alignment" "Recovery alignment section"
 check_anchor "$agents" "Anti-scatter checklist" "Anti-scatter checklist"
+check_anchor "$agents" "If Highlight is present but does not match verbatim lines after stripping markup" "Highlight mismatch stop-rule"
 
 # --- Required anchors in spec ---
 echo ""
@@ -84,6 +122,13 @@ forbidden_in "$maestro" "^\\s*Active slice:" "Active slice: in maestro.md"
 forbidden_in "$maestro" "^\\s*Deliverables:" "Deliverables: in maestro.md"
 forbidden_in "$maestro" "^\\s*Non-deliverables:" "Non-deliverables: in maestro.md"
 forbidden_in "$maestro" "^\\s*Provenance:" "Provenance: in maestro.md"
+
+# --- No duplicate packet schema before canonical chapter ---
+echo ""
+echo "--- No duplicate packet schema before canonical chapter ---"
+forbidden_in "$pre_canonical_agents" "Allowed packet fields" "Pre-canonical AGENTS.md duplicates allowed packet fields"
+forbidden_in "$pre_canonical_agents" "Forbidden packet content" "Pre-canonical AGENTS.md duplicates forbidden packet content"
+forbidden_in "$pre_canonical_agents" "Example packet" "Pre-canonical AGENTS.md duplicates example packet"
 
 # --- Maestro pointer verification ---
 echo ""

@@ -125,7 +125,7 @@ No other free-form context is permitted outside the packet/Annex.
 
 In “Highlight (derived from verbatim)”, allow only `**bold**` and explicitly forbid `_italic_`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/superpowers/specs/2026-05-26-delegation-packet-annex-and-verbatim-contract-design.md
@@ -226,7 +226,7 @@ Must include:
 > Deprecated: superseded by “Delegation & Sessions (canonical)”. Do not use for new delegations.
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add .config/opencode/AGENTS.md
@@ -262,7 +262,7 @@ If maestro.md includes example dispatch messages:
 
 Goal: avoid “context spam” by keeping packet schema centralized in AGENTS.md.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add .config/opencode/agents
@@ -283,7 +283,7 @@ git commit -m "docs(agents): de-duplicate delegation packet rules"
 - `Delegation Packet` block with allowed fields only
 - optional Annex block with exact header
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add docs/superpowers/templates/subagent-handoff-templates.md
@@ -331,7 +331,7 @@ Run: `bash tests/docs/test_delegation_packet_policy_contract.sh`
 
 If too brittle, relax to anchor-phrase checks rather than exact text.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tests/docs/test_delegation_packet_policy_contract.sh
@@ -363,8 +363,8 @@ git commit -m "docs(policy): migrate legacy delegation packet formats (batch <id
 
 ## Final verification
 
-- [ ] `bash tests/docs/test_delegation_packet_policy_contract.sh`
-- [ ] `git diff -- .config/opencode/AGENTS.md .config/opencode/agents/maestro.md docs/superpowers/templates/subagent-handoff-templates.md docs/superpowers/specs/2026-05-26-delegation-packet-annex-and-verbatim-contract-design.md tests/docs/test_delegation_packet_policy_contract.sh`
+- [x] `bash tests/docs/test_delegation_packet_policy_contract.sh`
+- [x] `git diff -- .config/opencode/AGENTS.md .config/opencode/agents/maestro.md docs/superpowers/templates/subagent-handoff-templates.md docs/superpowers/specs/2026-05-26-delegation-packet-annex-and-verbatim-contract-design.md tests/docs/test_delegation_packet_policy_contract.sh`
 
 ## Pragmatic Programmer diagnostic (target score ≥ 8/10)
 
