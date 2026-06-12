@@ -1093,7 +1093,7 @@ git commit -m "feat(workspace): add doctor repair and destroy flows"
 
 - `bin/new-worktree` creates a managed worktree under the repo hub worktree area and the matching canonical `state/` / `tmp/` paths;
 - the generated `.envrc` exists for every managed checkout, including top-level `main/`, child-repo `main/`, and non-`main` worktrees;
-- generated `.envrc` exports exactly `HUB_DIR`, `HUB_MAIN_DIR`, `HUB_STATE_DIR`, `HUB_TMP_DIR`, `DYN_REPO_DIR`, `DYN_REPO_MAIN_DIR`, `DYN_REPO_STATE_DIR`, `DYN_REPO_TMP_DIR`, `DYN_WORKTREE_DIR`, `DYN_WORKTREE_STATE_DIR`, and `DYN_WORKTREE_TMP_DIR`;
+- generated `.envrc` exports exactly `HUB_DIR`, `HUB_MAIN_DIR`, `HUB_STATE_DIR`, `HUB_TMP_DIR`, `DYN_REPO_DIR`, `DYN_REPO_DEFAULT_BRANCH`, `DYN_REPO_DEFAULT_DIR`, `DYN_REPO_STATE_DIR`, `DYN_REPO_TMP_DIR`, `DYN_WORKTREE_DIR`, `DYN_WORKTREE_STATE_DIR`, and `DYN_WORKTREE_TMP_DIR`, and does not export `DYN_REPO_MAIN_DIR`;
 - generated `.envrc` also sources `/workspaces/dotfiles/state/hub/etc/install.env` when present so every checkout sees the current `HUB_INSTALL_BRANCH` and `HUB_INSTALL_BRANCH_DIR` values without editing each `.envrc` file;
 - that inherited installed-state visibility is for navigation and repair-state discovery only; it must not by itself count as an explicit install-branch override or block a later direct `install.sh` run from a different checkout;
 - generated `.envrc` sources `.envrc.local` after the managed exports, and `.envrc.local` is auto-created for new managed checkouts;
