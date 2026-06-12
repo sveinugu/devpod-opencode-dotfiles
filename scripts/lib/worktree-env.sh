@@ -7,8 +7,6 @@ repo_name="${3:-hub}"
 
 workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
 checkout_dir="$(readlink -f "$checkout_dir")"
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-exclude_helper="$script_dir/ensure-bare-excludes.sh"
 
 refuse() {
   printf '%s\n' "$1" >&2
@@ -45,7 +43,6 @@ if [ "$hub_kind" = "hub" ]; then
       refuse 'refused: checkout is not a managed top-level worktree'
       ;;
   esac
-  bare_dir="$workspace_root/.bare"
 elif [ "$hub_kind" = "child" ]; then
   child_root="$workspace_root/repos/$repo_name"
   child_env="$workspace_root/state/repos/$repo_name/etc/repo.env"
@@ -81,18 +78,7 @@ elif [ "$hub_kind" = "child" ]; then
       refuse 'refused: checkout is not a managed child worktree'
       ;;
   esac
-  bare_dir="$child_root/.bare"
 fi
-
-if [ ! -f "$exclude_helper" ]; then
-  refuse 'refused: missing bare exclude helper'
-fi
-
-if [ ! -d "$bare_dir" ]; then
-  refuse 'refused: managed bare repository is missing'
-fi
-
-bash "$exclude_helper" "$bare_dir"
 
 mkdir -p "$dyn_worktree_state_dir" "$dyn_worktree_tmp_dir"
 generated_envrc="$checkout_dir/.envrc.generated.$$"

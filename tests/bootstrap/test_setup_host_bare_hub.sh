@@ -40,6 +40,11 @@ if [ -f "scripts/lib/ensure-bare-excludes.sh" ]; then
   chmod +x "$checkout/scripts/lib/ensure-bare-excludes.sh"
 fi
 
+if [ -f "scripts/lib/bare-excludes.list" ]; then
+  mkdir -p "$checkout/scripts/lib"
+  cp "scripts/lib/bare-excludes.list" "$checkout/scripts/lib/bare-excludes.list"
+fi
+
 if [ -f "scripts/verify-host-bare-hub.sh" ]; then
   cp "scripts/verify-host-bare-hub.sh" "$checkout/scripts/verify-host-bare-hub.sh"
   chmod +x "$checkout/scripts/verify-host-bare-hub.sh"
@@ -85,6 +90,18 @@ exclude_file="$hub_root/.bare/info/exclude"
 for pattern in '.envrc' '.envrc.local' '.envrc.bak.*' '.opencode/'; do
   grep -Fx "$pattern" "$exclude_file" >/dev/null || {
     printf 'expected %s in .bare/info/exclude\n' "$pattern" >&2
+    exit 1
+  }
+done
+
+printf 'manual-only\n' > "$exclude_file"
+(
+  cd "$checkout"
+  printf 'Y\n' | bash "./scripts/setup-host-bare-hub.sh" --hub-root "$hub_root" --mode host >"$tmpdir/out-reset.txt"
+)
+for pattern in '.envrc' '.envrc.local' '.envrc.bak.*' '.opencode/'; do
+  grep -Fx "$pattern" "$exclude_file" >/dev/null || {
+    printf 'expected setup reset to restore %s in .bare/info/exclude\n' "$pattern" >&2
     exit 1
   }
 done
@@ -136,6 +153,7 @@ chmod +x "$checkout_no_main/scripts/setup-host-bare-hub.sh"
 mkdir -p "$checkout_no_main/scripts/lib"
 cp "$checkout/scripts/lib/ensure-bare-excludes.sh" "$checkout_no_main/scripts/lib/ensure-bare-excludes.sh"
 chmod +x "$checkout_no_main/scripts/lib/ensure-bare-excludes.sh"
+cp "$checkout/scripts/lib/bare-excludes.list" "$checkout_no_main/scripts/lib/bare-excludes.list"
 
 if (
   cd "$checkout_no_main"

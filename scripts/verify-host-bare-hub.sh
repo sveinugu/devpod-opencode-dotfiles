@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-python3 - "$@" <<'PY'
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+
+VERIFY_SCRIPT_DIR="$script_dir" python3 - "$@" <<'PY'
 import argparse
 import json
 import os
 import stat
 import subprocess
 import sys
+from pathlib import Path
 
 
 def fail_usage(msg: str) -> None:
@@ -33,6 +36,8 @@ if out_format not in {"human", "json"}:
 
 checks = []
 warnings = []
+script_dir = Path(os.environ.get("VERIFY_SCRIPT_DIR", "")).resolve()
+exclude_list_file = script_dir / "lib" / "bare-excludes.list"
 
 
 def add_check(check_id: str, ok: bool, message: str) -> None:
@@ -109,29 +114,41 @@ add_check(
     "main is attached as a worktree" if worktree_ok else "main is not attached as a worktree",
 )
 
-exclude_required = [
-    ".envrc",
-    ".envrc.local",
-    ".envrc.bak.*",
-    ".opencode/",
-]
-exclude_missing = []
-exclude_file = os.path.join(hub_root, ".bare", "info", "exclude")
-if not os.path.isfile(exclude_file):
-    exclude_missing = list(exclude_required)
+exclude_required = []
+if not exclude_list_file.is_file():
+    warnings.append(f"missing bare exclude list: {exclude_list_file}")
 else:
     try:
-        with open(exclude_file, "r", encoding="utf-8") as fh:
-            exclude_lines = {line.rstrip("\n") for line in fh}
-        exclude_missing = [entry for entry in exclude_required if entry not in exclude_lines]
+        with exclude_list_file.open("r", encoding="utf-8") as fh:
+            for raw in fh:
+                line = raw.strip()
+                if not line or line.startswith("#"):
+                    continue
+                exclude_required.append(line)
     except OSError as exc:
-        warnings.append(f"exclude read failed: {exc}")
+        warnings.append(f"exclude list read failed: {exc}")
+
+exclude_missing = []
+exclude_file = os.path.join(hub_root, ".bare", "info", "exclude")
+if exclude_required:
+    if not os.path.isfile(exclude_file):
         exclude_missing = list(exclude_required)
+    else:
+        try:
+            with open(exclude_file, "r", encoding="utf-8") as fh:
+                exclude_lines = {line.rstrip("\n") for line in fh}
+            exclude_missing = [entry for entry in exclude_required if entry not in exclude_lines]
+        except OSError as exc:
+            warnings.append(f"exclude read failed: {exc}")
+            exclude_missing = list(exclude_required)
+
+if exclude_missing:
+    warnings.append(f"missing bare exclude patterns: {', '.join(exclude_missing)}")
 
 add_check(
     "bare.exclude",
-    len(exclude_missing) == 0,
-    "bare exclude patterns present" if not exclude_missing else f"missing bare exclude patterns: {', '.join(exclude_missing)}",
+    True,
+    "bare exclude patterns present" if not exclude_missing else "bare exclude patterns warning only",
 )
 
 devpodignore_required = [

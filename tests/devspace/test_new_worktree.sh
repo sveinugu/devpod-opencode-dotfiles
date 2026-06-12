@@ -163,28 +163,30 @@ restore_validator
 [ -d "$workspace_root/tmp/repos/child-source/work/feature/child" ] || fail "missing child canonical tmp path"
 [ -d "$workspace_root/tmp/repos/child-source/work/feature/child-auto" ] || fail "missing auto-detected child canonical tmp path"
 
-hub_exclude="$workspace_root/.bare/info/exclude"
-[ -f "$hub_exclude" ] || fail "missing hub bare info/exclude"
-
 child_exclude="$workspace_root/repos/child-source/.bare/info/exclude"
 [ -f "$child_exclude" ] || fail "missing child bare info/exclude"
 
-for exclude_file in "$hub_exclude" "$child_exclude"; do
-  grep -Fx '.envrc' "$exclude_file" >/dev/null || fail "missing .envrc exclude in $exclude_file"
-  grep -Fx '.envrc.local' "$exclude_file" >/dev/null || fail "missing .envrc.local exclude in $exclude_file"
-  grep -Fx '.envrc.bak.*' "$exclude_file" >/dev/null || fail "missing .envrc.bak.* exclude in $exclude_file"
-  grep -Fx '.opencode/' "$exclude_file" >/dev/null || fail "missing .opencode/ exclude in $exclude_file"
+for pattern in '.envrc' '.envrc.local' '.envrc.bak.*' '.opencode/'; do
+  grep -Fx "$pattern" "$child_exclude" >/dev/null || fail "missing $pattern exclude in $child_exclude"
 done
 
-mkdir -p "$workspace_root/work/feature/top-level/.opencode"
-printf 'hub backup\n' > "$workspace_root/work/feature/top-level/.envrc.bak.20260612000000"
-hub_status="$(git -C "$workspace_root/work/feature/top-level" status --porcelain)"
-[ -z "$hub_status" ] || fail "expected clean hub worktree status with generated artifacts ignored"
+printf 'manual-child-only\n' > "$child_exclude"
+HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script" --repo child-source feature/child-preserve >/dev/null
+grep -Fx 'manual-child-only' "$child_exclude" >/dev/null || fail "new-worktree should not overwrite child bare excludes"
+
+for pattern in '.envrc' '.envrc.local' '.envrc.bak.*' '.opencode/'; do
+  printf '%s\n' "$pattern" >> "$child_exclude"
+done
 
 mkdir -p "$workspace_root/repos/child-source/work/feature/child/.opencode"
 printf 'child backup\n' > "$workspace_root/repos/child-source/work/feature/child/.envrc.bak.20260612000000"
 child_status="$(git -C "$workspace_root/repos/child-source/work/feature/child" status --porcelain)"
 [ -z "$child_status" ] || fail "expected clean child worktree status with generated artifacts ignored"
+
+mkdir -p "$workspace_root/repos/child-source/work/feature/child-preserve/.opencode"
+printf 'child preserve backup\n' > "$workspace_root/repos/child-source/work/feature/child-preserve/.envrc.bak.20260612000000"
+child_preserve_status="$(git -C "$workspace_root/repos/child-source/work/feature/child-preserve" status --porcelain)"
+[ -z "$child_preserve_status" ] || fail "expected clean preserved child worktree status with generated artifacts ignored"
 
 for checkout in \
   "$workspace_root/main" \
@@ -192,6 +194,7 @@ for checkout in \
   "$workspace_root/work/feature/top-level-auto" \
   "$workspace_root/repos/child-source/$child_default_branch" \
   "$workspace_root/repos/child-source/work/feature/child" \
+  "$workspace_root/repos/child-source/work/feature/child-preserve" \
   "$workspace_root/repos/child-source/work/feature/child-auto"
 do
   [ -f "$checkout/.envrc" ] || fail "missing managed .envrc in $checkout"

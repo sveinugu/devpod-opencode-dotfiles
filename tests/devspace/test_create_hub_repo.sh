@@ -60,6 +60,11 @@ HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" "$c
 [ -d "$workspace_root/state/repos/child-repo/main" ] || fail "missing state/repos/<name>/main"
 [ -d "$workspace_root/tmp/repos/child-repo/main" ] || fail "missing tmp/repos/<name>/main"
 [ -f "$workspace_root/state/repos/child-repo/etc/repo.env" ] || fail "missing state/repos/<name>/etc/repo.env"
+child_exclude="$workspace_root/repos/child-repo/.bare/info/exclude"
+[ -f "$child_exclude" ] || fail "missing child bare info/exclude"
+for pattern in '.envrc' '.envrc.local' '.envrc.bak.*' '.opencode/'; do
+  grep -Fx "$pattern" "$child_exclude" >/dev/null || fail "missing $pattern in child bare info/exclude"
+done
 grep -F 'export DYN_REPO_DEFAULT_BRANCH=main' "$workspace_root/state/repos/child-repo/etc/repo.env" >/dev/null || fail "repo.env should record detected default branch"
 grep -F "export DYN_REPO_DEFAULT_DIR=$workspace_root/repos/child-repo/main" "$workspace_root/state/repos/child-repo/etc/repo.env" >/dev/null || fail "repo.env should record detected default directory"
 

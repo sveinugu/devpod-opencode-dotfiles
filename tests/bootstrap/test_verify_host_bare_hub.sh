@@ -26,6 +26,7 @@ cp "scripts/setup-host-bare-hub.sh" "$checkout/scripts/setup-host-bare-hub.sh"
 cp "scripts/verify-host-bare-hub.sh" "$checkout/scripts/verify-host-bare-hub.sh"
 mkdir -p "$checkout/scripts/lib"
 cp "scripts/lib/ensure-bare-excludes.sh" "$checkout/scripts/lib/ensure-bare-excludes.sh"
+cp "scripts/lib/bare-excludes.list" "$checkout/scripts/lib/bare-excludes.list"
 chmod +x "$checkout/scripts/setup-host-bare-hub.sh" "$checkout/scripts/verify-host-bare-hub.sh"
 chmod +x "$checkout/scripts/lib/ensure-bare-excludes.sh"
 
@@ -71,6 +72,28 @@ for pattern in '.envrc' '.envrc.local' '.envrc.bak.*' '.opencode/'; do
     exit 1
   }
 done
+
+printf 'manual-only\n' > "$exclude_file"
+(
+  cd "$checkout"
+  bash "./scripts/verify-host-bare-hub.sh" --hub-root "$hub_root" --format json >"$tmpdir/verify-excludes-warning.json"
+)
+
+python3 - "$tmpdir/verify-excludes-warning.json" <<'PY'
+import json
+import sys
+
+payload = json.load(open(sys.argv[1], 'r', encoding='utf-8'))
+if not payload.get('ok'):
+    print('expected verifier payload ok=true when only excludes differ', file=sys.stderr)
+    sys.exit(1)
+if not any(c.get('id') == 'bare.exclude' and c.get('ok') is True for c in payload.get('checks', [])):
+    print('expected bare.exclude check to remain non-failing', file=sys.stderr)
+    sys.exit(1)
+if not any('missing bare exclude patterns' in warning for warning in payload.get('warnings', [])):
+    print('expected warning for missing bare exclude patterns', file=sys.stderr)
+    sys.exit(1)
+PY
 
 rm -f "$hub_root/tmp/.devpodignore"
 if (

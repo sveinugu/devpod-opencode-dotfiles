@@ -94,6 +94,14 @@ main_branch="$(git -C "$workspace_root/main" rev-parse --abbrev-ref HEAD)"
 grep -F 'pyenv-install' "$install_log" >/dev/null || fail "pyenv install command was not invoked on first run"
 grep -F 'opencode-install' "$install_log" >/dev/null || fail "opencode install command was not invoked on first run"
 
+exclude_file="$workspace_root/.bare/info/exclude"
+[ -f "$exclude_file" ] || fail "missing top-level bare info/exclude after first provision"
+for pattern in '.envrc' '.envrc.local' '.envrc.bak.*' '.opencode/'; do
+  grep -Fx "$pattern" "$exclude_file" >/dev/null || fail "missing $pattern in top-level bare info/exclude"
+done
+
+printf 'manual-only\n' > "$exclude_file"
+
 : > "$install_log"
 
 HUB_WORKSPACE_ROOT="$workspace_root" \
@@ -102,6 +110,10 @@ HUB_PYENV_INSTALL_COMMAND="printf 'pyenv-install\n' >> '$install_log'" \
 HUB_OPENCODE_INSTALL_COMMAND="printf 'opencode-install\n' >> '$install_log'" \
 HOME="$home_dir" \
 bash "$script" > "$tmpdir/second-run.out"
+
+for pattern in '.envrc' '.envrc.local' '.envrc.bak.*' '.opencode/'; do
+  grep -Fx "$pattern" "$exclude_file" >/dev/null || fail "second provision should reset $pattern in top-level bare info/exclude"
+done
 
 if [ -s "$install_log" ]; then
   fail "tool installers should not run when markers are present and --refresh-tools is absent"

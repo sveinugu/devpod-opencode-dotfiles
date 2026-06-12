@@ -144,6 +144,8 @@ create_bare_hub() {
   local requested_branch="$branch"
   local resolved_branch="$branch"
   local branch_check_rc=0
+  local created_bare_repo='no'
+  local hub_workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
 
   if hub_source_has_branch "$source" "$branch"; then
     branch_check_rc=0
@@ -189,6 +191,7 @@ create_bare_hub() {
       hub_fail 'refused: unable to access source repo non-interactively (verify public HTTPS URL and repository visibility)'
       return
     fi
+    created_bare_repo='yes'
   fi
 
   if ! git --git-dir="$workspace_root/.bare" rev-parse --is-bare-repository >/dev/null 2>&1; then
@@ -196,8 +199,14 @@ create_bare_hub() {
     return
   fi
 
-  if ! hub_ensure_bare_excludes "$workspace_root/.bare"; then
-    return
+  if [ "$created_bare_repo" = 'yes' ]; then
+    if ! hub_ensure_bare_excludes "$workspace_root/.bare"; then
+      return
+    fi
+  elif [ "$workspace_root" = "$hub_workspace_root" ]; then
+    if ! hub_ensure_bare_excludes "$workspace_root/.bare"; then
+      return
+    fi
   fi
 
   # Set location of bare clone for top-level dir
