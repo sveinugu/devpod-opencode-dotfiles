@@ -14,9 +14,11 @@ set -euo pipefail
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
 
-workspace_root="${WORKSPACE_ROOT:-/workspaces/dotfiles}"
+workspace_root="$tmpdir/ws-root"
+workspace_install_env="$workspace_root/state/hub/etc/install.env"
 target_home="$tmpdir/home"
 offcwd="$tmpdir/unrelated-cwd"
+export DYN_WORKTREE_TMP_DIR="$tmpdir/dyn-tmp"
 
 unset HUB_INSTALL_BRANCH HUB_INSTALL_BRANCH_DIR
 
@@ -25,6 +27,7 @@ mkdir -p \
   "$workspace_root/main/.config/opencode" \
   "$workspace_root/work/feature-x/.config/opencode" \
   "$workspace_root/state" \
+  "$DYN_WORKTREE_TMP_DIR" \
   "$target_home" \
   "$offcwd"
 
@@ -54,20 +57,20 @@ fi
 
 (
   cd "$offcwd"
-  HOME="$target_home" bash "$workspace_root/main/install.sh" --dry-run -y >"$tmpdir/main.out" 2>&1
+  HOME="$target_home" WORKSPACE_ROOT="$workspace_root" bash "$workspace_root/main/install.sh" --dry-run -y >"$tmpdir/main.out" 2>&1
 )
 
-[ -f "$workspace_root/state/hub/etc/install.env" ] || {
+[ -f "$workspace_install_env" ] || {
   printf 'expected install.sh to publish state/hub/etc/install.env\n' >&2
   exit 1
 }
 
-grep -F "export HUB_INSTALL_BRANCH=main" "$workspace_root/state/hub/etc/install.env" >/dev/null || {
+grep -F "export HUB_INSTALL_BRANCH=main" "$workspace_install_env" >/dev/null || {
   printf 'expected install.env to publish HUB_INSTALL_BRANCH=main\n' >&2
   exit 1
 }
 
-grep -F "export HUB_INSTALL_BRANCH_DIR=$workspace_root/main" "$workspace_root/state/hub/etc/install.env" >/dev/null || {
+grep -F "export HUB_INSTALL_BRANCH_DIR=$workspace_root/main" "$workspace_install_env" >/dev/null || {
   printf 'expected install.env to publish HUB_INSTALL_BRANCH_DIR for main\n' >&2
   exit 1
 }
@@ -86,15 +89,15 @@ fi
 
 (
   cd "$offcwd"
-  HOME="$target_home" bash "$workspace_root/work/feature-x/install.sh" --dry-run -y >"$tmpdir/feature.out" 2>&1
+  HOME="$target_home" WORKSPACE_ROOT="$workspace_root" bash "$workspace_root/work/feature-x/install.sh" --dry-run -y >"$tmpdir/feature.out" 2>&1
 )
 
-grep -F "export HUB_INSTALL_BRANCH=feature-x" "$workspace_root/state/hub/etc/install.env" >/dev/null || {
+grep -F "export HUB_INSTALL_BRANCH=feature-x" "$workspace_install_env" >/dev/null || {
   printf 'expected install.env to publish HUB_INSTALL_BRANCH for feature worktree\n' >&2
   exit 1
 }
 
-grep -F "export HUB_INSTALL_BRANCH_DIR=$workspace_root/work/feature-x" "$workspace_root/state/hub/etc/install.env" >/dev/null || {
+grep -F "export HUB_INSTALL_BRANCH_DIR=$workspace_root/work/feature-x" "$workspace_install_env" >/dev/null || {
   printf 'expected install.env to publish HUB_INSTALL_BRANCH_DIR for feature worktree\n' >&2
   exit 1
 }
@@ -153,7 +156,7 @@ grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.config/opencode $target
 
 (
   cd "$offcwd"
-  if HOME="$target_home" bash "$workspace_root/install.sh" --dry-run -y >"$tmpdir/hub.out" 2>&1; then
+  if HOME="$target_home" WORKSPACE_ROOT="$workspace_root" bash "$workspace_root/install.sh" --dry-run -y >"$tmpdir/hub.out" 2>&1; then
     printf 'expected hub-root execution to fail\n' >&2
     exit 1
   fi
@@ -163,7 +166,7 @@ grep -F "Refused — hub-root CWD detected. Provide explicit worktree path." "$t
 
 (
   cd "$offcwd"
-  if HOME="$target_home" HUB_INSTALL_BRANCH=wrong-branch bash "$workspace_root/main/install.sh" --dry-run -y >"$tmpdir/branch-mismatch.out" 2>&1; then
+  if HOME="$target_home" WORKSPACE_ROOT="$workspace_root" HUB_INSTALL_BRANCH=wrong-branch bash "$workspace_root/main/install.sh" --dry-run -y >"$tmpdir/branch-mismatch.out" 2>&1; then
     printf 'expected HUB_INSTALL_BRANCH mismatch to fail\n' >&2
     exit 1
   fi
@@ -176,7 +179,7 @@ grep -F 'refused: HUB_INSTALL_BRANCH does not match install source' "$tmpdir/bra
 
 (
   cd "$offcwd"
-  if HOME="$target_home" HUB_INSTALL_BRANCH_DIR="$workspace_root/wrong-dir" bash "$workspace_root/main/install.sh" --dry-run -y >"$tmpdir/dir-mismatch.out" 2>&1; then
+  if HOME="$target_home" WORKSPACE_ROOT="$workspace_root" HUB_INSTALL_BRANCH_DIR="$workspace_root/wrong-dir" bash "$workspace_root/main/install.sh" --dry-run -y >"$tmpdir/dir-mismatch.out" 2>&1; then
     printf 'expected HUB_INSTALL_BRANCH_DIR mismatch to fail\n' >&2
     exit 1
   fi
@@ -187,21 +190,21 @@ grep -F 'refused: HUB_INSTALL_BRANCH_DIR does not match install source' "$tmpdir
   exit 1
 }
 
-stale_values_out="$(set +u; source "$workspace_root/state/hub/etc/install.env"; printf '%s\n%s\n' "$HUB_INSTALL_BRANCH" "$HUB_INSTALL_BRANCH_DIR")"
+stale_values_out="$(set +u; source "$workspace_install_env"; printf '%s\n%s\n' "$HUB_INSTALL_BRANCH" "$HUB_INSTALL_BRANCH_DIR")"
 stale_branch="$(printf '%s' "$stale_values_out" | sed -n '1p')"
 stale_branch_dir="$(printf '%s' "$stale_values_out" | sed -n '2p')"
 
 (
   cd "$offcwd"
-  HOME="$target_home" HUB_INSTALL_BRANCH="$stale_branch" HUB_INSTALL_BRANCH_DIR="$stale_branch_dir" bash "$workspace_root/main/install.sh" --dry-run -y >"$tmpdir/stale-inherited.out" 2>&1
+  HOME="$target_home" WORKSPACE_ROOT="$workspace_root" HUB_INSTALL_BRANCH="$stale_branch" HUB_INSTALL_BRANCH_DIR="$stale_branch_dir" bash "$workspace_root/main/install.sh" --dry-run -y >"$tmpdir/stale-inherited.out" 2>&1
 )
 
-grep -F "export HUB_INSTALL_BRANCH=main" "$workspace_root/state/hub/etc/install.env" >/dev/null || {
+grep -F "export HUB_INSTALL_BRANCH=main" "$workspace_install_env" >/dev/null || {
   printf 'expected inherited HUB_INSTALL_BRANCH to be treated as stale and rewritten to main\n' >&2
   exit 1
 }
 
-grep -F "export HUB_INSTALL_BRANCH_DIR=$workspace_root/main" "$workspace_root/state/hub/etc/install.env" >/dev/null || {
+grep -F "export HUB_INSTALL_BRANCH_DIR=$workspace_root/main" "$workspace_install_env" >/dev/null || {
   printf 'expected inherited HUB_INSTALL_BRANCH_DIR to be treated as stale and rewritten to main path\n' >&2
   exit 1
 }
