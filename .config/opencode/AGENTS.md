@@ -306,6 +306,7 @@ If Highlight is present but does not match verbatim lines after stripping markup
 ### Default semantics
 
 When `Artifact path:` is present, the referenced artifact is treated as a **binding requirements source by default**.
+When `Artifact paths:` is present, all listed paths are binding requirements sources, and the handshake applies across the full listed set rather than only the first path.
 
 ### Handshake (all subagents — required)
 
