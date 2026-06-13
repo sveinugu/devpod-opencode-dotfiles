@@ -211,6 +211,7 @@ Recommended refusal style:
 `Delegation Packet refused — <brief reason>. Dispatch stopped before launch.`
 
 If Maestro had to choose, compress, or explain, preview is mandatory.
+Router-owned metadata (`Session:`, `Resume:`, `Owner:`, `Authority:`) is exempt from the preview requirement because those fields are launch-generated and populated only after Task returns.
 
 ### Maestro pre-dispatch checks
 
@@ -237,7 +238,8 @@ If Maestro had to choose, compress, or explain, preview is mandatory.
 - A packet is trivial only if one full user message is quoted verbatim, `Warnings:` is omitted, no Annex is present, the artifact path is already clear, and Maestro did not need to choose, compress, or explain.
 - Trivial packets may dispatch without user preview after passing the pre-dispatch checks.
 - A packet is non-trivial if `Warnings:` is non-empty, any Annex is present, `Verbatim user request:` includes multiple user messages, Maestro quotes only part of a user message instead of the full message, Maestro selects or introduces an `Artifact path:` that was not already clearly established, or Maestro resolves ambiguity from context rather than routing from one obvious user message.
-- For non-trivial packets, Maestro must show the **exact outgoing packet** and require explicit user approval before dispatch.
+- For non-trivial packets, Maestro must show the exact outgoing packet content that exists before launch and require explicit user approval before dispatch.
+- This preview excludes router-owned metadata (`Session:`, `Resume:`, `Owner:`, `Authority:`) because those fields do not exist until after launch.
 - If a single full user message is sufficient, Maestro should quote that whole message.
 - Partial-message quoting automatically makes the packet non-trivial and therefore preview-gated.
 
@@ -399,7 +401,7 @@ before any other orchestration text beyond the required handoff wording.
 3. **Collect exact user message text for `Verbatim user request:`.**
 4. **Assemble packet using allowed fields only.**
 5. **Run Maestro pre-dispatch checks.**
-6. **If the packet is non-trivial, preview the exact outgoing packet and obtain explicit user approval.**
+6. **If the packet is non-trivial, preview the exact pre-launch packet content and obtain explicit user approval.**
 7. **Only then call Task / launch the subagent.**
 8. **After successful launch, emit required handoff wording and validated session metadata.**
 

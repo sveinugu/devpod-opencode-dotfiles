@@ -95,6 +95,7 @@ check_anchor "$agents" 'Maestro MUST NOT call Task / launch a subagent for new s
 check_anchor "$agents" 'If the packet fails any pre-dispatch check, Maestro MUST refuse dispatch, MUST NOT emit the required handoff wording, MUST NOT fabricate session metadata, and MUST instead surface the failure and seek correction.' "Refusal-before-launch rule"
 check_anchor "$agents" 'Delegation Packet refused — <brief reason>. Dispatch stopped before launch.' "Refusal wording anchor"
 check_anchor "$agents" 'If Maestro had to choose, compress, or explain, preview is mandatory.' "Preview umbrella rule"
+check_anchor "$agents" 'Router-owned metadata (`Session:`, `Resume:`, `Owner:`, `Authority:`) is exempt from the preview requirement because those fields are launch-generated and populated only after Task returns.' "Router metadata preview exemption"
 check_anchor "$agents" 'If a single full user message is sufficient, Maestro should quote that whole message.' "Full-message quoting default"
 check_anchor "$agents" 'Partial-message quoting automatically makes the packet non-trivial and therefore preview-gated.' "Partial-message preview gate"
 check_anchor "$agents" 'This policy should be written so a later runtime validator can implement it directly, but no runtime/plugin work is part of this slice.' "Runtime/plugin deferral"
@@ -120,7 +121,8 @@ check_anchor "$agents" "Verbatim quoting contract satisfied" "Verbatim quoting c
 check_anchor "$agents" "Warnings discipline" "Warnings discipline check"
 check_anchor "$agents" "Artifact-path discipline" "Artifact-path discipline check"
 check_anchor "$agents" "Packet/Annex boundary discipline" "Packet/Annex boundary check"
-check_anchor "$agents" 'For non-trivial packets, Maestro must show the **exact outgoing packet** and require explicit user approval before dispatch.' "Non-trivial exact-packet preview rule"
+check_anchor "$agents" 'For non-trivial packets, Maestro must show the exact outgoing packet content that exists before launch and require explicit user approval before dispatch.' "Non-trivial exact-packet preview rule"
+check_anchor "$agents" 'This preview excludes router-owned metadata (`Session:`, `Resume:`, `Owner:`, `Authority:`) because those fields do not exist until after launch.' "Preview excludes launch-generated metadata"
 
 # --- Required anchors in spec ---
 echo ""
@@ -170,6 +172,7 @@ echo ""
 echo "--- Anti-scatter order verification ---"
 check_anchor_regex "$agents" '1\. \*\*Identify target subagent and confirm this is new scoped delegation\.' "Anti-scatter starts with target identification"
 check_anchor_regex "$agents" '5\. \*\*Run Maestro pre-dispatch checks\.' "Anti-scatter validates before launch"
+check_anchor_regex "$agents" '6\. \*\*If the packet is non-trivial, preview the exact pre-launch packet content and obtain explicit user approval\.' "Anti-scatter pre-launch preview wording"
 check_anchor_regex "$agents" '7\. \*\*Only then call Task / launch the subagent\.' "Anti-scatter launch after validation"
 check_anchor_regex "$agents" '8\. \*\*After successful launch, emit required handoff wording and validated session metadata\.' "Anti-scatter metadata after launch"
 
