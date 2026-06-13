@@ -152,6 +152,7 @@ Why this works
 > This chapter is the single source of truth for delegation packet and session policy.
 > All other surfaces (agent prompts, templates) are pointers to this chapter.
 > Binding design spec: `docs/superpowers/specs/2026-05-26-delegation-packet-annex-and-verbatim-contract-design.md`
+> Preview/dispatch identity follow-on spec: `docs/superpowers/specs/2026-06-13-maestro-preview-dispatch-identity-design.md`
 
 ## Delegation Packet (closed schema; Maestro → subagent only)
 
@@ -269,6 +270,7 @@ Router-owned metadata (`Session:`, `Resume:`, `Owner:`, `Authority:`) is exempt 
 - If the outgoing dispatch differs from the approved preview, Maestro must refuse launch before Task/subagent launch.
 - Recommended refusal style for this mismatch:
   `Delegation Packet refused — outgoing dispatch differs from approved preview. Dispatch stopped before launch.`
+- If continuing, Maestro must show the corrected exact payload and require a fresh `ok` before launch, without silently correcting the difference.
 
 ### No free-form prose outside the allowed structure
 
