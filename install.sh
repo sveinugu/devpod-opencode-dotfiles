@@ -188,7 +188,8 @@ install_plugin "https://github.com/zsh-users/zsh-autosuggestions" "$zsh_custom/p
 
 link_path "$source_root/.config/opencode" "$home_dir/.config/opencode"
 
-run_opencode_command npx -y skills add wondelai/skills/pragmatic-programmer
+run_opencode_command npx -y skills add wondelai/skills/pragmatic-programmer -g -y
+run_opencode_command npx -y skills add wondelai/skills/clean-code -g -y
 run_opencode_command npx -y @bybrawe/opencode-loop
 
 if [ "$assume_yes" = true ] && [ "$dry_run" = true ]; then

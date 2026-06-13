@@ -29,6 +29,7 @@ The configuration imports the following skills, in prioritized order:
 
 - wondelai/pragmatic-programmer
 - oc-plugin-karpathy-guidelines
+- wondelai/clean-code
 - obra/superpowers
 
 Please report major disagreements between skills to the human partner (user)!
@@ -37,6 +38,7 @@ Please report major disagreements between skills to the human partner (user)!
 
 Agents must always load the "pragmatic-programmer" skill!
 Agents must always load the "karpathy-guidelines" skill!
+Agents must load the "clean-code" skill before starting any coding task, including implementation, refactoring, code review, and post-implementation review.
 
 ## The Superpowered Pragmatic Programmers:
 
@@ -65,17 +67,30 @@ Following this interaction policy is the priority of all members of The Superpow
 - After plan approval, agents must follow TDD (tests-first) on the agreed slice. If tests reveal gaps, open a focused design and/or plan update (depending on severity) and re-approve.
 - After a task is implemented, the work should be presented to the human for manual testing, iterative improvements, and approval.
 - Tasks that depend sequentially on other tasks must not be started until prior tasks have been approved, unless instructed otherwise by a human.
-- Before marking a feature done, run pragmatic-programmer quick diagnostic; append score and 1–3 remediation tasks to PR if score < 8.
+- Before marking a feature done, run the pragmatic-programmer quick diagnostic and a clean-code checklist/score review. Append both results to the PR, review summary, or handoff note. If the pragmatic-programmer score is < 8, append 1–3 remediation tasks. If the clean-code review finds material issues, append 1–3 cleanup/remediation tasks or explicitly justify why they are deferred.
 - Any deviation from these rules requires one-line justification and explicit human approval, recorded in the PR.
+
+### Refactor phase policy
+
+- After reaching green, agents MUST enter a standalone refactor phase for every TDD slice.
+- This refactor phase is a mandatory checkpoint even when the agent expects no code changes. The agent may conclude that no refactoring is needed, but the checkpoint itself MUST still happen explicitly.
+- The refactor phase should review the changed slice and nearby connected code for maintainability improvements that preserve behavior, including naming, duplication, boundaries, readability, and small local cleanups that reduce future change cost.
+- Agents must load the "clean-code" skill before starting any coding task, including implementation, refactoring, code review, and post-implementation review.
+- Authority ordering for TDD and refactoring: user instructions and repository policy always win. Repository policy plus `pragmatic-programmer` govern test-level selection, tracer-bullet scope, overall design trade-offs, and conflict resolution for refactoring choices. `karpathy-guidelines` remains a cross-cutting aid for simplicity, ambiguity handling, and surgical changes, but does not override higher-priority policy or `pragmatic-programmer`. `obra/superpowers` governs tests-first execution discipline (`red → verify red → green → verify green → refactor → verify green`). `clean-code` is loaded for all coding tasks and governs refactor-quality guidance most directly during the standalone refactor phase. It may override conflicting `superpowers` guidance about cleanup technique or code-quality heuristics. If `clean-code` conflicts with `pragmatic-programmer`, `pragmatic-programmer` wins.
+- `clean-code` MUST NOT override user instructions, repository policy, approved artifacts, the chosen test level, or the requirement to keep behavior protected by tests.
+- The refactor phase should end with an explicit clean-code review outcome: either the applied refactors, or an explicit conclusion that no refactor was needed, plus any follow-up cleanup items discovered during the checkpoint.
+- After refactoring, agents MUST rerun the relevant tests and keep behavior green. If the refactor would require behavior changes or a hard-to-reverse architectural shift outside the approved slice, pause and ask the human partner before proceeding.
 
 ### How to reconcile in practice (short recipe for agents)
 
 1. Brainstorm → write lightweight design and define tracer bullet (verification: design committed).
 2. Plan → select tech stack, break down into verifiable tasks, define acceptance tests, describe the task with enough detail to be implemented by a specialist subagent.
-2. Choose test level for tracer bullet (integration/contract preferred for E2E; unit for focused logic).
-3. TDD at chosen level: write failing test, watch fail, implement minimal code, refactor.
-4. Post-implementation: run pragmatic-programmer diagnostic, score, and add remediation if needed.
-5. If prototype used, ensure it lives in worktree and is removed/converted before merge.
+3. Choose test level for the tracer bullet (integration/contract preferred for E2E; unit for focused logic).
+4. TDD at the chosen level → write a failing test, watch it fail, implement minimal code, and verify green.
+5. Coding work → keep `clean-code` loaded while implementing and reviewing code quality.
+6. Refactor phase → perform the mandatory refactor checkpoint on the changed slice and connected code, refactor if warranted or explicitly conclude that no refactor is needed, then verify green again.
+7. Post-implementation → run the pragmatic-programmer diagnostic and the clean-code checklist/score review; record results and remediation tasks in the PR, review summary, or handoff note if needed.
+8. If a prototype was used, ensure it lives in a worktree and is removed or converted before merge.
 
 Why this works
 
@@ -90,6 +105,7 @@ Why this works
 - Agents may copy or adapt the template structure when preparing PR descriptions, review summaries, or handoff notes that need to show compliance with the policy above.
 - Agents should fill in only the sections relevant to the scoped work and may explicitly mark non-applicable items as
   `N/A`.
+- When relevant, PR descriptions, review summaries, or handoff notes should include the pragmatic-programmer score, the clean-code checklist/score outcome, and any resulting remediation or cleanup follow-up items.
 - If the human partner wants a different PR or handoff format, follow the human's requested format while preserving the same underlying policy evidence.
 
 # Subagent delegation
