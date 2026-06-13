@@ -4,7 +4,7 @@
 
 **Goal:** Integrate `wondelai/clean-code` into the repo’s coding-task policy, add an explicit post-green refactor checkpoint, and protect the change with drift tests without broadening authority beyond the approved design.
 
-**Architecture:** Treat `.config/opencode/AGENTS.md` as the canonical policy surface, `tests/docs/test_clean_code_policy_contract.sh` as the behavioral drift guard, `.config/opencode/skills-lock.json` as the skill registration surface, and `.config/opencode/PULL_REQUEST_TEMPLATE.md` as the reporting helper that should stay aligned with policy. Keep test-level choice and overall trade-offs anchored to existing repository policy plus `pragmatic-programmer`; `clean-code` only governs coding-task quality guidance, especially during the standalone refactor phase.
+**Architecture:** Treat `.config/opencode/AGENTS.md` as the canonical policy surface, `tests/docs/test_clean_code_policy_contract.sh` as the behavioral drift guard, and `.config/opencode/skills-lock.json` as the required skill-registration surface. Keep this plan high-level to match the current AGENTS planning policy: the approved spec remains the binding source for clean-code requirements, while this plan sequences verification, canonical policy edits, and only the minimum supporting-surface changes warranted by direct drift.
 
 **Tech Stack:** Markdown policy docs, JSON config, bash + ripgrep (`rg`) doc-contract tests, git.
 
@@ -38,6 +38,16 @@
 
 ---
 
+## Constraints / policy guardrails
+
+- The approved design at `docs/superpowers/specs/2026-06-12-clean-code-integration-design.md` remains the binding clean-code requirements source.
+- The current `.config/opencode/AGENTS.md` planning policy applies to this artifact too: keep the plan high-level, define goals/tests/constraints/risks, and avoid low-level implementation scripting unless the human asks for it.
+- `.config/opencode/AGENTS.md` remains canonical if policy and reporting helpers drift.
+- `.config/opencode/PULL_REQUEST_TEMPLATE.md` is a reporting aid, not a required second source of truth; update it only if direct reporting drift is found or the human wants it aligned in the same slice.
+- Preserve the current delegation/session policy wording and its doc-contract surfaces; this slice is about clean-code integration only.
+
+---
+
 ## File map (expected)
 
 **Canonical policy**
@@ -46,11 +56,11 @@
 **Drift test**
 - Create: `tests/docs/test_clean_code_policy_contract.sh`
 
-**Reporting helper**
-- Modify: `.config/opencode/PULL_REQUEST_TEMPLATE.md`
-
 **Skill lock**
 - Create or modify: `.config/opencode/skills-lock.json`
+
+**Conditional only if direct reporting drift is found**
+- Modify: `.config/opencode/PULL_REQUEST_TEMPLATE.md`
 
 **No change expected**
 - Preserve: `.config/opencode/opencode.jsonc`
@@ -59,7 +69,7 @@
 
 ---
 
-## Success criteria (verifiable)
+## Acceptance criteria (verifiable)
 
 1. `.config/opencode/AGENTS.md` lists `wondelai/clean-code` at priority 3 and moves `obra/superpowers` to priority 4.
 2. `.config/opencode/AGENTS.md` requires loading `clean-code` before coding tasks, but does not add it to the always-load block.
@@ -70,10 +80,19 @@
    - explicit post-refactor re-verification requirement.
 4. `.config/opencode/AGENTS.md` updates the short recipe to `red → verify red → green → verify green → refactor → verify green` semantics.
 5. Post-implementation/reporting policy mentions both the pragmatic-programmer diagnostic and the clean-code checklist/score review.
-6. `.config/opencode/PULL_REQUEST_TEMPLATE.md` gives implementers a place to record the clean-code review outcome alongside existing pragmatic evidence.
-7. `.config/opencode/skills-lock.json` contains a valid `clean-code` entry using the exact source/path from the design.
-8. `tests/docs/test_clean_code_policy_contract.sh` fails before the policy/config edits and passes afterward.
-9. Existing doc-contract tests touching `AGENTS.md` still pass after the update.
+6. `.config/opencode/skills-lock.json` contains a valid `clean-code` entry using the exact source/path from the design.
+7. `tests/docs/test_clean_code_policy_contract.sh` fails before the policy/config edits and passes afterward.
+8. Existing doc-contract tests touching `AGENTS.md` still pass after the update.
+9. If `.config/opencode/PULL_REQUEST_TEMPLATE.md` is updated in this slice, it stays subordinate to `AGENTS.md` and does not become a second policy source.
+
+---
+
+## Risks and trade-offs
+
+- **Policy/reporting drift:** The canonical AGENTS policy and supporting reporting aids can diverge unless the plan treats AGENTS as authoritative and keeps template updates conditional.
+- **Scope creep:** It is easy to expand this slice into broader prompt/template cleanup. The plan should keep non-clean-code policy surfaces unchanged unless verification shows direct drift.
+- **Docs-only false confidence:** Because this is a policy/docs slice, the main regression risk is weak verification. The clean-code contract test should anchor the clean-code-specific outcomes rather than relying on unrelated delegation tests alone.
+- **Untracked state contamination:** The existing untracked `.config/opencode/.agents/` tree and `skills-lock.json` require staging discipline so unrelated work is not swept into the implementation commits.
 
 ---
 
@@ -96,28 +115,26 @@
 
 ---
 
-## Task 1: Add the failing clean-code policy contract test
+## Task 1: Add or refresh the clean-code policy contract test first
 
 **Files:**
 - Create: `tests/docs/test_clean_code_policy_contract.sh`
 
-- [ ] Write a focused doc-contract test that checks the approved policy outcomes, not implementation details.
-- [ ] Make the test assert these anchors in `.config/opencode/AGENTS.md`:
-  - skill priority list contains `wondelai/clean-code`,
+- [ ] Start from a failing docs-only contract that checks the approved clean-code outcomes rather than implementation details.
+- [ ] Make the test assert the clean-code-specific AGENTS anchors:
+  - ordered skill list includes `wondelai/clean-code`,
   - coding-task-only clean-code loading rule exists,
   - `### Refactor phase policy` exists,
-  - authority ordering states `pragmatic-programmer` wins on conflict,
-  - short recipe includes explicit refactor checkpoint and second green verification,
-  - post-implementation reporting includes both pragmatic-programmer and clean-code outputs.
-- [ ] Make the test assert these guardrails:
+  - authority ordering keeps `pragmatic-programmer` above `clean-code`,
+  - short recipe includes explicit post-green refactor checkpoint and second green verification,
+  - post-implementation/reporting language includes both pragmatic-programmer and clean-code outputs.
+- [ ] Make the test assert the clean-code guardrails:
   - the always-load block does **not** add `Agents must always load the "clean-code" skill!`,
-  - no project `opencode.json` / `opencode.jsonc` requirement is introduced,
-  - the refactor checkpoint can explicitly conclude “no refactor needed”.
-- [ ] Make the test assert supporting surfaces:
-  - `.config/opencode/skills-lock.json` contains the `clean-code` skill entry with `source`, `sourceType`, and `skillPath`,
-  - `.config/opencode/PULL_REQUEST_TEMPLATE.md` includes clean-code review/reporting space if this slice updates the template.
-- [ ] Run the new test by itself and watch it fail for the expected missing-policy reasons.
-- [ ] Commit the failing test first.
+  - no project `opencode.json` / `opencode.jsonc` change is required,
+  - the refactor checkpoint may explicitly conclude “no refactor needed”.
+- [ ] Make the test assert the required supporting surface in `.config/opencode/skills-lock.json`, and treat any PR-template assertion as conditional on whether that file is intentionally updated in this slice.
+- [ ] Re-run the current AGENTS-related docs tests after adding the new contract so clean-code coverage augments, rather than accidentally contradicts, the newer delegation-policy checks.
+- [ ] Commit the failing/initial verification coverage before policy edits.
 
 **Suggested commit:**
 - `test(docs): add clean-code policy contract`
@@ -138,8 +155,8 @@
 - [ ] Add the new `### Refactor phase policy` section after `### Concrete policies`, using the design’s required authority ordering and non-goals verbatim enough to avoid drift.
 - [ ] Replace the short recipe so the sequence explicitly includes: choose test level, verify red, verify green, standalone refactor checkpoint, verify green again, then post-implementation reporting.
 - [ ] Append the PR-reporting-template-policy bullet that calls for pragmatic-programmer score, clean-code checklist/score outcome, and follow-up items when relevant.
-- [ ] Re-run the new contract test and confirm the remaining failures, if any, are limited to still-pending supporting-surface work.
-- [ ] Commit the policy update once the AGENTS-specific assertions are green.
+- [ ] Re-run the clean-code contract test and the existing AGENTS-related docs tests once the canonical wording is updated.
+- [ ] **User Check-in:** if the AGENTS wording must diverge materially from the approved design to fit the current policy structure, pause for approval before finalizing the secondary surfaces.
 
 **Suggested commit:**
 - `docs(policy): integrate clean-code refactor policy`
@@ -150,36 +167,32 @@
 - `bash tests/docs/test_delegation_packet_policy_contract.sh`
 - `bash tests/docs/test_maestro_intent_preservation_policy.sh`
 
-**User Check-in:** If the AGENTS wording needs to diverge materially from the approved design to fit existing policy structure, pause and get approval before inventing new wording.
-
 ---
 
-## Task 3: Align supporting reporting and lock-file surfaces
+## Task 3: Align required supporting surfaces; keep reporting-helper edits conditional
 
 **Files:**
-- Modify: `.config/opencode/PULL_REQUEST_TEMPLATE.md`
 - Create or modify: `.config/opencode/skills-lock.json`
+- Modify only if needed: `.config/opencode/PULL_REQUEST_TEMPLATE.md`
 
-- [ ] Add a clean-code reporting subsection to `.config/opencode/PULL_REQUEST_TEMPLATE.md` so the template reflects the new policy without removing the existing pragmatic-programmer evidence.
-- [ ] Add a small refactor-checkpoint evidence prompt to the template (applied refactors or explicit “no refactor needed” outcome) so the mandatory checkpoint is reportable.
 - [ ] Add the `clean-code` skill entry to `.config/opencode/skills-lock.json` with:
   - `source: "wondelai/skills"`
   - `sourceType: "github"`
   - `skillPath: "clean-code/SKILL.md"`
 - [ ] If the repository already has a lock-generation/hash workflow, use it instead of inventing a hash; otherwise preserve the file’s current conventions and document the chosen approach in the handoff.
+- [ ] Update `.config/opencode/PULL_REQUEST_TEMPLATE.md` only if implementation finds direct reporting drift worth fixing in the same slice.
+- [ ] If the template is updated, keep the change minimal and explicitly subordinate to the canonical AGENTS policy.
 - [ ] Validate the JSON after editing the lock file.
 - [ ] Re-run the clean-code contract test and confirm it is fully green.
-- [ ] Commit the supporting-surface changes.
+- [ ] **User Check-in:** if the implementation wants to change the PR template for convenience rather than direct drift, ask whether to keep that as part of this slice or defer it.
 
 **Suggested commit:**
-- `docs(template): align clean-code reporting`
 - `chore(config): lock clean-code skill`
+- Optional if template changed: `docs(template): align clean-code reporting`
 
 **Verification:**
 - `python -m json.tool .config/opencode/skills-lock.json >/dev/null`
 - `bash tests/docs/test_clean_code_policy_contract.sh`
-
-**User Check-in:** If adding the template section feels broader than the approved slice, ask whether to keep it here or track it as an immediate follow-up. The recommended default is to keep it here to avoid policy/template drift.
 
 ---
 
@@ -187,9 +200,9 @@
 
 **Files:**
 - Review only: `.config/opencode/AGENTS.md`
-- Review only: `.config/opencode/PULL_REQUEST_TEMPLATE.md`
 - Review only: `.config/opencode/skills-lock.json`
 - Review only: `tests/docs/test_clean_code_policy_contract.sh`
+- Review only if changed: `.config/opencode/PULL_REQUEST_TEMPLATE.md`
 
 - [ ] Run the targeted clean-code policy contract test again from a clean shell.
 - [ ] Re-run the existing AGENTS-related doc tests to ensure this policy change did not break older guarantees.
@@ -203,9 +216,27 @@
 
 ---
 
+## Final verification checklist
+
+- [ ] `bash tests/docs/test_clean_code_policy_contract.sh`
+- [ ] `bash tests/docs/test_bare_hub_guardrails.sh`
+- [ ] `bash tests/docs/test_delegation_packet_policy_contract.sh`
+- [ ] `bash tests/docs/test_maestro_intent_preservation_policy.sh`
+- [ ] `git diff -- .config/opencode/AGENTS.md .config/opencode/skills-lock.json tests/docs/test_clean_code_policy_contract.sh`
+- [ ] If the template changed, review `git diff -- .config/opencode/PULL_REQUEST_TEMPLATE.md` separately and confirm it still acts only as a reporting aid.
+
+## Pragmatic Programmer diagnostic (target score ≥ 8/10)
+
+- **DRY:** keep the clean-code policy authoritative in AGENTS; avoid forcing the PR template to become a duplicate policy source.
+- **Orthogonality:** separate canonical policy, skill-lock registration, and doc-contract verification so future policy edits can change one surface with predictable verification fallout.
+- **Reversibility:** keep the template change optional and the plan high-level so later reviewers can tighten or defer supporting aids without reopening the clean-code policy decision.
+
+---
+
 ## Notes for the implementer
 
 - Keep the change surgical: this slice is policy + reporting + lock file + doc test only.
 - Do not edit `.config/opencode/opencode.jsonc`; the design explicitly says no project config change is required.
 - Do not “upgrade” clean-code into a global authority. The acceptance test should make that impossible to do accidentally.
 - Treat the doc-contract test as the primary TDD artifact for this feature.
+- Prefer the existing AGENTS-related tests as compatibility checks, but let the new clean-code contract test carry the clean-code-specific assertions.
