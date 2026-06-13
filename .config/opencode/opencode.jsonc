@@ -6,7 +6,6 @@
   "plugin": [
     "oc-plugin-karpathy-guidelines@latest",
     "superpowers@git+https://github.com/obra/superpowers.git",
-    "./plugins/copilot-stats.ts",
     "@bybrawe/opencode-loop"
   ],
   "permission": {
