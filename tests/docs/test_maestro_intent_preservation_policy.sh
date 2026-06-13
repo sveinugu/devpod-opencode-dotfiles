@@ -11,7 +11,8 @@ rg -n 'If validation fails, stop before launch, do not emit the handoff wording,
 rg -n 'Use refusal wording equivalent to: `Delegation Packet refused — <brief reason>\. Dispatch stopped before launch\.`' "$maestro" >/dev/null
 rg -n 'If a single full user message is sufficient, quote that whole message by default\.' "$maestro" >/dev/null
 rg -n 'If quoting only part of a user message is necessary, treat the packet as non-trivial and preview-gated\.' "$maestro" >/dev/null
-rg -n 'Preview any non-trivial packet before dispatch by showing the exact outgoing packet and obtaining explicit user approval\.' "$maestro" >/dev/null
+rg -n 'Preview any non-trivial packet before dispatch by showing the exact pre-launch packet content and obtaining explicit user approval\.' "$maestro" >/dev/null
+rg -n 'Router-owned metadata \(`Session:`, `Resume:`, `Owner:`, `Authority:`\) is exempt from the preview requirement because those fields are launch-generated and populated only after Task returns\.' "$agents" >/dev/null
 rg -n 'If Maestro had to choose, compress, or explain, preview is mandatory\.' "$maestro" >/dev/null
 rg -n 'Runtime/plugin enforcement is deferred in this slice; follow the policy manually until a later automation layer exists\.' "$maestro" >/dev/null
 rg -n 'Delegation Packet \+ Annex rules are defined in `\.config/opencode/AGENTS\.md` → “Delegation & Sessions \(canonical\)”\.' "$maestro" >/dev/null

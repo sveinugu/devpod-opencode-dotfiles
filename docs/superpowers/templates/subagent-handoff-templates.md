@@ -30,7 +30,7 @@ Evidence (verbatim, source: <label>):
 ````
 ```
 > **Note:** `Preview:` is meta-commentary outside the packet, not a packet field.
-> Preview non-trivial packets before dispatch by showing the exact outgoing packet and obtaining explicit user approval.
+> Preview non-trivial packets before dispatch by showing the exact pre-launch packet content and obtaining explicit user approval.
 
 ### Pause / waiting for user
 ```text

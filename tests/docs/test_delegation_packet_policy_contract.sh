@@ -161,11 +161,12 @@ echo ""
 echo "--- Maestro pointer verification ---"
 check_anchor "$maestro" "Delegation Packet" "Maestro points to AGENTS.md canonical"
 check_anchor "$maestro" "are defined in" "Maestro pointer has reference path"
+check_anchor "$maestro" 'Preview any non-trivial packet before dispatch by showing the exact pre-launch packet content and obtaining explicit user approval.' "Maestro pre-launch preview wording"
 
 # --- Template preview guidance verification ---
 echo ""
 echo "--- Template preview guidance verification ---"
-check_anchor "$templates" 'Preview non-trivial packets before dispatch by showing the exact outgoing packet and obtaining explicit user approval.' "Template preview guidance matches canonical rule"
+check_anchor "$templates" 'Preview non-trivial packets before dispatch by showing the exact pre-launch packet content and obtaining explicit user approval.' "Template preview guidance matches canonical rule"
 
 # --- Anti-scatter order verification ---
 echo ""
