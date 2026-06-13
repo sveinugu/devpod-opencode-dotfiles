@@ -200,6 +200,51 @@ Under `Verbatim user request:`, every non-empty line MUST be a Markdown blockquo
 - Do not paraphrase. Do not rewrite into full sentences.
 - Prefer quoting the **entire** relevant user message.
 
+## Maestro-side prevention for new scoped delegation
+
+Maestro MUST NOT call Task / launch a subagent for new scoped delegation until the `Delegation Packet` has passed the Maestro pre-dispatch checks defined below.
+
+If the packet fails any pre-dispatch check, Maestro MUST refuse dispatch, MUST NOT emit the required handoff wording, MUST NOT fabricate session metadata, and MUST instead surface the failure and seek correction.
+
+Recommended refusal style:
+
+`Delegation Packet refused — <brief reason>. Dispatch stopped before launch.`
+
+If Maestro had to choose, compress, or explain, preview is mandatory.
+
+### Maestro pre-dispatch checks
+
+1. **Allowed fields only**
+   - Packet contains only allowed packet fields.
+   - No `Instructions:`, `Notes:`, `Summary:`, `Deliverables:`, `Preview:`, or other extra fields.
+2. **Verbatim quoting contract satisfied**
+   - `Verbatim user request:` contains one or more `>`-quoted user lines.
+   - Multi-message quoting uses `> ---` only when required.
+   - Quotes are verbatim user-authored text, not paraphrase.
+3. **Warnings discipline**
+   - `Warnings:` is omitted when empty.
+   - If present, entries are brief factual flags only.
+   - `Warnings:` must not contain imperatives, inferred deliverables, or implementation steering.
+4. **Artifact-path discipline**
+   - Any artifact path is exact.
+   - If the selected artifact is newly introduced or not clearly established, the packet is non-trivial and must go through preview.
+5. **Packet/Annex boundary discipline**
+   - No free-form text outside the required handoff wording line, packet block, and optional Annex block.
+   - Annex, if present, uses only approved headings.
+
+### Trivial vs non-trivial packet gate
+
+- A packet is trivial only if one full user message is quoted verbatim, `Warnings:` is omitted, no Annex is present, the artifact path is already clear, and Maestro did not need to choose, compress, or explain.
+- Trivial packets may dispatch without user preview after passing the pre-dispatch checks.
+- A packet is non-trivial if `Warnings:` is non-empty, any Annex is present, `Verbatim user request:` includes multiple user messages, Maestro quotes only part of a user message instead of the full message, Maestro selects or introduces an `Artifact path:` that was not already clearly established, or Maestro resolves ambiguity from context rather than routing from one obvious user message.
+- For non-trivial packets, Maestro must show the **exact outgoing packet** and require explicit user approval before dispatch.
+- If a single full user message is sufficient, Maestro should quote that whole message.
+- Partial-message quoting automatically makes the packet non-trivial and therefore preview-gated.
+
+### Deferred runtime enforcement
+
+This policy should be written so a later runtime validator can implement it directly, but no runtime/plugin work is part of this slice.
+
 ### Subagent stop-rule (all subagents)
 
 If a subagent receives a Delegation Packet where `Verbatim user request:` contains **zero** `>`-quoted lines
@@ -348,11 +393,14 @@ before any other orchestration text beyond the required handoff wording.
 
 ## Anti-scatter checklist (sequential; Maestro must follow)
 
-1. **Required handoff wording line** — emit the exact handoff wording.
-2. **Delegation Packet block** — emit with allowed fields only; no forbidden fields.
-3. **Optional Annex block** — may follow packet after a blank line.
-4. **Session metadata** — print `Session:` / `Resume:` / `Owner:` / `Authority:` immediately after successful launch.
-5. **Verify** — after dispatch, confirm the packet contains no forbidden fields and verbatim has `>` lines.
+1. **Identify target subagent and confirm this is new scoped delegation.**
+2. **Collect exact `Artifact path:` / `Artifact paths:` / `Worktree path:` values if any.**
+3. **Collect exact user message text for `Verbatim user request:`.**
+4. **Assemble packet using allowed fields only.**
+5. **Run Maestro pre-dispatch checks.**
+6. **If the packet is non-trivial, preview the exact outgoing packet and obtain explicit user approval.**
+7. **Only then call Task / launch the subagent.**
+8. **After successful launch, emit required handoff wording and validated session metadata.**
 
 ## Planning and implementation policy
 

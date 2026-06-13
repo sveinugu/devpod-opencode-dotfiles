@@ -2,9 +2,9 @@
 # Doc-contract test: delegation packet policy drift guardrails
 #
 # Fails if:
-#  - Canonical chapter is missing required anchor phrases
+#  - Canonical chapter is missing required prevention-policy anchors
 #  - Forbidden legacy packet fields appear in canonical surfaces
-#  - Verbatim quoting contract anchors are absent
+#  - Verbatim quoting / preview-gate anchors are absent
 
 set -euo pipefail
 
@@ -89,6 +89,15 @@ extract_pre_canonical_agents "$pre_canonical_agents"
 echo "--- Required anchors in AGENTS.md canonical chapter ---"
 check_anchor "$agents" "# Delegation & Sessions (canonical)" "Canonical chapter heading"
 check_anchor "$agents" "Delegation Packet (closed schema; Maestro" "Delegation Packet section"
+check_anchor "$agents" '`Worktree path:` (explicit absolute path to editable checkout)' "Worktree path allowed field"
+check_anchor "$agents" "Maestro-side prevention for new scoped delegation" "Maestro prevention subsection"
+check_anchor "$agents" 'Maestro MUST NOT call Task / launch a subagent for new scoped delegation until the `Delegation Packet` has passed the Maestro pre-dispatch checks defined below' "Pre-dispatch prohibition"
+check_anchor "$agents" 'If the packet fails any pre-dispatch check, Maestro MUST refuse dispatch, MUST NOT emit the required handoff wording, MUST NOT fabricate session metadata, and MUST instead surface the failure and seek correction.' "Refusal-before-launch rule"
+check_anchor "$agents" 'Delegation Packet refused — <brief reason>. Dispatch stopped before launch.' "Refusal wording anchor"
+check_anchor "$agents" 'If Maestro had to choose, compress, or explain, preview is mandatory.' "Preview umbrella rule"
+check_anchor "$agents" 'If a single full user message is sufficient, Maestro should quote that whole message.' "Full-message quoting default"
+check_anchor "$agents" 'Partial-message quoting automatically makes the packet non-trivial and therefore preview-gated.' "Partial-message preview gate"
+check_anchor "$agents" 'This policy should be written so a later runtime validator can implement it directly, but no runtime/plugin work is part of this slice.' "Runtime/plugin deferral"
 check_anchor "$agents" "Annex (non-authoritative; not part of Delegation Packet)" "Annex section"
 check_anchor "$agents" "Verbatim quoting contract" "Verbatim quoting section"
 check_anchor "$agents" "Artifact semantics + handshake" "Artifact semantics section"
@@ -102,6 +111,15 @@ check_anchor "$agents" "ONLY permitted text in the dispatch message is the requi
 check_anchor "$agents" 'Open questions:` entries must be questions' "Open questions must be questions"
 check_anchor "$agents" 'Hypotheses:` bullet MUST include the literal phrase `confirm before relying`' "Hypotheses confirm-before-relying rule"
 check_anchor "$agents" 'Evidence blocks MUST contain raw output only inside a fenced block and MUST include a `source:` label' "Evidence raw-output source-label rule"
+
+echo ""
+echo "--- Required pre-dispatch checks in AGENTS.md ---"
+check_anchor "$agents" "Allowed fields only" "Allowed-fields-only check"
+check_anchor "$agents" "Verbatim quoting contract satisfied" "Verbatim quoting check"
+check_anchor "$agents" "Warnings discipline" "Warnings discipline check"
+check_anchor "$agents" "Artifact-path discipline" "Artifact-path discipline check"
+check_anchor "$agents" "Packet/Annex boundary discipline" "Packet/Annex boundary check"
+check_anchor "$agents" 'For non-trivial packets, Maestro must show the **exact outgoing packet** and require explicit user approval before dispatch.' "Non-trivial exact-packet preview rule"
 
 # --- Required anchors in spec ---
 echo ""
@@ -139,6 +157,19 @@ echo ""
 echo "--- Maestro pointer verification ---"
 check_anchor "$maestro" "Delegation Packet" "Maestro points to AGENTS.md canonical"
 check_anchor "$maestro" "are defined in" "Maestro pointer has reference path"
+
+# --- Template preview guidance verification ---
+echo ""
+echo "--- Template preview guidance verification ---"
+check_anchor "$templates" 'Preview non-trivial packets before dispatch by showing the exact outgoing packet and obtaining explicit user approval.' "Template preview guidance matches canonical rule"
+
+# --- Anti-scatter order verification ---
+echo ""
+echo "--- Anti-scatter order verification ---"
+check_anchor_regex "$agents" '1\. \*\*Identify target subagent and confirm this is new scoped delegation\.' "Anti-scatter starts with target identification"
+check_anchor_regex "$agents" '5\. \*\*Run Maestro pre-dispatch checks\.' "Anti-scatter validates before launch"
+check_anchor_regex "$agents" '7\. \*\*Only then call Task / launch the subagent\.' "Anti-scatter launch after validation"
+check_anchor_regex "$agents" '8\. \*\*After successful launch, emit required handoff wording and validated session metadata\.' "Anti-scatter metadata after launch"
 
 echo ""
 if [ "$fail" -eq 0 ]; then
