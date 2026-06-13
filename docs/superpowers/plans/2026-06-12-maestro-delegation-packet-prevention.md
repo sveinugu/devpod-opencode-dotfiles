@@ -142,7 +142,8 @@
 - Review only: `tests/docs/test_maestro_intent_preservation_policy.sh`
 
 - [ ] Run `bash tests/docs/test_delegation_packet_policy_contract.sh`.
-- [ ] Run any remaining docs tests touched by this slice.
+- [ ] If `tests/docs/test_maestro_intent_preservation_policy.sh` survives Task 1, run `bash tests/docs/test_maestro_intent_preservation_policy.sh`.
+- [ ] Run any other remaining docs tests touched by this slice.
 - [ ] Re-read the binding spec and confirm each acceptance criterion maps to evidence in AGENTS, `maestro.md`, or the doc-contract tests.
 - [ ] Review the final diff for policy drift, duplicate schema wording, and accidental scope expansion.
 
