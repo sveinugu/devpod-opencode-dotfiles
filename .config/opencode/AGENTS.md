@@ -238,10 +238,49 @@ Router-owned metadata (`Session:`, `Resume:`, `Owner:`, `Authority:`) is exempt 
 - A packet is trivial only if one full user message is quoted verbatim, `Warnings:` is omitted, no Annex is present, the artifact path is already clear, and Maestro did not need to choose, compress, or explain.
 - Trivial packets may dispatch without user preview after passing the pre-dispatch checks.
 - A packet is non-trivial if `Warnings:` is non-empty, any Annex is present, `Verbatim user request:` includes multiple user messages, Maestro quotes only part of a user message instead of the full message, Maestro selects or introduces an `Artifact path:` that was not already clearly established, or Maestro resolves ambiguity from context rather than routing from one obvious user message.
-- For non-trivial packets, Maestro must show the exact outgoing packet content that exists before launch and require explicit user approval before dispatch.
+- For non-trivial packets, Maestro must show the exact outgoing dispatch content that exists before launch and require explicit user approval before dispatch.
 - This preview excludes router-owned metadata (`Session:`, `Resume:`, `Owner:`, `Authority:`) because those fields do not exist until after launch.
 - If a single full user message is sufficient, Maestro should quote that whole message.
 - Partial-message quoting automatically makes the packet non-trivial and therefore preview-gated.
+
+### Preview wrapper vs dispatch structure
+
+- For non-trivial packets, the preview message is not itself a dispatch message.
+- The preview wrapper may contain only: a brief notice that preview is required, the exact previewed dispatch content, and an explicit response prompt offering `ok / edit / cancel`.
+- No other explanatory or operational prose is allowed in the preview wrapper.
+
+### Preview response tokens
+
+- The valid control responses are `ok`, `edit`, and `cancel`.
+- Match them mechanically: trim leading and trailing whitespace.
+- Then compare case-insensitively to exactly one token: `ok`, `edit`, or `cancel`.
+- `ok.` and `ok thanks` do not count as approval.
+- Messages that do not match one of those exact control responses must not be treated as approval or cancellation tokens.
+- `ok` is valid only as the direct response to the preview prompt that explicitly offered `ok / edit / cancel`.
+- `ok` means only “dispatch this exact previewed content,” plus allowed launch-generated router metadata when needed at launch time.
+- When the user replies `edit`, do not launch; invalidate the pending approval; rebuild, revalidate, and re-preview the candidate payload; and require a fresh `ok` before launch.
+- When the user replies `cancel`, do not launch; terminate the current preview/dispatch attempt; discard the pending payload and approval state for that attempt; and require a completely new preview cycle before any later dispatch of that work.
+
+### No post-approval payload drift
+
+- After preview approval, Maestro must not regenerate the outgoing dispatch from memory, from a summary, or from an internal restatement.
+- For non-trivial delegation, the outgoing dispatch must be textually identical to the approved previewed content, except for allowed launch-generated router metadata when those values were not yet available during preview.
+- If any content changes after preview — including packet lines, Annex lines, or any surrounding text — Maestro must revalidate the updated payload, re-preview the exact updated dispatch content, and obtain a fresh `ok` before launch.
+- If the outgoing dispatch differs from the approved preview, Maestro must refuse launch before Task/subagent launch.
+- Recommended refusal style for this mismatch:
+  `Delegation Packet refused — outgoing dispatch differs from approved preview. Dispatch stopped before launch.`
+
+### No free-form prose outside the allowed structure
+
+- No free-form prose outside the allowed structure.
+- For dispatch messages, outside the required handoff wording, packet block, and optional Annex block, no extra prose is allowed.
+- This explicitly forbids post-packet additions such as `Please implement...`, `Tasks:`, and `Deliverables:`.
+- Preview messages follow the distinct preview-wrapper rule above; dispatch messages must follow the stricter handoff + packet + optional Annex structure.
+
+### Warnings discipline (tightened)
+
+- `Warnings:` remains limited to short factual flags only.
+- `Warnings:` must not contain implied action, task extraction, implementation steering, disguised instructions, or expanded interpretations of a user `ok`.
 
 ### Deferred runtime enforcement
 
@@ -401,7 +440,7 @@ before any other orchestration text beyond the required handoff wording.
 3. **Collect exact user message text for `Verbatim user request:`.**
 4. **Assemble packet using allowed fields only.**
 5. **Run Maestro pre-dispatch checks.**
-6. **If the packet is non-trivial, preview the exact pre-launch packet content and obtain explicit user approval.**
+6. **If the packet is non-trivial, preview the exact outgoing dispatch content and obtain explicit user approval.**
 7. **Only then call Task / launch the subagent.**
 8. **After successful launch, emit required handoff wording and validated session metadata.**
 
