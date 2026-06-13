@@ -36,6 +36,7 @@ The Delegation Packet remains a closed-schema block used only for **Maestro → 
 Allowed packet fields (unchanged):
 
 - `Artifact path:` or `Artifact paths:` (exact path strings)
+- `Worktree path:` (explicit absolute path to editable checkout)
 - `Verbatim user request:` (verbatim-only; see contract below)
 - `Warnings:` (optional; warnings only)
 - router-owned metadata: `Session:`, `Resume:`, `Owner:`, `Authority:`

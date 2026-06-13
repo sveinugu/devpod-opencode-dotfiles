@@ -161,6 +161,7 @@ It is not for resume messages, subagent questions, or subagent completion messag
 ### Allowed packet fields (only these)
 
 - `Artifact path:` or `Artifact paths:` with exact path strings when applicable
+- `Worktree path:` (explicit absolute path to editable checkout)
 - `Verbatim user request:` as a `>`-quoted block (see verbatim quoting contract below)
 - `Warnings:` only when non-empty; brief factual flags only; non-authoritative
 - router-owned metadata: `Session:`, `Resume:`, `Owner:`, `Authority:`

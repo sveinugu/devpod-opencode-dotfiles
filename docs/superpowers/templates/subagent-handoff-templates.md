@@ -9,6 +9,7 @@ Resume: $<task_id> <your reply>
 Owner: <subagent>
 Authority: only the owning subagent may perform <subagent> responsibilities unless a human-approved Maestro override is active
 Artifact path: <exact approved plan/spec path, or N/A when none exists>
+Worktree path: <explicit absolute path to editable checkout, or N/A>
 Verbatim user request:
 > <quote the user's exact relevant words>
 Warnings:
