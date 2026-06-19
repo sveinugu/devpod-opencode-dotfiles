@@ -87,7 +87,10 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 - [ ] Generated `.envrc` exports `TMPDIR`, `TMP`, and `TEMP`, and each matches the generated `DYN_WORKTREE_TMP_DIR` value.
 - [ ] `dhub` (shell-level helper) changes to the active install checkout from `$HUB_INSTALL_BRANCH_DIR` and prints the destination directory before changing into it.
 - [ ] `dre <repo>` changes to `/workspaces/dotfiles/repos/<repo>` and refuses the top-level hub as a target.
-- [ ] `dwt <name>` changes to `work/<name>` within the current managed repo context and refuses to run outside a managed repo context.
+- [ ] `dwt` with no argument changes to the current managed repo's default checkout and refuses to run outside a managed repo context.
+- [ ] `dwt <default-branch-name>` changes to that same current repo default checkout.
+- [ ] `dwt <other-name>` changes to `work/<other-name>` within the current managed repo context.
+- [ ] `bin/new-worktree` reserves the current managed repo's actual default branch name (`main` for the top-level hub, detected remote default for child repos) and refuses creating a feature worktree with that exact name.
 - [ ] Zsh tab completion exists for `dhub`, `dre`, and `dwt`.
 - [ ] Invalid repo/worktree names print simple non-interactive `did you mean` hints.
 - [ ] No compatibility `dd()` alias is shipped in v1.
@@ -156,7 +159,7 @@ Target spec: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-desi
 ### Additional phase-1 documentation and workflow guidance
 
 - [ ] `docs/superpowers/runbooks/devspace-bare-hub-usage.md` explains the dev/testing/production workflow for policy changes: develop in a non-`main` worktree, test with `HUB_INSTALL_BRANCH=<branch>` during provision/repair, merge to `main` for staging/testing, then push `main` for production/default behavior.
-- [ ] `docs/superpowers/runbooks/devspace-bare-hub-usage.md` and `docs/superpowers/runbooks/devspace-workspace-lifecycle.md` document `bin/clone-repo`, `bin/new-worktree`, `dhub`, `dre`, `dwt`, `.envrc`, `.envrc.local`, `state/hub/etc/install.env`, and the no-implicit-fallback rule.
+- [ ] `docs/superpowers/runbooks/devspace-bare-hub-usage.md` and `docs/superpowers/runbooks/devspace-workspace-lifecycle.md` document `bin/clone-repo`, `bin/new-worktree`, `dhub`, `dre`, `dwt`, the `dwt` default-checkout shortcut, `.envrc`, `.envrc.local`, `state/hub/etc/install.env`, and the no-implicit-fallback rule.
 - [ ] Agent policy docs (`.config/opencode/AGENTS.md`, `.config/opencode/agents/maestro.md`, `.config/opencode/agents/senior-implementer.md`) tell agents to prefer `bin/clone-repo` and `bin/new-worktree` and to read `state/hub/etc/install.env`.
 - [ ] Touched runbooks and agent-policy docs include a short "what changed for implementers" note whenever this retrofit changes command names, install-branch behavior, child default-branch handling, or required files to touch.
 

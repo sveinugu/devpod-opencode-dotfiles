@@ -1168,7 +1168,7 @@ git commit -m "feat(workspace): add repo onboarding and worktree env commands"
 
 ### Task 5a: Retrofit child repos to preserve exact default branches and add `bin/` navigation resolvers
 
-**Why now:** Task 5 provides the repo/worktree scaffold, but the current surface still hard-codes child `main` and lacks the agreed navigation contract. This task lands the final v1 child-branch and resolver behavior before phase 2 begins.
+**Why now:** Task 5 provides the repo/worktree scaffold, but the current surface still hard-codes child `main` and lacks the agreed navigation contract. This task lands the final v1 child-branch behavior, the `dwt` default-checkout shortcut, and the reserved-default-branch worktree guard before phase 2 begins.
 
 **Acceptance:** updated Phase-1 section E navigation items plus section I child-repo default-branch items.
 
@@ -1195,14 +1195,17 @@ git commit -m "feat(workspace): add repo onboarding and worktree env commands"
 
 - non-default child worktrees still live under `repos/<name>/work/<branch>`;
 - any repo/worktree helper touched by this task preserves the exact branch name, including slashes, when mapping to the managed `work/` area;
-- the `dwt` command contract remains anchored to the canonical `work/` directory and does not guess outside the current repo context.
+- `bin/new-worktree` refuses creation when the requested worktree name exactly matches the current managed repo's actual default branch name;
+- the `dwt` command contract resolves the current managed repo's default checkout for no-arg and exact-default-branch-name calls, resolves `work/<name>` for other names, and does not guess outside the current repo context.
 
 `tests/devspace/test_workspace_navigation_commands.sh` must assert:
 
 - `bin/dre` and `bin/dwt` exist with no `.sh` suffix;
 - `dhub` resolves exactly `$HUB_INSTALL_BRANCH_DIR` (via `.config/shell/workspace-navigation.zsh` + `scripts/lib/resolve-install-target.sh`) and exits non-zero with a clear message when install state is missing, unreadable, or points to a non-directory;
 - `bin/dre <repo>` resolves exactly `/workspaces/dotfiles/repos/<repo>` for existing child repos and refuses top-level or hub pseudo-targets;
-- `bin/dwt <name>` resolves exactly `work/<name>` inside the current managed repo context and refuses outside that context;
+- `bin/dwt` with no argument resolves exactly the current managed repo default checkout path;
+- `bin/dwt <default-branch-name>` resolves that same current managed repo default checkout path;
+- `bin/dwt <other-name>` resolves exactly `work/<other-name>` inside the current managed repo context;
 - invalid repo/worktree names print simple non-interactive `did you mean ...` hints when there is a close single match;
 - the resolver commands remain text-only and do not require or invoke `fzf`.
 
@@ -1226,6 +1229,8 @@ Implementation contract:
 - treat `bin/dre` and `bin/dwt` as path resolvers that print one exact destination path on success; `dhub` remains a shell helper backed by `scripts/lib/resolve-install-target.sh`; the interactive shell wrappers that actually `cd` are owned by Task 5b;
 - audit `bin/clone-repo`, `bin/new-worktree`, `scripts/lib/hub-repo-core.sh`, and any other touched child-repo helper for `main` assumptions and replace them with detected child default-branch handling;
 - preserve exact remote default-branch names; do not normalize `master` or any other name to `main`;
+- resolve the repo-specific default-branch alias before any `work/<name>` lookup in `bin/dwt` so the shortcut remains unambiguous;
+- reserve the current managed repo's actual default branch name in `bin/new-worktree` and fail clearly when a requested feature worktree name collides with that reserved alias;
 - keep top-level hub bootstrap policy main-only (`origin/main`) with exact branch-name preservation;
 - keep the no-implicit-fallback rule: `dhub`, `dre`, and `dwt` must fail clearly instead of guessing a target.
 
@@ -1248,7 +1253,7 @@ git add bin/dre bin/dwt bin/clone-repo bin/new-worktree scripts/lib/hub-repo-cor
 git commit -m "feat(workspace): add navigation resolvers and child branch fidelity"
 ```
 
-**Manual review gate:** onboard one public repo whose default branch is not `main` (for example `master`), confirm the managed checkout keeps that exact branch name, and confirm the resolver commands print the expected paths and hint text without changing the current shell yet.
+**Manual review gate:** onboard one public repo whose default branch is not `main` (for example `master`), confirm the managed checkout keeps that exact branch name, confirm `dwt` with no argument and with that exact default branch name both resolve the default checkout, confirm `dwt <feature-name>` still resolves `work/<feature-name>`, and confirm the resolver commands print the expected paths and hint text without changing the current shell yet.
 
 ### Task 5b: Wire zsh navigation wrappers, completion, and docs for `dhub`, `dre`, and `dwt`
 
@@ -1272,12 +1277,13 @@ git commit -m "feat(workspace): add navigation resolvers and child branch fideli
 - no compatibility alias is installed in v1;
 - zsh completion is registered for `dhub`, `dre`, and `dwt`;
 - the completion sources candidates from managed repo/worktree state and remains text-only (no `fzf`);
+- the documented/completed `dwt` behavior includes the no-arg default-checkout shortcut and exact-default-branch-name shortcut;
 - the install-time recommended helper snippet uses `dhub` only.
 
 `tests/docs/test_bare_hub_guardrails.sh` must now assert:
 
 - the usage and lifecycle runbooks document `dhub`, `dre`, `dwt`, their failure semantics, and the lack of a compatibility alias;
-- the navigation docs say `dwt` only works from an existing managed repo context and that `dre` excludes the top-level hub;
+- the navigation docs say `dwt` only works from an existing managed repo context, describe the default-checkout shortcut behavior, and say that `dre` excludes the top-level hub;
 - the same docs continue to tell agents and humans to prefer `bin/clone-repo` and `bin/new-worktree`.
 
 - [ ] **Step 2: Run RED**
@@ -1298,6 +1304,7 @@ Implementation contract:
 - keep the actual `cd` behavior in `.config/shell/workspace-navigation.zsh`, not in a standalone binary, because child processes cannot change the caller's working directory;
 - shell wrappers should print the resolved destination before changing directories, matching the old convenience-helper ergonomics;
 - register zsh completion for `dhub`, `dre`, and `dwt` inside the repo-managed shell package that `.zshrc` already sources;
+- document and preserve the `dwt` no-arg / exact-default-branch-name shortcut behavior defined in the spec rather than hiding it behind completion-only behavior;
 - update install guidance so the recommended helper snippet is `dhub` and there is no compatibility alias;
 - update the runbooks and guardrail docs/tests to describe the final command surface and the no-implicit-fallback rule.
 
@@ -1319,11 +1326,11 @@ git add install.sh .config/shell/workspace-navigation.zsh docs/superpowers/runbo
 git commit -m "feat(shell): add repo navigation wrappers and docs"
 ```
 
-**Manual review gate:** open a fresh interactive zsh session, confirm `dhub`, `dre`, and `dwt` are available with tab completion, verify they print the destination before changing directories, and verify invalid names emit plain-text hint output without invoking `fzf`.
+**Manual review gate:** open a fresh interactive zsh session, confirm `dhub`, `dre`, and `dwt` are available with tab completion, verify `dwt` with no argument and with the exact default branch name both land on the repo default checkout, verify the helpers print the destination before changing directories, and verify invalid names emit plain-text hint output without invoking `fzf`.
 
-### Task 5c: Enforce top-level `main` policy and wire canonical `dhub` navigation (no implicit fallback)
+### Task 5c: Enforce top-level `main` policy and keep repo-specific default-branch navigation unambiguous
 
-**Why now:** The navigation/provision retrofit must explicitly enforce top-level `main` policy for the controlled top-level repo, while keeping child repos default-branch dynamic and preserving explicit no-fallback semantics.
+**Why now:** The navigation/provision retrofit must explicitly enforce top-level `main` policy for the controlled top-level repo, while keeping child repos default-branch dynamic and ensuring the reserved default-branch alias stays unambiguous across navigation and worktree creation.
 
 **Acceptance:** updated phase-1 provisioning and navigation behavior where top-level bootstrap/primary-branch assumptions appear.
 
@@ -1345,7 +1352,7 @@ Update the listed tests to assert:
 - top-level provisioning requires `origin/main` and fails clearly if `main` is unavailable;
 - child onboarding remains dynamic-default (no forced child-branch normalization);
 - `doctor` reports installed-branch state and fails clearly when top-level required paths/state are missing;
-- `dhub` remains anchored to installed-branch state (`HUB_INSTALL_BRANCH_DIR`) and navigation helpers keep explicit names without implicit fallback to hub root.
+- `dhub` remains anchored to installed-branch state (`HUB_INSTALL_BRANCH_DIR`), `dwt` keeps the repo-specific default-checkout shortcut, and navigation helpers keep explicit names without implicit fallback to hub root;
 - no compatibility alias exists in v1.
 
 - [ ] **Step 2: Run RED**
@@ -1367,7 +1374,7 @@ Implementation contract:
 
 - keep top-level bootstrap `main`-only and fail clearly when `origin/main` is unavailable;
 - keep child repos dynamic-default and exact-name preserving;
-- keep `dwt` explicit (no hidden aliasing);
+- keep `dwt` explicit while preserving the approved repo-specific default-branch alias contract;
 - keep `dhub` anchored to installed-branch state (`HUB_INSTALL_BRANCH_DIR`) and fail clearly when state is missing/invalid;
 - keep `dhub` as the only install-root helper in v1.
 - do not add configurable probe lists, fuzzy pickers, or implicit root fallback.
@@ -1385,7 +1392,7 @@ git add scripts/provision-workspace.sh ops/check-workspace.sh bin/new-worktree .
 git commit -m "feat(workspace): enforce top-level main policy and dhub navigation"
 ```
 
-**Manual review gate:** confirm top-level provisioning fails clearly when `main` is absent, confirm child onboarding succeeds for a public repo whose default branch is not `main`, and confirm navigation remains explicit (no implicit fallback to hub root).
+**Manual review gate:** confirm top-level provisioning fails clearly when `main` is absent, confirm child onboarding succeeds for a public repo whose default branch is not `main`, confirm `new-worktree` rejects a feature name that matches that repo's exact default branch, and confirm navigation remains explicit (no implicit fallback to hub root).
 
 ---
 
@@ -1427,7 +1434,7 @@ Expected:
 - `direnv` is available in the interactive environment and the managed `.envrc` variables load for at least one `main/` checkout and one non-`main` worktree;
 - child onboarding preserves the exact default branch name for at least one non-`main` public repo fixture;
 - top-level bootstrap compatibility uses `main` only and fails clearly when `origin/main` is missing;
-- `dhub`, `dre`, and `dwt` work from interactive zsh with completion enabled, print their destinations before changing directories, and fail with plain-text hints instead of implicit fallback when names are wrong;
+- `dhub`, `dre`, and `dwt` work from interactive zsh with completion enabled, `dwt` no-arg and exact-default-branch-name calls resolve the repo default checkout, the helpers print their destinations before changing directories, and they fail with plain-text hints instead of implicit fallback when names are wrong;
 - `git diff --check` prints no output.
 
 Phase-1 rollback order if the slice must be backed out:
@@ -1859,7 +1866,7 @@ Phase-2 rollback order:
 ### Retained assumptions
 
 1. The top-level hub root is administrative, not the editable checkout.
-2. The top-level hub uses fixed-priority bootstrap compatibility in v1 (`main` only) with exact branch-name preservation; child repos preserve their exact remote default branch names.
+2. The top-level hub uses fixed-priority bootstrap compatibility in v1 (`main` only) with exact branch-name preservation; child repos preserve their exact remote default branch names; and each repo's exact default branch name is reserved as the `dwt` default-checkout alias rather than a valid feature-worktree name.
 3. The top-level dotfiles repo remains the only `/home/vscode` authority.
 4. Canonical durable/disposable paths remain:
    - `/workspaces/dotfiles/state/hub/main/`
@@ -1874,6 +1881,7 @@ Phase-2 rollback order:
 - **Repair overreach:** do not let `repair` become destructive or branch-guessing.
 - **Child repo authority creep:** keep child repos away from `/home/vscode` ownership.
 - **Navigation fallback creep:** keep `dhub`, `dre`, and `dwt` explicit; do not reintroduce silent fallback or fuzzy pickers without a new approved spec.
+- **Default-branch alias drift:** keep the repo-specific `dwt` shortcut and `new-worktree` reservation rule aligned so the same exact branch name never means both “default checkout” and “feature worktree”.
 - **Backup freshness ambiguity:** the status file/log written by `bin/stage-backup` is the single source of truth for stale/fresh reporting.
 
 ---
