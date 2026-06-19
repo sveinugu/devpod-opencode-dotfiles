@@ -118,7 +118,27 @@ _workspace_nav_complete_dwt() {
     return 0
   fi
 
+  local default_branch=''
+  if [ "$repo_root" = "$workspace_root" ]; then
+    default_branch='main'
+  else
+    local repo_name="${repo_root#"$workspace_root/repos/"}"
+    local repo_env="$workspace_root/state/repos/$repo_name/etc/repo.env"
+    if [ -f "$repo_env" ]; then
+      # shellcheck disable=SC1090
+      . "$repo_env"
+      default_branch="${DYN_REPO_DEFAULT_BRANCH:-}"
+    fi
+  fi
+
   [ -d "$repo_root/work" ] || return 0
+
+  if [ -n "$default_branch" ]; then
+    local completion_prefix="${PREFIX:-}"
+    if [[ -z "$completion_prefix" || "$default_branch" == "$completion_prefix"* ]]; then
+      compadd -Q -U -- "$default_branch"
+    fi
+  fi
 
   _path_files -W "$repo_root/work" -/
 }

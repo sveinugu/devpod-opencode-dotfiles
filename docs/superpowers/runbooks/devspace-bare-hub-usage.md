@@ -96,6 +96,8 @@ The repo-managed shell package is the intended home for the interactive wrappers
 
 - `dhub` → jump to `$HUB_INSTALL_BRANCH_DIR`
 - `dre <repo>` → jump to `/workspaces/dotfiles/repos/<repo>`
+- `dwt` with no argument → jump to the current managed repo default checkout
+- `dwt <default-branch-name>` → jump to that same default checkout
 - `dwt <name>` → jump to `work/<name>` inside the current managed repo context
 
 Behavior notes:
@@ -103,6 +105,7 @@ Behavior notes:
 - `dhub` prints the resolved install checkout before changing directories
 - `dre` excludes the top-level hub; use it only for child repos under `repos/`
 - `dwt` only works from an existing managed repo context and uses the canonical `work/` directory
+- for top-level hub, default alias is `main`; for child repos, it is the detected remote default branch name
 - invalid names may print a simple text `did you mean ...` hint
 - no `dd()` compatibility alias
 - no `fzf` integration in v1

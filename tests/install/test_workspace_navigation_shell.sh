@@ -16,9 +16,14 @@ trap 'rm -rf "$tmpdir"' EXIT
 
 workspace_root="$tmpdir/workspace"
 mkdir -p "$workspace_root/main" "$workspace_root/work/feature-top" "$workspace_root/repos"
-mkdir -p "$workspace_root/repos/alpha/.bare" "$workspace_root/repos/alpha/main" "$workspace_root/repos/alpha/work/feature-child"
+mkdir -p "$workspace_root/repos/alpha/.bare" "$workspace_root/repos/alpha/master" "$workspace_root/repos/alpha/work/feature-child"
 mkdir -p "$workspace_root/repos/alpha/work/spec/limit-peek-elements-design"
 touch "$workspace_root/repos/alpha/work/spec/limit-peek-elements-design/.git"
+mkdir -p "$workspace_root/state/repos/alpha/etc"
+cat > "$workspace_root/state/repos/alpha/etc/repo.env" <<EOF
+export DYN_REPO_DEFAULT_BRANCH=master
+export DYN_REPO_DEFAULT_DIR=$workspace_root/repos/alpha/master
+EOF
 
 mock_bin="$tmpdir/mock-bin"
 mkdir -p "$mock_bin"
@@ -49,12 +54,21 @@ cat > "$mock_bin/dwt" <<EOF
 set -euo pipefail
 name=''
 
-if [ "\$#" -ne 1 ]; then
-  printf 'usage: dwt <name>\n' >&2
+if [ "\$#" -gt 1 ]; then
+  printf 'usage: dwt [name]\n' >&2
   exit 2
 fi
 
+if [ "\$#" -eq 0 ]; then
+  printf '%s/repos/alpha/master\n' "$workspace_root"
+  exit 0
+fi
+
 name="\$1"
+if [ "\$name" = "master" ]; then
+  printf '%s/repos/alpha/master\n' "$workspace_root"
+  exit 0
+fi
 if [ "\$name" = "feature-chiild" ]; then
   printf 'refused: worktree \"%s\" not found\n' "\$name" >&2
   printf 'did you mean: feature-child\n' >&2
@@ -96,17 +110,41 @@ zsh_dwt_ok="$(
   WORKSPACE_NAV_SCRIPT="$nav_script" \
   zsh -fc '
     source "$WORKSPACE_NAV_SCRIPT"
-    cd "'$workspace_root/repos/alpha/main'"
+    cd "'$workspace_root/repos/alpha/master'"
     dwt feature-child >/tmp/ignore2.out
     printf "%s\n" "$PWD"
   '
 )"
 [ "$zsh_dwt_ok" = "$workspace_root/repos/alpha/work/feature-child" ] || fail "dwt shell wrapper should cd to resolver path"
 
+zsh_dwt_default_noarg="$(
+  PATH="$mock_bin:$PATH" \
+  WORKSPACE_NAV_SCRIPT="$nav_script" \
+  zsh -fc '
+    source "$WORKSPACE_NAV_SCRIPT"
+    cd "'$workspace_root/repos/alpha/work/feature-child'"
+    dwt >/tmp/ignore2-default.out
+    printf "%s\n" "$PWD"
+  '
+)"
+[ "$zsh_dwt_default_noarg" = "$workspace_root/repos/alpha/master" ] || fail "dwt shell wrapper should support no-arg default-checkout shortcut"
+
+zsh_dwt_default_alias="$(
+  PATH="$mock_bin:$PATH" \
+  WORKSPACE_NAV_SCRIPT="$nav_script" \
+  zsh -fc '
+    source "$WORKSPACE_NAV_SCRIPT"
+    cd "'$workspace_root/repos/alpha/work/feature-child'"
+    dwt master >/tmp/ignore2-default-alias.out
+    printf "%s\n" "$PWD"
+  '
+)"
+[ "$zsh_dwt_default_alias" = "$workspace_root/repos/alpha/master" ] || fail "dwt shell wrapper should support default-branch-name shortcut"
+
 set +e
 PATH="$mock_bin:$PATH" WORKSPACE_NAV_SCRIPT="$nav_script" zsh -fc '
   source "$WORKSPACE_NAV_SCRIPT"
-  cd "'$workspace_root/repos/alpha/main'"
+  cd "'$workspace_root/repos/alpha/master'"
   dwt feature-chiild
 ' >"$tmpdir/dwt-shell-hint.out" 2>&1
 dwt_shell_hint_rc="$?"
@@ -128,6 +166,29 @@ EOF
 chmod +x "$tmpdir/mock-resolve-repo-root.sh"
 
 grep -F '_path_files -W "$repo_root/work" -/' "$nav_script" >/dev/null || fail "dwt completion should use _path_files path completion"
+
+dwt_default_alias_completion="$({
+  PATH="$mock_bin:$PATH" \
+  WORKSPACE_NAV_SCRIPT="$nav_script" \
+  HUB_WORKSPACE_ROOT="$workspace_root" \
+  WORKSPACE_NAV_REPO_ROOT_RESOLVER="$tmpdir/mock-resolve-repo-root.sh" \
+  zsh -fc '
+    source "$WORKSPACE_NAV_SCRIPT"
+    _path_files() { :; }
+    compadd() {
+      local arg
+      for arg in "$@"; do
+        case "$arg" in
+          -*) ;;
+          *) printf "%s\n" "$arg" ;;
+        esac
+      done
+    }
+    CURRENT=2
+    _workspace_nav_complete_dwt
+  '
+} 2>/dev/null)"
+printf '%s\n' "$dwt_default_alias_completion" | grep -Fx 'master' >/dev/null || fail "dwt completion should include repo default-branch alias"
 
 completion_repos="$({
   PATH="$mock_bin:$PATH" \
@@ -157,7 +218,7 @@ printf '%s\n' "$completion_repos" | grep -Fx 'q=1' >/dev/null || fail "repo comp
 printf '%s\n' "$completion_repos" | grep -Fx 'u=1' >/dev/null || fail "repo completion should use compadd -U"
 
 dwt_completion_transcript="$tmpdir/dwt-completion.transcript"
-printf 'export HUB_WORKSPACE_ROOT="%s"\nexport HUB_INSTALL_BRANCH_DIR="%s"\nautoload -Uz compinit\ncompinit\nsource "%s"\ncd "%s/repos/alpha/main"\ndwt spec/lim\t\nexit\n' \
+printf 'export HUB_WORKSPACE_ROOT="%s"\nexport HUB_INSTALL_BRANCH_DIR="%s"\nautoload -Uz compinit\ncompinit\nsource "%s"\ncd "%s/repos/alpha/master"\ndwt spec/lim\t\nexit\n' \
   "$workspace_root" \
   "$repo_root" \
   "$nav_script" \

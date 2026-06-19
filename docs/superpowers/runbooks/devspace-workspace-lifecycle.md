@@ -34,6 +34,8 @@ For interactive navigation, the repo-managed shell package is expected to provid
 
 - `dhub` for the active install checkout
 - `dre <repo>` for child repo roots under `repos/`
+- `dwt` with no argument for current repo default checkout
+- `dwt <default-branch-name>` for that same default checkout alias
 - `dwt <name>` for switching to `work/<name>` inside the current managed repo context
 
 Navigation guardrails:
@@ -41,6 +43,7 @@ Navigation guardrails:
 - `dhub` prints the destination before changing directories
 - `dre` excludes the top-level hub
 - `dwt` fails outside managed repo context instead of guessing
+- top-level default alias is `main`; child-repo default alias is the exact detected remote default branch name
 - invalid names may print a simple text `did you mean ...` hint
 - no `dd()` compatibility alias
 
