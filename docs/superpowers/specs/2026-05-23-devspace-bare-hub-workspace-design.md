@@ -254,12 +254,30 @@ Top-level examples:
 
 Child repo examples:
 
-- `/workspaces/dotfiles/state/repos/<repo>/main/`
+- `/workspaces/dotfiles/state/repos/<repo>/<default-branch>/`
 - `/workspaces/dotfiles/state/repos/<repo>/work/<name>/`
-- `/workspaces/dotfiles/tmp/repos/<repo>/main/`
+- `/workspaces/dotfiles/tmp/repos/<repo>/<default-branch>/`
 - `/workspaces/dotfiles/tmp/repos/<repo>/work/<name>/`
 
 The top-level workspace and all child repos must use this same mapping convention in v1.
+
+### Shell navigation helper semantics
+
+The shell-level navigation helpers are part of the managed workspace contract because they are the human-facing way to move between the default checkout and feature worktrees without guessing.
+
+- `dhub` resolves the active installed top-level checkout from install state.
+- `dre <repo>` resolves the managed child repo root under `repos/<repo>`.
+- `dwt` works only from an existing managed repo context.
+
+`dwt` has one explicit shortcut behavior in addition to named worktree resolution:
+
+- `dwt` with no argument resolves the current repo's default checkout.
+- `dwt <default-branch-name>` resolves that same current repo default checkout.
+- `dwt <other-name>` resolves `work/<other-name>` inside the current managed repo context.
+
+This shortcut is repo-specific. For the top-level hub, the reserved alias is `main`. For child repos, the reserved alias is the exact detected remote default branch name, such as `master`.
+
+To keep that behavior unambiguous, the actual default branch name for a managed repo is reserved and must not be used as a feature worktree name. `new-worktree` must refuse creation of a worktree whose requested name matches that repo's default branch name.
 
 ### Managed bare-repo excludes for generated artifacts
 
@@ -316,7 +334,7 @@ Child repo onboarding is included in v1, but kept narrow:
 The onboarding script creates a child bare hub under `repos/<name>` and applies the same managed layout conventions used by the top-level workspace:
 
 - `repos/<name>/.bare`
-- `repos/<name>/main`
+- `repos/<name>/<default-branch>`
 - `repos/<name>/work/`
 - matching `state/` and `tmp/` paths under the canonical shared tree
 
@@ -324,7 +342,7 @@ In v1, child repo onboarding is an in-pod script or thin pipeline invocation, no
 
 In v1, child onboarding uses a repo-derived default name for `repos/<name>`. If that derived path already exists, `add-repo` must refuse rather than rename automatically. A user-supplied `--name` override is deferred to later phases and is not part of v1.
 
-In v1, child onboarding uses `origin/main` as the only supported source ref. `add-repo` must refuse if `origin/main` is absent. Later phases may make the source ref configurable, but v1 must not.
+In v1, child onboarding must detect the child repo's exact remote default branch name and materialize that checkout without renaming it to `main`. If the remote default branch cannot be determined or attached, onboarding must refuse rather than guess. Later phases may broaden source-ref configuration, but v1 must preserve the detected default branch name exactly.
 
 The top-level dotfiles repo remains the only `/home/vscode` authority even after child repos are added.
 
