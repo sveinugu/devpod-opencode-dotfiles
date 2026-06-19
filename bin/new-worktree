@@ -70,6 +70,7 @@ if [ "$repo_name" = "hub" ]; then
   repo_root="$workspace_root"
   "$script_dir/../scripts/lib/validate_hub_repo_root.sh" "$workspace_root/main" >/dev/null
   bare_dir="$workspace_root/.bare"
+  repo_default_branch='main'
   target="$workspace_root/work/$branch"
   state_dir="$workspace_root/state/hub/work/$branch"
   tmp_dir="$workspace_root/tmp/hub/work/$branch"
@@ -97,6 +98,11 @@ else
   tmp_dir="$workspace_root/tmp/repos/$repo_name/work/$branch"
   hub_kind='child'
   repo_for_env="$repo_name"
+fi
+
+if [ "$branch" = "$repo_default_branch" ]; then
+  printf 'refused: requested worktree name matches reserved default branch name "%s"\n' "$repo_default_branch" >&2
+  exit 1
 fi
 
 if [ ! -d "$bare_dir" ]; then

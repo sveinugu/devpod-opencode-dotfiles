@@ -6,7 +6,7 @@ pwd_dir="${PWD:-$(pwd -P)}"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 
 usage() {
-  printf 'usage: dwt <name>\n' >&2
+  printf 'usage: dwt [name]\n' >&2
 }
 
 did_you_mean() {
@@ -33,18 +33,49 @@ PY
   fi
 }
 
-if [ "$#" -ne 1 ]; then
+if [ "$#" -gt 1 ]; then
   usage
   exit 2
 fi
-
-name="$1"
 
 resolver="${WORKSPACE_NAV_REPO_ROOT_RESOLVER:-$script_dir/../scripts/lib/resolve-managed-repo-root.sh}"
 repo_root=''
 if ! repo_root="$(HUB_WORKSPACE_ROOT="$workspace_root" bash "$resolver" "$pwd_dir" 2>/dev/null)"; then
   printf 'refused: dwt requires a managed repo checkout context\n' >&2
   exit 1
+fi
+
+default_branch=''
+default_dir=''
+if [ "$repo_root" = "$workspace_root" ]; then
+  default_branch='main'
+  default_dir="$repo_root/main"
+else
+  repo_name="${repo_root#"$workspace_root/repos/"}"
+  repo_env="$workspace_root/state/repos/$repo_name/etc/repo.env"
+  if [ ! -f "$repo_env" ]; then
+    printf 'refused: managed child default branch metadata is missing or invalid\n' >&2
+    exit 1
+  fi
+  # shellcheck disable=SC1090
+  . "$repo_env"
+  default_branch="${DYN_REPO_DEFAULT_BRANCH:-}"
+  default_dir="${DYN_REPO_DEFAULT_DIR:-}"
+  if [ -z "$default_branch" ] || [ -z "$default_dir" ] || [ ! -d "$default_dir" ]; then
+    printf 'refused: managed child default branch metadata is missing or invalid\n' >&2
+    exit 1
+  fi
+fi
+
+if [ "$#" -eq 0 ]; then
+  printf '%s\n' "$default_dir"
+  exit 0
+fi
+
+name="$1"
+if [ "$name" = "$default_branch" ]; then
+  printf '%s\n' "$default_dir"
+  exit 0
 fi
 
 target="$repo_root/work/$name"

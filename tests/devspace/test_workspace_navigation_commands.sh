@@ -19,10 +19,15 @@ tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
 
 workspace_root="$tmpdir/workspace"
-mkdir -p "$workspace_root/main" "$workspace_root/work/feature-top" "$workspace_root/repos"
+mkdir -p "$workspace_root/main" "$workspace_root/work/feature-top" "$workspace_root/work/main" "$workspace_root/repos"
 
-mkdir -p "$workspace_root/repos/alpha/.bare" "$workspace_root/repos/alpha/main" "$workspace_root/repos/alpha/work/feature-child"
+mkdir -p "$workspace_root/repos/alpha/.bare" "$workspace_root/repos/alpha/master" "$workspace_root/repos/alpha/work/feature-child" "$workspace_root/repos/alpha/work/master"
 mkdir -p "$workspace_root/repos/beta/.bare" "$workspace_root/repos/beta/main"
+mkdir -p "$workspace_root/state/repos/alpha/etc"
+cat > "$workspace_root/state/repos/alpha/etc/repo.env" <<EOF
+export DYN_REPO_DEFAULT_BRANCH=master
+export DYN_REPO_DEFAULT_DIR=$workspace_root/repos/alpha/master
+EOF
 
 mkdir -p "$workspace_root/state/hub/etc"
 cat > "$workspace_root/state/hub/etc/install.env" <<EOF
@@ -67,17 +72,49 @@ if grep -F ') || true)' "$tmpdir/dre-python-fail.out" >/dev/null; then
   fail "dre should not print malformed fallback literal when python3 fails"
 fi
 
-dwt_top="$(
+dwt_top_default="$(
+  (
+    cd "$workspace_root/main"
+    HUB_WORKSPACE_ROOT="$workspace_root" bash "$dwt_script"
+  )
+)"
+[ "$dwt_top_default" = "$workspace_root/main" ] || fail "dwt with no argument should resolve top-level default checkout"
+
+dwt_top_alias="$(
+  (
+    cd "$workspace_root/main"
+    HUB_WORKSPACE_ROOT="$workspace_root" bash "$dwt_script" main
+  )
+)"
+[ "$dwt_top_alias" = "$workspace_root/main" ] || fail "dwt <default-branch-name> should resolve top-level default checkout"
+
+dwt_top_feature="$(
   (
     cd "$workspace_root/main"
     HUB_WORKSPACE_ROOT="$workspace_root" bash "$dwt_script" feature-top
   )
 )"
-[ "$dwt_top" = "$workspace_root/work/feature-top" ] || fail "dwt should resolve top-level work/<name> from main context"
+[ "$dwt_top_feature" = "$workspace_root/work/feature-top" ] || fail "dwt should resolve top-level work/<name> from main context"
+
+dwt_child_default="$(
+  (
+    cd "$workspace_root/repos/alpha/master"
+    HUB_WORKSPACE_ROOT="$workspace_root" bash "$dwt_script"
+  )
+)"
+[ "$dwt_child_default" = "$workspace_root/repos/alpha/master" ] || fail "dwt with no argument should resolve child default checkout"
+
+dwt_child_alias="$(
+  (
+    cd "$workspace_root/repos/alpha/master"
+    HUB_WORKSPACE_ROOT="$workspace_root" bash "$dwt_script" master
+  )
+)"
+[ "$dwt_child_alias" = "$workspace_root/repos/alpha/master" ] || fail "dwt <default-branch-name> should resolve child default checkout"
 
 dwt_child="$(
   (
-    cd "$workspace_root/repos/alpha/main"
+    cd "$workspace_root/repos/alpha/master"
     HUB_WORKSPACE_ROOT="$workspace_root" bash "$dwt_script" feature-child
   )
 )"
@@ -95,7 +132,7 @@ grep -F 'refused: dwt requires a managed repo checkout context' "$tmpdir/dwt-out
 
 set +e
 (
-  cd "$workspace_root/repos/alpha/main"
+  cd "$workspace_root/repos/alpha/master"
   HUB_WORKSPACE_ROOT="$workspace_root" bash "$dwt_script" feature-chiild >"$tmpdir/dwt-hint.out" 2>&1
 )
 dwt_hint_rc="$?"

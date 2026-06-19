@@ -81,6 +81,20 @@ child_repo_env="$workspace_root/state/repos/child-source/etc/repo.env"
 child_default_branch="${DYN_REPO_DEFAULT_BRANCH:-}"
 [ -n "$child_default_branch" ] || fail "missing DYN_REPO_DEFAULT_BRANCH in child metadata"
 
+set +e
+HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script" --repo hub main >"$tmpdir/reserved-hub-default.out" 2>&1
+reserved_hub_default_rc="$?"
+set -e
+[ "$reserved_hub_default_rc" = "1" ] || fail "new-worktree should refuse hub feature worktree matching reserved default branch name"
+grep -F 'refused: requested worktree name matches reserved default branch name "main"' "$tmpdir/reserved-hub-default.out" >/dev/null || fail "new-worktree should explain reserved hub default-branch refusal"
+
+set +e
+HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script" --repo child-source "$child_default_branch" >"$tmpdir/reserved-child-default.out" 2>&1
+reserved_child_default_rc="$?"
+set -e
+[ "$reserved_child_default_rc" = "1" ] || fail "new-worktree should refuse child feature worktree matching detected default branch name"
+grep -F "refused: requested worktree name matches reserved default branch name \"$child_default_branch\"" "$tmpdir/reserved-child-default.out" >/dev/null || fail "new-worktree should explain reserved child default-branch refusal"
+
 HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script" --repo hub feature/top-level >/dev/null
 HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script" --repo child-source feature/child >/dev/null
 
