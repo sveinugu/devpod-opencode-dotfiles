@@ -12,8 +12,8 @@
 
 ## Inputs and approval basis
 
-Primary design spec: docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-design.md at commit cc2c89c
-Acceptance checklist: docs/superpowers/plans/2026-05-24-acceptance-tests-devspace-bare-hub.md at commit cc2c89c
+Primary design spec: docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-design.md at commit 6943a08
+Acceptance checklist: docs/superpowers/plans/2026-05-24-acceptance-tests-devspace-bare-hub.md at commit cd746f6
 - Prior plan to reuse where still valid: `docs/superpowers/plans/2026-05-21-bare-hub-manager.md`.
 - This document replaces the older plan as the active implementation plan for this feature set, but the older plan remains in the repo for reference and verbatim reuse tracking.
 
@@ -604,7 +604,7 @@ PERT-style ranges in implementation days:
 | Task 5 — child repo onboarding | 0.5 | 1.0 | 1.5 | 1.0 |
 | Task 5a — navigation resolvers + child default-branch fidelity | 0.5 | 1.0 | 1.5 | 1.0 |
 | Task 5b — zsh wrappers + completion + docs | 0.5 | 1.0 | 1.5 | 1.0 |
-| Task 5c — top-level primary-branch compatibility retrofit (`main`, `master`) | 0.25 | 0.5 | 1.0 | 0.5 |
+| Task 5c — top-level `main` policy + unambiguous default-branch navigation | 0.25 | 0.5 | 1.0 | 0.5 |
 | **Phase 1 subtotal** | **4.75** | **8.5** | **13.5** | **8.7** |
 | Task 6 — export sessions | 0.25 | 0.5 | 1.0 | 0.5 |
 | Task 7 — staging core + status | 0.5 | 1.0 | 1.5 | 1.0 |
