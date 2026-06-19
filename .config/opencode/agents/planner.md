@@ -1,6 +1,6 @@
 ---
 description: Superpowered and pragmatic planner and system architect
-mode: subagent
+mode: all
 model: github-copilot/gpt-5.4
 reasoningEffort: high
 tools:

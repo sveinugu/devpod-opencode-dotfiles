@@ -1,6 +1,6 @@
 ---
 description: Superpowered and Pragmatic general agent
-mode: primary
+mode: all
 model: github-copilot/gpt-5.4
 reasoningEffort: medium
 tools:

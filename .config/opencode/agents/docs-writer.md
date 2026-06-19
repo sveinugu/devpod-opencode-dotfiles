@@ -1,6 +1,6 @@
 ---
 description: Superpowered and pragmatic document writer specialist.
-mode: subagent
+mode: all
 model: github-copilot/gpt-5.4
 temperature: 0.7
 reasoningEffort: high

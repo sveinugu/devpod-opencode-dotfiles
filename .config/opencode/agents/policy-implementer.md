@@ -1,6 +1,6 @@
 ---
 description: Superpowered and pragmatic policy implementation specialist
-mode: subagent
+mode: all
 model: github-copilot/gpt-5.4
 reasoningEffort: medium
 tools:
