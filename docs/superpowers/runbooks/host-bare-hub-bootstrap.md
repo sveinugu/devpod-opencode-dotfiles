@@ -1,5 +1,10 @@
 # Host Bare-Hub Bootstrap
 
+## Choose your environment
+
+- **HOST:** Stay in this runbook for first-time bare-hub bootstrap, host-side verification, and recovery-only host actions.
+- **POD:** After the mount exists, switch to [DevSpace Bare Hub Usage](devspace-bare-hub-usage.md) for `bash install.sh`, `bin/new-worktree`, `bin/clone-repo`, `dhub`, `dre`, and `dwt`.
+
 This runbook sets up a **bare-repo + worktree** layout where:
 
 - the host owns the hub and durable state
@@ -74,12 +79,35 @@ result: PASS
 Mount `$HUB_PATH` into the container as `/workspaces/dotfiles`.
 Open `/workspaces/dotfiles/main` as the workspace folder.
 
-Create feature worktrees inside the pod, not during host bootstrap.
+## Wrapper-first day-2 flow
 
-## Step 4 (HOST): Recreate main (recovery only)
+Once the mount exists and you are working inside the pod, prefer the managed wrappers instead of manual `git worktree` / `git clone` commands.
 
-Use this only when you need to rebuild the primary worktree from the host.
-Do **not** run this recovery step in pod.
+Create a top-level feature worktree:
+
+```bash
+/workspaces/dotfiles/main/bin/new-worktree --repo hub feature/example
+```
+
+Onboard an additional repo under `repos/`:
+
+```bash
+/workspaces/dotfiles/main/bin/clone-repo https://github.com/<owner>/<repo>.git
+```
+
+Create a managed worktree inside that child repo:
+
+```bash
+/workspaces/dotfiles/main/bin/new-worktree --repo <child-repo-name> feature/example
+```
+
+For daily in-pod install, navigation, and managed worktree usage, continue with [DevSpace Bare Hub Usage](devspace-bare-hub-usage.md). For host lifecycle commands after bootstrap, continue with [DevSpace Workspace Lifecycle](devspace-workspace-lifecycle.md).
+
+## Host recovery only
+
+Use these host-side commands only when you need to inspect or rebuild the primary host layout.
+
+Recreate `main` from the host:
 
 ```bash
 rm -rf "$HUB_PATH/main"
@@ -87,7 +115,7 @@ cd "$HUB_PATH"
 git worktree add "$HUB_PATH/main" main
 ```
 
-## Step 5 (HOST): Verify host layout quickly
+Verify the host layout quickly:
 
 ```bash
 cd "$HUB_PATH"
@@ -95,26 +123,17 @@ git worktree list
 ls -ld "$HUB_PATH/state" "$HUB_PATH/state/opencode" "$HUB_PATH/state/opencode/exported_sessions"
 ```
 
-## Step 6 (IN POD): Confirm mounted workspace
+## Manual fallback (only when wrappers cannot be used)
 
-Inside DevPod/container, confirm you are working from:
+Do not treat the manual fallback commands below as the default workflow. Keep them as explicit recovery/reference steps for environments where the managed wrappers are unavailable.
 
-```text
-/workspaces/dotfiles/main
-```
-
-## Step 7 (IN POD): Create a feature worktree
+Manual in-pod feature worktree creation:
 
 ```bash
-cd "/workspaces/dotfiles"
 git worktree add "/workspaces/dotfiles/work/feature-example" -b feature-example main
 ```
 
-This keeps branch/worktree lifecycle tied to your active development context.
-
-## Step 8 (IN POD): Onboard an additional repo under `repos/`
-
-Use this when adding another managed repository under `repos/`.
+Manual child repo onboarding fallback:
 
 ```bash
 REPO_NAME="myrepo"
@@ -124,10 +143,11 @@ REPO_HUB="/workspaces/dotfiles/repos/$REPO_NAME"
 mkdir -p "$REPO_HUB"
 git clone --bare "$REPO_URL" "$REPO_HUB/.bare"
 printf 'gitdir: ./.bare\n' > "$REPO_HUB/.git"
+REPO_DEFAULT_BRANCH="$(git --git-dir="$REPO_HUB/.bare" symbolic-ref --short refs/remotes/origin/HEAD | sed 's#^origin/##')"
 
 cd "$REPO_HUB"
-git worktree add "$REPO_HUB/main" main
-git worktree add "$REPO_HUB/work/feature-example" -b feature-example main
+git worktree add "$REPO_HUB/$REPO_DEFAULT_BRANCH" "$REPO_DEFAULT_BRANCH"
+git worktree add "$REPO_HUB/work/feature-example" -b feature-example "$REPO_DEFAULT_BRANCH"
 ```
 
-After onboarding, open and work from `"$REPO_HUB/main"` (or another explicit worktree).
+After using the manual fallback, return to the wrapper-based flow documented in [DevSpace Bare Hub Usage](devspace-bare-hub-usage.md).
