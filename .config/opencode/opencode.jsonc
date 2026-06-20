@@ -53,10 +53,10 @@
       "ftp*": "deny"
     },
     "external_directory": {
+      "**": "ask",
       "/workspaces/dotfiles/**": "allow",
       "/home/vscode/.config/opencode/**": "allow",
-      "/home/vscode/.local/share/opencode/**": "allow",
-      "**": "ask"
+      "/home/vscode/.local/share/opencode/**": "allow"
     }
   },
   "agent": {
