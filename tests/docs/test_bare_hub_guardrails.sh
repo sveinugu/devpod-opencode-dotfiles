@@ -21,6 +21,7 @@ grep -F 'bin/clone-repo' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/
 grep -F 'bin/new-worktree' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'dhub' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'dre <repo>' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F 'dre <repo>` → jump to child default checkout at `/workspaces/dotfiles/repos/<repo>/<default-branch>`' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'dwt <name>' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'dwt` with no argument' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'dwt <default-branch-name>' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
@@ -29,17 +30,26 @@ if grep -F 'temporary compatibility alias to `dhub`' docs/superpowers/runbooks/d
   exit 1
 fi
 grep -F 'default branch name' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+if grep -F 'dre <repo>` → jump to `/workspaces/dotfiles/repos/<repo>`' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null; then
+  printf 'FAIL test_bare_hub_guardrails: bare-hub runbook must not describe dre landing at child repo root\n' >&2
+  exit 1
+fi
 grep -F 'bin/clone-repo' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'bin/new-worktree' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F '.envrc' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F '.envrc.local' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'dhub' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'dre <repo>' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F 'dre <repo>` for child default checkouts (`/workspaces/dotfiles/repos/<repo>/<default-branch>`)' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'dwt <name>' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'dwt` with no argument' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'dwt <default-branch-name>' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 if grep -F 'temporary compatibility alias to `dhub`' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null; then
   printf 'FAIL test_bare_hub_guardrails: lifecycle runbook must not describe dd compatibility alias\n' >&2
+  exit 1
+fi
+if grep -F 'dre <repo>` for child repo roots under `repos/`' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null; then
+  printf 'FAIL test_bare_hub_guardrails: lifecycle runbook must not describe dre landing at child repo root\n' >&2
   exit 1
 fi
 grep -F 'state/hub/etc/install.env' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null

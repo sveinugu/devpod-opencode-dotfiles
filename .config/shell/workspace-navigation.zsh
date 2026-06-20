@@ -84,6 +84,25 @@ _workspace_nav_complete_dhub() {
   return 0
 }
 
+_workspace_nav_compadd_with_prefix() {
+  local completion_prefix="${PREFIX:-}"
+  local -a candidates
+  local -a matching_candidates
+  candidates=("$@")
+  matching_candidates=()
+
+  local candidate
+  for candidate in "$candidates[@]"; do
+    if [[ -z "$completion_prefix" || "$candidate" == "$completion_prefix"* ]]; then
+      matching_candidates+=("$candidate")
+    fi
+  done
+
+  if (( ${#matching_candidates[@]} > 0 )); then
+    compadd -Q -U -S '' -- "$matching_candidates[@]"
+  fi
+}
+
 _workspace_nav_complete_repos() {
   if [[ -n "${CURRENT:-}" ]] && (( CURRENT != 2 )); then
     return 1
@@ -102,7 +121,10 @@ _workspace_nav_complete_repos() {
     done
   fi
 
-  compadd -Q -U -- "$repos[@]"
+  _workspace_nav_compadd_with_prefix "$repos[@]"
+
+  # If completion still behaves like an older loaded definition,
+  # re-source this file (or open a new shell) to refresh the function.
 }
 
 _workspace_nav_complete_dwt() {
@@ -133,14 +155,23 @@ _workspace_nav_complete_dwt() {
 
   [ -d "$repo_root/work" ] || return 0
 
+  local -a worktree_names
+  worktree_names=()
+
+  local dir
+  for dir in "$repo_root/work"/**/*(N/); do
+    [ -e "$dir/.git" ] || continue
+    worktree_names+=("${dir#"$repo_root/work/"}")
+  done
+
   if [ -n "$default_branch" ]; then
-    local completion_prefix="${PREFIX:-}"
-    if [[ -z "$completion_prefix" || "$default_branch" == "$completion_prefix"* ]]; then
-      compadd -Q -U -- "$default_branch"
-    fi
+    _workspace_nav_compadd_with_prefix "$default_branch"
   fi
 
-  _path_files -W "$repo_root/work" -/
+  _workspace_nav_compadd_with_prefix "$worktree_names[@]"
+
+  # If completion still behaves like older path-based logic in an existing shell,
+  # re-source this file (or open a new shell) to refresh the loaded function.
 }
 
 if whence -w compdef >/dev/null 2>&1; then

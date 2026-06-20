@@ -220,6 +220,12 @@ HUB_HOME_DIR="$home_dir" \
 bash "$clone_script" "$public_url" >"$tmpdir/public-clone.out" 2>&1 || fail "public HTTPS onboarding should succeed"
 
 [ -d "$workspace_root/repos/fixture/.bare" ] || fail "missing bare repo for public HTTPS clone"
+[ -d "$workspace_root/state/repos/fixture/main" ] || fail "public onboarding should create detected-branch state path"
+[ -d "$workspace_root/tmp/repos/fixture/main" ] || fail "public onboarding should create detected-branch tmp path"
+[ -d "$workspace_root/state/repos/fixture/etc" ] || fail "public onboarding should create repo metadata directory"
+[ -f "$workspace_root/state/repos/fixture/etc/repo.env" ] || fail "public onboarding should persist repo metadata"
+grep -F 'export DYN_REPO_DEFAULT_BRANCH=main' "$workspace_root/state/repos/fixture/etc/repo.env" >/dev/null || fail "public onboarding should persist detected default branch"
+grep -F "export DYN_REPO_DEFAULT_DIR=$workspace_root/repos/fixture/main" "$workspace_root/state/repos/fixture/etc/repo.env" >/dev/null || fail "public onboarding should persist detected default checkout path"
 
 PATH="$mock_bin:$PATH" \
 REAL_GIT="$real_git" \
@@ -237,8 +243,10 @@ default_branch_name="$(git -C "$workspace_root/repos/default/master" rev-parse -
 [ "$default_branch_name" = "master" ] || fail "public HTTPS onboarding should attach source default branch when main is absent"
 [ -d "$workspace_root/state/repos/default/master" ] || fail "public onboarding should use detected-branch state path"
 [ -d "$workspace_root/tmp/repos/default/master" ] || fail "public onboarding should use detected-branch tmp path"
+[ -d "$workspace_root/state/repos/default/etc" ] || fail "public onboarding should create repo metadata directory"
 [ -f "$workspace_root/state/repos/default/etc/repo.env" ] || fail "public onboarding should persist repo metadata"
 grep -F 'export DYN_REPO_DEFAULT_BRANCH=master' "$workspace_root/state/repos/default/etc/repo.env" >/dev/null || fail "public onboarding should persist detected default branch"
+grep -F "export DYN_REPO_DEFAULT_DIR=$workspace_root/repos/default/master" "$workspace_root/state/repos/default/etc/repo.env" >/dev/null || fail "public onboarding should persist detected default checkout path"
 
 start_private_clone="$(date +%s)"
 set +e

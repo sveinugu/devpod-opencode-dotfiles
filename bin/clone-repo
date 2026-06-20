@@ -7,6 +7,12 @@ source "$script_dir/../scripts/lib/hub-repo-core.sh"
 
 workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
 "$script_dir/../scripts/lib/validate_hub_repo_root.sh" "$workspace_root/main" >/dev/null
+metadata_writer="$script_dir/../scripts/lib/write-managed-repo-env.sh"
+
+if [ ! -x "$metadata_writer" ]; then
+  printf 'refused: missing managed repo metadata writer helper\n' >&2
+  exit 1
+fi
 
 usage() {
   printf 'usage: clone-repo <public-repo-source>\n' >&2
@@ -73,12 +79,8 @@ fi
 
 mkdir -p "$workspace_root/state/repos/$repo_name/$default_branch"
 mkdir -p "$workspace_root/tmp/repos/$repo_name/$default_branch"
-mkdir -p "$workspace_root/state/repos/$repo_name/etc"
 
-cat > "$workspace_root/state/repos/$repo_name/etc/repo.env" <<EOF
-export DYN_REPO_DEFAULT_BRANCH=$(printf '%q' "$default_branch")
-export DYN_REPO_DEFAULT_DIR=$(printf '%q' "$default_dir")
-EOF
+HUB_WORKSPACE_ROOT="$workspace_root" bash "$metadata_writer" "$repo_name" "$default_branch" "$default_dir"
 
 "$script_dir/../scripts/lib/worktree-env.sh" "$default_dir" child "$repo_name" >/dev/null
 

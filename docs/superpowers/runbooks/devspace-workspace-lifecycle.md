@@ -33,7 +33,7 @@ Managed checkouts get generated `.envrc` and `.envrc.local`. The managed `.envrc
 For interactive navigation, the repo-managed shell package is expected to provide:
 
 - `dhub` for the active install checkout
-- `dre <repo>` for child repo roots under `repos/`
+- `dre <repo>` for child default checkouts (`/workspaces/dotfiles/repos/<repo>/<default-branch>`)
 - `dwt` with no argument for current repo default checkout
 - `dwt <default-branch-name>` for that same default checkout alias
 - `dwt <name>` for switching to `work/<name>` inside the current managed repo context

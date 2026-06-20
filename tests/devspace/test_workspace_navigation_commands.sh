@@ -39,7 +39,28 @@ resolved_hub="$(HUB_INSTALL_ENV_FILE="$workspace_root/state/hub/etc/install.env"
 [ "$resolved_hub" = "$workspace_root/work/feature-top" ] || fail "resolver should print install checkout"
 
 dre_alpha="$(HUB_WORKSPACE_ROOT="$workspace_root" bash "$dre_script" alpha)"
-[ "$dre_alpha" = "$workspace_root/repos/alpha" ] || fail "dre should resolve repos/<repo>"
+[ "$dre_alpha" = "$workspace_root/repos/alpha/master" ] || fail "dre should resolve repos/<repo>/<default-branch>"
+
+set +e
+HUB_WORKSPACE_ROOT="$workspace_root" bash "$dre_script" beta >"$tmpdir/dre-metadata.out" 2>&1
+dre_metadata_rc="$?"
+set -e
+[ "$dre_metadata_rc" = "1" ] || fail "dre should fail when child metadata is missing"
+grep -F 'refused: managed child default branch metadata is missing or invalid for "beta"' "$tmpdir/dre-metadata.out" >/dev/null || fail "dre should explain missing child metadata with repo context"
+grep -F 'to repair, run:' "$tmpdir/dre-metadata.out" >/dev/null || fail "dre should include human-readable repair intro"
+grep -F "  HUB_WORKSPACE_ROOT=\"$workspace_root\" bash /workspaces/dotfiles/main/scripts/lib/write-managed-repo-env.sh \"beta\" \"main\" \"$workspace_root/repos/beta/main\"" "$tmpdir/dre-metadata.out" >/dev/null || fail "dre should print exact runnable metadata repair command on its own line"
+
+set +e
+(
+  cd "$workspace_root/repos/beta/main"
+  HUB_WORKSPACE_ROOT="$workspace_root" bash "$dwt_script"
+) >"$tmpdir/dwt-metadata.out" 2>&1
+dwt_metadata_rc="$?"
+set -e
+[ "$dwt_metadata_rc" = "1" ] || fail "dwt should fail when child metadata is missing"
+grep -F 'refused: managed child default branch metadata is missing or invalid for "beta"' "$tmpdir/dwt-metadata.out" >/dev/null || fail "dwt should explain missing child metadata with repo context"
+grep -F 'to repair, run:' "$tmpdir/dwt-metadata.out" >/dev/null || fail "dwt should include human-readable repair intro"
+grep -F "  HUB_WORKSPACE_ROOT=\"$workspace_root\" bash /workspaces/dotfiles/main/scripts/lib/write-managed-repo-env.sh \"beta\" \"main\" \"$workspace_root/repos/beta/main\"" "$tmpdir/dwt-metadata.out" >/dev/null || fail "dwt should print exact runnable metadata repair command on its own line"
 
 set +e
 HUB_WORKSPACE_ROOT="$workspace_root" bash "$dre_script" hub >"$tmpdir/dre-hub.out" 2>&1

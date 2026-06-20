@@ -95,7 +95,7 @@ Managed checkout environment behavior:
 The repo-managed shell package is the intended home for the interactive wrappers:
 
 - `dhub` → jump to `$HUB_INSTALL_BRANCH_DIR`
-- `dre <repo>` → jump to `/workspaces/dotfiles/repos/<repo>`
+- `dre <repo>` → jump to child default checkout at `/workspaces/dotfiles/repos/<repo>/<default-branch>`
 - `dwt` with no argument → jump to the current managed repo default checkout
 - `dwt <default-branch-name>` → jump to that same default checkout
 - `dwt <name>` → jump to `work/<name>` inside the current managed repo context
