@@ -51,6 +51,16 @@ It does **not** include remote branch deletion in v1.
 
 ## Chosen Design
 
+### 0) V1 compatibility constraints
+
+Three compatibility constraints are part of this design, not follow-up questions:
+
+- The canonical Delegation Packet schema remains unchanged in v1.
+- Session resume identity must treat the lane as part of the effective work-item identity.
+- The existing branch-keyed `state/` / `tmp/` filesystem layout remains in place in v1.
+
+If later implementation discussion pushes against the third point, the expected default is to push back and keep the branch-keyed layout unless the user explicitly chooses a different direction.
+
 ### 1) Lane-based identity model
 
 The unit of exclusive managed worktree ownership is an **active lane**, not merely a file path and not merely a parent feature.
@@ -106,6 +116,12 @@ This allows a lane to stay conceptually stable even when several anchors exist a
 
 Each active lane must have one authoritative local binding record under the canonical `state/` tree.
 
+V1 keeps the existing branch-keyed filesystem layout used by current managed worktrees.
+
+- Existing paths such as `state/hub/main`, `state/hub/work/<branch>`, `state/repos/<repo>/<default-branch>`, and `state/repos/<repo>/work/<branch>` remain authoritative for per-worktree state roots.
+- Lane IDs do **not** replace those filesystem keys in v1.
+- Instead, v1 adds lane-binding registry metadata alongside the existing layout.
+
 Recommended structure:
 
 - one central lane registry per managed repo context
@@ -122,6 +138,8 @@ Each lane binding should capture at least:
 - enough session/routing linkage to let Maestro resume the correct lane safely
 
 The authoritative binding must live in local managed state, not in tracked repo files.
+
+In v1, lane ID is therefore a registry-level identity layered on top of the already-existing branch/worktree-keyed directory structure.
 
 ### 5) Lane-scoped by default
 
@@ -148,6 +166,17 @@ Truly lane-neutral actions are rare and mostly limited to:
 
 When in doubt, Maestro must require lane selection first.
 
+Because the Delegation Packet schema is closed, lane identity is **not** sent as a new packet field in v1.
+
+Instead, the receiving subagent derives the effective lane identity locally from:
+
+- the delegated `Worktree path:`
+- the managed lane registry/binding metadata
+- the delegated artifact anchor(s), when present
+- local repo state and branch/worktree evidence
+
+If this local derivation does not yield one coherent lane, the subagent must stop and push back rather than infer or silently repair the lane identity.
+
 ### 6) Maestro multi-lane rules
 
 Maestro may coordinate multiple active lanes at once, but must maintain strict lane identity.
@@ -165,6 +194,17 @@ This is a hybrid model:
 - strict internal lane binding always
 - user-visible lane switching when ambiguity exists or when parallel lane-splitting is introduced
 
+For session routing, the lane becomes part of effective work-item identity.
+
+Concretely, where current policy says one session per `(subagent type, work item)`, v1 should interpret scoped multi-lane work as one session per `(subagent type, lane-qualified work item)`.
+
+Implications:
+
+- two sibling lanes under the same parent artifact are different resume targets
+- a resumed session must match both the subagent type and the intended lane-qualified work item
+- when only the parent artifact matches but multiple active lanes exist beneath it, Maestro must ask rather than guessing
+- the lane-qualified identity may be represented operationally through artifact anchor(s) plus the bound worktree/registry mapping; it does not require a new Delegation Packet field in v1
+
 ### 7) Mandatory worktree resolution before dispatch
 
 For scoped authoring work, Maestro must resolve or create the dedicated managed worktree **before** dispatch.
@@ -174,6 +214,7 @@ Hard requirements:
 - dispatch must carry the explicit worktree path for the target lane
 - resuming a lane must prefer that lane's existing bound worktree
 - a missing dedicated worktree is not a reason to proceed in `main`; it is a reason for Maestro to create/resolve the lane worktree first
+- if the lane registry and delegated worktree path cannot be reconciled before dispatch, Maestro must stop rather than launching a packet with ambiguous lane identity
 
 Hard-stop conditions:
 
@@ -194,6 +235,7 @@ Subagents should not trust Maestro or user-provided lane/worktree information bl
 Required direction:
 
 - for lane-scoped work, the receiving subagent must independently verify that the delegated lane identity, worktree path, branch, and relevant artifact anchors are coherent with local repo state and policy
+- this verification is performed by deriving lane identity locally from `Worktree path:` plus registry/repo evidence, not by expecting a new lane field in the Delegation Packet
 - if Maestro-provided metadata, user instructions, and local repo/worktree evidence disagree materially, the subagent must stop and push back rather than silently choosing one
 - if the delegated worktree is missing, bound to another active lane, or otherwise inconsistent with the delegated scope, the subagent must refuse substantive work and surface the mismatch
 - subagents may trust routing metadata only after this local coherence check passes
@@ -299,13 +341,16 @@ This preserves enough audit/history context to understand what lane previously o
 2. A resumed scoped session reuses its lane's bound worktree rather than silently switching to another checkout.
 3. One parent feature/spec/plan may spawn multiple concurrent child lanes, each with its own branch/worktree binding.
 4. Maestro can track multiple active lanes, but any ambiguous lane-sensitive action triggers lane-selection rather than implicit reuse.
-5. Agent-facing policy/docs express wrong-worktree situations as refusal-backed behavior rather than soft preference wording.
-6. Receiving subagents independently verify lane/worktree/branch coherence instead of trusting Maestro or user routing data blindly.
-7. Cleanup tooling works for both hub and managed child repos.
-8. Normal cleanup refuses when content-loss risk exists and prints concrete evidence of that risk.
-9. Structural safety failures remain non-overridable even in force mode.
-10. `--force` is accepted only with a matching token derived from the current refusal report.
-11. Remote branch deletion remains out of scope for v1.
+5. Lane identity for delegated work is derived locally from delegated worktree path plus registry/repo evidence without changing the v1 Delegation Packet schema.
+6. Session-resume identity treats sibling lanes under one parent artifact as different lane-qualified work items.
+7. V1 keeps the current branch-keyed `state/` / `tmp/` filesystem layout and adds lane-binding registry metadata alongside it.
+8. Agent-facing policy/docs express wrong-worktree situations as refusal-backed behavior rather than soft preference wording.
+9. Receiving subagents independently verify lane/worktree/branch coherence instead of trusting Maestro or user routing data blindly.
+10. Cleanup tooling works for both hub and managed child repos.
+11. Normal cleanup refuses when content-loss risk exists and prints concrete evidence of that risk.
+12. Structural safety failures remain non-overridable even in force mode.
+13. `--force` is accepted only with a matching token derived from the current refusal report.
+14. Remote branch deletion remains out of scope for v1.
 
 ## Testing Strategy
 
@@ -319,7 +364,9 @@ This preserves enough audit/history context to understand what lane previously o
 - Add script/integration tests for managed worktree resolution and cleanup behavior across both hub and child repos.
 - Add tests that cover:
   - lane reuse on resume,
+  - sibling lanes under one parent artifact producing distinct resume targets,
   - sibling lane creation for parallel follow-up work,
+  - local lane derivation from delegated worktree path plus registry state without requiring packet-schema changes,
   - refusal on mismatched worktree/lane identity,
   - subagent refusal when delegated lane/worktree metadata conflicts with local state,
   - refusal evidence generation for tracked/untracked/binary/local-only-commit loss,
