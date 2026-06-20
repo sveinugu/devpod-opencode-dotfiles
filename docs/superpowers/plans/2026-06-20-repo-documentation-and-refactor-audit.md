@@ -20,21 +20,47 @@
   3. clean-code hotspot inventory
   4. prioritized follow-on slices
   5. sequencing rationale
-- Primary evidence surfaces named in the spec:
-  - `README.md`
-  - `install.sh`
-  - `docs/superpowers/runbooks/devspace-bare-hub-usage.md`
-  - `docs/superpowers/runbooks/devspace-workspace-lifecycle.md`
-  - `.config/opencode/AGENTS.md`
-  - `bin/new-worktree`
-  - `bin/dre`
-  - `bin/dwt`
-  - `scripts/lib/resolve-install-target.sh`
+- Primary evidence surfaces for this audit:
+  - entry and orientation:
+    - `README.md`
+    - `devspace.yaml`
+    - `install.sh`
+  - operational and runbook surfaces:
+    - `docs/superpowers/runbooks/devspace-bare-hub-usage.md`
+    - `docs/superpowers/runbooks/devspace-workspace-lifecycle.md`
+    - `docs/superpowers/runbooks/host-bare-hub-bootstrap.md`
+  - developer command and workflow surfaces:
+    - `bin/clone-repo`
+    - `bin/new-worktree`
+    - `bin/dre`
+    - `bin/dwt`
+    - `bin/retire-worktree`
+    - `scripts/lib/hub-repo-core.sh`
+    - `scripts/lib/worktree-env.sh`
+    - `scripts/lib/managed-lane-registry.sh`
+    - `scripts/lib/managed-worktree-cleanup.sh`
+    - `scripts/lib/resolve-install-target.sh`
+    - `scripts/lib/resolve-managed-repo-root.sh`
+    - `scripts/lib/write-managed-repo-env.sh`
+    - `scripts/lib/read-install-env.sh`
+    - `scripts/lib/validate_install_source_tree.sh`
+    - `scripts/lib/validate_hub_repo_root.sh`
+  - agent-facing guidance and orientation surfaces:
+    - `.config/opencode/AGENTS.md`
+    - `docs/superpowers/templates/subagent-handoff-templates.md`
+    - `docs/superpowers/review-records/2026-05-29-delegation-policy-packet-inventory.md`
+    - relevant current `docs/superpowers/specs/`, `docs/superpowers/plans/`, and `docs/superpowers/runbooks/` documents where they act as orientation aids instead of historical background only
 - Existing tests expected to supply characterization evidence before any new test is considered:
+  - `tests/bootstrap/test_setup_host_bare_hub.sh`
+  - `tests/bootstrap/test_verify_host_bare_hub.sh`
   - `tests/docs/test_bare_hub_guardrails.sh`
   - `tests/docs/test_clean_code_policy_contract.sh`
   - `tests/docs/test_delegation_packet_policy_contract.sh`
   - `tests/docs/test_multi_question_interaction_policy.sh`
+  - `tests/devspace/test_devspace_command_surface.sh`
+  - `tests/devspace/test_devspace_doctor.sh`
+  - `tests/devspace/test_workspace_provision.sh`
+  - `tests/devspace/test_workspace_repair.sh`
   - `tests/install/test_install_validate_source.sh`
   - `tests/install/test_install_local_source_contract.sh`
   - `tests/install/test_workspace_navigation_shell.sh`
@@ -68,15 +94,29 @@
 - Create: `tests/docs/test_repo_documentation_refactor_audit.sh` — doc-contract test that locks the audit artifact structure and required headings.
 - Review only:
   - `README.md`
+  - `devspace.yaml`
   - `install.sh`
   - `.config/opencode/AGENTS.md`
   - `docs/superpowers/runbooks/devspace-bare-hub-usage.md`
   - `docs/superpowers/runbooks/devspace-workspace-lifecycle.md`
+  - `docs/superpowers/runbooks/host-bare-hub-bootstrap.md`
+  - `docs/superpowers/templates/subagent-handoff-templates.md`
+  - `docs/superpowers/review-records/2026-05-29-delegation-policy-packet-inventory.md`
+  - `bin/clone-repo`
   - `bin/new-worktree`
   - `bin/dre`
   - `bin/dwt`
+  - `bin/retire-worktree`
+  - `scripts/lib/hub-repo-core.sh`
+  - `scripts/lib/worktree-env.sh`
+  - `scripts/lib/managed-lane-registry.sh`
+  - `scripts/lib/managed-worktree-cleanup.sh`
   - `scripts/lib/resolve-install-target.sh`
-  - `docs/superpowers/review-records/2026-05-29-delegation-policy-packet-inventory.md` as a formatting/reference example only, not as an authority source
+  - `scripts/lib/resolve-managed-repo-root.sh`
+  - `scripts/lib/write-managed-repo-env.sh`
+  - `scripts/lib/read-install-env.sh`
+  - `scripts/lib/validate_install_source_tree.sh`
+  - `scripts/lib/validate_hub_repo_root.sh`
 
 ---
 
@@ -130,57 +170,153 @@
 
 ---
 
-## Task 2: Gather current repository evidence for the audit
+## Task 2: Gather entry-point and operational surface evidence
 
 **Files:**
 - Review only: `README.md`
+- Review only: `devspace.yaml`
 - Review only: `install.sh`
-- Review only: `.config/opencode/AGENTS.md`
 - Review only: `docs/superpowers/runbooks/devspace-bare-hub-usage.md`
 - Review only: `docs/superpowers/runbooks/devspace-workspace-lifecycle.md`
+- Review only: `docs/superpowers/runbooks/host-bare-hub-bootstrap.md`
+
+- [ ] **Step 1: Inspect the thin entry surfaces first**
+  - Read `README.md` and `devspace.yaml`.
+  - Capture evidence about onboarding clarity, command discoverability, and whether the repo's first-contact story matches the richer downstream docs.
+
+- [ ] **Step 2: Inspect the top-level install/orientation surface**
+  - Read `install.sh`.
+  - Capture evidence about mixed responsibilities, user messaging density, and how much hidden workflow knowledge this entry point requires.
+
+- [ ] **Step 3: Inspect the current live runbooks**
+  - Read `docs/superpowers/runbooks/devspace-bare-hub-usage.md` and `docs/superpowers/runbooks/devspace-workspace-lifecycle.md`.
+  - Capture evidence about discoverability, overlap, cross-linking, and whether these runbooks already carry content missing from the top-level entry points.
+
+- [ ] **Step 4: Inspect the host/bootstrap runbook**
+  - Read `docs/superpowers/runbooks/host-bare-hub-bootstrap.md`.
+  - Capture evidence about host-vs-pod workflow clarity and whether it creates additional navigation burden for users and developers.
+
+- [ ] **Step 5: Capture one size snapshot for these surfaces**
+  - Run:
+
+    ```bash
+    wc -l README.md devspace.yaml install.sh docs/superpowers/runbooks/devspace-bare-hub-usage.md docs/superpowers/runbooks/devspace-workspace-lifecycle.md docs/superpowers/runbooks/host-bare-hub-bootstrap.md
+    ```
+
+- [ ] **Step 6: Run the host/bootstrap characterization suites**
+  - Run:
+
+    ```bash
+    bash tests/bootstrap/test_setup_host_bare_hub.sh
+    bash tests/bootstrap/test_verify_host_bare_hub.sh
+    ```
+
+  - Use their assertions as evidence for host bootstrap expectations and documented host layout behavior.
+
+- [ ] **Step 7: Run the live operational surface suites**
+  - Run:
+
+    ```bash
+    bash tests/devspace/test_devspace_command_surface.sh
+    bash tests/devspace/test_devspace_doctor.sh
+    bash tests/devspace/test_workspace_provision.sh
+    bash tests/devspace/test_workspace_repair.sh
+    ```
+
+  - Use the output as evidence for how much the repo already protects provision/repair/doctor workflows with contract tests.
+
+---
+
+## Task 3: Gather workflow and agent-orientation evidence
+
+**Files:**
+- Review only: `.config/opencode/AGENTS.md`
+- Review only: `docs/superpowers/templates/subagent-handoff-templates.md`
+- Review only: `docs/superpowers/review-records/2026-05-29-delegation-policy-packet-inventory.md`
+- Review only: `bin/clone-repo`
 - Review only: `bin/new-worktree`
 - Review only: `bin/dre`
 - Review only: `bin/dwt`
+- Review only: `bin/retire-worktree`
+- Review only: `scripts/lib/hub-repo-core.sh`
+- Review only: `scripts/lib/worktree-env.sh`
+- Review only: `scripts/lib/managed-lane-registry.sh`
+- Review only: `scripts/lib/managed-worktree-cleanup.sh`
 - Review only: `scripts/lib/resolve-install-target.sh`
+- Review only: `scripts/lib/resolve-managed-repo-root.sh`
+- Review only: `scripts/lib/write-managed-repo-env.sh`
+- Review only: `scripts/lib/read-install-env.sh`
+- Review only: `scripts/lib/validate_install_source_tree.sh`
+- Review only: `scripts/lib/validate_hub_repo_root.sh`
 
-- [ ] **Step 1: Inspect the named audit surfaces directly**
-  - Read the files listed above and capture evidence for the per-surface template inside the audit draft.
-  - Record concrete facts such as file purpose, rough size/density, current entry-point quality, cross-linking quality, and obvious mixed-abstraction hotspots.
-  - Use one quick size snapshot command to support readability claims instead of relying on impressions alone:
+- [ ] **Step 1: Inspect the canonical agent-orientation surface**
+  - Read `.config/opencode/AGENTS.md`.
+  - Capture evidence about policy density, orientation burden, and whether readers get enough indexing help before the detailed rules begin.
+
+- [ ] **Step 2: Inspect adjacent agent-orientation docs under `docs/superpowers/`**
+  - Read `docs/superpowers/templates/subagent-handoff-templates.md` and `docs/superpowers/review-records/2026-05-29-delegation-policy-packet-inventory.md`.
+  - Record whether these docs help orientation or instead require prior policy knowledge to navigate effectively.
+
+- [ ] **Step 3: Inspect command entry points for workflow complexity**
+  - Read `bin/clone-repo`, `bin/new-worktree`, `bin/dre`, `bin/dwt`, and `bin/retire-worktree`.
+  - Capture evidence about orchestration density, mixed abstraction levels, and how much workflow behavior is explained only indirectly through tests.
+
+- [ ] **Step 4: Inspect supporting helper surfaces behind the command layer**
+  - Read `scripts/lib/hub-repo-core.sh`, `scripts/lib/worktree-env.sh`, `scripts/lib/managed-lane-registry.sh`, `scripts/lib/managed-worktree-cleanup.sh`, `scripts/lib/resolve-install-target.sh`, `scripts/lib/resolve-managed-repo-root.sh`, `scripts/lib/write-managed-repo-env.sh`, `scripts/lib/read-install-env.sh`, `scripts/lib/validate_install_source_tree.sh`, and `scripts/lib/validate_hub_repo_root.sh`.
+  - Record which helpers are good local style exemplars and which ones still add documentation or readability burden.
+
+- [ ] **Step 5: Capture one size snapshot for the command/helper surfaces**
+  - Run:
 
     ```bash
-    wc -l README.md install.sh .config/opencode/AGENTS.md docs/superpowers/runbooks/devspace-bare-hub-usage.md docs/superpowers/runbooks/devspace-workspace-lifecycle.md bin/new-worktree bin/dre bin/dwt scripts/lib/resolve-install-target.sh
+    wc -l .config/opencode/AGENTS.md bin/clone-repo bin/new-worktree bin/dre bin/dwt bin/retire-worktree scripts/lib/hub-repo-core.sh scripts/lib/worktree-env.sh scripts/lib/managed-lane-registry.sh scripts/lib/managed-worktree-cleanup.sh scripts/lib/resolve-install-target.sh scripts/lib/resolve-managed-repo-root.sh scripts/lib/write-managed-repo-env.sh scripts/lib/read-install-env.sh scripts/lib/validate_install_source_tree.sh scripts/lib/validate_hub_repo_root.sh
     ```
 
-- [ ] **Step 2: Run the current docs/policy contract suites as evidence**
+- [ ] **Step 6: Run the live docs/policy contract suites in two small groups**
   - Run:
 
     ```bash
     bash tests/docs/test_bare_hub_guardrails.sh
     bash tests/docs/test_clean_code_policy_contract.sh
+    ```
+
+- [ ] **Step 7: Run the remaining docs/policy contract suites**
+  - Run:
+
+    ```bash
     bash tests/docs/test_delegation_packet_policy_contract.sh
     bash tests/docs/test_multi_question_interaction_policy.sh
     ```
 
-  - Use their assertions as evidence for what the repository already treats as live user/agent-facing contract surface.
-
-- [ ] **Step 3: Run the current install/workflow characterization suites as evidence**
+- [ ] **Step 8: Run the install/navigation characterization suites**
   - Run:
 
     ```bash
     bash tests/install/test_install_validate_source.sh
     bash tests/install/test_install_local_source_contract.sh
     bash tests/install/test_workspace_navigation_shell.sh
+    ```
+
+- [ ] **Step 9: Run the first workflow-command characterization group**
+  - Run:
+
+    ```bash
     bash tests/devspace/test_workspace_navigation_commands.sh
     bash tests/devspace/test_public_repo_clone_behavior.sh
     bash tests/devspace/test_new_worktree.sh
+    ```
+
+- [ ] **Step 10: Run the second workflow-command characterization group**
+  - Run:
+
+    ```bash
     bash tests/devspace/test_managed_lane_registry.sh
     bash tests/devspace/test_retire_worktree.sh
     ```
 
-  - Use the test output as characterization evidence for install/bootstrap behavior, navigation behavior, and worktree workflow complexity.
+  - Use the test output as characterization evidence for install behavior, navigation behavior, and worktree workflow complexity.
 
-- [ ] **Step 4: Validate the spec's initial hypotheses explicitly**
+- [ ] **Step 11: Validate the spec's initial hypotheses explicitly**
   - For each initial likely finding in the spec, mark it as `validated`, `partially validated`, or `rejected` based on direct file/test evidence.
   - Cover at minimum:
     - thin `README.md` onboarding
@@ -189,23 +325,52 @@
     - `bin/new-worktree` as a next workflow hotspot
     - smaller focused helpers as examples of preferred local style
 
-- [ ] **Step 5: Do not widen the test surface casually**
+- [ ] **Step 12: Do not widen the test surface casually**
   - If one critical audit conclusion still depends on behavior that none of the existing suites cover, stop and open a focused plan update before adding new characterization tests.
   - Do not add opportunistic tests just to satisfy process theater.
 
 ---
 
-## Task 3: Draft the audit artifact from the gathered evidence
+## Task 4: Draft the minimum audit artifact and verify GREEN early
 
 **Files:**
 - Create: `docs/superpowers/review-records/2026-06-20-repo-documentation-and-refactor-audit.md`
 
-- [ ] **Step 1: Write the surface inventory first**
-  - Create `## Surface inventory` with one subsection per audited surface.
-  - For each subsection, fill in the exact per-surface template fields from the spec.
-  - Name concrete files in `Current assets` so later planners know where the evidence came from.
+- [ ] **Step 1: Write the minimum viable artifact skeleton**
+  - Create all required top-level sections and all four required surface subsections.
+  - Add brief evidence-backed content under every required per-surface label so the artifact is structurally complete, even before the fuller inventories are expanded.
 
-- [ ] **Step 2: Write the documentation gap inventory**
+- [ ] **Step 2: Add minimum viable inventory rows**
+  - Add at least one evidence-backed row to `## Documentation gap inventory` and `## Clean-code hotspot inventory`.
+  - Add a small provisional list under `## Prioritized follow-on slices` plus one short paragraph under `## Sequencing rationale` so the contract test can pass on real content, not empty headings.
+
+- [ ] **Step 3: Verify GREEN on the minimum artifact immediately**
+  - Run:
+
+    ```bash
+    bash tests/docs/test_repo_documentation_refactor_audit.sh
+    ```
+
+  - Expected: PASS.
+
+---
+
+## Task 5: Expand the audit inventories from the gathered evidence
+
+**Files:**
+- Modify: `docs/superpowers/review-records/2026-06-20-repo-documentation-and-refactor-audit.md`
+
+- [ ] **Step 1: Expand the surface inventory for entry and operational surfaces**
+  - Fill out the `Current role`, `Primary audiences`, `Current assets`, `Documentation gaps`, `Readability/refactor hotspots`, `Risk of change`, and `Recommended slice type` fields for:
+    - entry and orientation surfaces
+    - operational and runbook surfaces
+
+- [ ] **Step 2: Expand the surface inventory for workflow and agent-orientation surfaces**
+  - Fill out the same per-surface fields for:
+    - developer command and workflow surfaces
+    - agent-facing guidance and orientation surfaces
+
+- [ ] **Step 3: Expand the documentation gap inventory**
   - Create `## Documentation gap inventory` as a table.
   - Include columns for:
     - gap ID
@@ -216,7 +381,7 @@
     - priority bucket
   - Keep the gap wording tied to evidence such as missing orientation, weak framing, weak cross-links, or discoverability problems.
 
-- [ ] **Step 3: Write the clean-code hotspot inventory**
+- [ ] **Step 4: Expand the clean-code hotspot inventory**
   - Create `## Clean-code hotspot inventory` as a table.
   - Include columns for:
     - hotspot ID
@@ -228,13 +393,13 @@
   - Focus on naming, function size, mixed abstraction levels, orchestration density, and duplication pressure.
   - Keep hotspots at slice-planning level; do not turn this into a line-by-line refactor spec.
 
-- [ ] **Step 4: Keep policy subordinate**
+- [ ] **Step 5: Keep policy subordinate**
   - If the audit includes a policy-related finding, place it behind the relevant documentation/refactor evidence and label it as a supporting policy nudge.
   - Exclude any policy-only cleanup that is not directly enabling better documentation or safer refactoring.
 
 ---
 
-## Task 4: Derive prioritized follow-on slices and sequencing rationale
+## Task 6: Derive prioritized follow-on slices and sequencing rationale
 
 **Files:**
 - Modify: `docs/superpowers/review-records/2026-06-20-repo-documentation-and-refactor-audit.md`
@@ -266,18 +431,15 @@
   - End the audit artifact with a clear next-step note that the user should choose which approved follow-on slice to plan first.
   - Keep this aligned with User Check-in 2 from the governing spec.
 
-- [ ] **Step 5: Commit the green audit slice**
-  - Suggested commit: `docs(audit): add repo documentation and refactor inventory`
-
 ---
 
-## Task 5: Verify the audit artifact and hand off cleanly
+## Task 7: Verify the audit artifact, refactor the writeup, and commit the final green slice
 
 **Files:**
 - Review only: `docs/superpowers/review-records/2026-06-20-repo-documentation-and-refactor-audit.md`
 - Review only: `tests/docs/test_repo_documentation_refactor_audit.sh`
 
-- [ ] **Step 1: Verify the audit contract goes green**
+- [ ] **Step 1: Re-run the audit contract after the fuller writeup**
   - Run:
 
     ```bash
@@ -286,10 +448,13 @@
 
   - Expected: PASS.
 
-- [ ] **Step 2: Re-run the focused evidence suites cited by the audit**
-  - Run the same evidence commands from Task 2 so the final audit is backed by fresh results, not stale memory.
+- [ ] **Step 2: Re-run the focused host/operational evidence suites**
+  - Run the same bootstrap and operational commands from Task 2 so the final audit is backed by fresh results, not stale memory.
 
-- [ ] **Step 3: Re-read the governing spec and map every required output to the final artifact**
+- [ ] **Step 3: Re-run the focused workflow and docs evidence suites**
+  - Run the same docs/install/workflow commands from Task 3 so the final audit is backed by fresh results, not stale memory.
+
+- [ ] **Step 4: Re-read the governing spec and map every required output to the final artifact**
   - Confirm the final audit answers these questions without guesswork:
     - what the biggest documentation gaps are
     - what the biggest readability/refactor hotspots are
@@ -297,11 +462,14 @@
     - what the first, second, and later follow-on slices should be
     - which policy changes stay out of scope and which small enabling nudges are still allowed
 
-- [ ] **Step 4: Mandatory refactor checkpoint for the artifact itself**
+- [ ] **Step 5: Mandatory refactor checkpoint for the artifact itself**
   - Simplify tables, headings, and phrasing if the audit became repetitive or harder to scan.
   - Keep the meaning unchanged and rerun `bash tests/docs/test_repo_documentation_refactor_audit.sh` after cleanup.
 
-- [ ] **Step 5: Final handoff note**
+- [ ] **Step 6: Commit the final green audit slice after refactoring**
+  - Suggested commit: `docs(audit): add repo documentation and refactor inventory`
+
+- [ ] **Step 7: Final handoff note**
   - Report the audit artifact path, the test path, the focused evidence suites run, and the recommended first follow-on slice candidate.
   - State clearly that no follow-on documentation/refactor implementation was performed in this slice.
 
@@ -310,10 +478,16 @@
 ## Final verification checklist
 
 - [ ] `bash tests/docs/test_repo_documentation_refactor_audit.sh`
+- [ ] `bash tests/bootstrap/test_setup_host_bare_hub.sh`
+- [ ] `bash tests/bootstrap/test_verify_host_bare_hub.sh`
 - [ ] `bash tests/docs/test_bare_hub_guardrails.sh`
 - [ ] `bash tests/docs/test_clean_code_policy_contract.sh`
 - [ ] `bash tests/docs/test_delegation_packet_policy_contract.sh`
 - [ ] `bash tests/docs/test_multi_question_interaction_policy.sh`
+- [ ] `bash tests/devspace/test_devspace_command_surface.sh`
+- [ ] `bash tests/devspace/test_devspace_doctor.sh`
+- [ ] `bash tests/devspace/test_workspace_provision.sh`
+- [ ] `bash tests/devspace/test_workspace_repair.sh`
 - [ ] `bash tests/install/test_install_validate_source.sh`
 - [ ] `bash tests/install/test_install_local_source_contract.sh`
 - [ ] `bash tests/install/test_workspace_navigation_shell.sh`
