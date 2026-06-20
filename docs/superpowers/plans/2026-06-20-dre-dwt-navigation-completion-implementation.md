@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Align `dre` and `dwt` with the approved default-checkout and completion UX contract without widening scope beyond the approved navigation slice.
+**Goal:** Align `dre` and `dwt` with the user-approved default-checkout and completion UX direction without widening scope beyond the approved navigation slice.
 
 **Architecture:** Keep resolver behavior in `bin/` path-resolver scripts, keep completion behavior command-local inside `.config/shell/workspace-navigation.zsh`, and extract child-repo metadata writing into one internal helper so runtime behavior and repair hints share one source of truth. Drive the slice with contract-level shell tests first, then finish with a mandatory real-shell user check-in for interactive completion feel.
 
@@ -12,7 +12,7 @@
 
 ## Inputs and authority
 
-- Approved design spec: `docs/superpowers/specs/2026-06-20-dre-dwt-navigation-completion-design.md` at commit `299f418`
+- Design spec: `docs/superpowers/specs/2026-06-20-dre-dwt-navigation-completion-design.md` at commit `299f418` (the file still says `Status: Proposed`; user approval exists in chat and this plan keeps wording aligned to that state)
 - Editable repo root: `/workspaces/dotfiles/main`
 - Historical plans/runbooks may contain older `dre` wording; for this slice, the approved spec above plus this plan are the active authority.
 
@@ -68,30 +68,40 @@
   - Add a `dre` failure case where the child bare repo exists but `state/repos/<repo>/etc/repo.env` is missing or invalid.
   - Assert exit status stays non-zero and stderr includes both the refusal reason and a repair hint that references the internal helper path `scripts/lib/write-managed-repo-env.sh` for that repo.
 
-- [ ] **Step 3: Verify RED**
+- [ ] **Step 3: Write a failing regression test for the helper-owned metadata contract**
+  - Extend `tests/devspace/test_public_repo_clone_behavior.sh` before introducing the helper so child onboarding is already required to prove the metadata contract that the helper will own.
+  - Pin these behaviors explicitly:
+    - `state/repos/<repo>/etc/repo.env` contains `export DYN_REPO_DEFAULT_BRANCH=<detected-branch>`;
+    - `state/repos/<repo>/etc/repo.env` contains `export DYN_REPO_DEFAULT_DIR=<workspace-root>/repos/<repo>/<detected-branch>`;
+    - the matching canonical directories under `state/repos/<repo>/<detected-branch>`, `tmp/repos/<repo>/<detected-branch>`, and `state/repos/<repo>/etc/` exist after onboarding.
+
+- [ ] **Step 4: Verify RED**
   - Run: `bash tests/devspace/test_workspace_navigation_commands.sh`
   - Run: `bash tests/install/test_workspace_navigation_shell.sh`
-  - Expected: both suites fail specifically on the new `dre` path / metadata-hint assertions.
+  - Run: `bash tests/devspace/test_public_repo_clone_behavior.sh`
+  - Expected: the suites fail specifically on the new `dre` path / metadata-hint assertions and the new onboarding metadata-contract assertions.
 
-- [ ] **Step 4: Implement the internal metadata writer and wire it into onboarding**
+- [ ] **Step 5: Implement the internal metadata writer and wire it into onboarding**
   - Add `scripts/lib/write-managed-repo-env.sh` as the only helper that writes `DYN_REPO_DEFAULT_BRANCH` and `DYN_REPO_DEFAULT_DIR` for managed child repos.
   - Update `bin/clone-repo` to call the helper instead of writing `repo.env` inline.
   - Keep the helper internal-only; do not add a new public `bin/` command in this slice.
 
-- [ ] **Step 5: Implement the `dre` runtime contract**
+- [ ] **Step 6: Implement the `dre` runtime contract**
   - Update `bin/dre` so success prints `DYN_REPO_DEFAULT_DIR` from `repo.env`.
   - Preserve existing top-level refusal behavior and unknown-repo hint behavior.
   - For missing/invalid metadata, fail clearly and include the helper-based repair hint without guessing a fallback path.
 
-- [ ] **Step 6: Verify GREEN for the runtime slice**
+- [ ] **Step 7: Verify GREEN for the runtime slice**
   - Run: `bash tests/devspace/test_workspace_navigation_commands.sh`
   - Run: `bash tests/install/test_workspace_navigation_shell.sh`
   - Run: `bash tests/devspace/test_public_repo_clone_behavior.sh`
   - Expected: all pass.
 
-- [ ] **Step 7: Refactor checkpoint**
+- [ ] **Step 8: Refactor checkpoint**
   - Remove any new duplication around child metadata validation or error text introduced by this slice.
   - Keep behavior unchanged; rerun the three commands above after any cleanup.
+
+**User Check-in:** after Task 1 reaches green, pause for approval on the new `dre` runtime target, metadata-failure wording, and helper-owned child metadata contract before starting Task 2.
 
 ---
 
@@ -130,6 +140,8 @@
 - [ ] **Step 7: Refactor checkpoint**
   - Keep candidate collection logic small and single-purpose.
   - Rerun `bash tests/install/test_workspace_navigation_shell.sh` after cleanup.
+
+**User Check-in:** after Task 2 reaches green, pause for approval on the direct slash-containing `dwt` completion candidates before starting Task 3.
 
 ---
 
