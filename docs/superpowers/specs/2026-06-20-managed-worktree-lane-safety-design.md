@@ -177,6 +177,15 @@ Instead, the receiving subagent derives the effective lane identity locally from
 
 If this local derivation does not yield one coherent lane, the subagent must stop and push back rather than infer or silently repair the lane identity.
 
+#### Why not add `Lane ID:` to the Delegation Packet in v1?
+
+Short answer: it would add protocol complexity without removing the need for local verification.
+
+- If a packet-level `Lane ID:` disagreed with local registry/worktree evidence, the subagent would still need to trust local repo state to avoid wrong-lane commits.
+- That would create two possible authorities for lane identity instead of one operational authority plus one local verification path.
+- Keeping the packet unchanged limits v1 scope and avoids reopening the canonical closed-schema contract, preview/dispatch rules, and related doc-contract surfaces.
+- If later experience shows a strong need for packet-visible lane identity, that can be added in a focused follow-on policy change.
+
 ### 6) Maestro multi-lane rules
 
 Maestro may coordinate multiple active lanes at once, but must maintain strict lane identity.
