@@ -86,14 +86,12 @@
 **Files:**
 - Create: `tests/docs/test_managed_worktree_lane_safety_policy.sh`
 - Modify: `tests/docs/test_delegation_packet_policy_contract.sh`
-- Modify: `tests/docs/test_bare_hub_guardrails.sh`
 
 - [ ] **Step 1: Write the failing doc-contract coverage first**
   - Assert that `.config/opencode/AGENTS.md` defines lane-scoped-by-default behavior, mandatory worktree resolution before dispatch, hard-stop wrong-worktree conditions, and subagent independent verification.
   - Assert that `maestro.md` and `senior-implementer.md` mirror only the operational/refusal wording relevant to their roles.
   - Assert that the ordered available-intent-signals list is present in canonical policy wording.
   - Assert that the exact non-guarantee sentence appears verbatim in the canonical policy and in the docs test itself.
-  - Assert that the runbooks mention both managed creation (`bin/new-worktree`) and managed retirement (`bin/retire-worktree`).
 
 - [ ] **Step 2: Verify RED**
   - Run:
@@ -102,7 +100,7 @@
     bash tests/docs/test_managed_worktree_lane_safety_policy.sh
     ```
 
-  - Expected: FAIL because the lane-safety wording, ordered intent-signal list, and retirement-command references do not exist yet.
+  - Expected: FAIL because the lane-safety wording, ordered intent-signal list, and exact non-guarantee anchor do not exist yet.
 
 - [ ] **Step 3: Keep the doc tests narrow and live-surface focused**
   - Test current policy surfaces and live runbooks only.
@@ -136,7 +134,6 @@
     ```bash
     bash tests/docs/test_managed_worktree_lane_safety_policy.sh
     bash tests/docs/test_delegation_packet_policy_contract.sh
-    bash tests/docs/test_bare_hub_guardrails.sh
     ```
 
   - Expected: PASS.
@@ -144,7 +141,7 @@
 - [ ] **Step 4: Mandatory refactor checkpoint**
   - Keep wording surgical and non-duplicative.
   - If the same rule appears in multiple places, reduce the downstream copy to pointer-style operational wording.
-  - Rerun the three doc-policy tests after cleanup.
+  - Rerun the two doc-policy tests after cleanup.
 
 - [ ] **Step 5: User Check-in**
   - Pause for user review of the rendered lane-selection, refusal, and non-guarantee wording before moving into command/helper changes.
@@ -168,6 +165,9 @@
     - one registry per managed repo context;
     - per-worktree reverse lookup metadata;
     - lane ID stored separately from branch/worktree path;
+    - repo identity stored explicitly (`hub` vs child repo name);
+    - parent artifact anchors recorded in the binding shape, with explicit empty values only when no anchor is yet available from the creation path;
+    - session/routing linkage recorded in the binding shape, with explicit empty or unbound values only when the creation path has not yet been associated with a live routed session;
     - sibling lanes under one parent artifact remain distinct bindings;
     - status begins as `active`.
 
@@ -175,6 +175,7 @@
   - Preserve the branch-keyed directories under `state/` and `tmp/`.
   - Add one central registry per repo context plus one per-worktree pointer file. A simple v1 shape is acceptable if it is easy to inspect in shell tests.
   - Ensure the tests treat lane ID as a registry-level identity, not a synonym for branch name, even if the initial default is branch-derived.
+  - Include explicit fields for parent artifact anchors and session/routing linkage in the registry format so later Maestro resume/routing work can populate them without schema churn.
 
 - [ ] **Step 3: Verify RED**
   - Run:
@@ -188,7 +189,8 @@
 
 - [ ] **Step 4: Implement the minimal registry + creation path**
   - `bin/new-worktree` should continue creating the branch/worktree/env files as before.
-  - After creation, it should record the lane binding and reverse lookup metadata for hub and child repos.
+  - After creation, it should record the lane binding and reverse lookup metadata for hub and child repos, including repo identity, parent artifact anchor fields, and session/routing-linkage fields.
+  - If the creation path does not yet have live artifact/session inputs, initialize those fields explicitly as empty or unbound rather than omitting them.
   - Keep the implementation compatible with existing managed repo metadata such as `repo.env` and `worktree-env.sh`.
 
 - [ ] **Step 5: Verify GREEN**
@@ -272,6 +274,7 @@
     - understanding that scoped authoring should not proceed from hub root or unrelated worktrees;
     - retiring a managed worktree locally;
     - preserving the v1 non-goal that remote branch deletion is out of scope.
+  - Extend the runbook-facing assertions here, not in Task 1, so this task owns the requirement that runbooks mention both managed creation (`bin/new-worktree`) and managed retirement (`bin/retire-worktree`).
 
 - [ ] **Step 2: Update the runbooks minimally**
   - Document the new managed retirement command and when to prefer it.

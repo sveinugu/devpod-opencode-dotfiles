@@ -1,7 +1,7 @@
 # Managed Worktree Lane Safety Design
 
 Date: 2026-06-20  
-Status: Proposed (direction approved by user; written spec pending review)
+Status: Approved (direction approved by user; written spec reviewed by docs-reviewer)
 
 ## Problem
 
