@@ -70,7 +70,7 @@ set -e
 [ "$dre_metadata_rc" = "1" ] || fail "dre should fail when child metadata is missing"
 grep -F 'refused: managed child default branch metadata is missing or invalid for "beta"' "$tmpdir/dre-metadata.out" >/dev/null || fail "dre should explain missing child metadata with repo context"
 grep -F 'to repair, run:' "$tmpdir/dre-metadata.out" >/dev/null || fail "dre should include human-readable repair intro"
-grep -F "  HUB_WORKSPACE_ROOT=\"$workspace_root\" bash /workspaces/dotfiles/main/scripts/lib/write-managed-repo-env.sh \"beta\" \"main\" \"$workspace_root/repos/beta/main\"" "$tmpdir/dre-metadata.out" >/dev/null || fail "dre should print exact runnable metadata repair command on its own line"
+grep -E "  HUB_WORKSPACE_ROOT=\"$workspace_root\" bash .*/scripts/lib/write-managed-repo-env.sh \"beta\" \"main\" \"$workspace_root/repos/beta/main\"" "$tmpdir/dre-metadata.out" >/dev/null || fail "dre should print exact runnable metadata repair command on its own line"
 
 set +e
 (
@@ -82,7 +82,7 @@ set -e
 [ "$dwt_metadata_rc" = "1" ] || fail "dwt should fail when child metadata is missing"
 grep -F 'refused: managed child default branch metadata is missing or invalid for "beta"' "$tmpdir/dwt-metadata.out" >/dev/null || fail "dwt should explain missing child metadata with repo context"
 grep -F 'to repair, run:' "$tmpdir/dwt-metadata.out" >/dev/null || fail "dwt should include human-readable repair intro"
-grep -F "  HUB_WORKSPACE_ROOT=\"$workspace_root\" bash /workspaces/dotfiles/main/scripts/lib/write-managed-repo-env.sh \"beta\" \"main\" \"$workspace_root/repos/beta/main\"" "$tmpdir/dwt-metadata.out" >/dev/null || fail "dwt should print exact runnable metadata repair command on its own line"
+grep -E "  HUB_WORKSPACE_ROOT=\"$workspace_root\" bash .*/scripts/lib/write-managed-repo-env.sh \"beta\" \"main\" \"$workspace_root/repos/beta/main\"" "$tmpdir/dwt-metadata.out" >/dev/null || fail "dwt should print exact runnable metadata repair command on its own line"
 
 set +e
 (

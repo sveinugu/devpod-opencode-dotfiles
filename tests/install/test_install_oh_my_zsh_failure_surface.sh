@@ -76,7 +76,9 @@ exit 0
 EOF
 chmod +x "$bin_dir/npx"
 
-if PATH="$bin_dir:$PATH" HOME="$home_dir" WORKSPACE_ROOT="$workspace_root" bash "$source_root/install.sh" >"$tmpdir/out.log" 2>"$tmpdir/err.log"; then
+if env -u HUB_INSTALL_BRANCH -u HUB_INSTALL_BRANCH_DIR \
+  PATH="$bin_dir:$PATH" HOME="$home_dir" WORKSPACE_ROOT="$workspace_root" \
+  bash "$source_root/install.sh" >"$tmpdir/out.log" 2>"$tmpdir/err.log"; then
   fail "install.sh should fail when oh-my-zsh installer fails"
 fi
 
@@ -92,7 +94,9 @@ exit 55
 EOF
 chmod +x "$bin_dir/curl"
 
-if PATH="$bin_dir:$PATH" HOME="$home_dir" WORKSPACE_ROOT="$workspace_root" bash "$source_root/install.sh" >"$tmpdir/out2.log" 2>"$tmpdir/err2.log"; then
+if env -u HUB_INSTALL_BRANCH -u HUB_INSTALL_BRANCH_DIR \
+  PATH="$bin_dir:$PATH" HOME="$home_dir" WORKSPACE_ROOT="$workspace_root" \
+  bash "$source_root/install.sh" >"$tmpdir/out2.log" 2>"$tmpdir/err2.log"; then
   fail "install.sh should fail when oh-my-zsh curl fetch fails"
 fi
 

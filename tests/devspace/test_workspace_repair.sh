@@ -62,6 +62,16 @@ EOF
   ln -s "$root/main/.config/opencode" "$home/.config/opencode"
 }
 
+run_repair_clean_env() {
+  local workspace_root="$1"
+  local home_root="$2"
+
+  env -u HUB_INSTALL_BRANCH -u HUB_INSTALL_BRANCH_DIR \
+    HUB_WORKSPACE_ROOT="$workspace_root" \
+    HUB_HOME_DIR="$home_root" \
+    bash "$script"
+}
+
 workspace_ok="$tmpdir/workspace-ok"
 home_ok="$tmpdir/home-ok"
 source_ok="$tmpdir/source-ok"
@@ -70,7 +80,7 @@ make_workspace "$workspace_ok" "$home_ok" "$source_ok"
 rm -rf "$workspace_ok/work" "$workspace_ok/repos" "$workspace_ok/state/hub/main" "$workspace_ok/tmp/hub/main"
 git --git-dir="$workspace_ok/.bare" worktree remove "$workspace_ok/main" --force >/dev/null 2>&1
 
-HUB_WORKSPACE_ROOT="$workspace_ok" HUB_HOME_DIR="$home_ok" bash "$script" >"$tmpdir/repair-ok.out" 2>&1 || fail "repair should recover valid workspace"
+run_repair_clean_env "$workspace_ok" "$home_ok" >"$tmpdir/repair-ok.out" 2>&1 || fail "repair should recover valid workspace"
 
 [ -d "$workspace_ok/work" ] || fail "repair should recreate work directory"
 [ -d "$workspace_ok/repos" ] || fail "repair should recreate repos directory"
@@ -85,7 +95,7 @@ source_preserve="$tmpdir/source-preserve"
 make_workspace "$workspace_preserve" "$home_preserve" "$source_preserve"
 rm -rf "$workspace_preserve/state/hub/main" "$workspace_preserve/tmp/hub/main"
 
-HUB_WORKSPACE_ROOT="$workspace_preserve" HUB_HOME_DIR="$home_preserve" bash "$script" >"$tmpdir/repair-preserve.out" 2>&1 || fail "repair should succeed for structural-only recovery"
+run_repair_clean_env "$workspace_preserve" "$home_preserve" >"$tmpdir/repair-preserve.out" 2>&1 || fail "repair should succeed for structural-only recovery"
 
 [ -f "$workspace_preserve/main/.untracked-local" ] || fail "repair must preserve untracked files"
 [ -f "$workspace_preserve/main/README.md" ] || fail "repair must preserve tracked files"
@@ -99,7 +109,7 @@ git --git-dir="$workspace_symlink/.bare" worktree add -b feature-nonmain "$works
 rm -f "$home_symlink/.zshrc"
 ln -s "$workspace_symlink/work/feature-nonmain/.zshrc" "$home_symlink/.zshrc"
 
-HUB_WORKSPACE_ROOT="$workspace_symlink" HUB_HOME_DIR="$home_symlink" bash "$script" >"$tmpdir/repair-symlink.out" 2>&1 || fail "repair should allow valid non-main symlink target"
+run_repair_clean_env "$workspace_symlink" "$home_symlink" >"$tmpdir/repair-symlink.out" 2>&1 || fail "repair should allow valid non-main symlink target"
 
 target_after="$(readlink "$home_symlink/.zshrc")"
 [ "$target_after" = "$workspace_symlink/work/feature-nonmain/.zshrc" ] || fail "repair should preserve valid non-main /home symlink target"
@@ -110,7 +120,7 @@ mkdir -p "$workspace_invalid/.bare" "$home_invalid"
 printf 'not-a-git-dir\n' > "$workspace_invalid/.bare/README"
 
 set +e
-HUB_WORKSPACE_ROOT="$workspace_invalid" HUB_HOME_DIR="$home_invalid" bash "$script" >"$tmpdir/repair-invalid.out" 2>&1
+run_repair_clean_env "$workspace_invalid" "$home_invalid" >"$tmpdir/repair-invalid.out" 2>&1
 invalid_rc="$?"
 set -e
 
@@ -125,7 +135,7 @@ rm -rf "$workspace_conflict/work"
 printf 'conflict\n' > "$workspace_conflict/work"
 
 set +e
-HUB_WORKSPACE_ROOT="$workspace_conflict" HUB_HOME_DIR="$home_conflict" bash "$script" >"$tmpdir/repair-conflict.out" 2>&1
+run_repair_clean_env "$workspace_conflict" "$home_conflict" >"$tmpdir/repair-conflict.out" 2>&1
 conflict_rc="$?"
 set -e
 
@@ -162,7 +172,7 @@ EOF
 chmod +x "$workspace_install_fail/main/install.sh"
 
 set +e
-HUB_WORKSPACE_ROOT="$workspace_install_fail" HUB_HOME_DIR="$home_install_fail" bash "$script" >"$tmpdir/repair-install-fail.out" 2>&1
+run_repair_clean_env "$workspace_install_fail" "$home_install_fail" >"$tmpdir/repair-install-fail.out" 2>&1
 install_fail_rc="$?"
 set -e
 
@@ -186,7 +196,7 @@ printf 'export HUB_INSTALL_BRANCH_DIR=%s\n' "$workspace_install_branch/work/$ins
 rm -rf "$workspace_install_branch/state/hub/work/$install_branch" "$workspace_install_branch/tmp/hub/work/$install_branch"
 git --git-dir="$workspace_install_branch/.bare" worktree remove "$workspace_install_branch/work/$install_branch" --force >/dev/null 2>&1
 
-HUB_WORKSPACE_ROOT="$workspace_install_branch" HUB_HOME_DIR="$home_install_branch" bash "$script" >"$tmpdir/repair-install-branch-state.out" 2>&1 || fail "repair should recover install branch from install.env"
+run_repair_clean_env "$workspace_install_branch" "$home_install_branch" >"$tmpdir/repair-install-branch-state.out" 2>&1 || fail "repair should recover install branch from install.env"
 
 [ -d "$workspace_install_branch/work/$install_branch" ] || fail "repair should recreate non-main install worktree from install.env"
 [ -d "$workspace_install_branch/state/hub/work/$install_branch" ] || fail "repair should recreate canonical state path for install branch"
@@ -232,7 +242,7 @@ repair_before_head="$(git -C "$workspace_branch_tip/work/$tip_branch" rev-parse 
 source_tip_head="$(git -C "$source_branch_tip" rev-parse "$tip_branch")"
 [ "$repair_before_head" != "$source_tip_head" ] || fail "fixture setup should leave install worktree behind origin tip"
 
-HUB_WORKSPACE_ROOT="$workspace_branch_tip" HUB_HOME_DIR="$home_branch_tip" bash "$script" >"$tmpdir/repair-branch-tip.out" 2>&1 || fail "repair should update existing HUB_INSTALL_BRANCH worktree to latest origin tip"
+run_repair_clean_env "$workspace_branch_tip" "$home_branch_tip" >"$tmpdir/repair-branch-tip.out" 2>&1 || fail "repair should update existing HUB_INSTALL_BRANCH worktree to latest origin tip"
 
 repair_after_head="$(git -C "$workspace_branch_tip/work/$tip_branch" rev-parse HEAD)"
 [ "$repair_after_head" = "$source_tip_head" ] || fail "repair should fast-forward existing HUB_INSTALL_BRANCH worktree to origin tip"
@@ -255,12 +265,12 @@ rm -f "$home_install_postcheck/.zshrc"
 ln -s /definitely/missing/path/.zshrc "$home_install_postcheck/.zshrc"
 
 set +e
-HUB_WORKSPACE_ROOT="$workspace_install_postcheck" HUB_HOME_DIR="$home_install_postcheck" bash "$script" >"$tmpdir/repair-install-postcheck.out" 2>&1
+run_repair_clean_env "$workspace_install_postcheck" "$home_install_postcheck" >"$tmpdir/repair-install-postcheck.out" 2>&1
 install_postcheck_rc="$?"
 set -e
 
 [ "$install_postcheck_rc" = "1" ] || fail "repair should fail when install leaves broken symlink targets"
-grep -F 'error: workspace repair failed during run /tmp/' "$tmpdir/repair-install-postcheck.out" >/dev/null || fail "repair should report install post-condition symlink failure"
+grep -E 'error: workspace repair failed during run .*/install\.sh' "$tmpdir/repair-install-postcheck.out" >/dev/null || fail "repair should report install post-condition symlink failure"
 grep -F '(symlink target .zshrc -> /definitely/missing/path/.zshrc does not exist)' "$tmpdir/repair-install-postcheck.out" >/dev/null || fail "repair should report install post-condition symlink failure"
 
 workspace_ohmyzsh_missing="$tmpdir/workspace-ohmyzsh-missing"
@@ -284,7 +294,7 @@ chmod +x "$workspace_ohmyzsh_missing/main/install.sh"
 rm -f "$home_ohmyzsh_missing/.oh-my-zsh/oh-my-zsh.sh"
 
 set +e
-HUB_WORKSPACE_ROOT="$workspace_ohmyzsh_missing" HUB_HOME_DIR="$home_ohmyzsh_missing" bash "$script" >"$tmpdir/repair-ohmyzsh-missing.out" 2>&1
+run_repair_clean_env "$workspace_ohmyzsh_missing" "$home_ohmyzsh_missing" >"$tmpdir/repair-ohmyzsh-missing.out" 2>&1
 ohmyzsh_missing_rc="$?"
 set -e
 
