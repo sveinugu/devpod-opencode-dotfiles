@@ -25,11 +25,21 @@ source_root="$workspace_root/main"
 home_dir="$tmpdir/home"
 bin_dir="$tmpdir/bin"
 
-mkdir -p "$source_root/.config/opencode" "$source_root/scripts/lib" "$home_dir" "$bin_dir"
+mkdir -p "$source_root/.config/opencode" "$source_root/scripts/lib/install" "$home_dir" "$bin_dir"
 
 cp "$install_script" "$source_root/install.sh"
 cp "$validator_script" "$source_root/scripts/lib/validate_install_source_tree.sh"
-chmod +x "$source_root/install.sh" "$source_root/scripts/lib/validate_install_source_tree.sh"
+cp "$repo_root/scripts/lib/install/parse-args.sh" "$source_root/scripts/lib/install/parse-args.sh"
+cp "$repo_root/scripts/lib/install/resolve-source.sh" "$source_root/scripts/lib/install/resolve-source.sh"
+cp "$repo_root/scripts/lib/install/validate-source.sh" "$source_root/scripts/lib/install/validate-source.sh"
+cp "$repo_root/scripts/lib/install/materialize.sh" "$source_root/scripts/lib/install/materialize.sh"
+chmod +x \
+  "$source_root/install.sh" \
+  "$source_root/scripts/lib/validate_install_source_tree.sh" \
+  "$source_root/scripts/lib/install/parse-args.sh" \
+  "$source_root/scripts/lib/install/resolve-source.sh" \
+  "$source_root/scripts/lib/install/validate-source.sh" \
+  "$source_root/scripts/lib/install/materialize.sh"
 
 printf 'export TEST_ZSHRC=1\n' > "$source_root/.zshrc"
 printf 'source "$HOME/.zshrc"\n' > "$source_root/.zprofile"

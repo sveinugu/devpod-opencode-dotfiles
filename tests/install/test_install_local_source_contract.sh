@@ -20,6 +20,30 @@ target_home="$tmpdir/home"
 offcwd="$tmpdir/unrelated-cwd"
 unset HUB_INSTALL_BRANCH HUB_INSTALL_BRANCH_DIR
 
+copy_install_support_tree() {
+  local target_root="$1"
+
+  mkdir -p "$target_root/scripts/lib"
+
+  if [ -f "scripts/lib/validate_install_source_tree.sh" ]; then
+    cp "scripts/lib/validate_install_source_tree.sh" "$target_root/scripts/lib/validate_install_source_tree.sh"
+    chmod +x "$target_root/scripts/lib/validate_install_source_tree.sh"
+  fi
+
+  if [ -d "scripts/lib/install" ]; then
+    mkdir -p "$target_root/scripts/lib/install"
+    cp "scripts/lib/install/parse-args.sh" "$target_root/scripts/lib/install/parse-args.sh"
+    cp "scripts/lib/install/resolve-source.sh" "$target_root/scripts/lib/install/resolve-source.sh"
+    cp "scripts/lib/install/validate-source.sh" "$target_root/scripts/lib/install/validate-source.sh"
+    cp "scripts/lib/install/materialize.sh" "$target_root/scripts/lib/install/materialize.sh"
+    chmod +x \
+      "$target_root/scripts/lib/install/parse-args.sh" \
+      "$target_root/scripts/lib/install/resolve-source.sh" \
+      "$target_root/scripts/lib/install/validate-source.sh" \
+      "$target_root/scripts/lib/install/materialize.sh"
+  fi
+}
+
 mkdir -p \
   "$workspace_root/.bare" \
   "$workspace_root/main/.config/opencode" \
@@ -41,16 +65,9 @@ if [ -f "install.sh" ]; then
   chmod +x "$workspace_root/main/install.sh" "$workspace_root/work/feature-x/install.sh" "$workspace_root/install.sh"
 fi
 
-if [ -f "scripts/lib/validate_install_source_tree.sh" ]; then
-  mkdir -p "$workspace_root/main/scripts/lib" "$workspace_root/work/feature-x/scripts/lib" "$workspace_root/scripts/lib"
-  cp "scripts/lib/validate_install_source_tree.sh" "$workspace_root/main/scripts/lib/validate_install_source_tree.sh"
-  cp "scripts/lib/validate_install_source_tree.sh" "$workspace_root/work/feature-x/scripts/lib/validate_install_source_tree.sh"
-  cp "scripts/lib/validate_install_source_tree.sh" "$workspace_root/scripts/lib/validate_install_source_tree.sh"
-  chmod +x \
-    "$workspace_root/main/scripts/lib/validate_install_source_tree.sh" \
-    "$workspace_root/work/feature-x/scripts/lib/validate_install_source_tree.sh" \
-    "$workspace_root/scripts/lib/validate_install_source_tree.sh"
-fi
+copy_install_support_tree "$workspace_root/main"
+copy_install_support_tree "$workspace_root/work/feature-x"
+copy_install_support_tree "$workspace_root"
 
 (
   cd "$offcwd"
@@ -120,11 +137,7 @@ if [ -f "install.sh" ]; then
   chmod +x "$workspace_quoted/work/feature branch/install.sh"
 fi
 
-if [ -f "scripts/lib/validate_install_source_tree.sh" ]; then
-  mkdir -p "$workspace_quoted/work/feature branch/scripts/lib"
-  cp "scripts/lib/validate_install_source_tree.sh" "$workspace_quoted/work/feature branch/scripts/lib/validate_install_source_tree.sh"
-  chmod +x "$workspace_quoted/work/feature branch/scripts/lib/validate_install_source_tree.sh"
-fi
+copy_install_support_tree "$workspace_quoted/work/feature branch"
 
 (
   cd "$offcwd_quoted"
@@ -221,9 +234,8 @@ printf '{"name":"reg"}\n' > "$workspace_reg/main/.config/opencode/opencode.jsonc
 printf 'stale\n' > "$home_reg/.config/opencode/stale.txt"
 
 cp "install.sh" "$workspace_reg/main/install.sh"
-mkdir -p "$workspace_reg/main/scripts/lib"
-cp "scripts/lib/validate_install_source_tree.sh" "$workspace_reg/main/scripts/lib/validate_install_source_tree.sh"
-chmod +x "$workspace_reg/main/install.sh" "$workspace_reg/main/scripts/lib/validate_install_source_tree.sh"
+copy_install_support_tree "$workspace_reg/main"
+chmod +x "$workspace_reg/main/install.sh"
 
 cat > "$bin_reg/git" <<'EOF'
 #!/usr/bin/env bash
