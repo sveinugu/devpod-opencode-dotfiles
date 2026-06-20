@@ -28,6 +28,12 @@ Use these in-pod commands for managed repo/worktree setup:
 /workspaces/dotfiles/main/bin/new-worktree --repo <child-repo-name> feature/example
 ```
 
+Example lane-safe creation with explicit lane identity:
+
+```bash
+MANAGED_LANE_ID=lane/example /workspaces/dotfiles/main/bin/new-worktree --repo hub feature/example
+```
+
 Managed checkouts get generated `.envrc` and `.envrc.local`. The managed `.envrc` exports `HUB_*`, `DYN_REPO_*`, and `DYN_WORKTREE_*`, sources `state/hub/etc/install.env` when present, then sources `.envrc.local`.
 
 For interactive navigation, the repo-managed shell package is expected to provide:
@@ -74,6 +80,23 @@ cat /workspaces/dotfiles/state/hub/etc/install.env
 `repair` is best-effort and non-destructive; it does not delete existing files or worktrees.
 
 Child repo note: preserve the exact child remote default branch name when reconstructing or validating managed child checkouts.
+
+## Managed local retirement
+
+For retiring a managed worktree locally, use:
+
+```bash
+/workspaces/dotfiles/main/bin/retire-worktree --repo hub lane/example
+/workspaces/dotfiles/main/bin/retire-worktree --repo <child-repo-name> lane/example
+```
+
+Recommended flow:
+
+- run `--dry-run` first
+- review loss evidence and force-token retry command (if printed)
+- rerun with `--force --force-token <token>` only when intentional destructive cleanup is required
+
+remote branch deletion remains out of scope for v1
 
 ## Destroy
 

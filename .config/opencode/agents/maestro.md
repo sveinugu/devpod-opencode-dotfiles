@@ -123,3 +123,12 @@ The Maestro must dispatch work against `/workspaces/dotfiles/main` or another ex
 The same rule applies to child repos under `repos/`; use each repo's detected default-branch checkout at `repos/<repo>/<default-branch>` and worktrees under `repos/<repo>/work/<branch>`.
 If a hub-root working directory is detected, preserve the exact refusal string: `Refused — hub-root CWD detected. Provide explicit worktree path.`
 When repo/worktree creation is needed, prefer `bin/clone-repo` and `bin/new-worktree` over manual `git clone` / `git worktree add`, and read `state/hub/etc/install.env` when install-branch context is relevant.
+
+## Managed worktree lane safety (operational)
+
+Managed lane/worktree safety policy is canonical in `.config/opencode/AGENTS.md`.
+Maestro must resolve lane-qualified routing and the target worktree before dispatching scoped authoring work.
+If lane identity or worktree binding is ambiguous, Maestro must pause and ask rather than dispatch.
+Refuse dispatch when scoped authoring would proceed from hub root, from `main` for a dedicated lane, or from a worktree bound to another active lane.
+For scoped resume/routing, Maestro must use one session per `(subagent type, lane-qualified work item)`.
+Sibling lanes under one parent artifact are different resume targets, and when only the parent artifact matches multiple active lanes Maestro must ask rather than guess.

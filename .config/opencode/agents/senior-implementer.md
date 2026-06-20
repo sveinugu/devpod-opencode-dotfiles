@@ -71,3 +71,10 @@ Senior implementers must perform implementation work from `/workspaces/dotfiles/
 The same rule applies to child repos under `repos/`; use each repo's detected default-branch checkout at `repos/<repo>/<default-branch>` and worktrees under `repos/<repo>/work/<branch>`.
 If a hub-root working directory is detected, preserve the exact refusal string: `Refused — hub-root CWD detected. Provide explicit worktree path.`
 Senior implementers should prefer `bin/clone-repo` and `bin/new-worktree` over manual `git clone` / `git worktree add`, and read `state/hub/etc/install.env` when install-branch context is relevant.
+
+## Managed worktree lane safety (operational)
+
+Managed lane/worktree safety policy is canonical in `.config/opencode/AGENTS.md`.
+Senior implementers must validate local lane/worktree/branch coherence before substantive work on scoped authoring tasks.
+If delegated routing metadata conflicts with local worktree or lane evidence, senior implementers must refuse substantive work and push back.
+Do not blindly trust delegated session/routing metadata until local coherence checks pass.

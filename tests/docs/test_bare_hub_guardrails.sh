@@ -19,6 +19,7 @@ grep -F 'devspace run-pipeline verify-ssh' docs/superpowers/runbooks/devspace-ba
 grep -F 'HUB_PROVISION_ARGS' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'bin/clone-repo' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'bin/new-worktree' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F 'bin/retire-worktree' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'dhub' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'dre <repo>' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'dre <repo>` → jump to child default checkout at `/workspaces/dotfiles/repos/<repo>/<default-branch>`' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
@@ -36,6 +37,7 @@ if grep -F 'dre <repo>` → jump to `/workspaces/dotfiles/repos/<repo>`' docs/su
 fi
 grep -F 'bin/clone-repo' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'bin/new-worktree' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F 'bin/retire-worktree' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F '.envrc' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F '.envrc.local' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'dhub' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
@@ -53,6 +55,7 @@ if grep -F 'dre <repo>` for child repo roots under `repos/`' docs/superpowers/ru
   exit 1
 fi
 grep -F 'state/hub/etc/install.env' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F 'remote branch deletion remains out of scope for v1' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 
 grep -F 'prefer `bin/clone-repo` and `bin/new-worktree`' .config/opencode/AGENTS.md >/dev/null
 grep -F 'prefer `bin/clone-repo` and `bin/new-worktree`' .config/opencode/agents/maestro.md >/dev/null

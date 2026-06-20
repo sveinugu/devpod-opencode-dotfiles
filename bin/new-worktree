@@ -3,6 +3,8 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
+# shellcheck source=scripts/lib/managed-lane-registry.sh
+source "$script_dir/../scripts/lib/managed-lane-registry.sh"
 
 usage() {
   printf 'usage: new-worktree [--repo <hub|repo-name>] <branch>\n' >&2
@@ -76,6 +78,7 @@ if [ "$repo_name" = "hub" ]; then
   tmp_dir="$workspace_root/tmp/hub/work/$branch"
   hub_kind='hub'
   repo_for_env='hub'
+  lane_repo_identity='hub'
 else
   repo_root="$workspace_root/repos/$repo_name"
   repo_env="$workspace_root/state/repos/$repo_name/etc/repo.env"
@@ -98,6 +101,7 @@ else
   tmp_dir="$workspace_root/tmp/repos/$repo_name/work/$branch"
   hub_kind='child'
   repo_for_env="$repo_name"
+  lane_repo_identity="$repo_name"
 fi
 
 if [ "$branch" = "$repo_default_branch" ]; then
@@ -135,6 +139,13 @@ fi
 
 mkdir -p "$state_dir" "$tmp_dir"
 
+lane_id="${MANAGED_LANE_ID:-$branch}"
+parent_artifact_anchors="${MANAGED_LANE_PARENT_ARTIFACTS:-}"
+session_task_id="${MANAGED_LANE_SESSION_TASK_ID:-}"
+session_owner="${MANAGED_LANE_SESSION_OWNER:-}"
+routing_state="${MANAGED_LANE_ROUTING_STATE:-unbound}"
+lane_status='active'
+
 if [ "$repo_name" = "hub" ]; then
   if [ ! -e "$workspace_root/main/.envrc" ]; then
     "$script_dir/../scripts/lib/worktree-env.sh" "$workspace_root/main" "$hub_kind" "$repo_for_env" >/dev/null
@@ -149,5 +160,18 @@ if [ "$repo_name" != "hub" ]; then
     "$script_dir/../scripts/lib/worktree-env.sh" "$repo_default_dir" "$hub_kind" "$repo_for_env" >/dev/null
   fi
 fi
+
+managed_lane_registry_record_binding \
+  "$workspace_root" \
+  "$lane_repo_identity" \
+  "$lane_id" \
+  "$branch" \
+  "$target" \
+  "$state_dir" \
+  "$parent_artifact_anchors" \
+  "$session_task_id" \
+  "$session_owner" \
+  "$routing_state" \
+  "$lane_status"
 
 printf 'ok: created worktree at %s\n' "$target"

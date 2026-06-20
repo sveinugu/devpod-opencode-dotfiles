@@ -77,6 +77,14 @@ Create managed worktrees (top-level hub and child repos):
 /workspaces/dotfiles/main/bin/new-worktree --repo <child-repo-name> feature/example
 ```
 
+When creating a lane-safe worktree, keep lane identity distinct from branch naming whenever needed:
+
+```bash
+MANAGED_LANE_ID=lane/example /workspaces/dotfiles/main/bin/new-worktree --repo hub feature/example
+```
+
+For scoped authoring, scoped authoring should not proceed from hub root or unrelated worktrees.
+
 Managed checkout environment behavior:
 
 - each managed checkout gets `.envrc` and `.envrc.local`
@@ -109,6 +117,17 @@ Behavior notes:
 - invalid names may print a simple text `did you mean ...` hint
 - no `dd()` compatibility alias
 - no `fzf` integration in v1
+
+## Managed local retirement
+
+Retire lane worktrees with the managed command instead of manual `git worktree remove` + `git branch -D`:
+
+```bash
+/workspaces/dotfiles/main/bin/retire-worktree --repo hub lane/example
+/workspaces/dotfiles/main/bin/retire-worktree --repo <child-repo-name> lane/example
+```
+
+Use `--dry-run` first to inspect potential loss evidence and the force-token retry command when applicable.
 
 ## Child repo branch behavior
 

@@ -421,7 +421,7 @@ before any other orchestration text beyond the required handoff wording.
 1. Definitions:
     - "session" (aka process instance): a single subagent session identified by the exact Task-returned `task_id` when available. Current task_ids may look like `ses_...`. A subagent process may host multiple sessions, but UI/resume tokens map to sessions.
     - "work item": the scope a subagent session is bound to: use the approved artifact path when one exists; otherwise use a short ad-hoc descriptor (for example `explore-shell-startup-lag`).
-    - Intended session model: use one session per `(subagent type, work item)`. Do not reuse a session across subagent types or across different work items. An implementer session stays with its current plan/work item until that work item is complete; a new plan requires a new implementer session.
+    - Intended session model: use one session per `(subagent type, lane-qualified work item)` for scoped work, and one session per `(subagent type, work item)` otherwise. Do not reuse a session across subagent types or across different lane-qualified work items. An implementer session stays with its current plan/lane-qualified work item until that work item is complete; a new plan requires a new implementer session.
     - Session metadata: subagent start/resume messages SHOULD also include `Work item: <artifact path|short descriptor>` when available.
     - "switch" (user intent): by default, interpret as "resume an existing session" when a matching recent session exists; otherwise offer to start a new session.
 2. Default resume behavior:
@@ -450,6 +450,35 @@ before any other orchestration text beyond the required handoff wording.
 - Failed session-resume and recovery policy must preserve the same authority model as normal delegation.
 - Recovery may restore routing context, but must not reinterpret intent.
 - If recovery would require substantive interpretation, Maestro should ask the user rather than reconstructing intent from a paraphrase.
+
+## Managed worktree lane safety (v1)
+
+For scoped work, actions are lane-scoped by default.
+
+For scoped authoring work, Maestro must resolve or create the dedicated managed worktree before dispatch.
+
+Hard-stop lane/worktree refusal conditions:
+
+- dispatching scoped authoring work from hub root
+- dispatching scoped authoring work from `main` when that lane requires its dedicated worktree
+- dispatching two unrelated active lanes into one worktree
+- continuing a lane from a worktree bound to a different active lane
+- attempting lane-sensitive repo operations without having resolved the target lane first
+
+Available intent signals (ordered; use in this sequence):
+
+1. validated resume/routing context for a lane-qualified work item;
+2. delegated artifact anchor(s);
+3. verbatim user request when it materially distinguishes sibling lanes;
+4. explicit user/delegator lane, branch, or worktree naming in the current turn.
+
+Subagents must independently verify delegated lane/worktree/branch coherence against local repo + registry evidence and all available intent signals before substantive work.
+
+wrong-yet-self-consistent sibling-lane dispatch is not always independently detectable when remaining intent signals are absent or ambiguous.
+
+Intended session model for scoped work: use one session per `(subagent type, lane-qualified work item)`.
+Sibling lanes under one parent artifact are different resume targets.
+When only the parent artifact matches multiple active lanes, Maestro must ask rather than guess.
 
 ## Anti-scatter checklist (sequential; Maestro must follow)
 
