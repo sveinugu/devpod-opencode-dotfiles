@@ -1,7 +1,7 @@
 # dre/dwt Navigation + Completion Behavior Design
 
 Date: 2026-06-20  
-Status: Proposed (approved direction; implementation pending)
+Status: Approved (complete; committed as commit range 299f418..eca2bae)
 
 ## Problem
 
