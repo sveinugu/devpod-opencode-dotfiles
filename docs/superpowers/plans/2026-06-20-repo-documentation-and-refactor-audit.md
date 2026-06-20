@@ -49,7 +49,11 @@
     - `.config/opencode/AGENTS.md`
     - `docs/superpowers/templates/subagent-handoff-templates.md`
     - `docs/superpowers/review-records/2026-05-29-delegation-policy-packet-inventory.md`
-    - relevant current `docs/superpowers/specs/`, `docs/superpowers/plans/`, and `docs/superpowers/runbooks/` documents where they act as orientation aids instead of historical background only
+  - explicit narrowing based on `ls -R docs/superpowers/`:
+    - include only `docs/superpowers/templates/subagent-handoff-templates.md` and `docs/superpowers/review-records/2026-05-29-delegation-policy-packet-inventory.md` as non-runbook orientation/indexing docs
+    - exclude `docs/superpowers/explorations/2026-05-23-devpod-alternatives.md` because it is an exploration artifact, not a current orientation/indexing surface
+    - exclude `docs/superpowers/review-records/2026-05-19-pragmatic-superpowers-review.md` because it is a historical review snapshot, not a current orientation/indexing surface
+    - exclude `docs/superpowers/specs/*.md` and `docs/superpowers/plans/*.md` other than the binding audit spec because they are slice-specific authority/history artifacts rather than general onboarding/indexing docs
 - Existing tests expected to supply characterization evidence before any new test is considered:
   - `tests/bootstrap/test_setup_host_bare_hub.sh`
   - `tests/bootstrap/test_verify_host_bare_hub.sh`
@@ -102,6 +106,10 @@
   - `docs/superpowers/runbooks/host-bare-hub-bootstrap.md`
   - `docs/superpowers/templates/subagent-handoff-templates.md`
   - `docs/superpowers/review-records/2026-05-29-delegation-policy-packet-inventory.md`
+  - `docs/superpowers/specs/2026-06-20-repo-documentation-and-refactor-audit-design.md`
+  - Exclude with justification: `docs/superpowers/explorations/2026-05-23-devpod-alternatives.md` — exploration artifact, not a current orientation/indexing surface
+  - Exclude with justification: `docs/superpowers/review-records/2026-05-19-pragmatic-superpowers-review.md` — historical review snapshot, not a current orientation/indexing surface
+  - Exclude with justification: `docs/superpowers/plans/*.md` and other `docs/superpowers/specs/*.md` — slice-specific authority/history artifacts, not general orientation/indexing docs for this audit
   - `bin/clone-repo`
   - `bin/new-worktree`
   - `bin/dre`
@@ -233,6 +241,8 @@
 - Review only: `.config/opencode/AGENTS.md`
 - Review only: `docs/superpowers/templates/subagent-handoff-templates.md`
 - Review only: `docs/superpowers/review-records/2026-05-29-delegation-policy-packet-inventory.md`
+- Review only for scope validation: `docs/superpowers/review-records/2026-05-19-pragmatic-superpowers-review.md`
+- Review only for authority boundary: `docs/superpowers/specs/2026-06-20-repo-documentation-and-refactor-audit-design.md`
 - Review only: `bin/clone-repo`
 - Review only: `bin/new-worktree`
 - Review only: `bin/dre`
@@ -254,25 +264,35 @@
   - Capture evidence about policy density, orientation burden, and whether readers get enough indexing help before the detailed rules begin.
 
 - [ ] **Step 2: Inspect adjacent agent-orientation docs under `docs/superpowers/`**
-  - Read `docs/superpowers/templates/subagent-handoff-templates.md` and `docs/superpowers/review-records/2026-05-29-delegation-policy-packet-inventory.md`.
-  - Record whether these docs help orientation or instead require prior policy knowledge to navigate effectively.
+  - Use `ls -R docs/superpowers/` to confirm that the only non-runbook docs treated as active orientation/indexing aids in this slice are:
+    - `docs/superpowers/templates/subagent-handoff-templates.md`
+    - `docs/superpowers/review-records/2026-05-29-delegation-policy-packet-inventory.md`
+  - Read those two files and record whether they help orientation or instead require prior policy knowledge to navigate effectively.
 
-- [ ] **Step 3: Inspect command entry points for workflow complexity**
+- [ ] **Step 3: Verify the narrowing against one excluded review artifact**
+  - Read `docs/superpowers/review-records/2026-05-19-pragmatic-superpowers-review.md`.
+  - Record why it stays out of the orientation-doc review: historical review context, not an active indexing/onboarding surface.
+
+- [ ] **Step 4: Confirm the authority-vs-orientation boundary for specs/plans**
+  - Re-read `docs/superpowers/specs/2026-06-20-repo-documentation-and-refactor-audit-design.md`.
+  - Record why the active spec is binding authority for this plan but not part of the broader orientation-doc audit inventory.
+
+- [ ] **Step 5: Inspect command entry points for workflow complexity**
   - Read `bin/clone-repo`, `bin/new-worktree`, `bin/dre`, `bin/dwt`, and `bin/retire-worktree`.
   - Capture evidence about orchestration density, mixed abstraction levels, and how much workflow behavior is explained only indirectly through tests.
 
-- [ ] **Step 4: Inspect supporting helper surfaces behind the command layer**
-  - Read `scripts/lib/hub-repo-core.sh`, `scripts/lib/worktree-env.sh`, `scripts/lib/managed-lane-registry.sh`, `scripts/lib/managed-worktree-cleanup.sh`, `scripts/lib/resolve-install-target.sh`, `scripts/lib/resolve-managed-repo-root.sh`, `scripts/lib/write-managed-repo-env.sh`, `scripts/lib/read-install-env.sh`, `scripts/lib/validate_install_source_tree.sh`, and `scripts/lib/validate_hub_repo_root.sh`.
+- [ ] **Step 6: Inspect supporting helper surfaces behind the command layer**
+  - Read `scripts/lib/hub-repo-core.sh`, `scripts/lib/worktree-env.sh`, `scripts/lib/managed-lane-registry.sh`, `scripts/lib/managed-worktree-cleanup.sh`, `scripts/lib/resolve-install-target.sh`, `scripts/lib/resolve-managed-repo-root.sh`, `scripts/lib/write-managed-repo-env.sh`, `scripts/lib/read-install-env.sh`, and `scripts/lib/validate_install_source_tree.sh`, and `scripts/lib/validate_hub_repo_root.sh`.
   - Record which helpers are good local style exemplars and which ones still add documentation or readability burden.
 
-- [ ] **Step 5: Capture one size snapshot for the command/helper surfaces**
+- [ ] **Step 7: Capture one size snapshot for the command/helper surfaces**
   - Run:
 
     ```bash
     wc -l .config/opencode/AGENTS.md bin/clone-repo bin/new-worktree bin/dre bin/dwt bin/retire-worktree scripts/lib/hub-repo-core.sh scripts/lib/worktree-env.sh scripts/lib/managed-lane-registry.sh scripts/lib/managed-worktree-cleanup.sh scripts/lib/resolve-install-target.sh scripts/lib/resolve-managed-repo-root.sh scripts/lib/write-managed-repo-env.sh scripts/lib/read-install-env.sh scripts/lib/validate_install_source_tree.sh scripts/lib/validate_hub_repo_root.sh
     ```
 
-- [ ] **Step 6: Run the live docs/policy contract suites in two small groups**
+- [ ] **Step 8: Run the live docs/policy contract suites in two small groups**
   - Run:
 
     ```bash
@@ -280,7 +300,7 @@
     bash tests/docs/test_clean_code_policy_contract.sh
     ```
 
-- [ ] **Step 7: Run the remaining docs/policy contract suites**
+- [ ] **Step 9: Run the remaining docs/policy contract suites**
   - Run:
 
     ```bash
@@ -288,7 +308,7 @@
     bash tests/docs/test_multi_question_interaction_policy.sh
     ```
 
-- [ ] **Step 8: Run the install/navigation characterization suites**
+- [ ] **Step 10: Run the install/navigation characterization suites**
   - Run:
 
     ```bash
@@ -297,7 +317,7 @@
     bash tests/install/test_workspace_navigation_shell.sh
     ```
 
-- [ ] **Step 9: Run the first workflow-command characterization group**
+- [ ] **Step 11: Run the first workflow-command characterization group**
   - Run:
 
     ```bash
@@ -306,7 +326,7 @@
     bash tests/devspace/test_new_worktree.sh
     ```
 
-- [ ] **Step 10: Run the second workflow-command characterization group**
+- [ ] **Step 12: Run the second workflow-command characterization group**
   - Run:
 
     ```bash
@@ -316,7 +336,7 @@
 
   - Use the test output as characterization evidence for install behavior, navigation behavior, and worktree workflow complexity.
 
-- [ ] **Step 11: Validate the spec's initial hypotheses explicitly**
+- [ ] **Step 13: Validate the spec's initial hypotheses explicitly**
   - For each initial likely finding in the spec, mark it as `validated`, `partially validated`, or `rejected` based on direct file/test evidence.
   - Cover at minimum:
     - thin `README.md` onboarding
@@ -325,7 +345,7 @@
     - `bin/new-worktree` as a next workflow hotspot
     - smaller focused helpers as examples of preferred local style
 
-- [ ] **Step 12: Do not widen the test surface casually**
+- [ ] **Step 14: Do not widen the test surface casually**
   - If one critical audit conclusion still depends on behavior that none of the existing suites cover, stop and open a focused plan update before adding new characterization tests.
   - Do not add opportunistic tests just to satisfy process theater.
 
