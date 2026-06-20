@@ -2,54 +2,16 @@
 
 > What changed for implementers: `dhub` is the install-checkout helper; child repos keep their exact remote default branch names instead of being normalized to `main`.
 
-## Provision and connect
+## Choose your environment
 
-```bash
-devspace run-pipeline provision
-devspace dev
-ssh -o BatchMode=yes workspace.dotfiles.devspace 'pwd'
-devspace run-pipeline verify-ssh
-```
+- **HOST:** Use [DevSpace Workspace Lifecycle](devspace-workspace-lifecycle.md) for `devspace run-pipeline provision`, `doctor`, `repair`, `destroy`, and `verify-ssh`, and use [Host Bare-Hub Bootstrap](host-bare-hub-bootstrap.md) for first-time host setup.
+- **POD:** Stay in this runbook for `bash install.sh`, `dhub`, `dre`, `dwt`, `bin/clone-repo`, `bin/new-worktree`, and `bin/retire-worktree`.
 
-To force tool refresh during provision (pyenv + opencode):
+## In-pod install and guardrails (canonical)
 
-```bash
-devspace run-pipeline provision --refresh-tools
-HUB_PROVISION_ARGS='--refresh-tools' devspace run-pipeline provision
-```
-
-To provision using a non-`main` install checkout via environment override:
-
-```bash
-HUB_INSTALL_BRANCH=feature/env-override devspace run-pipeline provision
-```
-
-If `HUB_INSTALL_BRANCH` is not set, provision defaults to `main`.
-
-Workflow policy for dev/testing/production behavior changes:
-
-- develop policy in a non-`main` worktree
-- test with `HUB_INSTALL_BRANCH=<branch> devspace run-pipeline provision` or `repair`
-- merge to `main` for staging/testing
-- push `main` to origin for production/default behavior
-
-## Rebuild workspace image
-
-```bash
-devspace build -i workspace
-```
-
-Then redeploy:
-
-```bash
-devspace deploy
-```
-
-If your Kubernetes cluster cannot pull from your local image store, push to a registry and use a registry-qualified image name in `devspace.yaml`.
+This runbook is the canonical source for in-pod install, navigation, and managed worktree usage. For host lifecycle operations, see [DevSpace Workspace Lifecycle](devspace-workspace-lifecycle.md).
 
 Use `/workspaces/dotfiles/main` as the editable workspace checkout.
-
-## Install usage
 
 ```bash
 bash /workspaces/dotfiles/main/install.sh --dry-run -y
@@ -62,7 +24,14 @@ Never run the hub-root copy at `/workspaces/dotfiles/install.sh`; it must refuse
 Refused — hub-root CWD detected. Provide explicit worktree path.
 ```
 
-## Child repo onboarding (public repos, v1)
+Workflow policy for dev/testing/production behavior changes:
+
+- develop policy in a non-`main` worktree
+- test with `HUB_INSTALL_BRANCH=<branch> devspace run-pipeline provision` or `repair`
+- merge to `main` for staging/testing
+- push `main` to origin for production/default behavior
+
+## In-pod managed repo and worktree commands (canonical)
 
 From inside the workspace pod, add a child repo as a managed bare hub under `repos/<name>`:
 
@@ -98,7 +67,7 @@ Managed checkout environment behavior:
 /workspaces/dotfiles/state/hub/etc/install.env
 ```
 
-## Convenience navigation commands
+## Navigation helpers (canonical)
 
 The repo-managed shell package is the intended home for the interactive wrappers:
 
