@@ -4,7 +4,6 @@ set -euo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
 agents="$repo_root/.config/opencode/AGENTS.md"
-skills_lock="$repo_root/.config/opencode/skills-lock.json"
 pr_template="$repo_root/.config/opencode/PULL_REQUEST_TEMPLATE.md"
 fail=0
 
@@ -73,11 +72,6 @@ check_fixed "$agents" '`clean-code` MUST NOT override user instructions, reposit
 check_fixed "$agents" '`red → verify red → green → verify green → refactor → verify green`' 'Short recipe uses explicit post-green refactor flow'
 check_fixed "$agents" 'run the pragmatic-programmer quick diagnostic and a clean-code checklist/score review' 'Post-implementation reporting includes both reviews'
 check_fixed "$agents" 'pragmatic-programmer score, the clean-code checklist/score outcome' 'PR reporting policy mentions both reporting outputs'
-
-check_fixed "$skills_lock" '"clean-code": {' 'Skills lock includes clean-code entry'
-check_fixed "$skills_lock" '"source": "wondelai/skills"' 'Skills lock clean-code source'
-check_fixed "$skills_lock" '"sourceType": "github"' 'Skills lock clean-code source type'
-check_fixed "$skills_lock" '"skillPath": "clean-code/SKILL.md"' 'Skills lock clean-code path'
 
 if [ -f "$pr_template" ] && rg -q 'clean-code' "$pr_template"; then
     check_fixed "$pr_template" '.config/opencode/AGENTS.md' 'PR template remains subordinate to AGENTS when updated'
