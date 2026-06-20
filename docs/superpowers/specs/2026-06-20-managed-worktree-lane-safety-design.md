@@ -189,6 +189,15 @@ Worktree safety must be expressed as refusal-backed policy, not merely as prefer
 
 Agent/policy surfaces should explicitly communicate that wrong-worktree behavior is a refusal condition.
 
+Subagents should not trust Maestro or user-provided lane/worktree information blindly.
+
+Required direction:
+
+- for lane-scoped work, the receiving subagent must independently verify that the delegated lane identity, worktree path, branch, and relevant artifact anchors are coherent with local repo state and policy
+- if Maestro-provided metadata, user instructions, and local repo/worktree evidence disagree materially, the subagent must stop and push back rather than silently choosing one
+- if the delegated worktree is missing, bound to another active lane, or otherwise inconsistent with the delegated scope, the subagent must refuse substantive work and surface the mismatch
+- subagents may trust routing metadata only after this local coherence check passes
+
 The intended direction is:
 
 - prefer managed commands such as `bin/new-worktree` for worktree creation
@@ -291,11 +300,12 @@ This preserves enough audit/history context to understand what lane previously o
 3. One parent feature/spec/plan may spawn multiple concurrent child lanes, each with its own branch/worktree binding.
 4. Maestro can track multiple active lanes, but any ambiguous lane-sensitive action triggers lane-selection rather than implicit reuse.
 5. Agent-facing policy/docs express wrong-worktree situations as refusal-backed behavior rather than soft preference wording.
-6. Cleanup tooling works for both hub and managed child repos.
-7. Normal cleanup refuses when content-loss risk exists and prints concrete evidence of that risk.
-8. Structural safety failures remain non-overridable even in force mode.
-9. `--force` is accepted only with a matching token derived from the current refusal report.
-10. Remote branch deletion remains out of scope for v1.
+6. Receiving subagents independently verify lane/worktree/branch coherence instead of trusting Maestro or user routing data blindly.
+7. Cleanup tooling works for both hub and managed child repos.
+8. Normal cleanup refuses when content-loss risk exists and prints concrete evidence of that risk.
+9. Structural safety failures remain non-overridable even in force mode.
+10. `--force` is accepted only with a matching token derived from the current refusal report.
+11. Remote branch deletion remains out of scope for v1.
 
 ## Testing Strategy
 
@@ -311,6 +321,7 @@ This preserves enough audit/history context to understand what lane previously o
   - lane reuse on resume,
   - sibling lane creation for parallel follow-up work,
   - refusal on mismatched worktree/lane identity,
+  - subagent refusal when delegated lane/worktree metadata conflicts with local state,
   - refusal evidence generation for tracked/untracked/binary/local-only-commit loss,
   - force-token acceptance and invalidation when state changes,
   - protection of default checkouts and non-managed targets.
