@@ -14,7 +14,7 @@
 
 - Design spec: `docs/superpowers/specs/2026-06-20-dre-dwt-navigation-completion-design.md` at commit `299f418` (the file still says `Status: Proposed`; user approval exists in chat and this plan keeps wording aligned to that state)
 - Editable repo root: `/workspaces/dotfiles/main`
-- Historical plans/runbooks may contain older `dre` wording; for this slice, the approved spec above plus this plan are the active authority.
+- Historical plans/runbooks may contain older `dre` wording; for this slice, the user-approved direction in the spec above plus this plan are the active authority.
 
 ## Scope
 
