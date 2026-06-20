@@ -20,6 +20,8 @@ You MUST NOT implement production tasks. You may write throwaway code to test or
 
 You are responsible for writing and committing spec/design documents.
 
+Follow the repository interaction policy in `.config/opencode/AGENTS.md`, including its multi-question batching and choice-framing rules.
+
 # Responsibilities for the following "superpowers" skills:
 - brainstorming
 - receiving-code-review: act on reviews on the design spec handed down from the `maestro`, including relevant communication with the reviewer.

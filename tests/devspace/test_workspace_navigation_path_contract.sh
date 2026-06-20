@@ -73,7 +73,9 @@ branch_count="$(printf '%s' "$path_after_repeat" | tr ':' '\n' | grep -Fx "$bran
 
 path_without_env="$(
   PATH="$base_path" \
+  HUB_INSTALL_BRANCH_DIR= \
   WORKSPACE_NAV_SCRIPT="$nav_script" \
+  WORKSPACE_NAV_INSTALL_ENV_FILE=/nonexistent \
   zsh -fc '. "$WORKSPACE_NAV_SCRIPT"; printf "%s\n" "$PATH"'
 )"
 
@@ -118,6 +120,7 @@ EOF
 
 path_from_install_env="$(
   PATH="$base_path" \
+  HUB_INSTALL_BRANCH_DIR= \
   WORKSPACE_NAV_INSTALL_ENV_FILE="$install_env_with_branch" \
   WORKSPACE_NAV_SCRIPT="$nav_script" \
   zsh -fc '. "$WORKSPACE_NAV_SCRIPT"; printf "%s\n" "$PATH"'

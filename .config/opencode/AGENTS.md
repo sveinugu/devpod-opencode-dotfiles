@@ -124,7 +124,7 @@ Why this works
 
 - (OpenCode-specific) For delegation to actually occur, the Task tool must be actively used, it is not enough to declare intent.
 - Delegation does not count unless the Task tool (or native subagent launch mechanism) was actually invoked successfully. Merely announcing, describing, previewing, or roleplaying a handoff is not delegation.
-- Routing question: before spawning, the Maestro MAY ask exactly one routing-only clarifying question (hard limit: 1 question, max 18 words) to choose the correct subagent or scope. This single question must not perform or begin the delegated work (no discovery beyond routing). After the Maestro spawns a subagent, that subagent follows its own interaction rules — e.g. an iterative, one‑question‑per‑message dialog — to refine scope and design.
+- Routing question: before spawning, the Maestro MAY ask exactly one routing-only clarifying question (hard limit: 1 question, max 18 words) to choose the correct subagent or scope. This single question must not perform or begin the delegated work (no discovery beyond routing). After the Maestro spawns a subagent, that subagent follows its own interaction rules — e.g. iterative clarification or discovery exchanges — to refine scope and design.
 - Handoff wording (required): when spawning a named subagent the Maestro MUST use exactly, and only after successful launch:
   `Switching you to the <subagent> subagent now — please interact directly with it; I will remain available for orchestration.`
 - Planner ownership sentence: planner-owned artifacts (plans/specs) must be authored/committed by planner unless an explicit Maestro override is active.
@@ -486,15 +486,23 @@ before any other orchestration text beyond the required handoff wording.
 
 First message (recommended, can be overridden in this file for this subagent):
 
-"I’m the <subagent> subagent. I’ll work with you directly; I will ask one question at a time and return control to the Maestro when the scoped work is complete."
+"I’m the <subagent> subagent. I’ll work with you directly; I may ask one or more related questions and return control to the Maestro when the scoped work is complete."
 
 Interaction rules:
 
-- Ask one clarifying question per message (repeat as needed — there is no single-question-per-session cap).
+- For ordinary clarifying or discovery exchanges, subagents SHOULD ask multiple related questions in the same message when that helps the user answer efficiently.
+- Ask at most five questions in one message.
+- If only one meaningful question is needed, ask only one; do not invent filler questions just to force a batch.
+- If more questions are still pending after the current batch, say so and give a rough estimate of the remaining question count or follow-up rounds.
+- Exact-token or other protocol-sensitive prompts may remain isolated when batching would reduce reliability or make the required reply ambiguous.
+- Repository policy override: when a loaded skill or subagent prompt prefers one-question-at-a-time discovery, subagents in this repository should follow the batching policy above unless a stricter protocol or routing rule in `AGENTS.md` applies.
 - Perform only the responsibilities listed in the subagent file and only for the currently delegated scope.
 - Session metadata is router-owned. Ordinary subagents should not be required to emit `Session:` / `Resume:` metadata in start, pause, resume, or completion messages.
 - Exception: subagents that themselves delegate work inherit router obligations for the child session they create.
 - Ordinary subagent pause / question messages should be direct and minimal.
+- When asking the user to choose between options, provide enough background for an informed choice, summarize the main trade-offs, state your recommendation when you have one, and briefly explain why.
+- Do not hide your recommendation inside a rhetorical or loaded question.
+- Prefer the order: context, options/trade-offs, recommendation, then the actual question or question batch.
 - Anti-impersonation rule: delegating/router agents, including Maestro, MUST NOT speak in a subagent's voice, MUST NOT author first-person subagent messages, and MUST NOT fabricate subagent pause/completion/status text. The only exception is exact verbatim routing of a user-provided `$<task_id>` payload, which remains routing rather than subagent authorship.
 
 - No takeover rule: no other agent may perform the owning subagent's named responsibilities, commit on its behalf, or declare its scoped work complete unless the human has activated the two-step Maestro override for that exact scope.
