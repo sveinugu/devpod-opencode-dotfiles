@@ -1,3 +1,7 @@
+# Start here: README.md explains the repo, audiences, and first commands.
+# For lifecycle behavior, see docs/superpowers/runbooks/devspace-workspace-lifecycle.md.
+# For host bootstrap context, see docs/superpowers/runbooks/host-bare-hub-bootstrap.md.
+
 version: v2beta1
 name: dotfiles
 

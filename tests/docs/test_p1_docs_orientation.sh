@@ -29,7 +29,7 @@ check_fixed "$readme" 'devspace run-pipeline provision' 'README provision comman
 check_fixed "$readme" 'bash install.sh' 'README install command'
 check_fixed "$readme" 'dhub' 'README dhub command'
 check_fixed "$readme" 'bin/new-worktree --repo hub feature/example' 'README new-worktree command'
-check_fixed "$readme" 'Never work directly from \`/workspaces/dotfiles\`' 'README hub-root warning'
+check_fixed "$readme" 'Never work directly from `/workspaces/dotfiles`' 'README hub-root warning'
 check_fixed "$readme" '[DevSpace Bare Hub Usage](docs/superpowers/runbooks/devspace-bare-hub-usage.md)' 'README bare-hub runbook link'
 check_fixed "$readme" '[DevSpace Workspace Lifecycle](docs/superpowers/runbooks/devspace-workspace-lifecycle.md)' 'README lifecycle runbook link'
 check_fixed "$readme" '[Host Bare-Hub Bootstrap](docs/superpowers/runbooks/host-bare-hub-bootstrap.md)' 'README host bootstrap runbook link'

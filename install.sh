@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Installs the dotfiles from the checkout that contains this script.
+# High-level flow:
+# 1. Resolve the install source/worktree and refuse hub-root execution.
+# 2. Validate the source tree and persist install-branch state.
+# 3. Link shell/OpenCode config into $HOME and install required tooling.
+# Start with README.md for orientation, then see:
+# - docs/superpowers/runbooks/devspace-bare-hub-usage.md
+# - docs/superpowers/runbooks/devspace-workspace-lifecycle.md
+
 
 dry_run=false
 assume_yes=false
