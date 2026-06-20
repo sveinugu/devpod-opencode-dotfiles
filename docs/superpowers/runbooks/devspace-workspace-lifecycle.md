@@ -2,6 +2,56 @@
 
 > What changed for implementers: `dhub` is the install-root navigation helper; child repo default branches must be preserved exactly instead of being normalized to `main`.
 
+## Choose your environment
+
+- **HOST:** Stay in this runbook for `devspace run-pipeline provision`, `doctor`, `repair`, `destroy`, and `verify-ssh`.
+- **HOST, first-time setup:** If the bare-hub layout does not exist yet, start with [Host Bare-Hub Bootstrap](host-bare-hub-bootstrap.md).
+- **POD:** Switch to [DevSpace Bare Hub Usage](devspace-bare-hub-usage.md) for `bash install.sh`, `dhub`, `dre`, `dwt`, `bin/new-worktree`, `bin/clone-repo`, and `bin/retire-worktree`.
+
+## Host lifecycle commands (canonical)
+
+This runbook is the canonical source for host-side DevSpace lifecycle commands. It intentionally routes in-pod install, navigation, and managed worktree details to [DevSpace Bare Hub Usage](devspace-bare-hub-usage.md) instead of repeating them here.
+
+## Provision
+
+Run the full provision + connect sequence from the host:
+
+```bash
+devspace run-pipeline provision
+devspace dev
+ssh -o BatchMode=yes workspace.dotfiles.devspace 'pwd'
+devspace run-pipeline verify-ssh
+```
+
+To force tool refresh during provision (pyenv + opencode):
+
+```bash
+devspace run-pipeline provision --refresh-tools
+HUB_PROVISION_ARGS='--refresh-tools' devspace run-pipeline provision
+```
+
+To provision using a non-`main` install checkout via environment override:
+
+```bash
+HUB_INSTALL_BRANCH=feature/env-override devspace run-pipeline provision
+```
+
+If `HUB_INSTALL_BRANCH` is not set, provision defaults to `main`.
+
+## Rebuild workspace image
+
+```bash
+devspace build -i workspace
+```
+
+Then redeploy:
+
+```bash
+devspace deploy
+```
+
+If your Kubernetes cluster cannot pull from your local image store, push to a registry and use a registry-qualified image name in `devspace.yaml`.
+
 ## Doctor
 
 Run a read-only health checklist from the host:
@@ -17,41 +67,6 @@ Behavior:
 - exit `2`: invalid CLI usage
 
 The v1 checklist includes Deployment/PVC presence, pod reachability, top-level bare-hub validity, managed directory existence, canonical `state/hub/main` and `tmp/hub/main` paths, `/home/vscode` symlink targets, and installed-branch reporting from `state/hub/etc/install.env` when present.
-
-## In-pod managed repo/worktree commands
-
-Use these in-pod commands for managed repo/worktree setup:
-
-```bash
-/workspaces/dotfiles/main/bin/clone-repo https://github.com/<owner>/<repo>.git
-/workspaces/dotfiles/main/bin/new-worktree --repo hub feature/example
-/workspaces/dotfiles/main/bin/new-worktree --repo <child-repo-name> feature/example
-```
-
-Example lane-safe creation with explicit lane identity:
-
-```bash
-MANAGED_LANE_ID=lane/example /workspaces/dotfiles/main/bin/new-worktree --repo hub feature/example
-```
-
-Managed checkouts get generated `.envrc` and `.envrc.local`. The managed `.envrc` exports `HUB_*`, `DYN_REPO_*`, and `DYN_WORKTREE_*`, sources `state/hub/etc/install.env` when present, then sources `.envrc.local`.
-
-For interactive navigation, the repo-managed shell package is expected to provide:
-
-- `dhub` for the active install checkout
-- `dre <repo>` for child default checkouts (`/workspaces/dotfiles/repos/<repo>/<default-branch>`)
-- `dwt` with no argument for current repo default checkout
-- `dwt <default-branch-name>` for that same default checkout alias
-- `dwt <name>` for switching to `work/<name>` inside the current managed repo context
-
-Navigation guardrails:
-
-- `dhub` prints the destination before changing directories
-- `dre` excludes the top-level hub
-- `dwt` fails outside managed repo context instead of guessing
-- top-level default alias is `main`; child-repo default alias is the exact detected remote default branch name
-- invalid names may print a simple text `did you mean ...` hint
-- no `dd()` compatibility alias
 
 ## Repair
 
@@ -81,23 +96,6 @@ cat /workspaces/dotfiles/state/hub/etc/install.env
 
 Child repo note: preserve the exact child remote default branch name when reconstructing or validating managed child checkouts.
 
-## Managed local retirement
-
-For retiring a managed worktree locally, use:
-
-```bash
-/workspaces/dotfiles/main/bin/retire-worktree --repo hub lane/example
-/workspaces/dotfiles/main/bin/retire-worktree --repo <child-repo-name> lane/example
-```
-
-Recommended flow:
-
-- run `--dry-run` first
-- review loss evidence and force-token retry command (if printed)
-- rerun with `--force --force-token <token>` only when intentional destructive cleanup is required
-
-remote branch deletion remains out of scope for v1
-
 ## Destroy
 
 Run destructive reset:
@@ -113,3 +111,15 @@ Behavior:
 - does not preserve uncommitted work, runtime session data, or `/home/vscode` content on the deleted PVC
 
 After `destroy`, run `devspace run-pipeline provision` to recreate from scratch.
+
+## After the host step, continue in pod
+
+Once `devspace dev` is open and `/workspaces/dotfiles` is mounted:
+
+- run `bash /workspaces/dotfiles/main/install.sh` from an explicit checkout
+- use `dhub`, `dre`, and `dwt` for navigation
+- create managed worktrees with `/workspaces/dotfiles/main/bin/new-worktree`
+- onboard child repos with `/workspaces/dotfiles/main/bin/clone-repo`
+- retire managed worktrees with `/workspaces/dotfiles/main/bin/retire-worktree`
+
+For those in-pod commands, use [DevSpace Bare Hub Usage](devspace-bare-hub-usage.md). For first-time host layout creation, use [Host Bare-Hub Bootstrap](host-bare-hub-bootstrap.md).
