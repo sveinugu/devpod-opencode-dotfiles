@@ -124,7 +124,9 @@ check_fixed "$bootstrap" '/workspaces/dotfiles/main/bin/clone-repo https://githu
 check_fixed "$bootstrap" '## Manual fallback (only when wrappers cannot be used)' 'bootstrap manual fallback heading'
 check_fixed "$bootstrap" 'Do not treat the manual fallback commands below as the default workflow.' 'bootstrap manual fallback warning'
 check_fixed "$bootstrap" 'git worktree add "/workspaces/dotfiles/work/feature-example" -b feature-example main' 'bootstrap manual worktree fallback command'
+check_fixed "$bootstrap" 'REPO_DEFAULT_BRANCH="$(git --git-dir="$REPO_HUB/.bare" symbolic-ref --short refs/remotes/origin/HEAD | sed '\''s#^origin/##'\'')"' 'bootstrap manual default-branch detection command'
 check_fixed "$bootstrap" 'git clone --bare "$REPO_URL" "$REPO_HUB/.bare"' 'bootstrap manual clone fallback command'
+check_fixed "$bootstrap" 'git worktree add "$REPO_HUB/$REPO_DEFAULT_BRANCH" "$REPO_DEFAULT_BRANCH"' 'bootstrap manual default-branch worktree command'
 check_absent "$bootstrap" '## Step 7 (IN POD): Create a feature worktree' 'bootstrap removes manual pod step as primary flow'
 
 if [ "$fail" -eq 0 ]; then
@@ -614,10 +616,11 @@ REPO_HUB="/workspaces/dotfiles/repos/$REPO_NAME"
 mkdir -p "$REPO_HUB"
 git clone --bare "$REPO_URL" "$REPO_HUB/.bare"
 printf 'gitdir: ./.bare\n' > "$REPO_HUB/.git"
+REPO_DEFAULT_BRANCH="$(git --git-dir="$REPO_HUB/.bare" symbolic-ref --short refs/remotes/origin/HEAD | sed 's#^origin/##')"
 
 cd "$REPO_HUB"
-git worktree add "$REPO_HUB/main" main
-git worktree add "$REPO_HUB/work/feature-example" -b feature-example main
+git worktree add "$REPO_HUB/$REPO_DEFAULT_BRANCH" "$REPO_DEFAULT_BRANCH"
+git worktree add "$REPO_HUB/work/feature-example" -b feature-example "$REPO_DEFAULT_BRANCH"
 ```
 
 After using the manual fallback, return to the wrapper-based flow documented in [DevSpace Bare Hub Usage](devspace-bare-hub-usage.md).
