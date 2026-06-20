@@ -4,7 +4,7 @@
 
 **Goal:** Refactor the worktree/navigation command family into smaller phase-oriented helpers while preserving every CLI surface, refusal string, side effect, and test-observed behavior.
 
-**Architecture:** Keep the command entrypoints (`bin/new-worktree`, `bin/retire-worktree`, and optionally `bin/dre`/`bin/dwt`) thin, move cohesive orchestration phases into sourced helper libraries, and keep compatibility entrypoints such as `scripts/lib/hub-repo-core.sh` and `scripts/lib/managed-lane-registry.sh` stable for callers. Drive the refactor with one new structural contract test plus the existing behavior tests so the slice stays tests-first and behavior-preserving.
+**Architecture:** Keep the command entrypoints (`bin/new-worktree` and `bin/retire-worktree`) thin, move cohesive orchestration phases into sourced helper libraries, and keep compatibility entrypoints such as `scripts/lib/hub-repo-core.sh` and `scripts/lib/managed-lane-registry.sh` stable for callers. Drive the refactor with one new structural contract test plus the existing behavior tests so the slice stays tests-first and behavior-preserving.
 
 **Tech Stack:** Bash, sourced shell helper files under `scripts/lib/`, existing shell characterization tests under `tests/devspace/` and `tests/install/`, and one new structural contract test for this refactor family.
 
@@ -210,8 +210,8 @@ Then fill those functions by moving the current logic from `bin/new-worktree` wi
 - Move current lines `53-69` into `new_worktree_infer_repo_name_from_pwd`; preserve the exact refusal text `refused: unable to infer managed repo context; use --repo <hub|repo-name>`.
 - Move current lines `71-105` into `new_worktree_resolve_repo_context`; split the current hub-vs-child layout variables into one coherent block that sets these globals and nothing else: `new_worktree_repo_root`, `new_worktree_bare_dir`, `new_worktree_repo_default_branch`, `new_worktree_target`, `new_worktree_state_dir`, `new_worktree_tmp_dir`, `new_worktree_hub_kind`, `new_worktree_repo_for_env`, and `new_worktree_lane_repo_identity`.
 - Move current lines `107-138` into `new_worktree_create_or_attach_branch_worktree`; keep the exact reserved-default-branch refusal and the exact branch-creation order (`origin/<branch>` if present, otherwise base on `main` or the detected child default branch).
-- Move current lines `140-162` into `new_worktree_prepare_checkout_sidecars`; keep the `worktree-env.sh` calls unchanged and preserve the rule that the hub main checkout gets `.envrc` only when missing.
-- Move current lines `142-175` lane-field assembly into `new_worktree_record_lane_binding`; keep the exact environment variable names `MANAGED_LANE_ID`, `MANAGED_LANE_PARENT_ARTIFACTS`, `MANAGED_LANE_SESSION_TASK_ID`, `MANAGED_LANE_SESSION_OWNER`, and `MANAGED_LANE_ROUTING_STATE`.
+- Move current lines `140-162` into `new_worktree_prepare_checkout_sidecars`; this phase should keep the `mkdir -p "$state_dir" "$tmp_dir"` call, the lane metadata variable assembly (`lane_id`, `parent_artifact_anchors`, `session_task_id`, `session_owner`, `routing_state`, `lane_status`), and the `worktree-env.sh` calls unchanged, while preserving the rule that the hub main checkout gets `.envrc` only when missing.
+- Move current lines `164-175` into `new_worktree_record_lane_binding`; this phase should perform only the `managed_lane_registry_record_binding` call, reusing the lane metadata variables prepared by `new_worktree_prepare_checkout_sidecars`.
 - Move current line `177` into `new_worktree_report_success` unchanged.
 
 - [ ] **Step 2: Replace `bin/new-worktree` with a thin orchestrator**
