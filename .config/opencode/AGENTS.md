@@ -23,6 +23,20 @@ Important operational assumptions for agents:
 - To affect host state, agents may only do so indirectly, typically by pushing to GitHub and asking the human partner to pull or apply the change on the host.
 - In this setup, the human partner is effectively both developer and runtime operator, so instructions in this file should be agent-actionable and user-facing rather than written for a separate operations team.
 
+## Agent start here
+
+Use this section to choose a reading route. `AGENTS.md` remains the canonical policy source; the template and review-record paths below are supporting context only.
+
+- **Maestro / delegator:** start with `# Subagent delegation`, then read `# Delegation & Sessions (canonical)`, `## Managed worktree lane safety (v1)`, and `## Simple Maestro override (human-only, two-message confirmation)`.
+- **Implementer:** start with `## The Superpowered Pragmatic Programmers:`, then read `### On Test-driven development`, `### Refactor phase policy`, `## Planning and implementation policy`, and `## Managed worktree lane safety (v1)`.
+- **Reviewer:** start with `## The Superpowered Pragmatic Programmers:`, then read `### PR reporting template policy`, `## Named-responsibility ownership`, and `## Subagent interaction rules`.
+- **Newcomer / first-time agent contributor:** read `# Overview`, `## Intent and operational setup`, and `# Subagent delegation` first.
+
+Supporting references:
+
+- Packet construction example: `docs/superpowers/templates/subagent-handoff-templates.md`
+- Historical packet review context: `docs/superpowers/review-records/2026-05-29-delegation-policy-packet-inventory.md`
+
 # How the agent should relate to the supported skills
 
 The configuration imports the following skills, in prioritized order:
