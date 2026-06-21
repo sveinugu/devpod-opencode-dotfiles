@@ -141,6 +141,7 @@ create_bare_hub() {
   local source="$2"
   local branch="${3:-$HUB_BOOTSTRAP_BRANCH}"
   local allow_default_branch_fallback="${4:-no}"
+  local verbose="${5:-no}"
   local requested_branch="$branch"
   local resolved_branch="$branch"
   local branch_check_rc=0
@@ -187,7 +188,12 @@ create_bare_hub() {
   fi
 
   if [ ! -d "$workspace_root/.bare" ]; then
-    if ! hub_git_non_interactive clone --bare "$source" "$workspace_root/.bare" >/dev/null 2>&1; then
+    if [ "$verbose" = "yes" ]; then
+      if ! hub_git_non_interactive clone --bare --progress "$source" "$workspace_root/.bare" >/dev/null; then
+        hub_fail 'refused: unable to access source repo non-interactively (verify public HTTPS URL and repository visibility)'
+        return
+      fi
+    elif ! hub_git_non_interactive clone --bare "$source" "$workspace_root/.bare" >/dev/null 2>&1; then
       hub_fail 'refused: unable to access source repo non-interactively (verify public HTTPS URL and repository visibility)'
       return
     fi

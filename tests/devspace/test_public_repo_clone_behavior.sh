@@ -139,21 +139,53 @@ if [ "$cmd" = "ls-remote" ]; then
   fi
 fi
 
-if [ "$cmd" = "clone" ] && [ "${args[1]:-}" = "--bare" ]; then
-  source="${args[2]:-}"
-  dest="${args[3]:-}"
-  if [ "$source" = "$public_url" ]; then
-    require_non_interactive "$public_url"
-    exec "$real_git" clone --bare "$public_source" "$dest"
-  fi
-  if [ "$source" = "$public_url_default" ]; then
-    require_non_interactive "$public_url_default"
-    exec "$real_git" clone --bare "$public_source_default" "$dest"
-  fi
-  if [ "$source" = "$private_url" ]; then
-    require_non_interactive "$private_url"
-    printf 'fatal: could not read Username for %s: terminal prompts disabled\n' "$private_url" >&2
-    exit 128
+if [ "$cmd" = "clone" ]; then
+  has_bare='no'
+  has_progress='no'
+  clone_positionals=()
+  for arg in "${args[@]:1}"; do
+    case "$arg" in
+      --bare)
+        has_bare='yes'
+        ;;
+      --progress)
+        has_progress='yes'
+        ;;
+      --*)
+        ;;
+      *)
+        clone_positionals+=("$arg")
+        ;;
+    esac
+  done
+
+  if [ "$has_bare" = 'yes' ]; then
+    source="${clone_positionals[0]:-}"
+    dest="${clone_positionals[1]:-}"
+
+    if [ "$has_progress" = 'yes' ]; then
+      printf 'Receiving objects: 100%% (mock progress)\n' >&2
+    fi
+
+    if [ "$source" = "$public_url" ]; then
+      require_non_interactive "$public_url"
+      if [ "$has_progress" = 'yes' ]; then
+        exec "$real_git" clone --bare --progress "$public_source" "$dest"
+      fi
+      exec "$real_git" clone --bare "$public_source" "$dest"
+    fi
+    if [ "$source" = "$public_url_default" ]; then
+      require_non_interactive "$public_url_default"
+      if [ "$has_progress" = 'yes' ]; then
+        exec "$real_git" clone --bare --progress "$public_source_default" "$dest"
+      fi
+      exec "$real_git" clone --bare "$public_source_default" "$dest"
+    fi
+    if [ "$source" = "$private_url" ]; then
+      require_non_interactive "$private_url"
+      printf 'fatal: could not read Username for %s: terminal prompts disabled\n' "$private_url" >&2
+      exit 128
+    fi
   fi
 fi
 
@@ -218,6 +250,7 @@ MOCK_PUBLIC_SOURCE_DEFAULT="$public_source_default" \
 HUB_WORKSPACE_ROOT="$workspace_root" \
 HUB_HOME_DIR="$home_dir" \
 bash "$clone_script" "$public_url" >"$tmpdir/public-clone.out" 2>&1 || fail "public HTTPS onboarding should succeed"
+grep -F 'Receiving objects: 100% (mock progress)' "$tmpdir/public-clone.out" >/dev/null || fail "clone-repo should request git clone progress output"
 
 [ -d "$workspace_root/repos/fixture/.bare" ] || fail "missing bare repo for public HTTPS clone"
 [ -d "$workspace_root/state/repos/fixture/main" ] || fail "public onboarding should create detected-branch state path"
@@ -288,6 +321,9 @@ HUB_PYENV_INSTALL_COMMAND=":" \
 HUB_OPENCODE_INSTALL_COMMAND=":" \
 HOME="$home_provision" \
 bash "$provision_script" >"$tmpdir/public-provision-main.out" 2>&1 || fail "public provision main bootstrap should succeed"
+if grep -F 'Receiving objects: 100% (mock progress)' "$tmpdir/public-provision-main.out" >/dev/null; then
+  fail "provision bootstrap should remain quiet during clone"
+fi
 
 PATH="$mock_bin:$PATH" \
 REAL_GIT="$real_git" \
