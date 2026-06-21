@@ -67,7 +67,7 @@ expected_main_output="$(printf 'refused: managed child default branch metadata i
 
 workspace_root_master="$tmp_root/workspace-master"
 repo_root_master="$workspace_root_master/repos/beta"
-mkdir -p "$workspace_root_master/master" "$repo_root_master"
+mkdir -p "$repo_root_master/master"
 
 set +e
 metadata_master_output="$(bash -c 'set -euo pipefail; workspace_root="$2"; script_dir="$3"; source "$1"; fail_metadata beta "$4"' _ \
