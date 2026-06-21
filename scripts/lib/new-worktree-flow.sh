@@ -1,0 +1,191 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+new_worktree_usage() {
+  printf 'usage: new-worktree [--repo <hub|repo-name>] <branch>\n' >&2
+}
+
+new_worktree_parse_cli() {
+  if [ "$#" -lt 1 ]; then
+    new_worktree_usage
+    exit 2
+  fi
+
+  new_worktree_repo_name=''
+  new_worktree_branch=''
+  new_worktree_branch_set=false
+
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --repo)
+        shift
+        if [ "$#" -eq 0 ]; then
+          new_worktree_usage
+          exit 2
+        fi
+        new_worktree_repo_name="${1:-}"
+        ;;
+      --help|-h)
+        new_worktree_usage
+        exit 0
+        ;;
+      *)
+        if [ "$new_worktree_branch_set" = true ]; then
+          new_worktree_usage
+          exit 2
+        fi
+        new_worktree_branch="$1"
+        new_worktree_branch_set=true
+        ;;
+    esac
+    shift
+  done
+
+  if [ -z "$new_worktree_branch" ]; then
+    new_worktree_usage
+    exit 2
+  fi
+}
+
+new_worktree_infer_repo_name_from_pwd() {
+  if [ -n "$new_worktree_repo_name" ]; then
+    return 0
+  fi
+
+  resolver="${WORKSPACE_NAV_REPO_ROOT_RESOLVER:-$script_dir/../scripts/lib/resolve-managed-repo-root.sh}"
+  inferred_repo_root=''
+  if ! inferred_repo_root="$(HUB_WORKSPACE_ROOT="$workspace_root" bash "$resolver" "${PWD:-$(pwd -P)}" 2>/dev/null)"; then
+    printf 'refused: unable to infer managed repo context; use --repo <hub|repo-name>\n' >&2
+    exit 1
+  fi
+
+  if [ "$inferred_repo_root" = "$workspace_root" ]; then
+    new_worktree_repo_name='hub'
+  elif [[ "$inferred_repo_root" == "$workspace_root/repos/"* ]]; then
+    new_worktree_repo_name="${inferred_repo_root#"$workspace_root/repos/"}"
+  else
+    printf 'refused: unable to infer managed repo context; use --repo <hub|repo-name>\n' >&2
+    exit 1
+  fi
+}
+
+new_worktree_resolve_repo_context() {
+  new_worktree_infer_repo_name_from_pwd
+
+  if [ "$new_worktree_repo_name" = 'hub' ]; then
+    new_worktree_repo_root="$workspace_root"
+    "$script_dir/../scripts/lib/validate_hub_repo_root.sh" "$workspace_root/main" >/dev/null
+    new_worktree_bare_dir="$workspace_root/.bare"
+    new_worktree_repo_default_branch='main'
+    new_worktree_repo_default_dir="$workspace_root/main"
+    new_worktree_target="$workspace_root/work/$new_worktree_branch"
+    new_worktree_state_dir="$workspace_root/state/hub/work/$new_worktree_branch"
+    new_worktree_tmp_dir="$workspace_root/tmp/hub/work/$new_worktree_branch"
+    new_worktree_hub_kind='hub'
+    new_worktree_repo_for_env='hub'
+    new_worktree_lane_repo_identity='hub'
+  else
+    new_worktree_repo_root="$workspace_root/repos/$new_worktree_repo_name"
+    repo_env="$workspace_root/state/repos/$new_worktree_repo_name/etc/repo.env"
+    if [ ! -f "$repo_env" ]; then
+      printf 'refused: managed child default branch metadata is missing or invalid\n' >&2
+      exit 1
+    fi
+    # shellcheck disable=SC1090
+    . "$repo_env"
+    new_worktree_repo_default_branch="${DYN_REPO_DEFAULT_BRANCH:-}"
+    new_worktree_repo_default_dir="${DYN_REPO_DEFAULT_DIR:-}"
+    if [ -z "$new_worktree_repo_default_branch" ] || [ -z "$new_worktree_repo_default_dir" ] || [ ! -d "$new_worktree_repo_default_dir" ]; then
+      printf 'refused: managed child default branch metadata is missing or invalid\n' >&2
+      exit 1
+    fi
+    "$script_dir/../scripts/lib/validate_hub_repo_root.sh" "$new_worktree_repo_default_dir" >/dev/null
+    new_worktree_bare_dir="$new_worktree_repo_root/.bare"
+    new_worktree_target="$new_worktree_repo_root/work/$new_worktree_branch"
+    new_worktree_state_dir="$workspace_root/state/repos/$new_worktree_repo_name/work/$new_worktree_branch"
+    new_worktree_tmp_dir="$workspace_root/tmp/repos/$new_worktree_repo_name/work/$new_worktree_branch"
+    new_worktree_hub_kind='child'
+    new_worktree_repo_for_env="$new_worktree_repo_name"
+    new_worktree_lane_repo_identity="$new_worktree_repo_name"
+  fi
+}
+
+new_worktree_create_or_attach_branch_worktree() {
+  if [ "$new_worktree_branch" = "$new_worktree_repo_default_branch" ]; then
+    printf 'refused: requested worktree name matches reserved default branch name "%s"\n' "$new_worktree_repo_default_branch" >&2
+    exit 1
+  fi
+
+  if [ ! -d "$new_worktree_bare_dir" ]; then
+    printf 'refused: managed bare repository is missing\n' >&2
+    exit 1
+  fi
+
+  if ! git --git-dir="$new_worktree_bare_dir" show-ref --verify --quiet "refs/heads/$new_worktree_branch"; then
+    if git --git-dir="$new_worktree_bare_dir" show-ref --verify --quiet "refs/remotes/origin/$new_worktree_branch"; then
+      git --git-dir="$new_worktree_bare_dir" branch "$new_worktree_branch" "origin/$new_worktree_branch" >/dev/null
+    else
+      if [ "$new_worktree_repo_name" = 'hub' ]; then
+        base_branch='main'
+      else
+        base_branch="$new_worktree_repo_default_branch"
+      fi
+      git --git-dir="$new_worktree_bare_dir" branch "$new_worktree_branch" "$base_branch" >/dev/null
+    fi
+  fi
+
+  git --git-dir="$new_worktree_bare_dir" config "branch.$new_worktree_branch.remote" 'origin'
+  git --git-dir="$new_worktree_bare_dir" config "branch.$new_worktree_branch.merge" "refs/heads/$new_worktree_branch"
+
+  if git --git-dir="$new_worktree_bare_dir" worktree list --porcelain | grep -F "worktree $new_worktree_target" >/dev/null 2>&1; then
+    :
+  else
+    mkdir -p "$(dirname "$new_worktree_target")"
+    git --git-dir="$new_worktree_bare_dir" worktree add "$new_worktree_target" "$new_worktree_branch" >/dev/null
+  fi
+}
+
+new_worktree_prepare_checkout_sidecars() {
+  mkdir -p "$new_worktree_state_dir" "$new_worktree_tmp_dir"
+
+  lane_id="${MANAGED_LANE_ID:-$new_worktree_branch}"
+  parent_artifact_anchors="${MANAGED_LANE_PARENT_ARTIFACTS:-}"
+  session_task_id="${MANAGED_LANE_SESSION_TASK_ID:-}"
+  session_owner="${MANAGED_LANE_SESSION_OWNER:-}"
+  routing_state="${MANAGED_LANE_ROUTING_STATE:-unbound}"
+  lane_status='active'
+
+  if [ "$new_worktree_repo_name" = 'hub' ]; then
+    if [ ! -e "$workspace_root/main/.envrc" ]; then
+      "$script_dir/../scripts/lib/worktree-env.sh" "$workspace_root/main" "$new_worktree_hub_kind" "$new_worktree_repo_for_env" >/dev/null
+    fi
+  fi
+  if [ ! -e "$new_worktree_target/.envrc" ]; then
+    "$script_dir/../scripts/lib/worktree-env.sh" "$new_worktree_target" "$new_worktree_hub_kind" "$new_worktree_repo_for_env" >/dev/null
+  fi
+
+  if [ "$new_worktree_repo_name" != 'hub' ]; then
+    if [ ! -e "$new_worktree_repo_default_dir/.envrc" ]; then
+      "$script_dir/../scripts/lib/worktree-env.sh" "$new_worktree_repo_default_dir" "$new_worktree_hub_kind" "$new_worktree_repo_for_env" >/dev/null
+    fi
+  fi
+}
+
+new_worktree_record_lane_binding() {
+  managed_lane_registry_record_binding \
+    "$workspace_root" \
+    "$new_worktree_lane_repo_identity" \
+    "$lane_id" \
+    "$new_worktree_branch" \
+    "$new_worktree_target" \
+    "$new_worktree_state_dir" \
+    "$parent_artifact_anchors" \
+    "$session_task_id" \
+    "$session_owner" \
+    "$routing_state" \
+    "$lane_status"
+}
+
+new_worktree_report_success() {
+  printf 'ok: created worktree at %s\n' "$new_worktree_target"
+}
