@@ -267,3 +267,221 @@ managed_cleanup_mark_registry_retired() {
 
   mv "$tmp_file" "$registry_path"
 }
+
+managed_cleanup_resolve_single_target_record() {
+  local workspace_root="${1:?workspace_root required}"
+  local repo_identity="${2:?repo_identity required}"
+  local target="${3:?target required}"
+
+  local registry_path
+  local bare_dir
+  local default_branch=''
+  local candidates_file=''
+  local candidate_count='0'
+  local record=''
+  local lane_id=''
+  local record_repo_identity=''
+  local branch=''
+  local worktree_path=''
+  local state_path=''
+  local pointer_path=''
+  local attached_path=''
+
+  registry_path="$(managed_cleanup_registry_path "$workspace_root" "$repo_identity")"
+  bare_dir="$(managed_cleanup_bare_dir_for_identity "$workspace_root" "$repo_identity")"
+
+  if [ ! -f "$registry_path" ] || [ ! -d "$bare_dir" ]; then
+    printf 'refused: target does not resolve to a managed active lane binding\n' >&2
+    return 1
+  fi
+
+  if ! default_branch="$(managed_cleanup_default_branch_for_identity "$workspace_root" "$repo_identity")"; then
+    printf 'refused: managed child default branch metadata is missing or invalid\n' >&2
+    return 1
+  fi
+
+  if [ "$target" = "$default_branch" ]; then
+    printf 'refused: target resolves to default checkout and cannot be retired\n' >&2
+    return 1
+  fi
+
+  candidates_file="$(mktemp)"
+  managed_cleanup_load_candidates "$registry_path" "$target" "$candidates_file"
+  candidate_count="$(managed_cleanup_count_lines "$candidates_file")"
+
+  if [ "$candidate_count" = '0' ]; then
+    rm -f "$candidates_file"
+    printf 'refused: target does not resolve to a managed active lane binding\n' >&2
+    return 1
+  fi
+
+  if [ "$candidate_count" != '1' ]; then
+    rm -f "$candidates_file"
+    printf 'refused: target is ambiguous across multiple active lane bindings\n' >&2
+    return 1
+  fi
+
+  record="$(cat "$candidates_file")"
+  rm -f "$candidates_file"
+
+  lane_id="$(managed_cleanup_read_record_field "$record" 1)"
+  record_repo_identity="$(managed_cleanup_read_record_field "$record" 2)"
+  branch="$(managed_cleanup_read_record_field "$record" 3)"
+  worktree_path="$(managed_cleanup_read_record_field "$record" 4)"
+  state_path="$(managed_cleanup_read_record_field "$record" 5)"
+  pointer_path="$(managed_cleanup_read_record_field "$record" 6)"
+
+  if [ "$record_repo_identity" != "$repo_identity" ]; then
+    printf 'refused: target does not resolve to a managed active lane binding\n' >&2
+    return 1
+  fi
+
+  if [ "$branch" = "$default_branch" ]; then
+    printf 'refused: target resolves to default checkout and cannot be retired\n' >&2
+    return 1
+  fi
+
+  if ! managed_cleanup_is_canonical_worktree_path "$workspace_root" "$repo_identity" "$worktree_path"; then
+    printf 'refused: target worktree path is outside managed canonical layout\n' >&2
+    return 1
+  fi
+
+  attached_path="$(managed_cleanup_branch_attached_path "$bare_dir" "$branch")"
+  if [ -z "$attached_path" ] || [ "$attached_path" != "$worktree_path" ]; then
+    printf 'refused: branch/worktree attachment mismatch for managed target\n' >&2
+    return 1
+  fi
+
+  managed_cleanup_resolved_registry_path="$registry_path"
+  managed_cleanup_resolved_bare_dir="$bare_dir"
+  managed_cleanup_resolved_default_branch="$default_branch"
+  managed_cleanup_resolved_lane_id="$lane_id"
+  managed_cleanup_resolved_record_repo_identity="$record_repo_identity"
+  managed_cleanup_resolved_branch="$branch"
+  managed_cleanup_resolved_worktree_path="$worktree_path"
+  managed_cleanup_resolved_state_path="$state_path"
+  managed_cleanup_resolved_pointer_path="$pointer_path"
+}
+
+managed_cleanup_collect_risk_report() {
+  local command_path="${1:?command_path required}"
+  local repo_identity="${2:?repo_identity required}"
+  local lane_id="${3:?lane_id required}"
+  local branch="${4:?branch required}"
+  local worktree_path="${5:?worktree_path required}"
+  local default_branch="${6:?default_branch required}"
+  local target="${7:?target required}"
+  local force_mode="${8:?force_mode required}"
+  local force_token="${9:-}"
+
+  local risk_found='no'
+  local tracked_patch=''
+  local untracked_list=''
+  local comparison_ref=''
+  local upstream_available='no'
+  local untracked_fingerprint=''
+  local current_token=''
+  local report_file=''
+  local commit_ids_file=''
+
+  report_file="$(mktemp)"
+  commit_ids_file="$(mktemp)"
+
+  tracked_patch="$(managed_cleanup_tracked_patch "$worktree_path")"
+  if [ -n "$tracked_patch" ]; then
+    risk_found='yes'
+    printf 'loss check: tracked modifications would be lost\n'
+    printf 'loss evidence (tracked patch):\n'
+    printf '%s\n' "$tracked_patch"
+  fi
+
+  untracked_list="$(managed_cleanup_untracked_files "$worktree_path")"
+  if [ -n "$untracked_list" ]; then
+    risk_found='yes'
+    printf 'loss check: untracked files would be lost\n'
+    while IFS= read -r relpath; do
+      [ -n "$relpath" ] || continue
+      absolute_path="$worktree_path/$relpath"
+      if [ ! -e "$absolute_path" ]; then
+        continue
+      fi
+      if [ "$(managed_cleanup_file_is_binary "$absolute_path")" = '1' ]; then
+        printf 'loss evidence (binary): %s\n' "$relpath"
+        managed_cleanup_binary_file_evidence "$absolute_path"
+      else
+        printf 'loss evidence (untracked text): %s\n' "$relpath"
+        cat "$absolute_path"
+      fi
+    done <<< "$untracked_list"
+  fi
+
+  if managed_cleanup_upstream_exists "$worktree_path" "$branch"; then
+    upstream_available='yes'
+    comparison_ref="origin/$branch"
+  elif git -C "$worktree_path" rev-parse --verify --quiet "refs/heads/$default_branch" >/dev/null; then
+    comparison_ref="$default_branch"
+  fi
+
+  if [ "$upstream_available" != 'yes' ]; then
+    risk_found='yes'
+    printf 'loss check: unable to prove upstream safety\n'
+  fi
+
+  if [ -n "$comparison_ref" ]; then
+    managed_cleanup_local_only_commits "$worktree_path" "$branch" "$comparison_ref" > "$commit_ids_file"
+    if [ -s "$commit_ids_file" ]; then
+      risk_found='yes'
+      printf 'loss check: local-only commits would become unreachable\n'
+      printf 'loss evidence (local-only commits):\n'
+      managed_cleanup_commit_summary "$worktree_path" "$commit_ids_file"
+      managed_cleanup_commit_patch "$worktree_path" "$commit_ids_file"
+    fi
+  fi
+
+  if [ "$risk_found" = 'yes' ]; then
+    untracked_fingerprint="$(managed_cleanup_untracked_fingerprint "$worktree_path" "$untracked_list")"
+
+    {
+      printf 'repo=%s\n' "$repo_identity"
+      printf 'lane=%s\n' "$lane_id"
+      printf 'branch=%s\n' "$branch"
+      printf 'worktree=%s\n' "$worktree_path"
+      printf 'tracked_patch=%s\n' "$tracked_patch"
+      printf 'untracked_list=%s\n' "$untracked_list"
+      printf 'untracked_fingerprint=%s\n' "$untracked_fingerprint"
+      if [ -s "$commit_ids_file" ]; then
+        printf 'local_only_commits=%s\n' "$(cat "$commit_ids_file")"
+      else
+        printf 'local_only_commits=\n'
+      fi
+    } > "$report_file"
+
+    current_token="$(managed_cleanup_hash_report "$report_file")"
+    printf 'force-token: %s\n' "$current_token"
+    managed_cleanup_render_retry_command "$command_path" "$repo_identity" "$current_token" "$target"
+
+    if [ "$force_mode" != 'yes' ]; then
+      rm -f "$report_file" "$commit_ids_file"
+      return 1
+    fi
+
+    if [ "$force_token" != "$current_token" ]; then
+      rm -f "$report_file" "$commit_ids_file"
+      printf 'refused: stale force-token for current risk report\n' >&2
+      return 1
+    fi
+  fi
+
+  rm -f "$report_file" "$commit_ids_file"
+}
+
+managed_cleanup_execute_retirement() {
+  local bare_dir="${1:?bare_dir required}"
+  local worktree_path="${2:?worktree_path required}"
+  local branch="${3:?branch required}"
+  local registry_path="${4:?registry_path required}"
+  local pointer_path="${5:?pointer_path required}"
+
+  managed_cleanup_remove_worktree_and_branch "$bare_dir" "$worktree_path" "$branch"
+  managed_cleanup_mark_registry_retired "$registry_path" "$pointer_path"
+}
