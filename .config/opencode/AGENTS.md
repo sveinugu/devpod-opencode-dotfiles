@@ -592,6 +592,14 @@ The Maestro must verify both messages came from the human, are consecutive, and 
 - Human message 2:
   maestro-override-confirm
 
+## Policy readability and documentation expectations
+
+This section is a readability nudge for policy and documentation maintenance.
+Keep policy and documentation cross-references current whenever you edit a referenced file.
+Update runbook and spec file paths when refactoring documented surfaces so pointers remain valid.
+When policy wording changes, run the relevant doc-contract tests in `tests/docs/` to verify required anchors still hold.
+Keep this guidance additive and concise, and rely on canonical sections above for full policy detail.
+
 ## Subagent resume token policy
 
 > **Deprecated:** superseded by “Delegation & Sessions (canonical)” → Resume token routing semantics.
