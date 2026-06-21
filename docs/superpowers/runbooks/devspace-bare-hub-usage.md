@@ -98,6 +98,8 @@ Retire lane worktrees with the managed command instead of manual `git worktree r
 
 Use `--dry-run` first to inspect potential loss evidence and the force-token retry command when applicable.
 
+remote branch deletion remains out of scope for v1
+
 ## Child repo branch behavior
 
 Child onboarding preserves the child repo's exact remote default branch name. Example: if a child repo defaults to `master`, the managed checkout is `repos/<name>/master`, not `repos/<name>/main`.

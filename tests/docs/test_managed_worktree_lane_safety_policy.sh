@@ -56,7 +56,7 @@ grep -F 'scoped authoring should not proceed from hub root or unrelated worktree
 grep -F 'bin/new-worktree' "$bare_hub_runbook" >/dev/null || fail 'missing managed creation command guidance in bare-hub runbook'
 grep -F 'bin/retire-worktree' "$bare_hub_runbook" >/dev/null || fail 'missing managed retirement command guidance in bare-hub runbook'
 
-grep -F 'retiring a managed worktree locally' "$lifecycle_runbook" >/dev/null || fail 'missing local managed retirement guidance in lifecycle runbook'
-grep -F 'remote branch deletion remains out of scope for v1' "$lifecycle_runbook" >/dev/null || fail 'missing explicit remote-branch non-goal wording in lifecycle runbook'
+grep -F '## Managed local retirement' "$bare_hub_runbook" >/dev/null || fail 'missing local managed retirement heading in bare-hub runbook'
+grep -F 'remote branch deletion remains out of scope for v1' "$bare_hub_runbook" >/dev/null || fail 'missing explicit remote-branch non-goal wording in bare-hub runbook'
 
 printf 'PASS test_managed_worktree_lane_safety_policy\n'
