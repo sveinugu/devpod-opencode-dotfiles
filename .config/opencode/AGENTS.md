@@ -32,6 +32,14 @@ Use this section to choose a reading route. `AGENTS.md` remains the canonical po
 - **Reviewer:** start with `## The Superpowered Pragmatic Programmers:`, then read `### PR reporting template policy`, `## Named-responsibility ownership`, and `## Subagent interaction rules`.
 - **Newcomer / first-time agent contributor:** read `# Overview`, `## Intent and operational setup`, and `# Subagent delegation` first.
 
+### Quick vocabulary bridge
+
+- `Delegation Packet` — the closed-schema Maestro → subagent dispatch block.
+- `Artifact path` — the binding requirements source named in a packet when one exists.
+- `Session` / `Resume` — the exact `task_id` and `$<task_id> <reply>` routing token for continuing a subagent conversation.
+- `Lane-qualified work item` — scoped work tied to a specific managed worktree lane.
+- `Maestro override` — the human-only two-message authorization that temporarily lets Maestro perform subagent-owned work directly.
+
 Supporting references:
 
 - Packet construction example: `docs/superpowers/templates/subagent-handoff-templates.md`
