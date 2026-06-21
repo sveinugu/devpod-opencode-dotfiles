@@ -4,9 +4,9 @@
 
 **Goal:** Decompose `scripts/lib/managed-lane-registry.sh` into smaller helper files while preserving every caller contract, registry/pointer side effect, and test-observed lane-safety behavior.
 
-**Architecture:** Keep `scripts/lib/managed-lane-registry.sh` as the compatibility entrypoint and public API owner for `managed_lane_registry_record_binding`, extract path/invariant/TSV helpers into `scripts/lib/managed-lane-registry-path.sh`, and extract write/mutation helpers into `scripts/lib/managed-lane-registry-mutations.sh`. Drive the refactor with one new helper-layout contract test plus the three existing DevSpace behavior tests so the slice stays tests-first and behavior-preserving.
+**Architecture:** Keep `scripts/lib/managed-lane-registry.sh` as the compatibility entrypoint and public API owner for `managed_lane_registry_record_binding`, extract path/invariant/TSV helpers into `scripts/lib/managed-lane-registry-path.sh`, and extract write/mutation helpers into `scripts/lib/managed-lane-registry-mutations.sh`. Follow the `hub-repo-core.sh` sourcing-state restore pattern from `4ac808d`, and drive the refactor with one new helper-layout contract test, one focused runtime-contract test, and the three existing DevSpace behavior tests so the slice stays tests-first and behavior-preserving.
 
-**Tech Stack:** Bash, sourced shell helper files under `scripts/lib/`, existing shell behavior tests under `tests/devspace/`, and one new structural contract test under `tests/devspace/`.
+**Tech Stack:** Bash, sourced shell helper files under `scripts/lib/`, existing shell behavior tests under `tests/devspace/`, one new structural contract test under `tests/devspace/`, and one new focused runtime-contract test under `tests/devspace/`.
 
 ---
 
@@ -38,12 +38,14 @@
 - Extract the current file-mutation helpers from `scripts/lib/managed-lane-registry.sh` into `scripts/lib/managed-lane-registry-mutations.sh`.
 - Keep `managed_lane_registry_record_binding` in `scripts/lib/managed-lane-registry.sh` as the stable public API and thin orchestrator.
 - Preserve exactly:
-  - the `lane_id	repo_identity	branch	worktree_path	state_path	pointer_path	parent_artifact_anchors	session_task_id	session_owner	routing_state	status` header
+  - the `lane_id\trepo_identity\tbranch\tworktree_path\tstate_path\tpointer_path\tparent_artifact_anchors\tsession_task_id\tsession_owner\trouting_state\tstatus` header
   - the `lane-binding.env` key set and write order
   - default values `routing_state=unbound` and `status=active`
   - pointer-path de-duplication semantics before appending a new record
   - refusal text for missing required fields
+  - sourced-file `script_dir` restoration for callers such as `bin/new-worktree`
 - Add one structural contract test that locks the helper layout and compatibility entrypoint shape.
+- Add one focused runtime-contract test that locks sourced-file `script_dir` restoration, missing-field refusal text, pointer overwrite key order, and pointer-path de-duplication semantics.
 
 ### Out of scope
 
@@ -56,20 +58,24 @@
 ## Proposed file map
 
 - Create: `tests/devspace/test_managed_lane_registry_layout.sh` — structural contract for helper layout and thin compatibility entrypoint.
+- Create: `tests/devspace/test_managed_lane_registry_contracts.sh` — focused runtime contract for sourced-file restoration, refusal text, pointer key order, and pointer-path de-duplication.
 - Create: `scripts/lib/managed-lane-registry-path.sh` — required-field guard, state-root/path helpers, pointer-path helper, and TSV escaping.
 - Create: `scripts/lib/managed-lane-registry-mutations.sh` — registry header creation, pointer writes, pointer de-duplication, and record append.
-- Modify: `scripts/lib/managed-lane-registry.sh` — becomes a thin compatibility entrypoint that sources the two helpers and keeps `managed_lane_registry_record_binding`.
+- Modify: `scripts/lib/managed-lane-registry.sh` — becomes a thin compatibility entrypoint that sources the two helpers, restores caller sourcing state, and keeps `managed_lane_registry_record_binding`.
 - Verify only:
+  - `tests/devspace/test_managed_lane_registry_layout.sh`
+  - `tests/devspace/test_managed_lane_registry_contracts.sh`
   - `tests/devspace/test_managed_lane_registry.sh`
   - `tests/devspace/test_new_worktree.sh`
   - `tests/devspace/test_retire_worktree.sh`
 
 ---
 
-## Task 1: Prove the baseline and add a failing helper-layout contract
+## Task 1: Prove the baseline and add failing contract tests
 
 **Files:**
 - Create: `tests/devspace/test_managed_lane_registry_layout.sh`
+- Create: `tests/devspace/test_managed_lane_registry_contracts.sh`
 - Verify only:
   - `tests/devspace/test_managed_lane_registry.sh`
   - `tests/devspace/test_new_worktree.sh`
@@ -111,6 +117,9 @@ mutation_helper="$repo_root/scripts/lib/managed-lane-registry-mutations.sh"
 
 grep -F 'source "$script_dir/managed-lane-registry-path.sh"' "$entrypoint" >/dev/null || fail 'entrypoint should source managed-lane-registry-path.sh'
 grep -F 'source "$script_dir/managed-lane-registry-mutations.sh"' "$entrypoint" >/dev/null || fail 'entrypoint should source managed-lane-registry-mutations.sh'
+grep -F 'if [ -n "${BASH_SOURCE[1]:-}" ]; then' "$entrypoint" >/dev/null || fail 'entrypoint should restore caller sourcing state when sourced'
+grep -F 'script_dir="$(cd "$(dirname "${BASH_SOURCE[1]}")" && pwd -P)"' "$entrypoint" >/dev/null || fail 'entrypoint should restore caller script_dir after sourcing helpers'
+grep -F 'unset script_dir' "$entrypoint" >/dev/null || fail 'entrypoint should unset script_dir when no caller exists'
 grep -F 'managed_lane_registry_record_binding() {' "$entrypoint" >/dev/null || fail 'entrypoint should keep managed_lane_registry_record_binding public API'
 grep -F 'managed_lane_registry_ensure_header "$registry_path"' "$entrypoint" >/dev/null || fail 'entrypoint should orchestrate header creation through mutation helper'
 grep -F 'managed_lane_registry_write_pointer \' "$entrypoint" >/dev/null || fail 'entrypoint should orchestrate pointer writes through mutation helper'
@@ -131,20 +140,112 @@ grep -F 'managed_lane_registry_append_record() {' "$mutation_helper" >/dev/null 
 printf 'PASS test_managed_lane_registry_layout\n'
 ```
 
-- [ ] **Step 3: Verify RED**
+- [ ] **Step 3: Add a failing runtime-contract test for restoration and behavior preservation**
+
+Create `tests/devspace/test_managed_lane_registry_contracts.sh` with this exact content:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+fail() {
+  printf 'FAIL test_managed_lane_registry_contracts: %s\n' "$1" >&2
+  exit 1
+}
+
+repo_root="$(git rev-parse --show-toplevel)"
+entrypoint="$repo_root/scripts/lib/managed-lane-registry.sh"
+
+[ -f "$entrypoint" ] || fail 'scripts/lib/managed-lane-registry.sh not found'
+
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
+
+caller_dir="$tmpdir/caller"
+mkdir -p "$caller_dir"
+caller_script="$caller_dir/load-managed-lane-registry.sh"
+
+cat > "$caller_script" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+script_dir="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd -P)"
+source "$entrypoint"
+[ "\$script_dir" = "$caller_dir" ] || {
+  printf 'restored-script-dir=%s\n' "\$script_dir" >&2
+  exit 91
+}
+EOF
+chmod +x "$caller_script"
+
+if ! bash "$caller_script" >"$tmpdir/script-dir.out" 2>"$tmpdir/script-dir.err"; then
+  cat "$tmpdir/script-dir.err" >&2
+  fail 'sourcing entrypoint should restore caller script_dir'
+fi
+
+set +e
+missing_output="$(bash -c 'set -euo pipefail; source "$1"; managed_lane_registry_require_non_empty "" workspace_root' _ "$entrypoint" 2>&1)"
+missing_rc="$?"
+set -e
+
+[ "$missing_rc" = '1' ] || fail 'required-field guard should fail with exit code 1'
+printf '%s\n' "$missing_output" | grep -F 'refused: managed lane registry missing required workspace_root' >/dev/null || fail 'required-field guard should preserve exact refusal text'
+
+workspace_root="$tmpdir/workspace"
+state_path="$workspace_root/state/hub/work/feature/demo"
+mkdir -p "$state_path"
+
+bash -c 'set -euo pipefail; source "$1"; managed_lane_registry_record_binding "$2" hub lane-one feature/demo-a /worktree/one "$3" docs/superpowers/specs/first.md ses_first planner bound active' _ "$entrypoint" "$workspace_root" "$state_path"
+bash -c 'set -euo pipefail; source "$1"; managed_lane_registry_record_binding "$2" hub lane-two feature/demo-b /worktree/two "$3" docs/superpowers/specs/second.md ses_second planner bound active' _ "$entrypoint" "$workspace_root" "$state_path"
+
+registry_path="$workspace_root/state/hub/lanes/registry.tsv"
+pointer_path="$state_path/lane-binding.env"
+
+[ -f "$registry_path" ] || fail 'registry file should exist after record_binding calls'
+[ -f "$pointer_path" ] || fail 'pointer file should exist after record_binding calls'
+
+record_count="$(awk 'END { print NR - 1 }' "$registry_path")"
+[ "$record_count" = '1' ] || fail 're-recording the same pointer path should replace the existing registry row'
+grep -F $'lane-two\thub\tfeature/demo-b\t/worktree/two\t' "$registry_path" >/dev/null || fail 'registry should keep the replacement row for the repeated pointer path'
+if grep -F $'lane-one\thub\tfeature/demo-a\t/worktree/one\t' "$registry_path" >/dev/null; then
+  fail 'registry should not retain the superseded row for the repeated pointer path'
+fi
+
+expected_pointer_content="$(cat <<EOF
+LANE_ID=lane-two
+REPO_IDENTITY=hub
+BRANCH_NAME=feature/demo-b
+WORKTREE_PATH=/worktree/two
+STATE_PATH=$state_path
+PARENT_ARTIFACT_ANCHORS=docs/superpowers/specs/second.md
+SESSION_TASK_ID=ses_second
+SESSION_OWNER=planner
+ROUTING_STATE=bound
+STATUS=active
+EOF
+)"
+actual_pointer_content="$(cat "$pointer_path")"
+
+[ "$actual_pointer_content" = "$expected_pointer_content" ] || fail 'pointer file should preserve key order and replacement values'
+
+printf 'PASS test_managed_lane_registry_contracts\n'
+```
+
+- [ ] **Step 4: Verify RED**
 
 Run:
 
 ```bash
 bash tests/devspace/test_managed_lane_registry_layout.sh
+bash tests/devspace/test_managed_lane_registry_contracts.sh
 ```
 
-Expected: FAIL because the two helper files and new source lines do not exist yet.
+Expected: FAIL because the two helper files, the sourcing-state restore pattern, and the new runtime-contract surface do not exist yet.
 
-- [ ] **Step 4: Commit the red structural contract**
+- [ ] **Step 5: Commit the red structural and runtime contracts**
 
 ```bash
-git add tests/devspace/test_managed_lane_registry_layout.sh
+git add tests/devspace/test_managed_lane_registry_layout.sh \
+  tests/devspace/test_managed_lane_registry_contracts.sh
 git commit -m "test(devspace): lock lane registry helper layout"
 ```
 
@@ -157,6 +258,7 @@ git commit -m "test(devspace): lock lane registry helper layout"
 - Create: `scripts/lib/managed-lane-registry-mutations.sh`
 - Modify: `scripts/lib/managed-lane-registry.sh`
 - Test: `tests/devspace/test_managed_lane_registry_layout.sh`
+- Test: `tests/devspace/test_managed_lane_registry_contracts.sh`
 - Test: `tests/devspace/test_managed_lane_registry.sh`
 - Test: `tests/devspace/test_new_worktree.sh`
 - Test: `tests/devspace/test_retire_worktree.sh`
@@ -192,6 +294,7 @@ Preserve exactly:
 - the `cat > "$pointer_path" <<EOF` pointer write format
 - the `awk -F '\t'` removal logic keyed by escaped pointer path
 - the TSV append field order and escaping calls
+- pointer replacement semantics when the same `state_path` is recorded twice
 
 - [ ] **Step 3: Reduce `scripts/lib/managed-lane-registry.sh` to a thin compatibility entrypoint**
 
@@ -204,6 +307,11 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$script_dir/managed-lane-registry-path.sh"
 source "$script_dir/managed-lane-registry-mutations.sh"
+if [ -n "${BASH_SOURCE[1]:-}" ]; then
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[1]}")" && pwd -P)"
+else
+  unset script_dir
+fi
 
 managed_lane_registry_record_binding() {
   local workspace_root="${1:?workspace_root required}"
@@ -263,6 +371,7 @@ managed_lane_registry_record_binding() {
 Preservation rules for this step:
 
 - Source `managed-lane-registry-path.sh` before `managed-lane-registry-mutations.sh` so escaping/path helpers are available to mutation helpers.
+- Restore `script_dir` to the caller path using `BASH_SOURCE[1]` immediately after sourcing the helpers, and `unset script_dir` when no caller exists.
 - Keep `managed_lane_registry_record_binding` as the only caller-facing function defined in `scripts/lib/managed-lane-registry.sh`.
 - Do not change any caller source paths or function invocations.
 
@@ -272,12 +381,13 @@ Run:
 
 ```bash
 bash tests/devspace/test_managed_lane_registry_layout.sh
+bash tests/devspace/test_managed_lane_registry_contracts.sh
 bash tests/devspace/test_managed_lane_registry.sh
 bash tests/devspace/test_new_worktree.sh
 bash tests/devspace/test_retire_worktree.sh
 ```
 
-Expected: PASS for all four commands.
+Expected: PASS for all five commands.
 
 - [ ] **Step 5: Commit the helper split**
 
@@ -307,6 +417,7 @@ Ask whether the split between path/invariant helpers and mutation helpers is cle
 - Review only: `scripts/lib/managed-lane-registry-mutations.sh`
 - Verify only:
   - `tests/devspace/test_managed_lane_registry_layout.sh`
+  - `tests/devspace/test_managed_lane_registry_contracts.sh`
   - `tests/devspace/test_managed_lane_registry.sh`
   - `tests/devspace/test_new_worktree.sh`
   - `tests/devspace/test_retire_worktree.sh`
@@ -317,12 +428,13 @@ Run:
 
 ```bash
 bash tests/devspace/test_managed_lane_registry_layout.sh
+bash tests/devspace/test_managed_lane_registry_contracts.sh
 bash tests/devspace/test_managed_lane_registry.sh
 bash tests/devspace/test_new_worktree.sh
 bash tests/devspace/test_retire_worktree.sh
 ```
 
-Expected: PASS for all four commands.
+Expected: PASS for all five commands.
 
 - [ ] **Step 2: Confirm only the intended commits and files were added for this slice**
 
@@ -344,6 +456,7 @@ Review the final slice against the approved architecture:
 - `scripts/lib/managed-lane-registry.sh` should read like orchestration only.
 - `scripts/lib/managed-lane-registry-path.sh` should own required-field, path, and TSV-escaping logic only.
 - `scripts/lib/managed-lane-registry-mutations.sh` should own file writes and registry mutation logic only.
+- `tests/devspace/test_managed_lane_registry_contracts.sh` should prove sourced-file `script_dir` restoration, missing-field refusal text, pointer key order, and pointer-path replacement semantics.
 - `tests/devspace/test_managed_lane_registry.sh`, `tests/devspace/test_new_worktree.sh`, and `tests/devspace/test_retire_worktree.sh` should still be proving unchanged runtime behavior.
 - `scripts/lib/new-worktree-flow.sh`, `bin/new-worktree`, `scripts/lib/managed-worktree-cleanup.sh`, and `bin/retire-worktree` should remain unchanged in this slice.
 - `registry.tsv` and `lane-binding.env` shapes should remain byte-for-byte compatible with the pre-refactor contract surfaces.
