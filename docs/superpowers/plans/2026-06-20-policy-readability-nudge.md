@@ -23,6 +23,7 @@
   - do not touch any file outside `.config/opencode/AGENTS.md`.
 - Existing AGENTS-related regression guards to use as baseline and post-edit checks:
   - `tests/docs/test_delegation_packet_policy_contract.sh`
+  - `tests/docs/test_maestro_intent_preservation_policy.sh`
   - `tests/docs/test_multi_question_interaction_policy.sh`
   - `tests/docs/test_clean_code_policy_contract.sh`
   - `tests/docs/test_managed_worktree_lane_safety_policy.sh`
@@ -41,15 +42,17 @@
 ### Out of scope
 
 - No edits to any file outside `.config/opencode/AGENTS.md`, including `tests/docs/`.
-- No new doc-contract tests, no runtime enforcement, and no new policy anchors.
+- No new doc-contract tests, no runtime enforcement, and no new doc-contract target anchors or marker text.
 - No broad policy restructuring, heading renames, or canonical-text rewrites.
 - No updates to historical plans, specs, runbooks, templates, or agent files.
+- A new section heading such as `## Policy readability and documentation expectations` is allowed in this slice; the restriction above is about adding new anchor markers that doc-contract tests would need to target.
 
 ## File map
 
 - Modify: `.config/opencode/AGENTS.md` — add one short readability/documentation expectations section.
 - Verify only:
   - `tests/docs/test_delegation_packet_policy_contract.sh`
+  - `tests/docs/test_maestro_intent_preservation_policy.sh`
   - `tests/docs/test_multi_question_interaction_policy.sh`
   - `tests/docs/test_clean_code_policy_contract.sh`
   - `tests/docs/test_managed_worktree_lane_safety_policy.sh`
@@ -68,13 +71,14 @@
 
   ```bash
   bash tests/docs/test_delegation_packet_policy_contract.sh
+  bash tests/docs/test_maestro_intent_preservation_policy.sh
   bash tests/docs/test_multi_question_interaction_policy.sh
   bash tests/docs/test_clean_code_policy_contract.sh
   bash tests/docs/test_managed_worktree_lane_safety_policy.sh
   bash tests/docs/test_bare_hub_guardrails.sh
   ```
 
-  Expected: PASS for all five commands.
+  Expected: PASS for all six commands.
 
 - [ ] **Step 2: Stop if the baseline is already red**
 
@@ -91,6 +95,7 @@
 **Files:**
 - Modify: `.config/opencode/AGENTS.md`
 - Test: `tests/docs/test_delegation_packet_policy_contract.sh`
+- Test: `tests/docs/test_maestro_intent_preservation_policy.sh`
 - Test: `tests/docs/test_multi_question_interaction_policy.sh`
 - Test: `tests/docs/test_clean_code_policy_contract.sh`
 - Test: `tests/docs/test_managed_worktree_lane_safety_policy.sh`
@@ -106,7 +111,8 @@
   - keep the section additive and concise;
   - include the three required reminders from the approved scope;
   - do not add new rules outside those reminders;
-  - do not introduce new contract anchors, procedural machinery, or repeated policy summaries.
+  - do not introduce new doc-contract target anchors or marker text, procedural machinery, or repeated policy summaries;
+  - a new section heading for this nudge is allowed because existing contract tests match specific required text rather than forbidding unknown headings.
 
 - [ ] **Step 2: Keep the wording subordinate to existing canonical policy**
 
@@ -118,13 +124,14 @@
 
   ```bash
   bash tests/docs/test_delegation_packet_policy_contract.sh
+  bash tests/docs/test_maestro_intent_preservation_policy.sh
   bash tests/docs/test_multi_question_interaction_policy.sh
   bash tests/docs/test_clean_code_policy_contract.sh
   bash tests/docs/test_managed_worktree_lane_safety_policy.sh
   bash tests/docs/test_bare_hub_guardrails.sh
   ```
 
-  Expected: PASS for all five commands.
+  Expected: PASS for all six commands.
 
 - [ ] **Step 4: Scope guard on test-updates**
 
@@ -138,7 +145,7 @@
   - keep references current and exact;
   - keep the section short enough that it still reads as a nudge, not a policy rewrite.
 
-  If wording changes are made during this checkpoint, rerun the five doc-contract commands above.
+  If wording changes are made during this checkpoint, rerun the six doc-contract commands above.
 
 - [ ] **Step 6: User Check-in**
 
@@ -157,13 +164,14 @@
 
   ```bash
   bash tests/docs/test_delegation_packet_policy_contract.sh
+  bash tests/docs/test_maestro_intent_preservation_policy.sh
   bash tests/docs/test_multi_question_interaction_policy.sh
   bash tests/docs/test_clean_code_policy_contract.sh
   bash tests/docs/test_managed_worktree_lane_safety_policy.sh
   bash tests/docs/test_bare_hub_guardrails.sh
   ```
 
-  Expected: PASS for all five commands.
+  Expected: PASS for all six commands.
 
 - [ ] **Step 2: Re-read the audit slice and confirm no scope drift**
 
@@ -187,6 +195,7 @@
 ## Final verification checklist
 
 - [ ] `bash tests/docs/test_delegation_packet_policy_contract.sh`
+- [ ] `bash tests/docs/test_maestro_intent_preservation_policy.sh`
 - [ ] `bash tests/docs/test_multi_question_interaction_policy.sh`
 - [ ] `bash tests/docs/test_clean_code_policy_contract.sh`
 - [ ] `bash tests/docs/test_managed_worktree_lane_safety_policy.sh`
