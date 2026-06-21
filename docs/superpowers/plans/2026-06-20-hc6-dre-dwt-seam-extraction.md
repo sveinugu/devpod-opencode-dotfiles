@@ -125,6 +125,9 @@ fi
 grep -F 'did_you_mean() {' "$did_you_mean_helper" >/dev/null || fail 'did-you-mean helper should define did_you_mean'
 grep -F 'suggestion="$(python3 - "$needle" "$@" <<'"'"'PY'"'"'' "$did_you_mean_helper" >/dev/null || fail 'did-you-mean helper should keep the Python difflib suggestion path'
 grep -F "printf 'did you mean: %s\\n' \"\$suggestion\" >&2" "$did_you_mean_helper" >/dev/null || fail 'did-you-mean helper should preserve exact suggestion output wording'
+if grep -F 'script_dir=' "$did_you_mean_helper" >/dev/null; then
+  fail 'did-you-mean helper must not assign script_dir'
+fi
 
 printf 'PASS test_workspace_navigation_helper_layout\n'
 ```
@@ -143,9 +146,29 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
+dre_script="$repo_root/bin/dre"
+dwt_script="$repo_root/bin/dwt"
 did_you_mean_helper="$repo_root/scripts/lib/did-you-mean.sh"
 
+[ -f "$dre_script" ] || fail 'bin/dre not found'
+[ -f "$dwt_script" ] || fail 'bin/dwt not found'
 [ -f "$did_you_mean_helper" ] || fail 'scripts/lib/did-you-mean.sh not found'
+
+set +e
+dre_usage_output="$(bash "$dre_script" 2>&1)"
+dre_usage_rc="$?"
+set -e
+
+[ "$dre_usage_rc" = '2' ] || fail 'dre should exit 2 for wrong arg count'
+[ "$dre_usage_output" = 'usage: dre <repo>' ] || fail 'dre should print exact usage text for wrong arg count'
+
+set +e
+dwt_usage_output="$(bash "$dwt_script" one two 2>&1)"
+dwt_usage_rc="$?"
+set -e
+
+[ "$dwt_usage_rc" = '2' ] || fail 'dwt should exit 2 for too many args'
+[ "$dwt_usage_output" = 'usage: dwt [name]' ] || fail 'dwt should print exact usage text for too many args'
 
 suggestion_output="$(bash -c 'set -euo pipefail; source "$1"; did_you_mean alpa alpha beta' _ "$did_you_mean_helper" 2>&1)"
 [ "$suggestion_output" = 'did you mean: alpha' ] || fail 'did_you_mean should preserve exact suggestion output for close matches'
@@ -261,6 +284,61 @@ refused: managed child default branch metadata is missing or invalid for "%s"
 to repair, run:
 ```
 
+Add these exact structural assertions so the metadata-loading/validation logic is proven to remain inline in both callers and neither helper may clobber `script_dir`:
+
+```bash
+metadata_helper="$repo_root/scripts/lib/managed-repo-metadata.sh"
+[ -f "$metadata_helper" ] || fail 'scripts/lib/managed-repo-metadata.sh not found'
+
+grep -F 'source "$script_dir/../scripts/lib/managed-repo-metadata.sh"' "$dre_script" >/dev/null || fail 'dre should source managed-repo-metadata helper'
+grep -F 'source "$script_dir/../scripts/lib/managed-repo-metadata.sh"' "$dwt_script" >/dev/null || fail 'dwt should source managed-repo-metadata helper'
+
+if grep -F 'metadata_refusal() {' "$dre_script" >/dev/null; then
+  fail 'dre should no longer define metadata_refusal inline'
+fi
+if grep -F 'metadata_repair_hint() {' "$dre_script" >/dev/null; then
+  fail 'dre should no longer define metadata_repair_hint inline'
+fi
+if grep -F 'fail_metadata() {' "$dre_script" >/dev/null; then
+  fail 'dre should no longer define fail_metadata inline'
+fi
+
+if grep -F 'metadata_refusal() {' "$dwt_script" >/dev/null; then
+  fail 'dwt should no longer define metadata_refusal inline'
+fi
+if grep -F 'metadata_repair_hint() {' "$dwt_script" >/dev/null; then
+  fail 'dwt should no longer define metadata_repair_hint inline'
+fi
+if grep -F 'fail_metadata() {' "$dwt_script" >/dev/null; then
+  fail 'dwt should no longer define fail_metadata inline'
+fi
+
+grep -F 'metadata_refusal() {' "$metadata_helper" >/dev/null || fail 'managed-repo-metadata helper should define metadata_refusal'
+grep -F 'metadata_repair_hint() {' "$metadata_helper" >/dev/null || fail 'managed-repo-metadata helper should define metadata_repair_hint'
+grep -F 'fail_metadata() {' "$metadata_helper" >/dev/null || fail 'managed-repo-metadata helper should define fail_metadata'
+grep -F 'refused: managed child default branch metadata is missing or invalid for "%s"' "$metadata_helper" >/dev/null || fail 'managed-repo-metadata helper should preserve exact refusal text'
+grep -F 'to repair, run:' "$metadata_helper" >/dev/null || fail 'managed-repo-metadata helper should preserve exact repair intro'
+
+if grep -F 'script_dir=' "$did_you_mean_helper" >/dev/null; then
+  fail 'did-you-mean helper must not assign script_dir'
+fi
+if grep -F 'script_dir=' "$metadata_helper" >/dev/null; then
+  fail 'managed-repo-metadata helper must not assign script_dir'
+fi
+
+grep -F 'repo.env' "$dre_script" >/dev/null || fail 'dre should keep inline repo.env loading markers'
+grep -F 'DYN_REPO_DEFAULT_BRANCH' "$dre_script" >/dev/null || fail 'dre should keep inline default-branch metadata checks'
+grep -F 'DYN_REPO_DEFAULT_DIR' "$dre_script" >/dev/null || fail 'dre should keep inline default-dir metadata checks'
+grep -F 'readlink -f' "$dre_script" >/dev/null || fail 'dre should keep inline canonicalization calls'
+grep -F 'case "$default_dir_canon" in' "$dre_script" >/dev/null || fail 'dre should keep inline canonicalization case check'
+
+grep -F 'repo.env' "$dwt_script" >/dev/null || fail 'dwt should keep inline repo.env loading markers'
+grep -F 'DYN_REPO_DEFAULT_BRANCH' "$dwt_script" >/dev/null || fail 'dwt should keep inline default-branch metadata checks'
+grep -F 'DYN_REPO_DEFAULT_DIR' "$dwt_script" >/dev/null || fail 'dwt should keep inline default-dir metadata checks'
+grep -F 'readlink -f' "$dwt_script" >/dev/null || fail 'dwt should keep inline canonicalization calls'
+grep -F 'case "$default_dir_canon" in' "$dwt_script" >/dev/null || fail 'dwt should keep inline canonicalization case check'
+```
+
 - [ ] **Step 2: Extend the helper-runtime contract to lock metadata refusal and repair output**
 
 Update `tests/devspace/test_workspace_navigation_helper_contracts.sh` so it also sources `scripts/lib/managed-repo-metadata.sh` and proves `fail_metadata()` behavior in isolation.
@@ -287,7 +365,7 @@ to repair, run:
 
 2. For a repo root that contains `master/` but not `main/`, the same `fail_metadata` path must still exit `1` and must suggest `"master"` in the repair command.
 
-Keep the existing `did_you_mean()` assertions in the same test file.
+Keep the existing CLI usage assertions and `did_you_mean()` assertions in the same test file.
 
 - [ ] **Step 3: Verify RED for the metadata seam tests**
 
@@ -463,6 +541,8 @@ Report back with:
   3. `bin/dre` and `bin/dwt` still own metadata loading/validation inline.
   4. Exact refusal text, repair hints, and `did you mean` output stayed unchanged.
   5. Caller behavior, argument handling, and exit codes stayed unchanged.
+  6. Real CLI invalid-usage paths are asserted: `dre` wrong arg count exits `2` with `usage: dre <repo>` and `dwt` too many args exits `2` with `usage: dwt [name]`.
+  7. Structural guards prove neither helper assigns `script_dir` and both callers still contain the inline `repo.env` / `DYN_REPO_*` / `readlink -f` / canonicalization markers.
 - [ ] Record the mandatory post-implementation checks in the handoff/PR note:
   - pragmatic-programmer diagnostic score,
   - clean-code review outcome,
