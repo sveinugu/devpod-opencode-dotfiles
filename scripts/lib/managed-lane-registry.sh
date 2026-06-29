@@ -1,14 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-source "$script_dir/managed-lane-registry-path.sh"
-source "$script_dir/managed-lane-registry-mutations.sh"
-if [ -n "${BASH_SOURCE[1]:-}" ]; then
-  script_dir="$(cd "$(dirname "${BASH_SOURCE[1]}")" && pwd -P)"
-else
-  unset script_dir
-fi
+_MLR_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+source "$_MLR_SCRIPT_DIR/managed-lane-registry-path.sh"
+source "$_MLR_SCRIPT_DIR/managed-lane-registry-mutations.sh"
 
 managed_lane_registry_record_binding() {
   local workspace_root="${1:?workspace_root required}"

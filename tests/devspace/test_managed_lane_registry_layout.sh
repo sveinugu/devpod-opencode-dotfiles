@@ -15,11 +15,17 @@ mutation_helper="$repo_root/scripts/lib/managed-lane-registry-mutations.sh"
 [ -f "$path_helper" ] || fail 'scripts/lib/managed-lane-registry-path.sh not found'
 [ -f "$mutation_helper" ] || fail 'scripts/lib/managed-lane-registry-mutations.sh not found'
 
-grep -F 'source "$script_dir/managed-lane-registry-path.sh"' "$entrypoint" >/dev/null || fail 'entrypoint should source managed-lane-registry-path.sh'
-grep -F 'source "$script_dir/managed-lane-registry-mutations.sh"' "$entrypoint" >/dev/null || fail 'entrypoint should source managed-lane-registry-mutations.sh'
-grep -F 'if [ -n "${BASH_SOURCE[1]:-}" ]; then' "$entrypoint" >/dev/null || fail 'entrypoint should restore caller sourcing state when sourced'
-grep -F 'script_dir="$(cd "$(dirname "${BASH_SOURCE[1]}")" && pwd -P)"' "$entrypoint" >/dev/null || fail 'entrypoint should restore caller script_dir after sourcing helpers'
-grep -F 'unset script_dir' "$entrypoint" >/dev/null || fail 'entrypoint should unset script_dir when no caller exists'
+grep -F 'source "$_MLR_SCRIPT_DIR/managed-lane-registry-path.sh"' "$entrypoint" >/dev/null || fail 'entrypoint should source managed-lane-registry-path.sh through a private script dir variable'
+grep -F 'source "$_MLR_SCRIPT_DIR/managed-lane-registry-mutations.sh"' "$entrypoint" >/dev/null || fail 'entrypoint should source managed-lane-registry-mutations.sh through a private script dir variable'
+if grep -F 'BASH_SOURCE[1]' "$entrypoint" >/dev/null; then
+  fail 'entrypoint should not rely on caller stack depth for script-dir restoration'
+fi
+if grep -F 'script_dir=' "$entrypoint" >/dev/null; then
+  fail 'entrypoint should not assign caller script_dir'
+fi
+if grep -F 'unset script_dir' "$entrypoint" >/dev/null; then
+  fail 'entrypoint should not unset caller script_dir'
+fi
 grep -F 'managed_lane_registry_record_binding() {' "$entrypoint" >/dev/null || fail 'entrypoint should keep managed_lane_registry_record_binding public API'
 grep -F 'managed_lane_registry_ensure_header "$registry_path"' "$entrypoint" >/dev/null || fail 'entrypoint should orchestrate header creation through mutation helper'
 grep -F 'managed_lane_registry_write_pointer \' "$entrypoint" >/dev/null || fail 'entrypoint should orchestrate pointer writes through mutation helper'
