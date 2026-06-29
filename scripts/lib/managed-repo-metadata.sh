@@ -1,3 +1,16 @@
+metadata_require_non_empty() {
+  local function_name="$1"
+  local arg_name="$2"
+  local arg_value="$3"
+
+  if [ -n "$arg_value" ]; then
+    return
+  fi
+
+  printf 'refused: %s requires non-empty %s\n' "$function_name" "$arg_name" >&2
+  exit 1
+}
+
 metadata_refusal() {
   local repo_name="$1"
   printf 'refused: managed child default branch metadata is missing or invalid for "%s"\n' "$repo_name" >&2
@@ -6,7 +19,15 @@ metadata_refusal() {
 metadata_repair_hint() {
   local repo_name="$1"
   local repo_root="$2"
-  local helper_path="$(cd "$script_dir/../scripts/lib" && pwd -P)/write-managed-repo-env.sh"
+  local workspace_root="$3"
+  local helper_script_base_dir="$4"
+
+  metadata_require_non_empty 'metadata_repair_hint' 'repo_name' "$repo_name"
+  metadata_require_non_empty 'metadata_repair_hint' 'repo_root' "$repo_root"
+  metadata_require_non_empty 'metadata_repair_hint' 'workspace_root' "$workspace_root"
+  metadata_require_non_empty 'metadata_repair_hint' 'script_dir' "$helper_script_base_dir"
+
+  local helper_path="$(cd "$helper_script_base_dir/../scripts/lib" && pwd -P)/write-managed-repo-env.sh"
   local suggested_branch=''
   local suggested_dir=''
 
@@ -29,7 +50,15 @@ metadata_repair_hint() {
 fail_metadata() {
   local repo_name="$1"
   local repo_root="$2"
+  local workspace_root="$3"
+  local helper_script_base_dir="$4"
+
+  metadata_require_non_empty 'fail_metadata' 'repo_name' "$repo_name"
+  metadata_require_non_empty 'fail_metadata' 'repo_root' "$repo_root"
+  metadata_require_non_empty 'fail_metadata' 'workspace_root' "$workspace_root"
+  metadata_require_non_empty 'fail_metadata' 'script_dir' "$helper_script_base_dir"
+
   metadata_refusal "$repo_name"
-  metadata_repair_hint "$repo_name" "$repo_root"
+  metadata_repair_hint "$repo_name" "$repo_root" "$workspace_root" "$helper_script_base_dir"
   exit 1
 }

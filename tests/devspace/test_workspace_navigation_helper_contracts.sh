@@ -47,7 +47,7 @@ repo_root_main="$workspace_root_main/repos/beta"
 mkdir -p "$workspace_root_main/main" "$repo_root_main"
 
 set +e
-metadata_main_output="$(bash -c 'set -euo pipefail; workspace_root="$2"; script_dir="$3"; source "$1"; fail_metadata beta "$4"' _ \
+metadata_main_output="$(bash -c 'set -euo pipefail; source "$1"; fail_metadata beta "$4" "$2" "$3"' _ \
   "$metadata_helper" \
   "$workspace_root_main" \
   "$repo_root/bin" \
@@ -70,7 +70,7 @@ repo_root_master="$workspace_root_master/repos/beta"
 mkdir -p "$repo_root_master/master"
 
 set +e
-metadata_master_output="$(bash -c 'set -euo pipefail; workspace_root="$2"; script_dir="$3"; source "$1"; fail_metadata beta "$4"' _ \
+metadata_master_output="$(bash -c 'set -euo pipefail; source "$1"; fail_metadata beta "$4" "$2" "$3"' _ \
   "$metadata_helper" \
   "$workspace_root_master" \
   "$repo_root/bin" \
@@ -87,5 +87,73 @@ expected_master_output="$(printf 'refused: managed child default branch metadata
   'master' \
   "$repo_root_master/master")"
 [ "$metadata_master_output" = "$expected_master_output" ] || fail 'fail_metadata should preserve exact refusal and repair output (master fallback case)'
+
+set +e
+metadata_missing_repo_name_output="$(bash -c 'set -euo pipefail; source "$1"; fail_metadata "" "$2" "$3" "$4"' _ \
+  "$metadata_helper" \
+  "$repo_root_master" \
+  "$workspace_root_master" \
+  "$repo_root/bin" 2>&1)"
+metadata_missing_repo_name_rc="$?"
+set -e
+
+[ "$metadata_missing_repo_name_rc" = '1' ] || fail 'fail_metadata should exit 1 when repo_name is empty'
+[ "$metadata_missing_repo_name_output" = 'refused: fail_metadata requires non-empty repo_name' ] || fail 'fail_metadata should fail fast with a clear repo_name guard message'
+
+set +e
+metadata_missing_repo_root_output="$(bash -c 'set -euo pipefail; source "$1"; fail_metadata beta "" "$2" "$3"' _ \
+  "$metadata_helper" \
+  "$workspace_root_master" \
+  "$repo_root/bin" 2>&1)"
+metadata_missing_repo_root_rc="$?"
+set -e
+
+[ "$metadata_missing_repo_root_rc" = '1' ] || fail 'fail_metadata should exit 1 when repo_root is empty'
+[ "$metadata_missing_repo_root_output" = 'refused: fail_metadata requires non-empty repo_root' ] || fail 'fail_metadata should fail fast with a clear repo_root guard message'
+
+set +e
+metadata_missing_workspace_output="$(bash -c 'set -euo pipefail; source "$1"; fail_metadata beta "$2" "" "$3"' _ \
+  "$metadata_helper" \
+  "$repo_root_master" \
+  "$repo_root/bin" 2>&1)"
+metadata_missing_workspace_rc="$?"
+set -e
+
+[ "$metadata_missing_workspace_rc" = '1' ] || fail 'fail_metadata should exit 1 when workspace_root is empty'
+[ "$metadata_missing_workspace_output" = 'refused: fail_metadata requires non-empty workspace_root' ] || fail 'fail_metadata should fail fast with a clear workspace_root guard message'
+
+set +e
+metadata_hint_missing_script_dir_output="$(bash -c 'set -euo pipefail; source "$1"; metadata_repair_hint beta "$2" "$3" ""' _ \
+  "$metadata_helper" \
+  "$repo_root_master" \
+  "$workspace_root_master" 2>&1)"
+metadata_hint_missing_script_dir_rc="$?"
+set -e
+
+[ "$metadata_hint_missing_script_dir_rc" = '1' ] || fail 'metadata_repair_hint should exit 1 when script_dir is empty'
+[ "$metadata_hint_missing_script_dir_output" = 'refused: metadata_repair_hint requires non-empty script_dir' ] || fail 'metadata_repair_hint should fail fast with a clear script_dir guard message'
+
+set +e
+metadata_hint_missing_repo_name_output="$(bash -c 'set -euo pipefail; source "$1"; metadata_repair_hint "" "$2" "$3" "$4"' _ \
+  "$metadata_helper" \
+  "$repo_root_master" \
+  "$workspace_root_master" \
+  "$repo_root/bin" 2>&1)"
+metadata_hint_missing_repo_name_rc="$?"
+set -e
+
+[ "$metadata_hint_missing_repo_name_rc" = '1' ] || fail 'metadata_repair_hint should exit 1 when repo_name is empty'
+[ "$metadata_hint_missing_repo_name_output" = 'refused: metadata_repair_hint requires non-empty repo_name' ] || fail 'metadata_repair_hint should fail fast with a clear repo_name guard message'
+
+set +e
+metadata_hint_missing_repo_root_output="$(bash -c 'set -euo pipefail; source "$1"; metadata_repair_hint beta "" "$2" "$3"' _ \
+  "$metadata_helper" \
+  "$workspace_root_master" \
+  "$repo_root/bin" 2>&1)"
+metadata_hint_missing_repo_root_rc="$?"
+set -e
+
+[ "$metadata_hint_missing_repo_root_rc" = '1' ] || fail 'metadata_repair_hint should exit 1 when repo_root is empty'
+[ "$metadata_hint_missing_repo_root_output" = 'refused: metadata_repair_hint requires non-empty repo_root' ] || fail 'metadata_repair_hint should fail fast with a clear repo_root guard message'
 
 printf 'PASS test_workspace_navigation_helper_contracts\n'

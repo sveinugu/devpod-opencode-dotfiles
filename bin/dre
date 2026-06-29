@@ -48,33 +48,33 @@ target_canon=''
 default_dir_canon=''
 
 if [ ! -f "$repo_env" ]; then
-  fail_metadata "$repo" "$target"
+  fail_metadata "$repo" "$target" "$workspace_root" "$script_dir"
 fi
 
 # shellcheck disable=SC1090
 if ! . "$repo_env" 2>/dev/null; then
-  fail_metadata "$repo" "$target"
+  fail_metadata "$repo" "$target" "$workspace_root" "$script_dir"
 fi
 
 default_branch="${DYN_REPO_DEFAULT_BRANCH:-}"
 default_dir="${DYN_REPO_DEFAULT_DIR:-}"
 
 if [ -z "$default_branch" ] || [ -z "$default_dir" ] || [ ! -d "$default_dir" ]; then
-  fail_metadata "$repo" "$target"
+  fail_metadata "$repo" "$target" "$workspace_root" "$script_dir"
 fi
 
 if ! target_canon="$(readlink -f "$target" 2>/dev/null)"; then
-  fail_metadata "$repo" "$target"
+  fail_metadata "$repo" "$target" "$workspace_root" "$script_dir"
 fi
 
 if ! default_dir_canon="$(readlink -f "$default_dir" 2>/dev/null)"; then
-  fail_metadata "$repo" "$target"
+  fail_metadata "$repo" "$target" "$workspace_root" "$script_dir"
 fi
 
 case "$default_dir_canon" in
   "$target_canon"|"$target_canon"/*) ;;
   *)
-    fail_metadata "$repo" "$target"
+    fail_metadata "$repo" "$target" "$workspace_root" "$script_dir"
     ;;
 esac
 

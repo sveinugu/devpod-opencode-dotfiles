@@ -34,32 +34,32 @@ else
   repo_root_canon=''
   default_dir_canon=''
   if [ ! -f "$repo_env" ]; then
-    fail_metadata "$repo_name" "$repo_root"
+    fail_metadata "$repo_name" "$repo_root" "$workspace_root" "$script_dir"
   fi
 
   if ! repo_root_canon="$(readlink -f "$repo_root" 2>/dev/null)"; then
-    fail_metadata "$repo_name" "$repo_root"
+    fail_metadata "$repo_name" "$repo_root" "$workspace_root" "$script_dir"
   fi
 
   # shellcheck disable=SC1090
   if ! . "$repo_env" 2>/dev/null; then
-    fail_metadata "$repo_name" "$repo_root"
+    fail_metadata "$repo_name" "$repo_root" "$workspace_root" "$script_dir"
   fi
 
   default_branch="${DYN_REPO_DEFAULT_BRANCH:-}"
   default_dir="${DYN_REPO_DEFAULT_DIR:-}"
   if [ -z "$default_branch" ] || [ -z "$default_dir" ] || [ ! -d "$default_dir" ]; then
-    fail_metadata "$repo_name" "$repo_root"
+    fail_metadata "$repo_name" "$repo_root" "$workspace_root" "$script_dir"
   fi
 
   if ! default_dir_canon="$(readlink -f "$default_dir" 2>/dev/null)"; then
-    fail_metadata "$repo_name" "$repo_root"
+    fail_metadata "$repo_name" "$repo_root" "$workspace_root" "$script_dir"
   fi
 
   case "$default_dir_canon" in
     "$repo_root_canon"|"$repo_root_canon"/*) ;;
     *)
-      fail_metadata "$repo_name" "$repo_root"
+      fail_metadata "$repo_name" "$repo_root" "$workspace_root" "$script_dir"
       ;;
   esac
 
