@@ -11,16 +11,20 @@ dre_script="$repo_root/bin/dre"
 dwt_script="$repo_root/bin/dwt"
 did_you_mean_helper="$repo_root/scripts/lib/did-you-mean.sh"
 metadata_helper="$repo_root/scripts/lib/managed-repo-metadata.sh"
+default_checkout_helper="$repo_root/scripts/lib/resolve-managed-default-checkout.sh"
 
 [ -f "$dre_script" ] || fail 'bin/dre not found'
 [ -f "$dwt_script" ] || fail 'bin/dwt not found'
 [ -f "$did_you_mean_helper" ] || fail 'scripts/lib/did-you-mean.sh not found'
 [ -f "$metadata_helper" ] || fail 'scripts/lib/managed-repo-metadata.sh not found'
+[ -f "$default_checkout_helper" ] || fail 'scripts/lib/resolve-managed-default-checkout.sh not found'
 
 grep -F 'source "$script_dir/../scripts/lib/did-you-mean.sh"' "$dre_script" >/dev/null || fail 'dre should source did-you-mean helper'
 grep -F 'source "$script_dir/../scripts/lib/did-you-mean.sh"' "$dwt_script" >/dev/null || fail 'dwt should source did-you-mean helper'
 grep -F 'source "$script_dir/../scripts/lib/managed-repo-metadata.sh"' "$dre_script" >/dev/null || fail 'dre should source managed-repo-metadata helper'
 grep -F 'source "$script_dir/../scripts/lib/managed-repo-metadata.sh"' "$dwt_script" >/dev/null || fail 'dwt should source managed-repo-metadata helper'
+grep -F 'source "$script_dir/../scripts/lib/resolve-managed-default-checkout.sh"' "$dre_script" >/dev/null || fail 'dre should source managed default-checkout resolver helper'
+grep -F 'source "$script_dir/../scripts/lib/resolve-managed-default-checkout.sh"' "$dwt_script" >/dev/null || fail 'dwt should source managed default-checkout resolver helper'
 
 if grep -F 'did_you_mean() {' "$dre_script" >/dev/null; then
   fail 'dre should no longer define did_you_mean inline'
@@ -65,16 +69,36 @@ if grep -F 'script_dir=' "$metadata_helper" >/dev/null; then
   fail 'managed-repo-metadata helper must not assign script_dir'
 fi
 
-grep -F 'repo.env' "$dre_script" >/dev/null || fail 'dre should keep inline repo.env loading markers'
-grep -F 'DYN_REPO_DEFAULT_BRANCH' "$dre_script" >/dev/null || fail 'dre should keep inline default-branch metadata checks'
-grep -F 'DYN_REPO_DEFAULT_DIR' "$dre_script" >/dev/null || fail 'dre should keep inline default-dir metadata checks'
-grep -F 'readlink -f' "$dre_script" >/dev/null || fail 'dre should keep inline canonicalization calls'
-grep -F 'case "$default_dir_canon" in' "$dre_script" >/dev/null || fail 'dre should keep inline canonicalization case check'
+grep -F 'resolve_managed_default_checkout() {' "$default_checkout_helper" >/dev/null || fail 'managed default-checkout helper should define resolve_managed_default_checkout'
+grep -F 'DYN_REPO_DEFAULT_BRANCH' "$default_checkout_helper" >/dev/null || fail 'managed default-checkout helper should validate default branch metadata'
+grep -F 'DYN_REPO_DEFAULT_DIR' "$default_checkout_helper" >/dev/null || fail 'managed default-checkout helper should validate default dir metadata'
+grep -F 'readlink -f' "$default_checkout_helper" >/dev/null || fail 'managed default-checkout helper should canonicalize target paths'
+grep -F 'case "$default_dir_canon" in' "$default_checkout_helper" >/dev/null || fail 'managed default-checkout helper should validate canonical boundary'
 
-grep -F 'repo.env' "$dwt_script" >/dev/null || fail 'dwt should keep inline repo.env loading markers'
-grep -F 'DYN_REPO_DEFAULT_BRANCH' "$dwt_script" >/dev/null || fail 'dwt should keep inline default-branch metadata checks'
-grep -F 'DYN_REPO_DEFAULT_DIR' "$dwt_script" >/dev/null || fail 'dwt should keep inline default-dir metadata checks'
-grep -F 'readlink -f' "$dwt_script" >/dev/null || fail 'dwt should keep inline canonicalization calls'
-grep -F 'case "$default_dir_canon" in' "$dwt_script" >/dev/null || fail 'dwt should keep inline canonicalization case check'
+if grep -F 'repo.env' "$dre_script" >/dev/null; then
+  fail 'dre should no longer include inline repo.env loading logic'
+fi
+if grep -F 'DYN_REPO_DEFAULT_BRANCH' "$dre_script" >/dev/null; then
+  fail 'dre should no longer include inline default-branch metadata checks'
+fi
+if grep -F 'DYN_REPO_DEFAULT_DIR' "$dre_script" >/dev/null; then
+  fail 'dre should no longer include inline default-dir metadata checks'
+fi
+if grep -F 'case "$default_dir_canon" in' "$dre_script" >/dev/null; then
+  fail 'dre should no longer include inline canonical boundary checks'
+fi
+
+if grep -F 'repo.env' "$dwt_script" >/dev/null; then
+  fail 'dwt should no longer include inline repo.env loading logic'
+fi
+if grep -F 'DYN_REPO_DEFAULT_BRANCH' "$dwt_script" >/dev/null; then
+  fail 'dwt should no longer include inline default-branch metadata checks'
+fi
+if grep -F 'DYN_REPO_DEFAULT_DIR' "$dwt_script" >/dev/null; then
+  fail 'dwt should no longer include inline default-dir metadata checks'
+fi
+if grep -F 'case "$default_dir_canon" in' "$dwt_script" >/dev/null; then
+  fail 'dwt should no longer include inline canonical boundary checks'
+fi
 
 printf 'PASS test_workspace_navigation_helper_layout\n'

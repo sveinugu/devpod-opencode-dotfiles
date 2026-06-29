@@ -6,6 +6,7 @@ pwd_dir="${PWD:-$(pwd -P)}"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$script_dir/../scripts/lib/did-you-mean.sh"
 source "$script_dir/../scripts/lib/managed-repo-metadata.sh"
+source "$script_dir/../scripts/lib/resolve-managed-default-checkout.sh"
 
 usage() {
   printf 'usage: dwt [name]\n' >&2
@@ -30,40 +31,9 @@ if [ "$repo_root" = "$workspace_root" ]; then
   default_dir="$repo_root/main"
 else
   repo_name="${repo_root#"$workspace_root/repos/"}"
-  repo_env="$workspace_root/state/repos/$repo_name/etc/repo.env"
-  repo_root_canon=''
-  default_dir_canon=''
-  if [ ! -f "$repo_env" ]; then
-    fail_metadata "$repo_name" "$repo_root" "$workspace_root" "$script_dir"
-  fi
-
-  if ! repo_root_canon="$(readlink -f "$repo_root" 2>/dev/null)"; then
-    fail_metadata "$repo_name" "$repo_root" "$workspace_root" "$script_dir"
-  fi
-
-  # shellcheck disable=SC1090
-  if ! . "$repo_env" 2>/dev/null; then
-    fail_metadata "$repo_name" "$repo_root" "$workspace_root" "$script_dir"
-  fi
-
-  default_branch="${DYN_REPO_DEFAULT_BRANCH:-}"
-  default_dir="${DYN_REPO_DEFAULT_DIR:-}"
-  if [ -z "$default_branch" ] || [ -z "$default_dir" ] || [ ! -d "$default_dir" ]; then
-    fail_metadata "$repo_name" "$repo_root" "$workspace_root" "$script_dir"
-  fi
-
-  if ! default_dir_canon="$(readlink -f "$default_dir" 2>/dev/null)"; then
-    fail_metadata "$repo_name" "$repo_root" "$workspace_root" "$script_dir"
-  fi
-
-  case "$default_dir_canon" in
-    "$repo_root_canon"|"$repo_root_canon"/*) ;;
-    *)
-      fail_metadata "$repo_name" "$repo_root" "$workspace_root" "$script_dir"
-      ;;
-  esac
-
-  default_dir="$default_dir_canon"
+  resolve_managed_default_checkout "$repo_name" "$repo_root" "$workspace_root" "$script_dir"
+  default_branch="${MANAGED_REPO_DEFAULT_BRANCH:-}"
+  default_dir="${MANAGED_REPO_DEFAULT_DIR_CANON:-}"
 fi
 
 if [ "$#" -eq 0 ]; then

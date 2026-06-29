@@ -25,6 +25,8 @@ mkdir -p "$workspace_root/repos/alpha/.bare" "$workspace_root/repos/alpha/master
 mkdir -p "$workspace_root/repos/beta/.bare" "$workspace_root/repos/beta/main"
 mkdir -p "$workspace_root/repos/gamma/.bare" "$workspace_root/repos/gamma/main"
 mkdir -p "$workspace_root/repos/delta/.bare" "$workspace_root/repos/delta/main"
+mkdir -p "$workspace_root/repos/epsilon/.bare" "$workspace_root/repos/epsilon/main"
+mkdir -p "$workspace_root/repos/zeta/.bare" "$workspace_root/repos/zeta/main"
 mkdir -p "$workspace_root/repos/escape"
 mkdir -p "$workspace_root/state/repos/alpha/etc"
 cat > "$workspace_root/state/repos/alpha/etc/repo.env" <<EOF
@@ -42,6 +44,16 @@ mkdir -p "$workspace_root/state/repos/delta/etc"
 cat > "$workspace_root/state/repos/delta/etc/repo.env" <<EOF
 export DYN_REPO_DEFAULT_BRANCH="main
 export DYN_REPO_DEFAULT_DIR=$workspace_root/repos/delta/main
+EOF
+
+mkdir -p "$workspace_root/state/repos/epsilon/etc"
+cat > "$workspace_root/state/repos/epsilon/etc/repo.env" <<EOF
+export DYN_REPO_DEFAULT_BRANCH=main
+EOF
+
+mkdir -p "$workspace_root/state/repos/zeta/etc"
+cat > "$workspace_root/state/repos/zeta/etc/repo.env" <<EOF
+export DYN_REPO_DEFAULT_DIR=$workspace_root/repos/zeta/main
 EOF
 
 mkdir -p "$workspace_root/state/hub/etc"
@@ -71,6 +83,30 @@ set -e
 grep -F 'refused: managed child default branch metadata is missing or invalid for "beta"' "$tmpdir/dre-metadata.out" >/dev/null || fail "dre should explain missing child metadata with repo context"
 grep -F 'to repair, run:' "$tmpdir/dre-metadata.out" >/dev/null || fail "dre should include human-readable repair intro"
 grep -E "  HUB_WORKSPACE_ROOT=\"$workspace_root\" bash .*/scripts/lib/write-managed-repo-env.sh \"beta\" \"main\" \"$workspace_root/repos/beta/main\"" "$tmpdir/dre-metadata.out" >/dev/null || fail "dre should print exact runnable metadata repair command on its own line"
+
+set +e
+HUB_WORKSPACE_ROOT="$workspace_root" bash "$dre_script" delta >"$tmpdir/dre-delta-malformed.out" 2>&1
+dre_delta_malformed_rc="$?"
+set -e
+[ "$dre_delta_malformed_rc" = "1" ] || fail "dre should fail cleanly for malformed child metadata"
+grep -F 'refused: managed child default branch metadata is missing or invalid for "delta"' "$tmpdir/dre-delta-malformed.out" >/dev/null || fail "dre should report metadata refusal for malformed repo.env"
+if grep -E 'unexpected EOF|unexpected end of file|syntax error' "$tmpdir/dre-delta-malformed.out" >/dev/null; then
+  fail "dre should avoid leaking raw shell parse errors for malformed repo.env"
+fi
+
+set +e
+HUB_WORKSPACE_ROOT="$workspace_root" bash "$dre_script" epsilon >"$tmpdir/dre-epsilon-missing-var.out" 2>&1
+dre_epsilon_missing_var_rc="$?"
+set -e
+[ "$dre_epsilon_missing_var_rc" = "1" ] || fail "dre should fail when DYN_REPO_DEFAULT_DIR is missing"
+grep -F 'refused: managed child default branch metadata is missing or invalid for "epsilon"' "$tmpdir/dre-epsilon-missing-var.out" >/dev/null || fail "dre should reject repo.env when DYN_REPO_DEFAULT_DIR is missing"
+
+set +e
+HUB_WORKSPACE_ROOT="$workspace_root" bash "$dre_script" zeta >"$tmpdir/dre-zeta-missing-var.out" 2>&1
+dre_zeta_missing_var_rc="$?"
+set -e
+[ "$dre_zeta_missing_var_rc" = "1" ] || fail "dre should fail when DYN_REPO_DEFAULT_BRANCH is missing"
+grep -F 'refused: managed child default branch metadata is missing or invalid for "zeta"' "$tmpdir/dre-zeta-missing-var.out" >/dev/null || fail "dre should reject repo.env when DYN_REPO_DEFAULT_BRANCH is missing"
 
 set +e
 (
@@ -106,6 +142,26 @@ grep -F 'refused: managed child default branch metadata is missing or invalid fo
 if grep -E 'unexpected EOF|unexpected end of file|syntax error' "$tmpdir/dwt-delta-malformed.out" >/dev/null; then
   fail "dwt should avoid leaking raw shell parse errors for malformed repo.env"
 fi
+
+set +e
+(
+  cd "$workspace_root/repos/epsilon/main"
+  HUB_WORKSPACE_ROOT="$workspace_root" bash "$dwt_script"
+) >"$tmpdir/dwt-epsilon-missing-var.out" 2>&1
+dwt_epsilon_missing_var_rc="$?"
+set -e
+[ "$dwt_epsilon_missing_var_rc" = "1" ] || fail "dwt should fail when DYN_REPO_DEFAULT_DIR is missing"
+grep -F 'refused: managed child default branch metadata is missing or invalid for "epsilon"' "$tmpdir/dwt-epsilon-missing-var.out" >/dev/null || fail "dwt should reject repo.env when DYN_REPO_DEFAULT_DIR is missing"
+
+set +e
+(
+  cd "$workspace_root/repos/zeta/main"
+  HUB_WORKSPACE_ROOT="$workspace_root" bash "$dwt_script"
+) >"$tmpdir/dwt-zeta-missing-var.out" 2>&1
+dwt_zeta_missing_var_rc="$?"
+set -e
+[ "$dwt_zeta_missing_var_rc" = "1" ] || fail "dwt should fail when DYN_REPO_DEFAULT_BRANCH is missing"
+grep -F 'refused: managed child default branch metadata is missing or invalid for "zeta"' "$tmpdir/dwt-zeta-missing-var.out" >/dev/null || fail "dwt should reject repo.env when DYN_REPO_DEFAULT_BRANCH is missing"
 
 set +e
 HUB_WORKSPACE_ROOT="$workspace_root" bash "$dre_script" hub >"$tmpdir/dre-hub.out" 2>&1
