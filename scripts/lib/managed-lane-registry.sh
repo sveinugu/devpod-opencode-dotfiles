@@ -2,6 +2,7 @@
 set -euo pipefail
 
 _MLR_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+source "$_MLR_SCRIPT_DIR/managed-lane-registry-common.sh"
 source "$_MLR_SCRIPT_DIR/managed-lane-registry-path.sh"
 source "$_MLR_SCRIPT_DIR/managed-lane-registry-mutations.sh"
 

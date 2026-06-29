@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+_MLR_MUTATIONS_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+source "$_MLR_MUTATIONS_SCRIPT_DIR/managed-lane-registry-common.sh"
+
 managed_lane_registry_ensure_header() {
   local registry_path="${1:?registry_path required}"
   local registry_dir
