@@ -1,23 +1,14 @@
-resolve_managed_default_checkout_require_non_empty() {
-  local function_name="$1"
-  local arg_name="$2"
-  local arg_value="$3"
-
-  if [ -n "$arg_value" ]; then
-    return 0
-  fi
-
-  printf 'refused: %s requires non-empty %s\n' "$function_name" "$arg_name" >&2
-  exit 1
-}
+_rmdc_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+source "$_rmdc_dir/require-non-empty.sh"
+unset _rmdc_dir
 
 resolve_managed_default_checkout_require_helpers() {
   local helper_script_base_dir="$1"
   local metadata_helper_path=''
 
-  resolve_managed_default_checkout_require_non_empty 'resolve_managed_default_checkout_require_helpers' 'helper_script_base_dir' "$helper_script_base_dir"
+  require_non_empty 'resolve_managed_default_checkout_require_helpers' 'helper_script_base_dir' "$helper_script_base_dir"
 
-  if declare -F metadata_require_non_empty >/dev/null 2>&1 && declare -F fail_metadata >/dev/null 2>&1; then
+  if declare -F require_non_empty >/dev/null 2>&1 && declare -F fail_metadata >/dev/null 2>&1; then
     return 0
   fi
 
@@ -27,7 +18,7 @@ resolve_managed_default_checkout_require_helpers() {
     . "$metadata_helper_path"
   fi
 
-  if declare -F metadata_require_non_empty >/dev/null 2>&1 && declare -F fail_metadata >/dev/null 2>&1; then
+  if declare -F require_non_empty >/dev/null 2>&1 && declare -F fail_metadata >/dev/null 2>&1; then
     return 0
   fi
 
@@ -41,16 +32,16 @@ resolve_managed_default_checkout() {
   local workspace_root="$3"
   local helper_script_base_dir="$4"
 
-  resolve_managed_default_checkout_require_non_empty 'resolve_managed_default_checkout' 'repo_name' "$repo_name"
-  resolve_managed_default_checkout_require_non_empty 'resolve_managed_default_checkout' 'repo_root' "$repo_root"
-  resolve_managed_default_checkout_require_non_empty 'resolve_managed_default_checkout' 'workspace_root' "$workspace_root"
-  resolve_managed_default_checkout_require_non_empty 'resolve_managed_default_checkout' 'helper_script_base_dir' "$helper_script_base_dir"
+  require_non_empty 'resolve_managed_default_checkout' 'repo_name' "$repo_name"
+  require_non_empty 'resolve_managed_default_checkout' 'repo_root' "$repo_root"
+  require_non_empty 'resolve_managed_default_checkout' 'workspace_root' "$workspace_root"
+  require_non_empty 'resolve_managed_default_checkout' 'helper_script_base_dir' "$helper_script_base_dir"
   resolve_managed_default_checkout_require_helpers "$helper_script_base_dir"
 
-  metadata_require_non_empty 'resolve_managed_default_checkout' 'repo_name' "$repo_name"
-  metadata_require_non_empty 'resolve_managed_default_checkout' 'repo_root' "$repo_root"
-  metadata_require_non_empty 'resolve_managed_default_checkout' 'workspace_root' "$workspace_root"
-  metadata_require_non_empty 'resolve_managed_default_checkout' 'helper_script_base_dir' "$helper_script_base_dir"
+  require_non_empty 'resolve_managed_default_checkout' 'repo_name' "$repo_name"
+  require_non_empty 'resolve_managed_default_checkout' 'repo_root' "$repo_root"
+  require_non_empty 'resolve_managed_default_checkout' 'workspace_root' "$workspace_root"
+  require_non_empty 'resolve_managed_default_checkout' 'helper_script_base_dir' "$helper_script_base_dir"
 
   local repo_env="$workspace_root/state/repos/$repo_name/etc/repo.env"
   local repo_root_canon=''

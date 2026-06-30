@@ -1,21 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+_nwf_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+source "$_nwf_dir/require-non-empty.sh"
+unset _nwf_dir
+
 new_worktree_usage() {
   printf 'usage: new-worktree [--repo <hub|repo-name>] <branch>\n' >&2
-}
-
-new_worktree_require_non_empty() {
-  local function_name="$1"
-  local arg_name="$2"
-  local arg_value="$3"
-
-  if [ -n "$arg_value" ]; then
-    return 0
-  fi
-
-  printf 'refused: %s requires non-empty %s\n' "$function_name" "$arg_name" >&2
-  exit 1
 }
 
 new_worktree_parse_cli() {
@@ -64,8 +55,8 @@ new_worktree_infer_repo_name_from_pwd() {
   local workspace_root="$1"
   local script_dir="$2"
 
-  new_worktree_require_non_empty 'new_worktree_infer_repo_name_from_pwd' 'workspace_root' "$workspace_root"
-  new_worktree_require_non_empty 'new_worktree_infer_repo_name_from_pwd' 'script_dir' "$script_dir"
+  require_non_empty 'new_worktree_infer_repo_name_from_pwd' 'workspace_root' "$workspace_root"
+  require_non_empty 'new_worktree_infer_repo_name_from_pwd' 'script_dir' "$script_dir"
 
   if [ -n "$new_worktree_repo_name" ]; then
     return 0
@@ -93,8 +84,8 @@ new_worktree_resolve_repo_context() {
   local script_dir="$2"
   local repo_env=''
 
-  new_worktree_require_non_empty 'new_worktree_resolve_repo_context' 'workspace_root' "$workspace_root"
-  new_worktree_require_non_empty 'new_worktree_resolve_repo_context' 'script_dir' "$script_dir"
+  require_non_empty 'new_worktree_resolve_repo_context' 'workspace_root' "$workspace_root"
+  require_non_empty 'new_worktree_resolve_repo_context' 'script_dir' "$script_dir"
 
   new_worktree_infer_repo_name_from_pwd "$workspace_root" "$script_dir"
 
@@ -139,10 +130,10 @@ new_worktree_resolve_repo_context() {
 new_worktree_create_or_attach_branch_worktree() {
   local base_branch=''
 
-  new_worktree_require_non_empty 'new_worktree_create_or_attach_branch_worktree' 'new_worktree_branch' "${new_worktree_branch:-}"
-  new_worktree_require_non_empty 'new_worktree_create_or_attach_branch_worktree' 'new_worktree_repo_default_branch' "${new_worktree_repo_default_branch:-}"
-  new_worktree_require_non_empty 'new_worktree_create_or_attach_branch_worktree' 'new_worktree_bare_dir' "${new_worktree_bare_dir:-}"
-  new_worktree_require_non_empty 'new_worktree_create_or_attach_branch_worktree' 'new_worktree_target' "${new_worktree_target:-}"
+  require_non_empty 'new_worktree_create_or_attach_branch_worktree' 'new_worktree_branch' "${new_worktree_branch:-}"
+  require_non_empty 'new_worktree_create_or_attach_branch_worktree' 'new_worktree_repo_default_branch' "${new_worktree_repo_default_branch:-}"
+  require_non_empty 'new_worktree_create_or_attach_branch_worktree' 'new_worktree_bare_dir' "${new_worktree_bare_dir:-}"
+  require_non_empty 'new_worktree_create_or_attach_branch_worktree' 'new_worktree_target' "${new_worktree_target:-}"
 
   if [ "$new_worktree_branch" = "$new_worktree_repo_default_branch" ]; then
     printf 'refused: requested worktree name matches reserved default branch name "%s"\n' "$new_worktree_repo_default_branch" >&2
@@ -182,20 +173,20 @@ new_worktree_prepare_checkout_sidecars() {
   local workspace_root="$1"
   local script_dir="$2"
 
-  new_worktree_require_non_empty 'new_worktree_prepare_checkout_sidecars' 'workspace_root' "$workspace_root"
-  new_worktree_require_non_empty 'new_worktree_prepare_checkout_sidecars' 'script_dir' "$script_dir"
-  new_worktree_require_non_empty 'new_worktree_prepare_checkout_sidecars' 'new_worktree_state_dir' "${new_worktree_state_dir:-}"
-  new_worktree_require_non_empty 'new_worktree_prepare_checkout_sidecars' 'new_worktree_tmp_dir' "${new_worktree_tmp_dir:-}"
-  new_worktree_require_non_empty 'new_worktree_prepare_checkout_sidecars' 'new_worktree_target' "${new_worktree_target:-}"
+  require_non_empty 'new_worktree_prepare_checkout_sidecars' 'workspace_root' "$workspace_root"
+  require_non_empty 'new_worktree_prepare_checkout_sidecars' 'script_dir' "$script_dir"
+  require_non_empty 'new_worktree_prepare_checkout_sidecars' 'new_worktree_state_dir' "${new_worktree_state_dir:-}"
+  require_non_empty 'new_worktree_prepare_checkout_sidecars' 'new_worktree_tmp_dir' "${new_worktree_tmp_dir:-}"
+  require_non_empty 'new_worktree_prepare_checkout_sidecars' 'new_worktree_target' "${new_worktree_target:-}"
 
   mkdir -p "$new_worktree_state_dir" "$new_worktree_tmp_dir"
 
-  lane_id="${MANAGED_LANE_ID:-$new_worktree_branch}"
-  parent_artifact_anchors="${MANAGED_LANE_PARENT_ARTIFACTS:-}"
-  session_task_id="${MANAGED_LANE_SESSION_TASK_ID:-}"
-  session_owner="${MANAGED_LANE_SESSION_OWNER:-}"
-  routing_state="${MANAGED_LANE_ROUTING_STATE:-unbound}"
-  lane_status='active'
+  new_worktree_lane_id="${MANAGED_LANE_ID:-$new_worktree_branch}"
+  new_worktree_parent_artifact_anchors="${MANAGED_LANE_PARENT_ARTIFACTS:-}"
+  new_worktree_session_task_id="${MANAGED_LANE_SESSION_TASK_ID:-}"
+  new_worktree_session_owner="${MANAGED_LANE_SESSION_OWNER:-}"
+  new_worktree_routing_state="${MANAGED_LANE_ROUTING_STATE:-unbound}"
+  new_worktree_lane_status='active'
 
   if [ "$new_worktree_repo_name" = 'hub' ]; then
     if [ ! -e "$workspace_root/main/.envrc" ]; then
@@ -216,27 +207,27 @@ new_worktree_prepare_checkout_sidecars() {
 new_worktree_record_lane_binding() {
   local workspace_root="$1"
 
-  new_worktree_require_non_empty 'new_worktree_record_lane_binding' 'workspace_root' "$workspace_root"
-  new_worktree_require_non_empty 'new_worktree_record_lane_binding' 'new_worktree_lane_repo_identity' "${new_worktree_lane_repo_identity:-}"
-  new_worktree_require_non_empty 'new_worktree_record_lane_binding' 'new_worktree_branch' "${new_worktree_branch:-}"
-  new_worktree_require_non_empty 'new_worktree_record_lane_binding' 'new_worktree_target' "${new_worktree_target:-}"
-  new_worktree_require_non_empty 'new_worktree_record_lane_binding' 'new_worktree_state_dir' "${new_worktree_state_dir:-}"
-  new_worktree_require_non_empty 'new_worktree_record_lane_binding' 'lane_id' "${lane_id:-}"
-  new_worktree_require_non_empty 'new_worktree_record_lane_binding' 'routing_state' "${routing_state:-}"
-  new_worktree_require_non_empty 'new_worktree_record_lane_binding' 'lane_status' "${lane_status:-}"
+  require_non_empty 'new_worktree_record_lane_binding' 'workspace_root' "$workspace_root"
+  require_non_empty 'new_worktree_record_lane_binding' 'new_worktree_lane_repo_identity' "${new_worktree_lane_repo_identity:-}"
+  require_non_empty 'new_worktree_record_lane_binding' 'new_worktree_branch' "${new_worktree_branch:-}"
+  require_non_empty 'new_worktree_record_lane_binding' 'new_worktree_target' "${new_worktree_target:-}"
+  require_non_empty 'new_worktree_record_lane_binding' 'new_worktree_state_dir' "${new_worktree_state_dir:-}"
+  require_non_empty 'new_worktree_record_lane_binding' 'new_worktree_lane_id' "${new_worktree_lane_id:-}"
+  require_non_empty 'new_worktree_record_lane_binding' 'new_worktree_routing_state' "${new_worktree_routing_state:-}"
+  require_non_empty 'new_worktree_record_lane_binding' 'new_worktree_lane_status' "${new_worktree_lane_status:-}"
 
   managed_lane_registry_record_binding \
     "$workspace_root" \
     "$new_worktree_lane_repo_identity" \
-    "$lane_id" \
+    "$new_worktree_lane_id" \
     "$new_worktree_branch" \
     "$new_worktree_target" \
     "$new_worktree_state_dir" \
-    "$parent_artifact_anchors" \
-    "$session_task_id" \
-    "$session_owner" \
-    "$routing_state" \
-    "$lane_status"
+    "$new_worktree_parent_artifact_anchors" \
+    "$new_worktree_session_task_id" \
+    "$new_worktree_session_owner" \
+    "$new_worktree_routing_state" \
+    "$new_worktree_lane_status"
 }
 
 new_worktree_report_success() {

@@ -16,6 +16,9 @@ hub_source="$repo_root/scripts/lib/hub-repo-core-source.sh"
 hub_bootstrap="$repo_root/scripts/lib/hub-repo-core-bootstrap.sh"
 hub_upstream="$repo_root/scripts/lib/hub-repo-core-upstream.sh"
 cleanup_helper="$repo_root/scripts/lib/managed-worktree-cleanup.sh"
+cleanup_resolve_helper="$repo_root/scripts/lib/managed-worktree-cleanup-resolve.sh"
+cleanup_risk_helper="$repo_root/scripts/lib/managed-worktree-cleanup-risk.sh"
+cleanup_mutation_helper="$repo_root/scripts/lib/managed-worktree-cleanup-mutation.sh"
 default_checkout_helper="$repo_root/scripts/lib/resolve-managed-default-checkout.sh"
 
 [ -f "$new_worktree_script" ] || fail 'bin/new-worktree not found'
@@ -27,6 +30,9 @@ default_checkout_helper="$repo_root/scripts/lib/resolve-managed-default-checkout
 [ -f "$hub_bootstrap" ] || fail 'scripts/lib/hub-repo-core-bootstrap.sh not found'
 [ -f "$hub_upstream" ] || fail 'scripts/lib/hub-repo-core-upstream.sh not found'
 [ -f "$cleanup_helper" ] || fail 'scripts/lib/managed-worktree-cleanup.sh not found'
+[ -f "$cleanup_resolve_helper" ] || fail 'scripts/lib/managed-worktree-cleanup-resolve.sh not found'
+[ -f "$cleanup_risk_helper" ] || fail 'scripts/lib/managed-worktree-cleanup-risk.sh not found'
+[ -f "$cleanup_mutation_helper" ] || fail 'scripts/lib/managed-worktree-cleanup-mutation.sh not found'
 [ -f "$default_checkout_helper" ] || fail 'scripts/lib/resolve-managed-default-checkout.sh not found'
 
 grep -F 'source "$script_dir/../scripts/lib/new-worktree-flow.sh"' "$new_worktree_script" >/dev/null || fail 'new-worktree should source new-worktree-flow.sh'
@@ -56,10 +62,13 @@ fi
 grep -F 'resolve_managed_default_checkout_require_helpers() {' "$default_checkout_helper" >/dev/null || fail 'resolve-managed-default-checkout should define an explicit helper-loading contract'
 grep -F 'resolve_managed_default_checkout requires managed-repo-metadata helpers' "$default_checkout_helper" >/dev/null || fail 'resolve-managed-default-checkout should fail clearly when metadata helpers are unavailable'
 
-grep -F 'local workspace_root="${1:?workspace_root required}"' "$cleanup_helper" >/dev/null || fail 'managed-worktree-cleanup retry renderer should require workspace_root explicitly'
-grep -F 'local absolute_path=' "$cleanup_helper" >/dev/null || fail 'managed-worktree-cleanup should localize absolute_path scratch variables'
-if grep -F '${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}' "$cleanup_helper" >/dev/null; then
-  fail 'managed-worktree-cleanup should not depend on implicit HUB_WORKSPACE_ROOT globals'
+grep -F 'managed-worktree-cleanup-resolve.sh' "$cleanup_helper" >/dev/null || fail 'managed-worktree-cleanup entrypoint should source resolve helper'
+grep -F 'managed-worktree-cleanup-risk.sh' "$cleanup_helper" >/dev/null || fail 'managed-worktree-cleanup entrypoint should source risk helper'
+grep -F 'managed-worktree-cleanup-mutation.sh' "$cleanup_helper" >/dev/null || fail 'managed-worktree-cleanup entrypoint should source mutation helper'
+grep -F 'local workspace_root="${1:?workspace_root required}"' "$cleanup_risk_helper" >/dev/null || fail 'managed-worktree-cleanup risk helper should require workspace_root explicitly'
+grep -F 'local absolute_path=' "$cleanup_risk_helper" >/dev/null || fail 'managed-worktree-cleanup risk helper should localize absolute_path scratch variables'
+if grep -F '${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}' "$cleanup_resolve_helper" >/dev/null || grep -F '${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}' "$cleanup_risk_helper" >/dev/null || grep -F '${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}' "$cleanup_mutation_helper" >/dev/null; then
+  fail 'managed-worktree-cleanup helpers should not depend on implicit HUB_WORKSPACE_ROOT globals'
 fi
 
 printf 'PASS test_worktree_refactor_layout\n'

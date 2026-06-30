@@ -87,9 +87,5 @@ install_materialize() {
   install_run_opencode_command npx -y skills add wondelai/skills/clean-code -g -y
   install_run_opencode_command npx -y @bybrawe/opencode-loop
 
-  if [ "$assume_yes" = true ] && [ "$dry_run" = true ]; then
-    :
-  fi
-
   printf 'ok: dotfiles applied from %s\n' "$source_root"
 }

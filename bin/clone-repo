@@ -62,8 +62,8 @@ if [ -e "$child_root" ]; then
   exit 1
 fi
 
-create_bare_hub "$child_root" "$source_repo" main yes yes
-default_branch="${HUB_REPO_RESOLVED_BRANCH:-main}"
+  create_bare_hub "$child_root" "$source_repo" main yes yes
+  default_branch="$(git --git-dir="$child_root/.bare" symbolic-ref --short HEAD)"
 default_dir="$child_root/$default_branch"
 
 if [ "$default_branch" != "main" ]; then
