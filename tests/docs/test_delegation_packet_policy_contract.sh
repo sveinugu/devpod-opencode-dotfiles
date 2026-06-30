@@ -191,6 +191,13 @@ forbidden_in "$pre_canonical_agents" "Allowed packet fields" "Pre-canonical AGEN
 forbidden_in "$pre_canonical_agents" "Forbidden packet content" "Pre-canonical AGENTS.md duplicates forbidden packet content"
 forbidden_in "$pre_canonical_agents" "Example packet" "Pre-canonical AGENTS.md duplicates example packet"
 
+# --- Deprecated alias cleanup ---
+echo ""
+echo "--- Deprecated alias cleanup ---"
+forbidden_in "$agents" "^## Subagent resume token policy$" "Deprecated subagent resume token alias removed"
+forbidden_in "$agents" "^## Session metadata ownership$" "Deprecated session metadata ownership alias removed"
+forbidden_in "$agents" "^## Failed session-resume recovery alignment$" "Deprecated failed session-resume recovery alias removed"
+
 # --- Maestro pointer verification ---
 echo ""
 echo "--- Maestro pointer verification ---"

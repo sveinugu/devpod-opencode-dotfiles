@@ -600,24 +600,6 @@ Update runbook and spec file paths when refactoring documented surfaces so point
 When policy wording changes, run the relevant doc-contract tests in `tests/docs/` to verify required anchors still hold.
 Keep this guidance additive and concise, and rely on canonical sections above for full policy detail.
 
-## Subagent resume token policy
-
-> **Deprecated:** superseded by “Delegation & Sessions (canonical)” → Resume token routing semantics.
-
-- Canonical source: `# Delegation & Sessions (canonical)` → `## Resume token routing semantics`.
-
-## Session metadata ownership
-
-> **Deprecated:** superseded by “Delegation & Sessions (canonical)” → Session metadata visibility timing.
-
-- Canonical source: `# Delegation & Sessions (canonical)` → `## Session metadata visibility timing` and `## Recovery alignment`.
-
-## Failed session-resume recovery alignment
-
-> **Deprecated:** superseded by “Delegation & Sessions (canonical)” → Recovery alignment.
-
-- Canonical source: `# Delegation & Sessions (canonical)` → `## Recovery alignment`.
-
 # Troubleshooting
 
 ## Debugging Subagent Delegation Issues (for Maestro and other Subagent-Orchestrating Agents):
