@@ -10,8 +10,8 @@ source "$script_dir/../scripts/lib/managed-lane-registry.sh"
 source "$script_dir/../scripts/lib/new-worktree-flow.sh"
 
 new_worktree_parse_cli "$@"
-new_worktree_resolve_repo_context
+new_worktree_resolve_repo_context "$workspace_root" "$script_dir"
 new_worktree_create_or_attach_branch_worktree
-new_worktree_prepare_checkout_sidecars
-new_worktree_record_lane_binding
+new_worktree_prepare_checkout_sidecars "$workspace_root" "$script_dir"
+new_worktree_record_lane_binding "$workspace_root"
 new_worktree_report_success

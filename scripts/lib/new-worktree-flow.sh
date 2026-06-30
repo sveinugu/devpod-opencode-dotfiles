@@ -5,6 +5,19 @@ new_worktree_usage() {
   printf 'usage: new-worktree [--repo <hub|repo-name>] <branch>\n' >&2
 }
 
+new_worktree_require_non_empty() {
+  local function_name="$1"
+  local arg_name="$2"
+  local arg_value="$3"
+
+  if [ -n "$arg_value" ]; then
+    return 0
+  fi
+
+  printf 'refused: %s requires non-empty %s\n' "$function_name" "$arg_name" >&2
+  exit 1
+}
+
 new_worktree_parse_cli() {
   if [ "$#" -lt 1 ]; then
     new_worktree_usage
@@ -48,12 +61,18 @@ new_worktree_parse_cli() {
 }
 
 new_worktree_infer_repo_name_from_pwd() {
+  local workspace_root="$1"
+  local script_dir="$2"
+
+  new_worktree_require_non_empty 'new_worktree_infer_repo_name_from_pwd' 'workspace_root' "$workspace_root"
+  new_worktree_require_non_empty 'new_worktree_infer_repo_name_from_pwd' 'script_dir' "$script_dir"
+
   if [ -n "$new_worktree_repo_name" ]; then
     return 0
   fi
 
-  resolver="${WORKSPACE_NAV_REPO_ROOT_RESOLVER:-$script_dir/../scripts/lib/resolve-managed-repo-root.sh}"
-  inferred_repo_root=''
+  local resolver="${WORKSPACE_NAV_REPO_ROOT_RESOLVER:-$script_dir/../scripts/lib/resolve-managed-repo-root.sh}"
+  local inferred_repo_root=''
   if ! inferred_repo_root="$(HUB_WORKSPACE_ROOT="$workspace_root" bash "$resolver" "${PWD:-$(pwd -P)}" 2>/dev/null)"; then
     printf 'refused: unable to infer managed repo context; use --repo <hub|repo-name>\n' >&2
     exit 1
@@ -70,7 +89,14 @@ new_worktree_infer_repo_name_from_pwd() {
 }
 
 new_worktree_resolve_repo_context() {
-  new_worktree_infer_repo_name_from_pwd
+  local workspace_root="$1"
+  local script_dir="$2"
+  local repo_env=''
+
+  new_worktree_require_non_empty 'new_worktree_resolve_repo_context' 'workspace_root' "$workspace_root"
+  new_worktree_require_non_empty 'new_worktree_resolve_repo_context' 'script_dir' "$script_dir"
+
+  new_worktree_infer_repo_name_from_pwd "$workspace_root" "$script_dir"
 
   if [ "$new_worktree_repo_name" = 'hub' ]; then
     new_worktree_repo_root="$workspace_root"
@@ -111,6 +137,13 @@ new_worktree_resolve_repo_context() {
 }
 
 new_worktree_create_or_attach_branch_worktree() {
+  local base_branch=''
+
+  new_worktree_require_non_empty 'new_worktree_create_or_attach_branch_worktree' 'new_worktree_branch' "${new_worktree_branch:-}"
+  new_worktree_require_non_empty 'new_worktree_create_or_attach_branch_worktree' 'new_worktree_repo_default_branch' "${new_worktree_repo_default_branch:-}"
+  new_worktree_require_non_empty 'new_worktree_create_or_attach_branch_worktree' 'new_worktree_bare_dir' "${new_worktree_bare_dir:-}"
+  new_worktree_require_non_empty 'new_worktree_create_or_attach_branch_worktree' 'new_worktree_target' "${new_worktree_target:-}"
+
   if [ "$new_worktree_branch" = "$new_worktree_repo_default_branch" ]; then
     printf 'refused: requested worktree name matches reserved default branch name "%s"\n' "$new_worktree_repo_default_branch" >&2
     exit 1
@@ -146,6 +179,15 @@ new_worktree_create_or_attach_branch_worktree() {
 }
 
 new_worktree_prepare_checkout_sidecars() {
+  local workspace_root="$1"
+  local script_dir="$2"
+
+  new_worktree_require_non_empty 'new_worktree_prepare_checkout_sidecars' 'workspace_root' "$workspace_root"
+  new_worktree_require_non_empty 'new_worktree_prepare_checkout_sidecars' 'script_dir' "$script_dir"
+  new_worktree_require_non_empty 'new_worktree_prepare_checkout_sidecars' 'new_worktree_state_dir' "${new_worktree_state_dir:-}"
+  new_worktree_require_non_empty 'new_worktree_prepare_checkout_sidecars' 'new_worktree_tmp_dir' "${new_worktree_tmp_dir:-}"
+  new_worktree_require_non_empty 'new_worktree_prepare_checkout_sidecars' 'new_worktree_target' "${new_worktree_target:-}"
+
   mkdir -p "$new_worktree_state_dir" "$new_worktree_tmp_dir"
 
   lane_id="${MANAGED_LANE_ID:-$new_worktree_branch}"
@@ -172,6 +214,17 @@ new_worktree_prepare_checkout_sidecars() {
 }
 
 new_worktree_record_lane_binding() {
+  local workspace_root="$1"
+
+  new_worktree_require_non_empty 'new_worktree_record_lane_binding' 'workspace_root' "$workspace_root"
+  new_worktree_require_non_empty 'new_worktree_record_lane_binding' 'new_worktree_lane_repo_identity' "${new_worktree_lane_repo_identity:-}"
+  new_worktree_require_non_empty 'new_worktree_record_lane_binding' 'new_worktree_branch' "${new_worktree_branch:-}"
+  new_worktree_require_non_empty 'new_worktree_record_lane_binding' 'new_worktree_target' "${new_worktree_target:-}"
+  new_worktree_require_non_empty 'new_worktree_record_lane_binding' 'new_worktree_state_dir' "${new_worktree_state_dir:-}"
+  new_worktree_require_non_empty 'new_worktree_record_lane_binding' 'lane_id' "${lane_id:-}"
+  new_worktree_require_non_empty 'new_worktree_record_lane_binding' 'routing_state' "${routing_state:-}"
+  new_worktree_require_non_empty 'new_worktree_record_lane_binding' 'lane_status' "${lane_status:-}"
+
   managed_lane_registry_record_binding \
     "$workspace_root" \
     "$new_worktree_lane_repo_identity" \

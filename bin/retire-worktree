@@ -10,7 +10,7 @@ source "$script_dir/../scripts/lib/managed-worktree-cleanup.sh"
 source "$script_dir/../scripts/lib/retire-worktree-flow.sh"
 
 retire_worktree_parse_cli "$@"
-retire_worktree_resolve_target_record
+retire_worktree_resolve_target_record "$workspace_root"
 retire_worktree_print_target_summary
-retire_worktree_assess_risk_and_maybe_refuse
+retire_worktree_assess_risk_and_maybe_refuse "$workspace_root"
 retire_worktree_execute

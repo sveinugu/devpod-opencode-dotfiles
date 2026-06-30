@@ -8,12 +8,8 @@ hub_fail() {
   return 1
 }
 
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-source "$script_dir/hub-repo-core-source.sh"
-source "$script_dir/hub-repo-core-bootstrap.sh"
-source "$script_dir/hub-repo-core-upstream.sh"
-if [ -n "${BASH_SOURCE[1]:-}" ]; then
-  script_dir="$(cd "$(dirname "${BASH_SOURCE[1]}")" && pwd -P)"
-else
-  unset script_dir
-fi
+_HRC_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+source "$_HRC_SCRIPT_DIR/hub-repo-core-source.sh"
+source "$_HRC_SCRIPT_DIR/hub-repo-core-bootstrap.sh"
+source "$_HRC_SCRIPT_DIR/hub-repo-core-upstream.sh"
+unset _HRC_SCRIPT_DIR

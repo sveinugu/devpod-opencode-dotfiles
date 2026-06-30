@@ -5,6 +5,19 @@ retire_worktree_usage() {
   printf 'usage: retire-worktree [--repo <hub|repo-name>] [--dry-run] [--force --force-token <token>] <lane-id|branch>\n' >&2
 }
 
+retire_worktree_require_non_empty() {
+  local function_name="$1"
+  local arg_name="$2"
+  local arg_value="$3"
+
+  if [ -n "$arg_value" ]; then
+    return 0
+  fi
+
+  printf 'refused: %s requires non-empty %s\n' "$function_name" "$arg_name" >&2
+  exit 1
+}
+
 retire_worktree_parse_cli() {
   retire_worktree_repo_identity='hub'
   retire_worktree_dry_run='no'
@@ -57,6 +70,12 @@ retire_worktree_parse_cli() {
 }
 
 retire_worktree_resolve_target_record() {
+  local workspace_root="$1"
+
+  retire_worktree_require_non_empty 'retire_worktree_resolve_target_record' 'workspace_root' "$workspace_root"
+  retire_worktree_require_non_empty 'retire_worktree_resolve_target_record' 'retire_worktree_repo_identity' "${retire_worktree_repo_identity:-}"
+  retire_worktree_require_non_empty 'retire_worktree_resolve_target_record' 'retire_worktree_target' "${retire_worktree_target:-}"
+
   managed_cleanup_resolve_single_target_record \
     "$workspace_root" \
     "$retire_worktree_repo_identity" \
@@ -79,8 +98,20 @@ retire_worktree_print_target_summary() {
 }
 
 retire_worktree_assess_risk_and_maybe_refuse() {
+  local workspace_root="$1"
+
+  retire_worktree_require_non_empty 'retire_worktree_assess_risk_and_maybe_refuse' 'workspace_root' "$workspace_root"
+  retire_worktree_require_non_empty 'retire_worktree_assess_risk_and_maybe_refuse' 'retire_worktree_repo_identity' "${retire_worktree_repo_identity:-}"
+  retire_worktree_require_non_empty 'retire_worktree_assess_risk_and_maybe_refuse' 'retire_worktree_lane_id' "${retire_worktree_lane_id:-}"
+  retire_worktree_require_non_empty 'retire_worktree_assess_risk_and_maybe_refuse' 'retire_worktree_branch' "${retire_worktree_branch:-}"
+  retire_worktree_require_non_empty 'retire_worktree_assess_risk_and_maybe_refuse' 'retire_worktree_worktree_path' "${retire_worktree_worktree_path:-}"
+  retire_worktree_require_non_empty 'retire_worktree_assess_risk_and_maybe_refuse' 'retire_worktree_default_branch' "${retire_worktree_default_branch:-}"
+  retire_worktree_require_non_empty 'retire_worktree_assess_risk_and_maybe_refuse' 'retire_worktree_target' "${retire_worktree_target:-}"
+  retire_worktree_require_non_empty 'retire_worktree_assess_risk_and_maybe_refuse' 'retire_worktree_force_mode' "${retire_worktree_force_mode:-}"
+
   managed_cleanup_collect_risk_report \
-    "$script_dir/retire-worktree" \
+    "$workspace_root" \
+    "$workspace_root/bin/retire-worktree" \
     "$retire_worktree_repo_identity" \
     "$retire_worktree_lane_id" \
     "$retire_worktree_branch" \
@@ -92,6 +123,8 @@ retire_worktree_assess_risk_and_maybe_refuse() {
 }
 
 retire_worktree_execute() {
+  retire_worktree_require_non_empty 'retire_worktree_execute' 'retire_worktree_dry_run' "${retire_worktree_dry_run:-}"
+
   if [ "$retire_worktree_dry_run" = 'yes' ]; then
     printf 'ok: dry-run only, no cleanup performed\n'
     exit 0
