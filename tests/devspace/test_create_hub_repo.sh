@@ -39,6 +39,7 @@ ln -s "$workspace_root/main/.zprofile" "$home_dir/.zprofile"
 ln -s "$workspace_root/main/.config/opencode" "$home_dir/.config/opencode"
 
 child_source="$tmpdir/child-repo"
+child_source_url='https://public.example/fixtures/child-repo.git'
 git init "$child_source" >/dev/null 2>&1
 (
   cd "$child_source"
@@ -50,7 +51,12 @@ git init "$child_source" >/dev/null 2>&1
   git commit -m 'child fixture' >/dev/null 2>&1
 )
 
-HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" "$child_source" >"$tmpdir/child-ok.out" 2>&1 || fail "onboarding should succeed for valid source"
+HUB_WORKSPACE_ROOT="$workspace_root" \
+HUB_HOME_DIR="$home_dir" \
+GIT_CONFIG_COUNT=1 \
+GIT_CONFIG_KEY_0="url.$child_source.insteadOf" \
+GIT_CONFIG_VALUE_0="$child_source_url" \
+bash "$script" "$child_source_url" >"$tmpdir/child-ok.out" 2>&1 || fail "onboarding should succeed for valid source"
 
 [ -d "$workspace_root/repos/child-repo/.bare" ] || fail "missing repos/<name>/.bare"
 [ -d "$workspace_root/repos/child-repo/main" ] || fail "missing repos/<name>/main"
@@ -75,19 +81,30 @@ repo_env_out="$(set +u; source "$workspace_root/state/repos/child-repo/etc/repo.
 [ "$(readlink "$home_dir/.zshrc")" = "$workspace_root/main/.zshrc" ] || fail "child onboarding must not repoint /home authority"
 
 set +e
-HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" "$child_source" >"$tmpdir/collision.out" 2>&1
+HUB_WORKSPACE_ROOT="$workspace_root" \
+HUB_HOME_DIR="$home_dir" \
+GIT_CONFIG_COUNT=1 \
+GIT_CONFIG_KEY_0="url.$child_source.insteadOf" \
+GIT_CONFIG_VALUE_0="$child_source_url" \
+bash "$script" "$child_source_url" >"$tmpdir/collision.out" 2>&1
 collision_rc="$?"
 set -e
 [ "$collision_rc" = "1" ] || fail "onboarding should refuse path collisions"
 grep -F 'refused: child repo path already exists' "$tmpdir/collision.out" >/dev/null || fail "missing collision refusal message"
 
 set +e
-HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" --name custom "$child_source" >"$tmpdir/name.out" 2>&1
+HUB_WORKSPACE_ROOT="$workspace_root" \
+HUB_HOME_DIR="$home_dir" \
+GIT_CONFIG_COUNT=1 \
+GIT_CONFIG_KEY_0="url.$child_source.insteadOf" \
+GIT_CONFIG_VALUE_0="$child_source_url" \
+bash "$script" --name custom "$child_source_url" >"$tmpdir/name.out" 2>&1
 name_rc="$?"
 set -e
 [ "$name_rc" = "2" ] || fail "--name override should be rejected in v1"
 
 source_default_branch="$tmpdir/child-default-branch"
+source_default_branch_url='https://public.example/fixtures/child-default-branch.git'
 git init "$source_default_branch" >/dev/null 2>&1
 (
   cd "$source_default_branch"
@@ -98,7 +115,12 @@ git init "$source_default_branch" >/dev/null 2>&1
   git commit -m 'default branch repo' >/dev/null 2>&1
 )
 
-HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" "$source_default_branch" >"$tmpdir/default-branch.out" 2>&1 || fail "onboarding should use source default branch when origin/main is absent"
+HUB_WORKSPACE_ROOT="$workspace_root" \
+HUB_HOME_DIR="$home_dir" \
+GIT_CONFIG_COUNT=1 \
+GIT_CONFIG_KEY_0="url.$source_default_branch.insteadOf" \
+GIT_CONFIG_VALUE_0="$source_default_branch_url" \
+bash "$script" "$source_default_branch_url" >"$tmpdir/default-branch.out" 2>&1 || fail "onboarding should use source default branch when origin/main is absent"
 [ -d "$workspace_root/repos/child-default-branch/.bare" ] || fail "missing bare repo for default-branch source"
 default_branch_name="$(git -C "$workspace_root/repos/child-default-branch/master" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
 [ "$default_branch_name" = "master" ] || fail "default-branch source should attach source default branch"
@@ -110,8 +132,9 @@ default_branch_name="$(git -C "$workspace_root/repos/child-default-branch/master
 grep -F 'export DYN_REPO_DEFAULT_BRANCH=master' "$workspace_root/state/repos/child-default-branch/etc/repo.env" >/dev/null || fail "repo.env should record detected non-main default branch"
 grep -F "export DYN_REPO_DEFAULT_DIR=$workspace_root/repos/child-default-branch/master" "$workspace_root/state/repos/child-default-branch/etc/repo.env" >/dev/null || fail "repo.env should record detected non-main default directory"
 
-quoted_name='repo with space'
+quoted_name='repo%20with%20space'
 quoted_source="$tmpdir/$quoted_name.git"
+quoted_source_url='https://public.example/fixtures/repo%20with%20space.git'
 git init "$quoted_source" >/dev/null 2>&1
 (
   cd "$quoted_source"
@@ -123,7 +146,12 @@ git init "$quoted_source" >/dev/null 2>&1
   git commit -m 'quoted child fixture' >/dev/null 2>&1
 )
 
-HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" "$quoted_source" >"$tmpdir/quoted-child.out" 2>&1 || fail "onboarding should succeed for quoted-style repo names"
+HUB_WORKSPACE_ROOT="$workspace_root" \
+HUB_HOME_DIR="$home_dir" \
+GIT_CONFIG_COUNT=1 \
+GIT_CONFIG_KEY_0="url.$quoted_source.insteadOf" \
+GIT_CONFIG_VALUE_0="$quoted_source_url" \
+bash "$script" "$quoted_source_url" >"$tmpdir/quoted-child.out" 2>&1 || fail "onboarding should succeed for URL-encoded repo names"
 [ -f "$workspace_root/state/repos/$quoted_name/etc/repo.env" ] || fail "quoted repo should persist repo.env"
 [ "$(git -C "$workspace_root/repos/$quoted_name/main" config --get "branch.main.remote" 2>/dev/null || true)" = "origin" ] || fail "quoted-style child default branch should set branch.<name>.remote=origin"
 [ "$(git -C "$workspace_root/repos/$quoted_name/main" config --get "branch.main.merge" 2>/dev/null || true)" = "refs/heads/main" ] || fail "quoted-style child default branch should set branch.<name>.merge to refs/heads/<name>"
@@ -138,6 +166,25 @@ public_only_rc="$?"
 set -e
 [ "$public_only_rc" = "1" ] || fail "v1 should refuse non-public/ssh child sources"
 grep -F 'refused: public repo source is required in v1' "$tmpdir/public-only.out" >/dev/null || fail "missing public-only refusal"
+
+non_public_local_source="$tmpdir/non-public-local-source"
+git init "$non_public_local_source" >/dev/null 2>&1
+(
+  cd "$non_public_local_source"
+  git config user.name 'Test User'
+  git config user.email 'test@example.com'
+  git branch -M main
+  printf 'local non-public\n' > README.md
+  git add README.md
+  git commit -m 'local non-public fixture' >/dev/null 2>&1
+)
+
+set +e
+HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" "$non_public_local_source" >"$tmpdir/public-only-local.out" 2>&1
+public_only_local_rc="$?"
+set -e
+[ "$public_only_local_rc" = "1" ] || fail "v1 should refuse non-public local-path child sources"
+grep -F 'refused: public repo source is required in v1' "$tmpdir/public-only-local.out" >/dev/null || fail "missing local-path public-only refusal"
 
 grep -F 'bin/clone-repo' "$runbook" >/dev/null || fail "runbook should document child repo onboarding usage"
 

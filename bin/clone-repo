@@ -36,14 +36,10 @@ fi
 source_repo="$1"
 
 case "$source_repo" in
-  git@*|ssh://*|*://*/*/*)
-    case "$source_repo" in
-      https://*) ;;
-      *)
-        printf 'refused: public repo source is required in v1\n' >&2
-        exit 1
-        ;;
-    esac
+  https://*) ;;
+  *)
+    printf 'refused: public repo source is required in v1\n' >&2
+    exit 1
     ;;
 esac
 

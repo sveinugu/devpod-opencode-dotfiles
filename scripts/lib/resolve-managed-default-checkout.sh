@@ -38,11 +38,6 @@ resolve_managed_default_checkout() {
   require_non_empty 'resolve_managed_default_checkout' 'helper_script_base_dir' "$helper_script_base_dir"
   resolve_managed_default_checkout_require_helpers "$helper_script_base_dir"
 
-  require_non_empty 'resolve_managed_default_checkout' 'repo_name' "$repo_name"
-  require_non_empty 'resolve_managed_default_checkout' 'repo_root' "$repo_root"
-  require_non_empty 'resolve_managed_default_checkout' 'workspace_root' "$workspace_root"
-  require_non_empty 'resolve_managed_default_checkout' 'helper_script_base_dir' "$helper_script_base_dir"
-
   local repo_env="$workspace_root/state/repos/$repo_name/etc/repo.env"
   local repo_root_canon=''
   local default_branch=''

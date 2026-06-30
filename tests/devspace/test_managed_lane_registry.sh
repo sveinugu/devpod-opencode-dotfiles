@@ -44,6 +44,7 @@ printf 'export HUB_INSTALL_BRANCH=main\n' > "$workspace_root/state/hub/etc/insta
 printf 'export HUB_INSTALL_BRANCH_DIR=%s\n' "$workspace_root/main" >> "$workspace_root/state/hub/etc/install.env"
 
 child_source="$tmpdir/child-source"
+child_source_url='https://public.example/fixtures/child-source.git'
 git init "$child_source" >/dev/null 2>&1
 (
   cd "$child_source"
@@ -55,7 +56,12 @@ git init "$child_source" >/dev/null 2>&1
   git commit -m 'child fixture' >/dev/null 2>&1
 )
 
-HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$clone_repo_script" "$child_source" >/dev/null
+HUB_WORKSPACE_ROOT="$workspace_root" \
+HOME="$home_dir" \
+GIT_CONFIG_COUNT=1 \
+GIT_CONFIG_KEY_0="url.$child_source.insteadOf" \
+GIT_CONFIG_VALUE_0="$child_source_url" \
+bash "$clone_repo_script" "$child_source_url" >/dev/null
 
 HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" MANAGED_LANE_ID='lane-hub-explicit' bash "$new_worktree_script" --repo hub feature/hub-explicit >/dev/null
 HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" MANAGED_LANE_PARENT_ARTIFACTS='docs/superpowers/specs/parent-anchor.md' bash "$new_worktree_script" --repo hub feature/hub-sibling-a >/dev/null

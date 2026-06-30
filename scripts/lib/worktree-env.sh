@@ -99,8 +99,8 @@ export DYN_WORKTREE_TMP_DIR="$dyn_worktree_tmp_dir"
 export TMPDIR="$dyn_worktree_tmp_dir"
 export TMP="$dyn_worktree_tmp_dir"
 export TEMP="$dyn_worktree_tmp_dir"
-if [ -f /workspaces/dotfiles/state/hub/etc/install.env ]; then
-  source /workspaces/dotfiles/state/hub/etc/install.env
+if [ -f "$workspace_root/state/hub/etc/install.env" ]; then
+  source "$workspace_root/state/hub/etc/install.env"
 fi
 source ./.envrc.local
 EOF

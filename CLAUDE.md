@@ -21,8 +21,7 @@ Always use an explicit worktree path. The hub root is guarded: `install.sh` and 
 
 **Install dotfiles (inside workspace):**
 ```bash
-bash install.sh          # interactive
-bash install.sh -y       # non-interactive
+bash install.sh          # standard install
 bash install.sh --dry-run
 ```
 

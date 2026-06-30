@@ -61,6 +61,7 @@ printf 'export HUB_INSTALL_BRANCH=main\n' > "$workspace_root/state/hub/etc/insta
 printf 'export HUB_INSTALL_BRANCH_DIR=%s\n' "$workspace_root/main" >> "$workspace_root/state/hub/etc/install.env"
 
 child_source="$tmpdir/child-source"
+child_source_url='https://public.example/fixtures/child-source.git'
 git init "$child_source" >/dev/null 2>&1
 (
   cd "$child_source"
@@ -72,7 +73,12 @@ git init "$child_source" >/dev/null 2>&1
   git commit -m 'child fixture' >/dev/null 2>&1
 )
 
-HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$clone_repo_script" "$child_source" >/dev/null
+HUB_WORKSPACE_ROOT="$workspace_root" \
+HOME="$home_dir" \
+GIT_CONFIG_COUNT=1 \
+GIT_CONFIG_KEY_0="url.$child_source.insteadOf" \
+GIT_CONFIG_VALUE_0="$child_source_url" \
+bash "$clone_repo_script" "$child_source_url" >/dev/null
 
 child_repo_env="$workspace_root/state/repos/child-source/etc/repo.env"
 [ -f "$child_repo_env" ] || fail "missing child repo metadata env file"
@@ -277,7 +283,10 @@ do
   [ "$tmp_value" = "$dyn_worktree_tmp_value" ] || fail "TMP should match DYN_WORKTREE_TMP_DIR in $checkout/.envrc"
   [ "$temp_value" = "$dyn_worktree_tmp_value" ] || fail "TEMP should match DYN_WORKTREE_TMP_DIR in $checkout/.envrc"
 
-  grep -F '/workspaces/dotfiles/state/hub/etc/install.env' "$checkout/.envrc" >/dev/null || fail "missing install.env source in $checkout/.envrc"
+  if grep -F '/workspaces/dotfiles/state/hub/etc/install.env' "$checkout/.envrc" >/dev/null; then
+    fail "managed .envrc should not hardcode /workspaces/dotfiles install.env in $checkout/.envrc"
+  fi
+  grep -F "$workspace_root/state/hub/etc/install.env" "$checkout/.envrc" >/dev/null || fail "missing workspace-rooted install.env source in $checkout/.envrc"
   grep -F '.envrc.local' "$checkout/.envrc" >/dev/null || fail "missing .envrc.local source in $checkout/.envrc"
 done
 

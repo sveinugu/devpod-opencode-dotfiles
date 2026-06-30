@@ -13,7 +13,7 @@ grep -F '> What changed for implementers:' .config/opencode/agents/maestro.md >/
 grep -F '> What changed for implementers:' .config/opencode/agents/senior-implementer.md >/dev/null
 
 grep -F 'devspace run-pipeline provision' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
-grep -F 'bash /workspaces/dotfiles/main/install.sh --dry-run -y' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F 'bash /workspaces/dotfiles/main/install.sh --dry-run' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'ssh -o BatchMode=yes workspace.dotfiles.devspace' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'devspace run-pipeline verify-ssh' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'HUB_PROVISION_ARGS' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null

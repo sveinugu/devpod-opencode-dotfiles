@@ -14,8 +14,8 @@ This runbook is the canonical source for in-pod install, navigation, and managed
 Use `/workspaces/dotfiles/main` as the editable workspace checkout.
 
 ```bash
-bash /workspaces/dotfiles/main/install.sh --dry-run -y
-bash /workspaces/dotfiles/work/feature-example/install.sh --dry-run -y
+bash /workspaces/dotfiles/main/install.sh --dry-run
+bash /workspaces/dotfiles/work/feature-example/install.sh --dry-run
 ```
 
 Never run the hub-root copy at `/workspaces/dotfiles/install.sh`; it must refuse with:

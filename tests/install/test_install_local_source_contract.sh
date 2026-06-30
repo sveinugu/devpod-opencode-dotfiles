@@ -71,7 +71,7 @@ copy_install_support_tree "$workspace_root"
 
 (
   cd "$offcwd"
-  HOME="$target_home" WORKSPACE_ROOT="$workspace_root" bash "$workspace_root/main/install.sh" --dry-run -y >"$tmpdir/main.out" 2>&1
+  HOME="$target_home" WORKSPACE_ROOT="$workspace_root" bash "$workspace_root/main/install.sh" --dry-run >"$tmpdir/main.out" 2>&1
 )
 
 [ -f "$workspace_install_env" ] || {
@@ -105,7 +105,7 @@ fi
 
 (
   cd "$offcwd"
-  HOME="$target_home" WORKSPACE_ROOT="$workspace_root" bash "$workspace_root/work/feature-x/install.sh" --dry-run -y >"$tmpdir/feature.out" 2>&1
+  HOME="$target_home" WORKSPACE_ROOT="$workspace_root" bash "$workspace_root/work/feature-x/install.sh" --dry-run >"$tmpdir/feature.out" 2>&1
 )
 
 grep -F "export HUB_INSTALL_BRANCH=feature-x" "$workspace_install_env" >/dev/null || {
@@ -141,7 +141,7 @@ copy_install_support_tree "$workspace_quoted/work/feature branch"
 
 (
   cd "$offcwd_quoted"
-  HOME="$target_home_quoted" WORKSPACE_ROOT="$workspace_quoted" bash "$workspace_quoted/work/feature branch/install.sh" --dry-run -y >"$tmpdir/quoted.out" 2>&1
+  HOME="$target_home_quoted" WORKSPACE_ROOT="$workspace_quoted" bash "$workspace_quoted/work/feature branch/install.sh" --dry-run >"$tmpdir/quoted.out" 2>&1
 )
 
 quoted_install_env="$workspace_quoted/state/hub/etc/install.env"
@@ -168,7 +168,7 @@ grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.config/opencode $target
 
 (
   cd "$offcwd"
-  if HOME="$target_home" WORKSPACE_ROOT="$workspace_root" bash "$workspace_root/install.sh" --dry-run -y >"$tmpdir/hub.out" 2>&1; then
+  if HOME="$target_home" WORKSPACE_ROOT="$workspace_root" bash "$workspace_root/install.sh" --dry-run >"$tmpdir/hub.out" 2>&1; then
     printf 'expected hub-root execution to fail\n' >&2
     exit 1
   fi
@@ -178,7 +178,7 @@ grep -F "Refused — hub-root CWD detected. Provide explicit worktree path." "$t
 
 (
   cd "$offcwd"
-  if HOME="$target_home" WORKSPACE_ROOT="$workspace_root" HUB_INSTALL_BRANCH=wrong-branch bash "$workspace_root/main/install.sh" --dry-run -y >"$tmpdir/branch-mismatch.out" 2>&1; then
+  if HOME="$target_home" WORKSPACE_ROOT="$workspace_root" HUB_INSTALL_BRANCH=wrong-branch bash "$workspace_root/main/install.sh" --dry-run >"$tmpdir/branch-mismatch.out" 2>&1; then
     printf 'expected HUB_INSTALL_BRANCH mismatch to fail\n' >&2
     exit 1
   fi
@@ -191,7 +191,7 @@ grep -F 'refused: HUB_INSTALL_BRANCH does not match install source' "$tmpdir/bra
 
 (
   cd "$offcwd"
-  if HOME="$target_home" WORKSPACE_ROOT="$workspace_root" HUB_INSTALL_BRANCH_DIR="$workspace_root/wrong-dir" bash "$workspace_root/main/install.sh" --dry-run -y >"$tmpdir/dir-mismatch.out" 2>&1; then
+  if HOME="$target_home" WORKSPACE_ROOT="$workspace_root" HUB_INSTALL_BRANCH_DIR="$workspace_root/wrong-dir" bash "$workspace_root/main/install.sh" --dry-run >"$tmpdir/dir-mismatch.out" 2>&1; then
     printf 'expected HUB_INSTALL_BRANCH_DIR mismatch to fail\n' >&2
     exit 1
   fi
@@ -208,7 +208,7 @@ stale_branch_dir="$(printf '%s' "$stale_values_out" | sed -n '2p')"
 
 (
   cd "$offcwd"
-  HOME="$target_home" WORKSPACE_ROOT="$workspace_root" HUB_INSTALL_BRANCH="$stale_branch" HUB_INSTALL_BRANCH_DIR="$stale_branch_dir" bash "$workspace_root/main/install.sh" --dry-run -y >"$tmpdir/stale-inherited.out" 2>&1
+  HOME="$target_home" WORKSPACE_ROOT="$workspace_root" HUB_INSTALL_BRANCH="$stale_branch" HUB_INSTALL_BRANCH_DIR="$stale_branch_dir" bash "$workspace_root/main/install.sh" --dry-run >"$tmpdir/stale-inherited.out" 2>&1
 )
 
 grep -F "export HUB_INSTALL_BRANCH=main" "$workspace_install_env" >/dev/null || {

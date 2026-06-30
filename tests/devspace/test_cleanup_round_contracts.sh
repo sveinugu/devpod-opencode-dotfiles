@@ -19,8 +19,10 @@ cleanup_resolve="$repo_root/scripts/lib/managed-worktree-cleanup-resolve.sh"
 cleanup_risk="$repo_root/scripts/lib/managed-worktree-cleanup-risk.sh"
 cleanup_mutation="$repo_root/scripts/lib/managed-worktree-cleanup-mutation.sh"
 materialize_helper="$repo_root/scripts/lib/install/materialize.sh"
+parse_args_helper="$repo_root/scripts/lib/install/parse-args.sh"
 
 [ -f "$require_helper" ] || fail 'scripts/lib/require-non-empty.sh not found'
+[ -f "$parse_args_helper" ] || fail 'scripts/lib/install/parse-args.sh not found'
 
 for helper in "$new_worktree_flow" "$retire_worktree_flow" "$metadata_helper" "$default_checkout_helper"; do
   [ -f "$helper" ] || fail "missing helper: $helper"
@@ -43,12 +45,27 @@ if grep -F 'resolve_managed_default_checkout_require_non_empty()' "$default_chec
   fail 'resolve-managed-default-checkout should not define local require_non_empty helper'
 fi
 
+repo_name_guard_count="$(grep -F "require_non_empty 'resolve_managed_default_checkout' 'repo_name' \"\$repo_name\"" "$default_checkout_helper" | wc -l | tr -d ' ')"
+[ "$repo_name_guard_count" = '1' ] || fail 'resolve-managed-default-checkout should not duplicate resolve_managed_default_checkout require_non_empty guards'
+
 if grep -F 'HUB_REPO_RESOLVED_BRANCH' "$clone_repo_script" >/dev/null; then
   fail 'clone-repo should not depend on HUB_REPO_RESOLVED_BRANCH side effect'
 fi
 
 if grep -F 'if [ "$assume_yes" = true ] && [ "$dry_run" = true ]; then' "$materialize_helper" >/dev/null; then
   fail 'materialize helper should not include vestigial assume_yes+dry_run no-op block'
+fi
+
+if grep -F '[-y|--yes]' "$parse_args_helper" >/dev/null; then
+  fail 'install parse-args usage should not advertise removed -y|--yes flag in v1'
+fi
+
+if grep -F 'assume_yes=' "$parse_args_helper" >/dev/null; then
+  fail 'install parse-args should not define vestigial assume_yes variable in v1'
+fi
+
+if grep -F -- '-y|--yes)' "$parse_args_helper" >/dev/null; then
+  fail 'install parse-args should not accept removed -y|--yes flag in v1'
 fi
 
 for helper in "$cleanup_resolve" "$cleanup_risk" "$cleanup_mutation"; do
