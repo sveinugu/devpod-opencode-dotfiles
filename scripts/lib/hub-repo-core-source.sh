@@ -17,6 +17,7 @@ hub_is_non_interactive_access_failure() {
 hub_source_default_branch() {
   local source="$1"
   local output=''
+  local branch_name=''
   local rc=0
 
   if [ -d "$source/.git" ] || [ -d "$source/objects" ]; then

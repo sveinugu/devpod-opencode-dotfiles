@@ -3,6 +3,7 @@
 hub_is_valid_worktree() {
   local workspace_root="$1"
   local branch="$2"
+  local branch_name=''
 
   branch_name="$(git -C "$workspace_root/main" symbolic-ref --short -q HEAD 2>/dev/null || true)"
   [ "$branch_name" = "$branch" ] || return 1
@@ -31,6 +32,7 @@ create_bare_hub() {
   local verbose="${5:-no}"
   local requested_branch="$branch"
   local resolved_branch="$branch"
+  local detected_branch=''
   local branch_check_rc=0
   local created_bare_repo='no'
   local hub_workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
