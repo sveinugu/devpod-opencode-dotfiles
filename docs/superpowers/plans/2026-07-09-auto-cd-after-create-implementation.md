@@ -116,7 +116,7 @@
   - Pin these user-visible behaviors:
     - on success with opt-out unset, the wrapper forwards normal command output, prints the shared opt-out hint, prints `cd -> <target>`, and changes the current shell directory;
     - on success with `HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1`, the wrapper forwards normal command output, prints the same hint, and stays in the original directory;
-    - if the underlying command succeeds but the handoff file is missing, empty, or names a non-directory, the wrapper warns clearly and stays put;
+    - if the underlying command succeeds but the handoff file is missing, empty, or names a non-directory, the wrapper still prints the shared opt-out hint, warns clearly, and stays put;
     - if the underlying command fails, the wrapper preserves its output and exit status, prints no success hint, and does not change directories.
 
 - [ ] **Step 2: Verify RED**
