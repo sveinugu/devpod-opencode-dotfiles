@@ -3,6 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
+retire_worktree_command_path="$script_dir/retire-worktree"
 
 # shellcheck source=scripts/lib/managed-worktree-cleanup.sh
 source "$script_dir/../scripts/lib/managed-worktree-cleanup.sh"
@@ -12,5 +13,5 @@ source "$script_dir/../scripts/lib/retire-worktree-flow.sh"
 retire_worktree_parse_cli "$@"
 retire_worktree_resolve_target_record "$workspace_root"
 retire_worktree_print_target_summary
-retire_worktree_assess_risk_and_maybe_refuse "$workspace_root"
+retire_worktree_assess_risk_and_maybe_refuse "$workspace_root" "$retire_worktree_command_path"
 retire_worktree_execute

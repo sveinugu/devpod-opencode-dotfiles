@@ -83,8 +83,10 @@ retire_worktree_print_target_summary() {
 
 retire_worktree_assess_risk_and_maybe_refuse() {
   local workspace_root="$1"
+  local command_path="$2"
 
   require_non_empty 'retire_worktree_assess_risk_and_maybe_refuse' 'workspace_root' "$workspace_root"
+  require_non_empty 'retire_worktree_assess_risk_and_maybe_refuse' 'command_path' "$command_path"
   require_non_empty 'retire_worktree_assess_risk_and_maybe_refuse' 'retire_worktree_repo_identity' "${retire_worktree_repo_identity:-}"
   require_non_empty 'retire_worktree_assess_risk_and_maybe_refuse' 'retire_worktree_lane_id' "${retire_worktree_lane_id:-}"
   require_non_empty 'retire_worktree_assess_risk_and_maybe_refuse' 'retire_worktree_branch' "${retire_worktree_branch:-}"
@@ -95,7 +97,7 @@ retire_worktree_assess_risk_and_maybe_refuse() {
 
   managed_cleanup_collect_risk_report \
     "$workspace_root" \
-    "$workspace_root/bin/retire-worktree" \
+    "$command_path" \
     "$retire_worktree_repo_identity" \
     "$retire_worktree_lane_id" \
     "$retire_worktree_branch" \
