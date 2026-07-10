@@ -158,6 +158,22 @@ esac
 EOF
 chmod +x "$mock_bin/clone-repo"
 
+stale_bin="$tmpdir/stale-bin"
+mkdir -p "$stale_bin"
+cat > "$stale_bin/new-worktree" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+target="${MOCK_NAV_NEW_WORKTREE_TARGET:?MOCK_NAV_NEW_WORKTREE_TARGET must be set}"
+printf 'ok: created worktree at %s\n' "$target"
+EOF
+chmod +x "$stale_bin/new-worktree"
+
+install_branch_dir="$tmpdir/install-branch"
+install_branch_bin="$install_branch_dir/bin"
+mkdir -p "$install_branch_bin"
+cp "$mock_bin/new-worktree" "$install_branch_bin/new-worktree"
+cp "$mock_bin/clone-repo" "$install_branch_bin/clone-repo"
+
 zsh_dre_ok="$(
   PATH="$mock_bin:$PATH" \
   WORKSPACE_NAV_SCRIPT="$nav_script" \
@@ -447,6 +463,7 @@ mkdir -p "$mock_new_worktree_target" "$mock_clone_repo_target"
 new_worktree_success_output="$({
   PATH="$mock_bin:$PATH" \
   WORKSPACE_NAV_SCRIPT="$nav_script" \
+  HUB_INSTALL_BRANCH_DIR="$install_branch_dir" \
   MOCK_NAV_NEW_WORKTREE_TARGET="$mock_new_worktree_target" \
   MOCK_NAV_CLONE_REPO_TARGET="$mock_clone_repo_target" \
   MOCK_NAV_CLONE_REPO_ROOT="$mock_clone_repo_root" \
@@ -463,9 +480,32 @@ printf '%s\n' "$new_worktree_success_output" | grep -F 'HUB_WORKSPACE_NAV_DISABL
 printf '%s\n' "$new_worktree_success_output" | grep -F "cd -> $mock_new_worktree_target" >/dev/null || fail "new-worktree wrapper should print destination cd line on success"
 printf '%s\n' "$new_worktree_success_output" | grep -F "PWD_AFTER=$mock_new_worktree_target" >/dev/null || fail "new-worktree wrapper should change directory on success"
 
+new_worktree_branch_bin_priority_output="$({
+  PATH="$mock_bin:$PATH" \
+  WORKSPACE_NAV_SCRIPT="$nav_script" \
+  HUB_INSTALL_BRANCH_DIR="$install_branch_dir" \
+  MOCK_NAV_NEW_WORKTREE_TARGET="$mock_new_worktree_target" \
+  MOCK_NAV_CLONE_REPO_TARGET="$mock_clone_repo_target" \
+  MOCK_NAV_CLONE_REPO_ROOT="$mock_clone_repo_root" \
+  MOCK_NAV_BAD_TARGET="$mock_bad_target" \
+  zsh -fc '
+    source "$WORKSPACE_NAV_SCRIPT"
+    cd "'$workspace_root/main'"
+    PATH="'$stale_bin':$PATH"
+    new-worktree feature-shell-new
+    printf "PWD_AFTER=%s\n" "$PWD"
+  '
+} 2>&1)"
+printf '%s\n' "$new_worktree_branch_bin_priority_output" | grep -F "cd -> $mock_new_worktree_target" >/dev/null || fail "new-worktree wrapper should use HUB_INSTALL_BRANCH_DIR/bin command even when PATH has stale command first"
+printf '%s\n' "$new_worktree_branch_bin_priority_output" | grep -F "PWD_AFTER=$mock_new_worktree_target" >/dev/null || fail "new-worktree wrapper should still change directory when PATH has stale command first"
+if printf '%s\n' "$new_worktree_branch_bin_priority_output" | grep -F 'warning: unable to resolve created checkout path for auto-cd; staying in current directory' >/dev/null; then
+  fail "new-worktree wrapper should not degrade when branch bin command supports handoff"
+fi
+
 new_worktree_opt_out_output="$({
   PATH="$mock_bin:$PATH" \
   WORKSPACE_NAV_SCRIPT="$nav_script" \
+  HUB_INSTALL_BRANCH_DIR="$install_branch_dir" \
   MOCK_NAV_NEW_WORKTREE_TARGET="$mock_new_worktree_target" \
   MOCK_NAV_CLONE_REPO_TARGET="$mock_clone_repo_target" \
   MOCK_NAV_CLONE_REPO_ROOT="$mock_clone_repo_root" \
@@ -486,6 +526,7 @@ printf '%s\n' "$new_worktree_opt_out_output" | grep -F "PWD_AFTER=$workspace_roo
 new_worktree_missing_output="$({
   PATH="$mock_bin:$PATH" \
   WORKSPACE_NAV_SCRIPT="$nav_script" \
+  HUB_INSTALL_BRANCH_DIR="$install_branch_dir" \
   MOCK_NAV_NEW_WORKTREE_TARGET="$mock_new_worktree_target" \
   MOCK_NAV_CLONE_REPO_TARGET="$mock_clone_repo_target" \
   MOCK_NAV_CLONE_REPO_ROOT="$mock_clone_repo_root" \
@@ -504,6 +545,7 @@ printf '%s\n' "$new_worktree_missing_output" | grep -F "PWD_AFTER=$workspace_roo
 new_worktree_bad_target_output="$({
   PATH="$mock_bin:$PATH" \
   WORKSPACE_NAV_SCRIPT="$nav_script" \
+  HUB_INSTALL_BRANCH_DIR="$install_branch_dir" \
   MOCK_NAV_NEW_WORKTREE_TARGET="$mock_new_worktree_target" \
   MOCK_NAV_CLONE_REPO_TARGET="$mock_clone_repo_target" \
   MOCK_NAV_CLONE_REPO_ROOT="$mock_clone_repo_root" \
@@ -525,6 +567,7 @@ chmod 000 "$mock_new_worktree_cd_fail_target"
 new_worktree_cd_fail_output="$({
   PATH="$mock_bin:$PATH" \
   WORKSPACE_NAV_SCRIPT="$nav_script" \
+  HUB_INSTALL_BRANCH_DIR="$install_branch_dir" \
   MOCK_NAV_NEW_WORKTREE_TARGET="$mock_new_worktree_cd_fail_target" \
   MOCK_NAV_CLONE_REPO_TARGET="$mock_clone_repo_target" \
   MOCK_NAV_CLONE_REPO_ROOT="$mock_clone_repo_root" \
@@ -547,6 +590,7 @@ fi
 set +e
 PATH="$mock_bin:$PATH" \
 WORKSPACE_NAV_SCRIPT="$nav_script" \
+HUB_INSTALL_BRANCH_DIR="$install_branch_dir" \
 MOCK_NAV_NEW_WORKTREE_TARGET="$mock_new_worktree_target" \
 MOCK_NAV_CLONE_REPO_TARGET="$mock_clone_repo_target" \
 MOCK_NAV_CLONE_REPO_ROOT="$mock_clone_repo_root" \
@@ -570,6 +614,7 @@ fi
 clone_repo_success_output="$({
   PATH="$mock_bin:$PATH" \
   WORKSPACE_NAV_SCRIPT="$nav_script" \
+  HUB_INSTALL_BRANCH_DIR="$install_branch_dir" \
   MOCK_NAV_NEW_WORKTREE_TARGET="$mock_new_worktree_target" \
   MOCK_NAV_CLONE_REPO_TARGET="$mock_clone_repo_target" \
   MOCK_NAV_CLONE_REPO_ROOT="$mock_clone_repo_root" \
@@ -589,6 +634,7 @@ printf '%s\n' "$clone_repo_success_output" | grep -F "PWD_AFTER=$mock_clone_repo
 clone_repo_opt_out_output="$({
   PATH="$mock_bin:$PATH" \
   WORKSPACE_NAV_SCRIPT="$nav_script" \
+  HUB_INSTALL_BRANCH_DIR="$install_branch_dir" \
   MOCK_NAV_NEW_WORKTREE_TARGET="$mock_new_worktree_target" \
   MOCK_NAV_CLONE_REPO_TARGET="$mock_clone_repo_target" \
   MOCK_NAV_CLONE_REPO_ROOT="$mock_clone_repo_root" \
@@ -609,6 +655,7 @@ printf '%s\n' "$clone_repo_opt_out_output" | grep -F "PWD_AFTER=$workspace_root/
 clone_repo_empty_target_output="$({
   PATH="$mock_bin:$PATH" \
   WORKSPACE_NAV_SCRIPT="$nav_script" \
+  HUB_INSTALL_BRANCH_DIR="$install_branch_dir" \
   MOCK_NAV_NEW_WORKTREE_TARGET="$mock_new_worktree_target" \
   MOCK_NAV_CLONE_REPO_TARGET="$mock_clone_repo_target" \
   MOCK_NAV_CLONE_REPO_ROOT="$mock_clone_repo_root" \
@@ -627,6 +674,7 @@ printf '%s\n' "$clone_repo_empty_target_output" | grep -F "PWD_AFTER=$workspace_
 set +e
 PATH="$mock_bin:$PATH" \
 WORKSPACE_NAV_SCRIPT="$nav_script" \
+HUB_INSTALL_BRANCH_DIR="$install_branch_dir" \
 MOCK_NAV_NEW_WORKTREE_TARGET="$mock_new_worktree_target" \
 MOCK_NAV_CLONE_REPO_TARGET="$mock_clone_repo_target" \
 MOCK_NAV_CLONE_REPO_ROOT="$mock_clone_repo_root" \

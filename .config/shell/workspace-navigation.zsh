@@ -84,16 +84,35 @@ workspace_navigation_run_create_and_maybe_cd() {
   local command_name="$1"
   shift
 
+  local command_path=''
+  local branch_dir="${HUB_INSTALL_BRANCH_DIR:-}"
+  if [ -n "$branch_dir" ]; then
+    local branch_command="$branch_dir/bin/$command_name"
+    if [ -x "$branch_command" ]; then
+      command_path="$branch_command"
+    fi
+  fi
+
   local target_file=''
   target_file="$(mktemp "${TMPDIR:-/tmp}/workspace-nav-target.XXXXXX")" || return 1
 
   local command_status=0
-  if HUB_WORKSPACE_NAV_TARGET_FILE="$target_file" command "$command_name" "$@"; then
-    :
+  if [ -n "$command_path" ]; then
+    if HUB_WORKSPACE_NAV_TARGET_FILE="$target_file" "$command_path" "$@"; then
+      :
+    else
+      command_status="$?"
+      rm -f "$target_file"
+      return "$command_status"
+    fi
   else
-    command_status="$?"
-    rm -f "$target_file"
-    return "$command_status"
+    if HUB_WORKSPACE_NAV_TARGET_FILE="$target_file" command "$command_name" "$@"; then
+      :
+    else
+      command_status="$?"
+      rm -f "$target_file"
+      return "$command_status"
+    fi
   fi
 
   printf 'hint: set HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1 to stay in current directory\n'
