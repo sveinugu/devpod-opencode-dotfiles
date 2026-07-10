@@ -46,6 +46,10 @@ Create managed worktrees (top-level hub and child repos):
 /workspaces/dotfiles/main/bin/new-worktree --repo <child-repo-name> feature/example
 ```
 
+Interactive `new-worktree` and `clone-repo` wrappers auto-jump to the created checkout by default.
+Use `HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1` to keep your current directory for both commands.
+Raw script usage remains valid for automation and still does not change the parent shell directory.
+
 When creating a lane-safe worktree, keep lane identity distinct from branch naming whenever needed:
 
 ```bash

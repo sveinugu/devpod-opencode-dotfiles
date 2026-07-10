@@ -80,6 +80,18 @@ GIT_CONFIG_KEY_0="url.$child_source.insteadOf" \
 GIT_CONFIG_VALUE_0="$child_source_url" \
 bash "$clone_repo_script" "$child_source_url" >/dev/null
 
+new_worktree_nav_target_file="$tmpdir/new-worktree-target-path"
+new_worktree_nav_output="$tmpdir/new-worktree-nav-output.out"
+HUB_WORKSPACE_ROOT="$workspace_root" \
+HOME="$home_dir" \
+HUB_WORKSPACE_NAV_TARGET_FILE="$new_worktree_nav_target_file" \
+bash "$new_worktree_script" --repo hub feature/nav-target >"$new_worktree_nav_output"
+
+[ -f "$new_worktree_nav_target_file" ] || fail "new-worktree should write target path handoff file when requested"
+new_worktree_written_target="$(<"$new_worktree_nav_target_file")"
+[ "$new_worktree_written_target" = "$workspace_root/work/feature/nav-target" ] || fail "new-worktree should write created worktree path to handoff file"
+grep -F "ok: created worktree at $workspace_root/work/feature/nav-target" "$new_worktree_nav_output" >/dev/null || fail "new-worktree should keep human-readable success output when writing handoff file"
+
 child_repo_env="$workspace_root/state/repos/child-source/etc/repo.env"
 [ -f "$child_repo_env" ] || fail "missing child repo metadata env file"
 # shellcheck disable=SC1090

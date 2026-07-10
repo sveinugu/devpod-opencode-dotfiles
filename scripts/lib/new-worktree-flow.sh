@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-_nwf_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-source "$_nwf_dir/require-non-empty.sh"
-unset _nwf_dir
+new_worktree_lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+source "$new_worktree_lib_dir/require-non-empty.sh"
 
 new_worktree_usage() {
   printf 'usage: new-worktree [--repo <hub|repo-name>] <branch>\n' >&2
@@ -231,5 +230,11 @@ new_worktree_record_lane_binding() {
 }
 
 new_worktree_report_success() {
+  local nav_target_writer="${WORKSPACE_NAV_TARGET_WRITER:-$new_worktree_lib_dir/write-workspace-nav-target.sh}"
+
+  if [ -f "$nav_target_writer" ]; then
+    bash "$nav_target_writer" "$new_worktree_target" >/dev/null 2>&1 || true
+  fi
+
   printf 'ok: created worktree at %s\n' "$new_worktree_target"
 }

@@ -8,6 +8,7 @@ source "$script_dir/../scripts/lib/hub-repo-core.sh"
 workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
 "$script_dir/../scripts/lib/validate_hub_repo_root.sh" "$workspace_root/main" >/dev/null
 metadata_writer="$script_dir/../scripts/lib/write-managed-repo-env.sh"
+workspace_nav_target_writer="${WORKSPACE_NAV_TARGET_WRITER:-$script_dir/../scripts/lib/write-workspace-nav-target.sh}"
 
 if [ ! -x "$metadata_writer" ]; then
   printf 'refused: missing managed repo metadata writer helper\n' >&2
@@ -79,5 +80,9 @@ mkdir -p "$workspace_root/tmp/repos/$repo_name/$default_branch"
 HUB_WORKSPACE_ROOT="$workspace_root" bash "$metadata_writer" "$repo_name" "$default_branch" "$default_dir"
 
 "$script_dir/../scripts/lib/worktree-env.sh" "$default_dir" child "$repo_name" >/dev/null
+
+if [ -f "$workspace_nav_target_writer" ]; then
+  bash "$workspace_nav_target_writer" "$default_dir" >/dev/null 2>&1 || true
+fi
 
 printf 'ok: created child hub repo at %s\n' "$child_root"

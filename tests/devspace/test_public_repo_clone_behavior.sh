@@ -249,8 +249,14 @@ MOCK_PUBLIC_SOURCE="$public_source" \
 MOCK_PUBLIC_SOURCE_DEFAULT="$public_source_default" \
 HUB_WORKSPACE_ROOT="$workspace_root" \
 HUB_HOME_DIR="$home_dir" \
+HUB_WORKSPACE_NAV_TARGET_FILE="$tmpdir/clone-target-path" \
 bash "$clone_script" "$public_url" >"$tmpdir/public-clone.out" 2>&1 || fail "public HTTPS onboarding should succeed"
 grep -F 'Receiving objects: 100% (mock progress)' "$tmpdir/public-clone.out" >/dev/null || fail "clone-repo should request git clone progress output"
+
+[ -f "$tmpdir/clone-target-path" ] || fail "clone-repo should write target path handoff file when requested"
+clone_written_target="$(<"$tmpdir/clone-target-path")"
+[ "$clone_written_target" = "$workspace_root/repos/fixture/main" ] || fail "clone-repo should write default checkout path to handoff file"
+grep -F "ok: created child hub repo at $workspace_root/repos/fixture" "$tmpdir/public-clone.out" >/dev/null || fail "clone-repo should keep success output when writing handoff file"
 
 [ -d "$workspace_root/repos/fixture/.bare" ] || fail "missing bare repo for public HTTPS clone"
 [ -d "$workspace_root/state/repos/fixture/main" ] || fail "public onboarding should create detected-branch state path"

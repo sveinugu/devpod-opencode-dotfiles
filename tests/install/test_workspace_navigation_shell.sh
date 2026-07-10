@@ -86,6 +86,78 @@ printf '%s/repos/alpha/work/%s\n' "$workspace_root" "\$name"
 EOF
 chmod +x "$mock_bin/dwt"
 
+cat > "$mock_bin/new-worktree" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+mode="${1:-success}"
+target="${MOCK_NAV_NEW_WORKTREE_TARGET:?MOCK_NAV_NEW_WORKTREE_TARGET must be set}"
+
+case "$mode" in
+  --fail)
+    printf 'mock new-worktree failure output\n' >&2
+    exit 17
+    ;;
+  --missing-target)
+    printf 'ok: created worktree at %s\n' "$target"
+    exit 0
+    ;;
+  --empty-target)
+    : > "${HUB_WORKSPACE_NAV_TARGET_FILE:?HUB_WORKSPACE_NAV_TARGET_FILE must be set}"
+    printf 'ok: created worktree at %s\n' "$target"
+    exit 0
+    ;;
+  --bad-target)
+    printf '%s\n' "${MOCK_NAV_BAD_TARGET:?MOCK_NAV_BAD_TARGET must be set}" > "${HUB_WORKSPACE_NAV_TARGET_FILE:?HUB_WORKSPACE_NAV_TARGET_FILE must be set}"
+    printf 'ok: created worktree at %s\n' "$target"
+    exit 0
+    ;;
+  *)
+    if [ -n "${HUB_WORKSPACE_NAV_TARGET_FILE:-}" ]; then
+      printf '%s\n' "$target" > "$HUB_WORKSPACE_NAV_TARGET_FILE"
+    fi
+    printf 'ok: created worktree at %s\n' "$target"
+    ;;
+esac
+EOF
+chmod +x "$mock_bin/new-worktree"
+
+cat > "$mock_bin/clone-repo" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+mode="${1:-success}"
+target="${MOCK_NAV_CLONE_REPO_TARGET:?MOCK_NAV_CLONE_REPO_TARGET must be set}"
+
+case "$mode" in
+  --fail)
+    printf 'mock clone-repo failure output\n' >&2
+    exit 29
+    ;;
+  --missing-target)
+    printf 'ok: created child hub repo at %s\n' "${MOCK_NAV_CLONE_REPO_ROOT:?MOCK_NAV_CLONE_REPO_ROOT must be set}"
+    exit 0
+    ;;
+  --empty-target)
+    : > "${HUB_WORKSPACE_NAV_TARGET_FILE:?HUB_WORKSPACE_NAV_TARGET_FILE must be set}"
+    printf 'ok: created child hub repo at %s\n' "${MOCK_NAV_CLONE_REPO_ROOT:?MOCK_NAV_CLONE_REPO_ROOT must be set}"
+    exit 0
+    ;;
+  --bad-target)
+    printf '%s\n' "${MOCK_NAV_BAD_TARGET:?MOCK_NAV_BAD_TARGET must be set}" > "${HUB_WORKSPACE_NAV_TARGET_FILE:?HUB_WORKSPACE_NAV_TARGET_FILE must be set}"
+    printf 'ok: created child hub repo at %s\n' "${MOCK_NAV_CLONE_REPO_ROOT:?MOCK_NAV_CLONE_REPO_ROOT must be set}"
+    exit 0
+    ;;
+  *)
+    if [ -n "${HUB_WORKSPACE_NAV_TARGET_FILE:-}" ]; then
+      printf '%s\n' "$target" > "$HUB_WORKSPACE_NAV_TARGET_FILE"
+    fi
+    printf 'ok: created child hub repo at %s\n' "${MOCK_NAV_CLONE_REPO_ROOT:?MOCK_NAV_CLONE_REPO_ROOT must be set}"
+    ;;
+esac
+EOF
+chmod +x "$mock_bin/clone-repo"
+
 zsh_dre_ok="$(
   PATH="$mock_bin:$PATH" \
   WORKSPACE_NAV_SCRIPT="$nav_script" \
@@ -363,6 +435,216 @@ printf 'export HUB_WORKSPACE_ROOT="%s"\nexport HUB_INSTALL_BRANCH_DIR="%s"\nauto
 
 if grep -F 'usage: dwt [name]' "$dwt_refinement_transcript" >/dev/null; then
   fail "dwt refinement should stay in the same token after completion"
+fi
+
+mock_new_worktree_target="$workspace_root/work/feature-shell-new"
+mock_clone_repo_root="$workspace_root/repos/mock-clone"
+mock_clone_repo_target="$mock_clone_repo_root/main"
+mock_bad_target="$workspace_root/work/not-a-directory"
+
+mkdir -p "$mock_new_worktree_target" "$mock_clone_repo_target"
+
+new_worktree_success_output="$({
+  PATH="$mock_bin:$PATH" \
+  WORKSPACE_NAV_SCRIPT="$nav_script" \
+  MOCK_NAV_NEW_WORKTREE_TARGET="$mock_new_worktree_target" \
+  MOCK_NAV_CLONE_REPO_TARGET="$mock_clone_repo_target" \
+  MOCK_NAV_CLONE_REPO_ROOT="$mock_clone_repo_root" \
+  MOCK_NAV_BAD_TARGET="$mock_bad_target" \
+  zsh -fc '
+    source "$WORKSPACE_NAV_SCRIPT"
+    cd "'$workspace_root/main'"
+    new-worktree feature-shell-new
+    printf "PWD_AFTER=%s\n" "$PWD"
+  '
+} 2>&1)"
+printf '%s\n' "$new_worktree_success_output" | grep -F "ok: created worktree at $mock_new_worktree_target" >/dev/null || fail "new-worktree wrapper should forward command output on success"
+printf '%s\n' "$new_worktree_success_output" | grep -F 'HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1' >/dev/null || fail "new-worktree wrapper should print shared auto-cd opt-out hint"
+printf '%s\n' "$new_worktree_success_output" | grep -F "cd -> $mock_new_worktree_target" >/dev/null || fail "new-worktree wrapper should print destination cd line on success"
+printf '%s\n' "$new_worktree_success_output" | grep -F "PWD_AFTER=$mock_new_worktree_target" >/dev/null || fail "new-worktree wrapper should change directory on success"
+
+new_worktree_opt_out_output="$({
+  PATH="$mock_bin:$PATH" \
+  WORKSPACE_NAV_SCRIPT="$nav_script" \
+  MOCK_NAV_NEW_WORKTREE_TARGET="$mock_new_worktree_target" \
+  MOCK_NAV_CLONE_REPO_TARGET="$mock_clone_repo_target" \
+  MOCK_NAV_CLONE_REPO_ROOT="$mock_clone_repo_root" \
+  MOCK_NAV_BAD_TARGET="$mock_bad_target" \
+  zsh -fc '
+    source "$WORKSPACE_NAV_SCRIPT"
+    cd "'$workspace_root/main'"
+    HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1 new-worktree feature-shell-new
+    printf "PWD_AFTER=%s\n" "$PWD"
+  '
+} 2>&1)"
+printf '%s\n' "$new_worktree_opt_out_output" | grep -F 'HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1' >/dev/null || fail "new-worktree wrapper should print opt-out hint even when auto-cd is disabled"
+if printf '%s\n' "$new_worktree_opt_out_output" | grep -F "cd -> $mock_new_worktree_target" >/dev/null; then
+  fail "new-worktree wrapper should not print cd destination when auto-cd is disabled"
+fi
+printf '%s\n' "$new_worktree_opt_out_output" | grep -F "PWD_AFTER=$workspace_root/main" >/dev/null || fail "new-worktree wrapper should stay in place when auto-cd is disabled"
+
+new_worktree_missing_output="$({
+  PATH="$mock_bin:$PATH" \
+  WORKSPACE_NAV_SCRIPT="$nav_script" \
+  MOCK_NAV_NEW_WORKTREE_TARGET="$mock_new_worktree_target" \
+  MOCK_NAV_CLONE_REPO_TARGET="$mock_clone_repo_target" \
+  MOCK_NAV_CLONE_REPO_ROOT="$mock_clone_repo_root" \
+  MOCK_NAV_BAD_TARGET="$mock_bad_target" \
+  zsh -fc '
+    source "$WORKSPACE_NAV_SCRIPT"
+    cd "'$workspace_root/main'"
+    new-worktree --missing-target
+    printf "PWD_AFTER=%s\n" "$PWD"
+  '
+} 2>&1)"
+printf '%s\n' "$new_worktree_missing_output" | grep -F 'HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1' >/dev/null || fail "new-worktree wrapper should still print opt-out hint when handoff is missing"
+printf '%s\n' "$new_worktree_missing_output" | grep -F 'warning: unable to resolve created checkout path for auto-cd; staying in current directory' >/dev/null || fail "new-worktree wrapper should warn clearly when handoff file is missing"
+printf '%s\n' "$new_worktree_missing_output" | grep -F "PWD_AFTER=$workspace_root/main" >/dev/null || fail "new-worktree wrapper should stay put when handoff file is missing"
+
+new_worktree_bad_target_output="$({
+  PATH="$mock_bin:$PATH" \
+  WORKSPACE_NAV_SCRIPT="$nav_script" \
+  MOCK_NAV_NEW_WORKTREE_TARGET="$mock_new_worktree_target" \
+  MOCK_NAV_CLONE_REPO_TARGET="$mock_clone_repo_target" \
+  MOCK_NAV_CLONE_REPO_ROOT="$mock_clone_repo_root" \
+  MOCK_NAV_BAD_TARGET="$mock_bad_target" \
+  zsh -fc '
+    source "$WORKSPACE_NAV_SCRIPT"
+    cd "'$workspace_root/main'"
+    new-worktree --bad-target
+    printf "PWD_AFTER=%s\n" "$PWD"
+  '
+} 2>&1)"
+printf '%s\n' "$new_worktree_bad_target_output" | grep -F 'warning: unable to resolve created checkout path for auto-cd; staying in current directory' >/dev/null || fail "new-worktree wrapper should warn clearly when handoff path is not a directory"
+printf '%s\n' "$new_worktree_bad_target_output" | grep -F "PWD_AFTER=$workspace_root/main" >/dev/null || fail "new-worktree wrapper should stay put when handoff path is invalid"
+
+mock_new_worktree_cd_fail_target="$workspace_root/work/feature-shell-new-cd-fail"
+mkdir -p "$mock_new_worktree_cd_fail_target"
+chmod 000 "$mock_new_worktree_cd_fail_target"
+
+new_worktree_cd_fail_output="$({
+  PATH="$mock_bin:$PATH" \
+  WORKSPACE_NAV_SCRIPT="$nav_script" \
+  MOCK_NAV_NEW_WORKTREE_TARGET="$mock_new_worktree_cd_fail_target" \
+  MOCK_NAV_CLONE_REPO_TARGET="$mock_clone_repo_target" \
+  MOCK_NAV_CLONE_REPO_ROOT="$mock_clone_repo_root" \
+  MOCK_NAV_BAD_TARGET="$mock_bad_target" \
+  zsh -fc '
+    source "$WORKSPACE_NAV_SCRIPT"
+    cd "'$workspace_root/main'"
+    new-worktree feature-shell-new
+    printf "PWD_AFTER=%s\n" "$PWD"
+  '
+} 2>&1)"
+chmod 755 "$mock_new_worktree_cd_fail_target"
+printf '%s\n' "$new_worktree_cd_fail_output" | grep -F 'HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1' >/dev/null || fail "new-worktree wrapper should print opt-out hint when cd fails"
+printf '%s\n' "$new_worktree_cd_fail_output" | grep -F 'warning: unable to resolve created checkout path for auto-cd; staying in current directory' >/dev/null || fail "new-worktree wrapper should warn clearly when cd fails despite existing target directory"
+printf '%s\n' "$new_worktree_cd_fail_output" | grep -F "PWD_AFTER=$workspace_root/main" >/dev/null || fail "new-worktree wrapper should stay put when cd fails despite existing target directory"
+if printf '%s\n' "$new_worktree_cd_fail_output" | grep -F "cd -> $mock_new_worktree_cd_fail_target" >/dev/null; then
+  fail "new-worktree wrapper should not print cd destination when cd fails"
+fi
+
+set +e
+PATH="$mock_bin:$PATH" \
+WORKSPACE_NAV_SCRIPT="$nav_script" \
+MOCK_NAV_NEW_WORKTREE_TARGET="$mock_new_worktree_target" \
+MOCK_NAV_CLONE_REPO_TARGET="$mock_clone_repo_target" \
+MOCK_NAV_CLONE_REPO_ROOT="$mock_clone_repo_root" \
+MOCK_NAV_BAD_TARGET="$mock_bad_target" \
+zsh -fc '
+  source "$WORKSPACE_NAV_SCRIPT"
+  cd "'$workspace_root/main'"
+  new-worktree --fail
+' >"$tmpdir/new-worktree-failure.out" 2>&1
+new_worktree_failure_rc="$?"
+set -e
+[ "$new_worktree_failure_rc" = "17" ] || fail "new-worktree wrapper should preserve underlying failure exit status"
+grep -F 'mock new-worktree failure output' "$tmpdir/new-worktree-failure.out" >/dev/null || fail "new-worktree wrapper should forward failure output"
+if grep -F 'HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1' "$tmpdir/new-worktree-failure.out" >/dev/null; then
+  fail "new-worktree wrapper should not print success hint when command fails"
+fi
+if grep -F 'cd -> ' "$tmpdir/new-worktree-failure.out" >/dev/null; then
+  fail "new-worktree wrapper should not print cd destination when command fails"
+fi
+
+clone_repo_success_output="$({
+  PATH="$mock_bin:$PATH" \
+  WORKSPACE_NAV_SCRIPT="$nav_script" \
+  MOCK_NAV_NEW_WORKTREE_TARGET="$mock_new_worktree_target" \
+  MOCK_NAV_CLONE_REPO_TARGET="$mock_clone_repo_target" \
+  MOCK_NAV_CLONE_REPO_ROOT="$mock_clone_repo_root" \
+  MOCK_NAV_BAD_TARGET="$mock_bad_target" \
+  zsh -fc '
+    source "$WORKSPACE_NAV_SCRIPT"
+    cd "'$workspace_root/main'"
+    clone-repo success
+    printf "PWD_AFTER=%s\n" "$PWD"
+  '
+} 2>&1)"
+printf '%s\n' "$clone_repo_success_output" | grep -F "ok: created child hub repo at $mock_clone_repo_root" >/dev/null || fail "clone-repo wrapper should forward command output on success"
+printf '%s\n' "$clone_repo_success_output" | grep -F 'HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1' >/dev/null || fail "clone-repo wrapper should print shared auto-cd opt-out hint"
+printf '%s\n' "$clone_repo_success_output" | grep -F "cd -> $mock_clone_repo_target" >/dev/null || fail "clone-repo wrapper should print destination cd line on success"
+printf '%s\n' "$clone_repo_success_output" | grep -F "PWD_AFTER=$mock_clone_repo_target" >/dev/null || fail "clone-repo wrapper should change directory on success"
+
+clone_repo_opt_out_output="$({
+  PATH="$mock_bin:$PATH" \
+  WORKSPACE_NAV_SCRIPT="$nav_script" \
+  MOCK_NAV_NEW_WORKTREE_TARGET="$mock_new_worktree_target" \
+  MOCK_NAV_CLONE_REPO_TARGET="$mock_clone_repo_target" \
+  MOCK_NAV_CLONE_REPO_ROOT="$mock_clone_repo_root" \
+  MOCK_NAV_BAD_TARGET="$mock_bad_target" \
+  zsh -fc '
+    source "$WORKSPACE_NAV_SCRIPT"
+    cd "'$workspace_root/main'"
+    HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1 clone-repo success
+    printf "PWD_AFTER=%s\n" "$PWD"
+  '
+} 2>&1)"
+printf '%s\n' "$clone_repo_opt_out_output" | grep -F 'HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1' >/dev/null || fail "clone-repo wrapper should print opt-out hint even when auto-cd is disabled"
+if printf '%s\n' "$clone_repo_opt_out_output" | grep -F "cd -> $mock_clone_repo_target" >/dev/null; then
+  fail "clone-repo wrapper should not print cd destination when auto-cd is disabled"
+fi
+printf '%s\n' "$clone_repo_opt_out_output" | grep -F "PWD_AFTER=$workspace_root/main" >/dev/null || fail "clone-repo wrapper should stay in place when auto-cd is disabled"
+
+clone_repo_empty_target_output="$({
+  PATH="$mock_bin:$PATH" \
+  WORKSPACE_NAV_SCRIPT="$nav_script" \
+  MOCK_NAV_NEW_WORKTREE_TARGET="$mock_new_worktree_target" \
+  MOCK_NAV_CLONE_REPO_TARGET="$mock_clone_repo_target" \
+  MOCK_NAV_CLONE_REPO_ROOT="$mock_clone_repo_root" \
+  MOCK_NAV_BAD_TARGET="$mock_bad_target" \
+  zsh -fc '
+    source "$WORKSPACE_NAV_SCRIPT"
+    cd "'$workspace_root/main'"
+    clone-repo --empty-target
+    printf "PWD_AFTER=%s\n" "$PWD"
+  '
+} 2>&1)"
+printf '%s\n' "$clone_repo_empty_target_output" | grep -F 'HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1' >/dev/null || fail "clone-repo wrapper should still print opt-out hint when handoff file is empty"
+printf '%s\n' "$clone_repo_empty_target_output" | grep -F 'warning: unable to resolve created checkout path for auto-cd; staying in current directory' >/dev/null || fail "clone-repo wrapper should warn clearly when handoff file is empty"
+printf '%s\n' "$clone_repo_empty_target_output" | grep -F "PWD_AFTER=$workspace_root/main" >/dev/null || fail "clone-repo wrapper should stay put when handoff file is empty"
+
+set +e
+PATH="$mock_bin:$PATH" \
+WORKSPACE_NAV_SCRIPT="$nav_script" \
+MOCK_NAV_NEW_WORKTREE_TARGET="$mock_new_worktree_target" \
+MOCK_NAV_CLONE_REPO_TARGET="$mock_clone_repo_target" \
+MOCK_NAV_CLONE_REPO_ROOT="$mock_clone_repo_root" \
+MOCK_NAV_BAD_TARGET="$mock_bad_target" \
+zsh -fc '
+  source "$WORKSPACE_NAV_SCRIPT"
+  cd "'$workspace_root/main'"
+  clone-repo --fail
+' >"$tmpdir/clone-repo-failure.out" 2>&1
+clone_repo_failure_rc="$?"
+set -e
+[ "$clone_repo_failure_rc" = "29" ] || fail "clone-repo wrapper should preserve underlying failure exit status"
+grep -F 'mock clone-repo failure output' "$tmpdir/clone-repo-failure.out" >/dev/null || fail "clone-repo wrapper should forward failure output"
+if grep -F 'HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1' "$tmpdir/clone-repo-failure.out" >/dev/null; then
+  fail "clone-repo wrapper should not print success hint when command fails"
+fi
+if grep -F 'cd -> ' "$tmpdir/clone-repo-failure.out" >/dev/null; then
+  fail "clone-repo wrapper should not print cd destination when command fails"
 fi
 
 dre_completion_transcript="$tmpdir/dre-completion.transcript"

@@ -123,3 +123,5 @@ Once `devspace dev` is open and `/workspaces/dotfiles` is mounted:
 - retire managed worktrees with `/workspaces/dotfiles/main/bin/retire-worktree`
 
 For those in-pod commands, use [DevSpace Bare Hub Usage](devspace-bare-hub-usage.md). For first-time host layout creation, use [Host Bare-Hub Bootstrap](host-bare-hub-bootstrap.md).
+
+In pod, interactive `new-worktree` / `clone-repo` shell wrappers auto-jump to created checkouts by default; set `HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1` to opt out.

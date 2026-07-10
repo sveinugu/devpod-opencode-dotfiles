@@ -80,6 +80,54 @@ dwt() {
   cd "$target"
 }
 
+workspace_navigation_run_create_and_maybe_cd() {
+  local command_name="$1"
+  shift
+
+  local target_file=''
+  target_file="$(mktemp "${TMPDIR:-/tmp}/workspace-nav-target.XXXXXX")" || return 1
+
+  local command_status=0
+  if HUB_WORKSPACE_NAV_TARGET_FILE="$target_file" command "$command_name" "$@"; then
+    :
+  else
+    command_status="$?"
+    rm -f "$target_file"
+    return "$command_status"
+  fi
+
+  printf 'hint: set HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1 to stay in current directory\n'
+
+  if [ "${HUB_WORKSPACE_NAV_DISABLE_AUTO_CD:-0}" = '1' ]; then
+    rm -f "$target_file"
+    return 0
+  fi
+
+  local target=''
+  if [ -s "$target_file" ]; then
+    target="$(<"$target_file")"
+  fi
+  rm -f "$target_file"
+
+  if [ -n "$target" ] && [ -d "$target" ]; then
+    if cd "$target" 2>/dev/null; then
+      printf 'cd -> %s\n' "$target"
+      return 0
+    fi
+  fi
+
+  printf 'warning: unable to resolve created checkout path for auto-cd; staying in current directory\n' >&2
+  return 0
+}
+
+new-worktree() {
+  workspace_navigation_run_create_and_maybe_cd new-worktree "$@"
+}
+
+clone-repo() {
+  workspace_navigation_run_create_and_maybe_cd clone-repo "$@"
+}
+
 _workspace_nav_complete_dhub() {
   return 0
 }

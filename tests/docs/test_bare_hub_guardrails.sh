@@ -21,6 +21,9 @@ grep -F 'bin/clone-repo' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/
 grep -F 'bin/new-worktree' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'bin/retire-worktree' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'dhub' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F 'Interactive `new-worktree` and `clone-repo` wrappers auto-jump to the created checkout by default.' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F '`HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1`' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F 'Raw script usage remains valid for automation and still does not change the parent shell directory.' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'dre <repo>' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'dre <repo>` → jump to child default checkout at `/workspaces/dotfiles/repos/<repo>/<default-branch>`' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'dwt <name>' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
@@ -38,6 +41,8 @@ fi
 grep -F 'bin/clone-repo' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'bin/new-worktree' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'bin/retire-worktree' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F 'interactive `new-worktree` / `clone-repo` shell wrappers auto-jump to created checkouts by default' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F '`HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1`' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F '.envrc' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F '.envrc.local' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'dhub' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
