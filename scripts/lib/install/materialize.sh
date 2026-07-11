@@ -83,8 +83,8 @@ install_materialize() {
 
   install_link_path "$source_root/.config/opencode" "$home_dir/.config/opencode"
 
-  install_run_opencode_command npx -y skills add wondelai/skills/pragmatic-programmer -g -y
-  install_run_opencode_command npx -y skills add wondelai/skills/clean-code -g -y
+  install_run_opencode_command npx -y skills add wondelai/skills/pragmatic-programmer -y
+  install_run_opencode_command npx -y skills add wondelai/skills/clean-code -y
   install_run_opencode_command npx -y @bybrawe/opencode-loop
 
   printf 'ok: dotfiles applied from %s\n' "$source_root"

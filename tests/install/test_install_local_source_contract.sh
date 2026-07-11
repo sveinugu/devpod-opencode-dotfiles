@@ -91,8 +91,16 @@ grep -F "export HUB_INSTALL_BRANCH_DIR=$workspace_root/main" "$workspace_install
 
 grep -F "DRY-RUN ln -sfn $workspace_root/main/.zshrc $target_home/.zshrc" "$tmpdir/main.out" >/dev/null
 grep -F "DRY-RUN ln -sfn $workspace_root/main/.config/opencode $target_home/.config/opencode" "$tmpdir/main.out" >/dev/null
-grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/pragmatic-programmer -g -y)" "$tmpdir/main.out" >/dev/null
-grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/clean-code -g -y)" "$tmpdir/main.out" >/dev/null
+grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/pragmatic-programmer -y)" "$tmpdir/main.out" >/dev/null
+grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/clean-code -y)" "$tmpdir/main.out" >/dev/null
+if grep -F 'skills add wondelai/skills/pragmatic-programmer -g -y' "$tmpdir/main.out" >/dev/null; then
+  printf 'did not expect global skill install flag (-g) for pragmatic-programmer\n' >&2
+  exit 1
+fi
+if grep -F 'skills add wondelai/skills/clean-code -g -y' "$tmpdir/main.out" >/dev/null; then
+  printf 'did not expect global skill install flag (-g) for clean-code\n' >&2
+  exit 1
+fi
 ! grep -F "$workspace_root/work/feature-x/.zshrc" "$tmpdir/main.out" >/dev/null
 grep -F 'shell helper dhub() was not detected' "$tmpdir/main.out" >/dev/null || {
   printf 'expected install helper note to reference dhub()\n' >&2
