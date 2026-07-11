@@ -20,10 +20,20 @@ mkdir -p "$workspace_root/repos/alpha/.bare" "$workspace_root/repos/alpha/master
 mkdir -p "$workspace_root/repos/alpha/work/spec/limit-peek-elements-design"
 touch "$workspace_root/repos/alpha/work/spec/limit-peek-elements-design/.git"
 mkdir -p "$workspace_root/state/repos/alpha/etc"
+install_branch_dir="$tmpdir/install-branch"
+install_branch_bin="$install_branch_dir/bin"
+mkdir -p "$install_branch_bin"
 cat > "$workspace_root/state/repos/alpha/etc/repo.env" <<EOF
 export DYN_REPO_DEFAULT_BRANCH=master
 export DYN_REPO_DEFAULT_DIR=$workspace_root/repos/alpha/master
 EOF
+
+mkdir -p "$workspace_root/state/hub/etc"
+cat > "$workspace_root/state/hub/etc/install.env" <<EOF
+export HUB_INSTALL_BRANCH=feature-top
+export HUB_INSTALL_BRANCH_DIR=$install_branch_dir
+EOF
+export HUB_INSTALL_ENV_FILE="$workspace_root/state/hub/etc/install.env"
 
 mock_bin="$tmpdir/mock-bin"
 mkdir -p "$mock_bin"
@@ -168,9 +178,6 @@ printf 'ok: created worktree at %s\n' "$target"
 EOF
 chmod +x "$stale_bin/new-worktree"
 
-install_branch_dir="$tmpdir/install-branch"
-install_branch_bin="$install_branch_dir/bin"
-mkdir -p "$install_branch_bin"
 cp "$mock_bin/new-worktree" "$install_branch_bin/new-worktree"
 cp "$mock_bin/clone-repo" "$install_branch_bin/clone-repo"
 
@@ -416,9 +423,10 @@ repos_prefix_nomatch="$({
 [ -z "$repos_prefix_nomatch" ] || fail "repo completion should keep typed prefixes by filtering non-matching candidates"
 
 dwt_completion_transcript="$tmpdir/dwt-completion.transcript"
-printf 'export HUB_WORKSPACE_ROOT="%s"\nexport HUB_INSTALL_BRANCH_DIR="%s"\nautoload -Uz compinit\ncompinit\nsource "%s"\ncd "%s/repos/alpha/master"\ndwt spec/lim\t\nexit\n' \
+printf 'export HUB_WORKSPACE_ROOT="%s"\nexport HUB_INSTALL_BRANCH_DIR="%s"\nexport WORKSPACE_NAV_REPO_ROOT_RESOLVER="%s"\nautoload -Uz compinit\ncompinit\nsource "%s"\ncd "%s/repos/alpha/master"\ndwt spec/lim\t\nexit\n' \
   "$workspace_root" \
   "$repo_root" \
+  "$tmpdir/mock-resolve-repo-root.sh" \
   "$nav_script" \
   "$workspace_root" \
   | script -q -c 'zsh -fi' "$dwt_completion_transcript" >/dev/null
@@ -429,9 +437,10 @@ if grep -F 'refused: worktree "spec/lim" not found' "$dwt_completion_transcript"
 fi
 
 dwt_no_match_transcript="$tmpdir/dwt-no-match.transcript"
-printf 'export HUB_WORKSPACE_ROOT="%s"\nexport HUB_INSTALL_BRANCH_DIR="%s"\nautoload -Uz compinit\ncompinit\nsource "%s"\ncd "%s/repos/alpha/master"\ndwt spec/nope\t\nexit\n' \
+printf 'export HUB_WORKSPACE_ROOT="%s"\nexport HUB_INSTALL_BRANCH_DIR="%s"\nexport WORKSPACE_NAV_REPO_ROOT_RESOLVER="%s"\nautoload -Uz compinit\ncompinit\nsource "%s"\ncd "%s/repos/alpha/master"\ndwt spec/nope\t\nexit\n' \
   "$workspace_root" \
   "$repo_root" \
+  "$tmpdir/mock-resolve-repo-root.sh" \
   "$nav_script" \
   "$workspace_root" \
   | script -q -c 'zsh -fi' "$dwt_no_match_transcript" >/dev/null
@@ -442,9 +451,10 @@ if grep -F 'usage: dwt [name]' "$dwt_no_match_transcript" >/dev/null; then
 fi
 
 dwt_refinement_transcript="$tmpdir/dwt-refinement.transcript"
-printf 'export HUB_WORKSPACE_ROOT="%s"\nexport HUB_INSTALL_BRANCH_DIR="%s"\nautoload -Uz compinit\ncompinit\nsource "%s"\ncd "%s/repos/alpha/master"\ndwt spec/lim\tx\t\nexit\n' \
+printf 'export HUB_WORKSPACE_ROOT="%s"\nexport HUB_INSTALL_BRANCH_DIR="%s"\nexport WORKSPACE_NAV_REPO_ROOT_RESOLVER="%s"\nautoload -Uz compinit\ncompinit\nsource "%s"\ncd "%s/repos/alpha/master"\ndwt spec/lim\tx\t\nexit\n' \
   "$workspace_root" \
   "$repo_root" \
+  "$tmpdir/mock-resolve-repo-root.sh" \
   "$nav_script" \
   "$workspace_root" \
   | script -q -c 'zsh -fi' "$dwt_refinement_transcript" >/dev/null

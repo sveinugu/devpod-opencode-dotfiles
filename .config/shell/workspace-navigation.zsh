@@ -30,9 +30,7 @@ workspace_navigation_add_branch_bin_to_path() {
 }
 
 workspace_navigation_load_install_env() {
-  [ -n "${HUB_INSTALL_BRANCH_DIR:-}" ] && return 0
-
-  local install_env="${WORKSPACE_NAV_INSTALL_ENV_FILE:-/workspaces/dotfiles/state/hub/etc/install.env}"
+  local install_env="${WORKSPACE_NAV_INSTALL_ENV_FILE:-${HUB_INSTALL_ENV_FILE:-/workspaces/dotfiles/state/hub/etc/install.env}}"
   if [ -f "$install_env" ]; then
     # shellcheck disable=SC1090
     . "$install_env"
