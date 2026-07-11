@@ -37,6 +37,39 @@ workspace_navigation_load_install_env() {
   fi
 }
 
+workspace_navigation_detect_install_env_mtime() {
+  local install_env="${WORKSPACE_NAV_INSTALL_ENV_FILE:-${HUB_INSTALL_ENV_FILE:-/workspaces/dotfiles/state/hub/etc/install.env}}"
+  [ -f "$install_env" ] || return 1
+
+  local mtime
+  if mtime="$(stat -c '%Y' "$install_env" 2>/dev/null)"; then
+    printf '%s\n' "$mtime"
+    return 0
+  fi
+
+  if mtime="$(stat -f '%m' "$install_env" 2>/dev/null)"; then
+    printf '%s\n' "$mtime"
+    return 0
+  fi
+
+  return 1
+}
+
+workspace_navigation_on_precmd() {
+  local install_env_mtime=''
+  if ! install_env_mtime="$(workspace_navigation_detect_install_env_mtime)"; then
+    return 0
+  fi
+
+  if [ "${HUB_WORKSPACE_NAV_INSTALL_ENV_MTIME:-}" = "$install_env_mtime" ]; then
+    return 0
+  fi
+
+  workspace_navigation_load_install_env
+  workspace_navigation_add_branch_bin_to_path
+  export HUB_WORKSPACE_NAV_INSTALL_ENV_MTIME="$install_env_mtime"
+}
+
 workspace_navigation_on_chpwd() {
   workspace_navigation_load_install_env
   workspace_navigation_add_branch_bin_to_path
@@ -46,6 +79,7 @@ workspace_navigation_on_chpwd
 
 if whence -w add-zsh-hook >/dev/null 2>&1; then
   add-zsh-hook chpwd workspace_navigation_on_chpwd
+  add-zsh-hook precmd workspace_navigation_on_precmd
 fi
 
 dhub() {
