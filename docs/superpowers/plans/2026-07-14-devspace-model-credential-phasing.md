@@ -274,6 +274,8 @@ At minimum, implementation should leave behind fresh evidence for:
 
 The preferred test level is **contract/integration**, not low-level unit tests, because the value of this slice is in the real runtime boundary and operator-visible behavior.
 
+For this plan, “contract/integration” tests are intended to be **shell-driven boundary checks** that launch the real wrapped subprocesses and inspect observable behavior such as exit status, stdout/stderr, PATH resolution, file-access success/failure, network reachability, and secret-leak surfaces. They do **not** assume nested interactive OpenCode agent sessions except where no thinner smoke-check surface exists; if a subagent-call path cannot be exercised non-interactively, that portion should be treated as a thin smoke test or an explicit manual verification step rather than the main automated harness.
+
 ## Risks and constraints
 
 - **Hard-gate risk:** if the `nono` suitability matrix fails, the correct outcome is rejection or redesign of this secure path, not a weakened fallback.
