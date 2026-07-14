@@ -73,9 +73,10 @@ This plan is complete only when all of the following are true:
 7. UiO yellow/red remain separate providers with separate credential identities and repo-tracked full current model lists.
 8. Standard providers use repo-owned integration/auth contracts plus repo-owned model allowlists, not full mirrored upstream catalogs.
 9. `opencode` resolves by PATH to the wrapped secure launcher, and verification includes `command -v opencode` plus `type -a opencode` evidence showing the wrapped entry before the raw binary.
-10. The operator workflow has one observable source of truth for provider enablement and its generated runtime configuration matches that source.
-11. No tracked repo file contains secret values.
-12. If `nono` fails the suitability gate in this pod, the secure-path design is rejected rather than silently downgraded.
+10. The operator workflow has one observable source of truth for provider enablement: a single host-local enablement manifest referenced by the runbooks.
+11. Generated runtime configuration matches that host-local enablement manifest exactly, and verification output matches it exactly as well.
+12. No tracked repo file contains secret values.
+13. If `nono` fails the suitability gate in this pod, the secure-path design is rejected rather than silently downgraded.
 
 ## Proposed file map
 
@@ -183,6 +184,7 @@ This plan is complete only when all of the following are true:
 - Create additional provider-contract assets only if they live under the chosen repo-tracked config location
 
 - [ ] Add repo-tracked configuration for the exact supported provider set and exclude unsupported providers from the secure path.
+- [ ] Keep that provider selection scoped to the repo-supported secure path only; do not redefine out-of-scope raw OpenCode use into a repo-enforced global allowlist.
 - [ ] Keep UiO yellow/red as separate providers with separate routing identities and repo-tracked full current model lists.
 - [ ] Keep standard-provider model policy as repo-tracked allowlists rather than full mirrored catalogs.
 - [ ] Ensure the supported-provider auth contract stays consistent with the `nono` credential-route contract and does not make supported-provider `auth.json` authoritative.
@@ -226,7 +228,8 @@ This plan is complete only when all of the following are true:
 - Modify: `docs/superpowers/runbooks/devspace-bare-hub-usage.md`
 - Optional with check-in: one focused secure-path runbook
 
-- [ ] Document one observable host-local source of truth for provider enablement and ensure generated runtime configuration is described as matching it exactly.
+- [ ] Document one observable source of truth for provider enablement: a single host-local enablement manifest referenced by the runbooks.
+- [ ] Document that both generated runtime configuration and verification output must match that host-local enablement manifest exactly.
 - [ ] Document enable/rotate/redeploy/verify flow for the supported providers without ever instructing operators to place credentials in repo files, shell startup files, `.env` files, or supported-provider `auth.json`.
 - [ ] State clearly what the secure path improves and what it does **not** guarantee.
 - [ ] Explain the secure default launch behavior, the absolute-path raw escape hatch, and the evidence operators should gather when verification fails.
@@ -234,7 +237,7 @@ This plan is complete only when all of the following are true:
 - [ ] Perform the mandatory standalone refactor checkpoint and remove duplicated or contradictory wording.
 - [ ] Commit the documentation slice.
 
-**User Check-in:** if the two current runbooks become too overloaded, pause and confirm whether to add a dedicated secure-path runbook.
+**User Check-in:** if the two current runbooks become too overloaded, or if the implementing agent finds ambiguity/drift between the host-local enablement manifest, generated runtime config, and verification output, pause and confirm the contract before proceeding.
 
 **Review cycle:** request docs-review focused on operator clarity, security-boundary truthfulness, and whether the workflow can be followed without unstated tribal knowledge.
 
@@ -265,6 +268,7 @@ At minimum, implementation should leave behind fresh evidence for:
 - one focused verification command or test file covering the blocking `nono` suitability matrix
 - one focused verification command or test file covering the secure `opencode` launch contract and PATH precedence
 - one focused verification command or test file covering supported-provider configuration rules and model-policy boundaries
+- one focused verification command or test file proving the single host-local enablement manifest is the source of truth and that both generated runtime configuration and verification output match it exactly
 - the relevant existing manifest/bootstrap/runbook contract tests touched by the slice
 - a final changed-files review plus explicit acceptance-criteria mapping
 
@@ -276,6 +280,7 @@ The preferred test level is **contract/integration**, not low-level unit tests, 
 - **Boundary-truthfulness risk:** documentation and tests must not confuse “not in ordinary bash scope” with “unreachable by all workspace code.”
 - **Kubernetes-surface ambiguity:** the spec allows a narrow pre-sandbox credential surface but does not pre-select the exact implementation shape; this needs an implementation-time check-in.
 - **Network-policy risk:** wrapped OpenCode may require auxiliary endpoints beyond loopback; those must be explicitly discovered, justified, and approved.
+- **Enablement-drift risk:** the host-local enablement manifest, generated runtime configuration, and verification output can drift unless one testable contract ties them together exactly.
 - **DRY risk:** provider policy, model policy, route policy, and operator docs can easily drift if spread across too many surfaces; keep one authoritative contract per concern.
 - **Scope-creep risk:** broker work, unsupported providers, and generalized secret-brokering ideas remain deferred even if implementation exposes them as attractive follow-ons.
 
