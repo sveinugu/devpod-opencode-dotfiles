@@ -329,7 +329,7 @@ Enablement should remain an explicit operator choice rather than an implicit sid
 The design is acceptable only when all of the following are true:
 
 1. `nono` proxy injection is the only supported credential route.
-2. The `nono` verification gate passes at the required level.
+2. All blocking verification-matrix rows pass, and advisory rows are recorded explicitly.
 3. The target supported provider set is exactly:
    - `gpt-uio-yellow`
    - `gpt-uio-red`
@@ -343,8 +343,8 @@ The design is acceptable only when all of the following are true:
 8. Plain `opencode` resolves to the wrapped `nono` launch path by default, while raw OpenCode remains available only by full absolute path.
 9. `command -v opencode` resolves to the wrapped executable and `type -a opencode` shows that wrapped executable before the real binary.
 10. Provider enablement is host/operator controlled through a single observable host-local enablement manifest, and generated runtime configuration matches it.
-10. No tracked repo file contains secret values.
-11. If `nono` is found unsuitable in this pod environment, this design path is rejected rather than silently downgraded.
+11. No tracked repo file contains secret values.
+12. If `nono` is found unsuitable in this pod environment, this design path is rejected rather than silently downgraded.
 
 ## Deferred Alternatives
 
