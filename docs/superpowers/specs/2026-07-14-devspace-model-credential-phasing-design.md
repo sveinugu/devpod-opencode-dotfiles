@@ -2,7 +2,7 @@
 
 Date: 2026-07-14  
 Status: Proposed  
-Related: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-design.md`, `docs/superpowers/explorations/2026-05-23-devpod-alternatives.md`
+Related: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-design.md`, `docs/superpowers/explorations/2026-05-23-devpod-alternatives.md`, `https://github.com/nolabs-ai/nono`, `https://nono.sh/docs/introduction`
 
 ## Executive Summary
 
@@ -39,6 +39,7 @@ The goal here is not to build a full broker platform now. The goal is to make di
 - Keep real provider credentials out of agent bash scope for supported providers.
 - Keep provider enablement host/operator controlled rather than hard-coded as always-on repo behavior.
 - Support UiO-specific OpenCode integration cleanly, including full current model lists for the UiO providers.
+- Make the secure wrapped OpenCode launch path the default so normal `opencode` usage does not accidentally bypass `nono`.
 - Keep the design simple enough to operate and verify.
 
 ## Non-Goals
@@ -48,6 +49,7 @@ The goal here is not to build a full broker platform now. The goal is to make di
 - Do not support plain env-var credential exposure to the agent sandbox as an accepted steady-state route.
 - Do not treat `auth.json` as the credential source of truth for supported providers.
 - Do not own standard-provider model catalogs in the repo.
+- Do not require users to memorize a different everyday command than `opencode` for the secure path.
 
 ## Core Decision
 
@@ -114,7 +116,7 @@ A provider is eligible for this design only if all of the following are true:
 ### Provider ownership rules
 
 - **UiO providers**: the repo owns the integration template and the full current model lists.
-- **Standard providers**: the repo owns only the integration/auth contract, not the model catalog.
+- **Standard providers**: the repo owns the integration/auth contract plus repo-tracked model allowlists layered over the OpenCode-owned upstream catalog.
 
 `github-copilot` is included in the target supported set because direct OpenCode authentication via `GITHUB_TOKEN` has been verified by the user, but it still remains contingent on successful `nono`-route verification for this design.
 
@@ -172,9 +174,30 @@ For:
 - `anthropic`
 - `github-copilot`
 
-the repo should define only the integration/auth contract needed to make the provider available under the chosen runtime path. The repo should not own their model catalogs.
+the repo should define the integration/auth contract needed to make the provider available under the chosen runtime path. The repo should not mirror their full model catalogs.
+
+### Model visibility policy
+
+- **UiO providers** use repo-tracked full current model lists.
+- **Standard providers** use repo-tracked allowlists, expected to map to OpenCode provider filtering such as `whitelist`, so the workspace does not surface the full upstream model catalog by default.
+
+This is required because provider-owned catalogs can be much broader than the sanctioned or intended set for this workspace, including the reduced UiO-provided GitHub Copilot model set.
 
 The design does not use `enabled_providers` as a global allowlist. Users may still choose other providers outside this design; those providers are simply not supported by this repo design path.
+
+## OpenCode Launch Contract
+
+The secure wrapped launch path must be the default user path.
+
+Required behavior:
+
+- normal `opencode` in PATH resolves to a wrapper that launches OpenCode under `nono`
+- the wrapper should use the reviewed repo-specific `nono` profile
+- raw/unwrapped OpenCode remains available only via the real binary's full absolute path
+
+This design intentionally rejects a separate everyday command such as `nono-opencode`, because that would make accidental insecure launches too likely.
+
+The wrapper does not need to make unwrapped launches impossible. It does need to make the secure path the normal muscle-memory path.
 
 ## nono Configuration Contract
 
@@ -185,6 +208,7 @@ Instead, the supported design requires a reviewed repo-specific `nono` profile t
 - minimum filesystem access OpenCode needs
 - minimum network access needed for provider/proxy routing
 - explicit credential routes for each supported provider
+- model-routing assumptions needed by the supported provider set
 - fail-closed expectations validated by the matrix
 
 The stock OpenCode profile is acceptable only as an early verification reference.
@@ -213,9 +237,10 @@ The operator workflow should remain host-controlled and simple:
 
 1. choose which supported providers to enable for this workspace
 2. provide or rotate the required secrets outside git
-3. update the generated OpenCode + `nono` runtime configuration
-4. restart or redeploy the workspace as needed
-5. run verification checks
+3. update the generated OpenCode + `nono` runtime configuration, including model allowlists where applicable
+4. ensure the wrapped `opencode` launcher is the default in-pod command surface
+5. restart or redeploy the workspace as needed
+6. run verification checks
 
 ### Provider-specific workflow notes
 
@@ -227,8 +252,8 @@ The operator workflow should remain host-controlled and simple:
 
 - **OpenAI / Anthropic / GitHub Copilot**
   - operator-enabled only when needed
-  - repo supplies integration/auth contract only
-  - no repo-owned model lists
+  - repo supplies integration/auth contract
+  - repo supplies model allowlists rather than full mirrored catalogs
 
 Enablement should remain an explicit operator choice rather than an implicit side effect of secret presence.
 
@@ -247,10 +272,11 @@ The design is acceptable only when all of the following are true:
 4. Explicitly unsupported providers are excluded rather than partially supported.
 5. Real provider credentials do not appear in agent bash scope for supported providers.
 6. UiO yellow/red remain separate providers with separate credentials and repo-tracked full current model lists.
-7. Standard providers use repo-owned integration/auth contracts only, not repo-owned model catalogs.
-8. Provider enablement is host/operator controlled.
-9. No tracked repo file contains secret values.
-10. If `nono` is found unsuitable in this pod environment, this design path is rejected rather than silently downgraded.
+7. Standard providers use repo-owned integration/auth contracts plus repo-owned model allowlists, not full mirrored model catalogs.
+8. Plain `opencode` resolves to the wrapped `nono` launch path by default, while raw OpenCode remains available only by full absolute path.
+9. Provider enablement is host/operator controlled.
+10. No tracked repo file contains secret values.
+11. If `nono` is found unsuitable in this pod environment, this design path is rejected rather than silently downgraded.
 
 ## Deferred Alternatives
 
