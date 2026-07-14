@@ -8,6 +8,8 @@ Related: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-design.m
 
 This design defines a two-phase path for handling model-provider API credentials in the current DevSpace workspace setup.
 
+This document is an umbrella design for both phases. The next implementation plan should cover Phase 1 only. Phase 2 requires a separate follow-on plan after the broker endpoint contract and workspace-to-broker authentication contract are confirmed.
+
 Phase 1 moves provider credentials out of repo-managed files, shell startup files, and PVC-backed workspace files and into Kubernetes Secret objects referenced by the workspace Deployment. This is an operational hardening step only. It improves storage, rotation, and accidental-leak posture, but it does not prevent code or agents running inside the workspace from accessing those credentials.
 
 Phase 2 introduces a separate in-cluster broker/model-gateway service that alone holds the raw upstream provider credentials. OpenCode in the workspace talks to the broker through a narrow internal service boundary instead of talking directly to upstream model providers. This is the phase that corrects the trust boundary.
@@ -66,7 +68,7 @@ It improves the system by ensuring raw provider keys are no longer kept in:
 
 - tracked repo files
 - shell startup files such as `.zshrc`
-- `install.env`
+- `state/hub/etc/install.env`
 - ad hoc dotfiles or config files on the workspace PVC
 
 Phase 1 does **not** attempt to protect provider credentials from code running inside the workspace. If OpenCode and agents in the workspace need direct provider access, the workspace can still use those credentials.
@@ -120,7 +122,9 @@ The runbook must also state plainly that Phase 1 removes secrets from normal fil
 
 If the workspace Deployment is configured to require a provider secret and that secret or key is missing, startup should fail in a clear and diagnosable way.
 
-The design intent is fail-fast misconfiguration rather than a partially working workspace with hidden credential drift.
+For Phase 1, the acceptable fail-fast mechanism is Kubernetes-level startup failure from a required secret reference, for example a pod that does not start because a non-optional `secretKeyRef` points at a missing Secret or key and surfaces a `CreateContainerConfigError`-style misconfiguration.
+
+The design intent is fail-fast misconfiguration rather than a partially working workspace with hidden credential drift. App-level validation may add a clearer message later, but it does not replace the required Kubernetes-level failure mode for the first slice.
 
 ### Acceptance boundary
 
@@ -154,7 +158,7 @@ The broker:
 - exposes a cluster-local endpoint for OpenCode/workspace use
 - does not share the workspace PVC
 
-The broker endpoint should be chosen so OpenCode can use it with minimal config change. The preferred direction is an OpenAI-compatible or equivalently supported internal endpoint, but the exact wire contract should be finalized during planning after confirming OpenCode's supported endpoint configuration surface.
+The broker endpoint should be chosen so OpenCode can use it with minimal config change. The preferred Phase 2 target is an OpenAI-compatible internal endpoint, but Phase 2 implementation must not start until a follow-on plan freezes the exact endpoint contract against the confirmed OpenCode configuration surface.
 
 ### Credential contract
 
@@ -166,7 +170,7 @@ The workspace:
 - must not persist fallback provider keys in local files
 - should authenticate to the broker through a narrow cluster-local mechanism
 
-The exact authentication mechanism for the first broker slice is left to planning, but it should be compatible with the existing cluster model and should not require sharing the raw upstream provider credentials with the workspace.
+The exact authentication mechanism for the first broker slice is deferred to the Phase 2 follow-on plan, which must freeze the workspace-to-broker auth contract before implementation. Whatever mechanism is chosen should fit the existing cluster model and must not require sharing the raw upstream provider credentials with the workspace.
 
 ### Minimum broker responsibilities
 
@@ -233,6 +237,8 @@ This would produce the cleanest end state, but it leaves current credential plac
 
 ## Phase Structure
 
+The next implementation plan should cover only Phase 1. Phase 2 remains design-approved but plan-deferred until the broker endpoint and auth contracts are frozen.
+
 ### Phase 1
 
 - define provider secret naming and key contract
@@ -249,7 +255,7 @@ This would produce the cleanest end state, but it leaves current credential plac
 
 ## Open Questions For Planning
 
-The following are intentionally left for the planning stage:
+The following are intentionally left for planning, with items 2-4 specifically deferred to the separate Phase 2 follow-on plan:
 
 1. Exact initial provider set to support in Phase 1
 2. Exact OpenCode configuration contract for using an internal broker endpoint
