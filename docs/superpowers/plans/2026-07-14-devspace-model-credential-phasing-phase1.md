@@ -57,7 +57,7 @@ Phase 1 is complete when all of the following are true:
 2. The documented required key inside each secret matches the provider environment variable name expected in the workspace (for example `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY`).
 3. `k8s/devspace-bare-hub/workspace-deployment.yaml` references only secret names and key names for provider credentials and does not embed any provider credential values.
 4. The workspace container consumes configured provider credentials via required `secretKeyRef` environment variables.
-5. The plan implementation removes any documented or actual dependency on repo-managed files, shell startup files, `state/hub/etc/install.env`, or PVC-backed ad hoc files as sources of provider keys.
+5. The plan implementation removes any documented or actual dependency on repo-managed files, shell startup files, or PVC-backed ad hoc files as sources of provider keys, including any provider-key sourcing from `state/hub/etc/install.env`; ordinary install-branch metadata references to `install.env` remain valid.
 6. The runbook documentation explains how to create the secrets outside git, rotate them, restart or redeploy the workspace so new values are picked up, and verify that provider access still works.
 7. The runbooks state truthfully that Phase 1 removes secrets from normal files but does **not** prevent code running inside the workspace from reading or using those credentials.
 8. Missing or misnamed required secret references fail in a clear Kubernetes-level way consistent with a required `secretKeyRef` misconfiguration.
@@ -79,12 +79,12 @@ Phase 1 is complete when all of the following are true:
 
 ### Verification surfaces
 
-- Modify or create one focused manifest/docs contract test under `tests/devspace/` and/or `tests/docs/` that locks:
+- Prefer create: `tests/devspace/test_model_credential_phase1_contract.sh` — one focused Phase 1 contract test that locks:
   - required provider secret naming/key anchors,
   - `secretKeyRef`-based Deployment wiring,
   - truthful Phase 1 security-boundary wording,
   - create/rotate/verify operator-flow anchors.
-- Extend existing tests where that keeps the slice smaller:
+- Extend existing tests only where the overlap is direct and keeps the slice smaller:
   - `tests/devspace/test_workspace_manifest_contract.sh`
   - `tests/devspace/test_devspace_command_surface.sh`
   - `tests/docs/test_bare_hub_guardrails.sh`
@@ -96,7 +96,8 @@ Phase 1 is complete when all of the following are true:
 **Intent:** Make the Phase 1 requirements mechanically reviewable before changing manifests or docs.
 
 **Files:**
-- Modify or create the smallest focused docs/devspace contract tests needed under `tests/docs/` and `tests/devspace/`
+- Prefer create: `tests/devspace/test_model_credential_phase1_contract.sh`
+- Extend only directly overlapping existing tests under `tests/docs/` and `tests/devspace/`
 
 - [ ] Write a failing contract test first for the Phase 1 secret contract and runbook truthfulness.
 - [ ] Assert the secret naming pattern, required key naming rule, `secretKeyRef`-based Deployment wiring, and fail-fast expectation anchored in the spec.
@@ -106,7 +107,7 @@ Phase 1 is complete when all of the following are true:
 
 **Verification target:** the red test must fail because the current Deployment has no provider secret wiring and the current runbooks do not yet define the Phase 1 flow.
 
-**Review cycle:** request a docs/code review of the red test wording before manifest work begins, specifically asking whether the contract is Phase 1-only and free of hidden Phase 2 assumptions.
+**Review cycle:** request docs-reviewer feedback on the red contract-test wording before manifest work begins, specifically asking whether the contract is Phase 1-only and free of hidden Phase 2 assumptions.
 
 ---
 
@@ -145,8 +146,9 @@ Phase 1 is complete when all of the following are true:
 - [ ] Document how to rotate a secret and what workspace restart/redeploy action is required for the new value to take effect.
 - [ ] Document how to verify that the workspace still has working provider access after secret creation or rotation.
 - [ ] State clearly that Phase 1 removes provider keys from normal files but does not make the workspace a trusted boundary for those credentials.
-- [ ] Remove or rewrite any documentation that implies repo-managed files, shell startup files, `install.env`, or ad hoc PVC-backed files are valid provider-key sources.
+- [ ] Remove or rewrite any documentation that implies repo-managed files, shell startup files, ad hoc PVC-backed files, or provider-key sourcing from `install.env` are valid provider-key sources while preserving legitimate non-credential install-metadata references.
 - [ ] Verify GREEN on the docs-focused contract tests.
+- [ ] Perform the mandatory standalone refactor checkpoint: tighten the documentation wording, keep the Phase 1 credential contract authoritative and non-duplicative, and rerun the docs-focused contract tests after any cleanup.
 - [ ] Commit the documentation slice.
 
 **User Check-in:** if the implementing agent concludes that the existing runbooks would become overloaded, pause and confirm whether to add one dedicated Phase 1 credential runbook instead of expanding the two existing runbooks.
@@ -163,13 +165,14 @@ Phase 1 is complete when all of the following are true:
 - Review and modify only the surfaces that actually carry provider-key assumptions
 - Expected primary surfaces: manifest comments, runbooks, and any secret-related helper/config text discovered during implementation
 
-- [ ] Search the repo for direct provider-key dependency on repo-managed files, shell startup files, `state/hub/etc/install.env`, or PVC-backed workspace files.
+- [ ] Search the repo for direct provider-key dependency on repo-managed files, shell startup files, provider-key sourcing from `state/hub/etc/install.env`, or PVC-backed workspace files.
 - [ ] Remove or rewrite only the live references that would conflict with the Phase 1 contract.
-- [ ] Keep the cleanup surgical; do not broaden into unrelated secret-management refactors.
+- [ ] Keep the cleanup surgical; do not broaden into unrelated secret-management refactors or non-credential `install.env` metadata usage.
 - [ ] Re-run the focused Phase 1 tests plus any touched existing tests.
+- [ ] Perform the mandatory standalone refactor checkpoint: confirm the cleanup stayed credential-specific, preserve valid install-metadata references, and rerun the focused Phase 1 tests after any wording or scope cleanup.
 - [ ] Commit the cleanup slice.
 
-**Verification target:** there should be no remaining live documentation or manifest/config surface that instructs operators to place provider API keys in tracked repo files, shell startup files, or PVC-backed ad hoc files.
+**Verification target:** there should be no remaining live documentation or manifest/config surface that instructs operators to place provider API keys in tracked repo files, shell startup files, provider-key fields in `install.env`, or PVC-backed ad hoc files.
 
 **Review cycle:** request review focused on drift detection: ask whether any remaining file-based provider-key path still exists in live repo surfaces after the cleanup.
 
@@ -205,6 +208,7 @@ At minimum, the implementation should leave behind fresh evidence for:
 Suggested verification surfaces:
 
 - `bash tests/devspace/test_workspace_manifest_contract.sh`
+- `bash tests/devspace/test_model_credential_phase1_contract.sh` if the preferred focused contract file is added
 - the new or extended Phase 1 contract tests under `tests/devspace/` and/or `tests/docs/`
 - `bash tests/docs/test_bare_hub_guardrails.sh` if runbook wording is extended there
 - `bash tests/devspace/test_devspace_command_surface.sh` if `devspace.yaml` guidance changes
