@@ -62,6 +62,13 @@ This design chooses a single direct-provider path:
 
 If this path fails the verification gate, the design is not accepted and must be redesigned rather than weakened implicitly.
 
+This design distinguishes between:
+
+- the **repo-supported secure path**: wrapped `opencode` under the reviewed `nono` profile, using only the supported providers and credential route defined here
+- **out-of-scope manual use**: raw OpenCode invoked intentionally by full path, or user-defined providers outside this design
+
+Only the repo-supported secure path is covered by the acceptance criteria in this document.
+
 ## Hard Gate: nono Suitability
 
 This design is contingent on `nono` being suitable inside the current DevSpace workspace pod.
@@ -74,20 +81,22 @@ Minimum gate before trusting `nono` for this repo:
 4. OpenCode remains usable through the proxy route
 5. UiO custom provider routing works
 
+The gate passes only when **all blocking rows** in the verification matrix pass. Advisory rows may remain follow-up work, but their status must be recorded explicitly.
+
 ### Verification matrix
 
-| Check | What to test | Pass condition |
-| --- | --- | --- |
-| In-pod runtime | `nono` installs and launches `opencode` in this pod | starts cleanly without sandbox init failure |
-| Kernel enforcement | allowed paths work, disallowed paths fail | policy is actually enforced in-container |
-| Fail-closed behavior | broken profile, broken proxy, missing credential source | execution aborts instead of falling back silently |
-| Network control | intended routes work, unintended routes fail | provider/proxy path reachable, random egress blocked as designed |
-| Proxy secrecy | inspect env, shell, `/proc`, logs, temp files | real credential never appears inside sandbox scope |
-| OpenCode usability | prompt, streaming, edits, subagents | normal workflow remains usable |
-| UiO routing | custom route to `https://gpt.uio.no/api/v1` | yellow and red providers both function |
-| Provider-specific verification | provider auth and requests under `nono` | provider stays within supported contract |
-| Profile minimization | stock profile narrowed for repo needs | least-privilege repo profile identified |
-| Reproducibility | restart/reprovision checks | behavior remains stable across pod lifecycle |
+| Check | Class | Example evidence / command | Pass condition |
+| --- | --- | --- | --- |
+| In-pod runtime | Blocking | install `nono`; launch wrapped `opencode`; smoke-check `opencode --version` and a trivial prompt under `nono` | starts cleanly without sandbox init failure |
+| Kernel enforcement | Blocking | under `nono`, read/write sentinel files in CWD and attempt disallowed read/write outside policy | allowed paths work and disallowed paths fail reliably |
+| Fail-closed behavior | Blocking | intentionally break profile, proxy config, and credential source | execution aborts instead of falling back silently |
+| Network control | Blocking | from sandbox child, test loopback proxy access, intended allowed routes, and random external hosts | child can reach only loopback proxy and any explicitly verified auxiliary endpoints; direct child egress to upstream provider hosts is blocked for proxy-backed providers |
+| Proxy secrecy | Blocking | inspect `env`, `/proc/*/environ`, logs, temp files, and shell-visible config while using dummy then real credentials | real credential never appears inside sandbox scope; only phantom-token or proxy-local routing material is visible |
+| OpenCode usability | Blocking | smoke-test prompt, streaming response, file edit, and subagent call through wrapped `opencode` | normal workflow remains usable |
+| UiO routing | Blocking | verify both yellow and red against `https://gpt.uio.no/api/v1` via proxy-backed requests | yellow and red providers both function through their separate routes |
+| Provider-specific verification | Blocking | one auth/list/request smoke test per supported provider; for Copilot, include `GITHUB_TOKEN`-based evidence | each supported provider stays within the supported contract |
+| Profile minimization | Advisory | compare stock profile vs repo-specific profile and retest denied extra paths | least-privilege repo profile identified |
+| Reproducibility | Advisory | rerun the relevant checks after pod restart/reprovision | behavior remains stable across pod lifecycle |
 
 All early verification should use dummy credentials first.
 
@@ -99,6 +108,14 @@ A provider is eligible for this design only if all of the following are true:
 2. Authentication works without tracked repo secrets.
 3. It can be routed through `nono` proxy credential injection.
 4. It passes the relevant `nono` verification checks.
+
+### What counts as "authentication works"
+
+- `gpt-uio-yellow`: separate yellow credential, successful wrapped request through the yellow proxy route to `https://gpt.uio.no/api/v1`
+- `gpt-uio-red`: separate red credential, successful wrapped request through the red proxy route to `https://gpt.uio.no/api/v1`
+- `openai`: successful wrapped request through the OpenAI proxy route
+- `anthropic`: successful wrapped request through the Anthropic API route using API-token auth only
+- `github-copilot`: successful wrapped provider use with `GITHUB_TOKEN`; device-flow or `auth.json` alone does not satisfy secure-path support for this design
 
 ### Target supported providers
 
@@ -117,6 +134,17 @@ A provider is eligible for this design only if all of the following are true:
 
 - **UiO providers**: the repo owns the integration template and the full current model lists.
 - **Standard providers**: the repo owns the integration/auth contract plus repo-tracked model allowlists layered over the OpenCode-owned upstream catalog.
+
+Operationally, "repo owns the integration/auth contract" means the repo owns:
+
+- provider identifiers and naming
+- base-URL or upstream-routing configuration
+- credential-route names and auth-header/format expectations
+- generated OpenCode configuration shape
+- model visibility policy for that provider class
+- verification commands and evidence expectations
+
+It does **not** mean the repo owns secret values.
 
 `github-copilot` is included in the target supported set because direct OpenCode authentication via `GITHUB_TOKEN` has been verified by the user, but it still remains contingent on successful `nono`-route verification for this design.
 
@@ -141,13 +169,26 @@ Unsupported steady-state routes:
 
 Operator-managed Kubernetes secrets remain the source of credential material for this workspace deployment.
 
-The design does not require a system keyring inside the pod. Instead, secret material may be made available to the parent runtime that launches `nono`, provided the verification matrix shows that the real credentials do not enter the sandbox scope.
+The design does not require a system keyring inside the pod. It does require that any pre-sandbox credential access be confined to a narrowly defined non-interactive launch path.
 
-This design therefore assumes:
+Allowed pre-sandbox credential visibility is limited to:
 
-- Kubernetes secrets are still operator-managed and out of git
-- secret values may be surfaced to the parent OpenCode/`nono` runtime in a way compatible with proxy injection
-- success is defined by sandbox exposure behavior, not by whether the parent runtime briefly sees the credential
+- the Kubernetes secret delivery surface itself
+- a dedicated non-interactive launch helper or wrapper that immediately hands the secret to `nono` proxy setup
+- the `nono` supervisor / proxy setup path before the sandbox is applied
+
+The following are explicitly forbidden as credential-bearing surfaces:
+
+- interactive login shells
+- shell startup files such as `.zshrc`, `.bashrc`, or prompt hooks
+- persistent exported user environment variables intended for ordinary shell sessions
+- repo files, `.env` files, or other agent-readable workspace files
+- agent-readable `auth.json` content for supported providers
+
+Success is therefore defined by both of the following:
+
+- real credentials do not enter the sandbox scope
+- real credentials are not exposed through ordinary interactive shell/startup/env surfaces before sandboxing
 
 ## OpenCode Configuration Contract
 
@@ -183,7 +224,13 @@ the repo should define the integration/auth contract needed to make the provider
 
 This is required because provider-owned catalogs can be much broader than the sanctioned or intended set for this workspace, including the reduced UiO-provided GitHub Copilot model set.
 
-The design does not use `enabled_providers` as a global allowlist. Users may still choose other providers outside this design; those providers are simply not supported by this repo design path.
+### Model-policy governance
+
+- Repo-tracked model policy is updated through normal reviewed repo changes.
+- For UiO providers, "current" means the latest user-approved sanctioned UiO model inventory known at the time of the spec or plan update; it does **not** mean automatic mirroring of everything upstream may expose.
+- For standard providers, allowlists are current when they match the latest user-approved supported model set for this workspace.
+
+The design does not use `enabled_providers` as a global allowlist. Users may still choose other providers only through out-of-scope manual raw OpenCode use; those providers are not supported by this repo's secure path, acceptance criteria, or runbooks.
 
 ## OpenCode Launch Contract
 
@@ -194,10 +241,14 @@ Required behavior:
 - normal `opencode` in PATH resolves to a wrapper that launches OpenCode under `nono`
 - the wrapper should use the reviewed repo-specific `nono` profile
 - raw/unwrapped OpenCode remains available only via the real binary's full absolute path
+- the wrapper must be a real executable path entry, not merely a shell alias or shell function
+- scripted and subprocess invocations that call `opencode` by name must resolve to the same wrapped executable through PATH
 
 This design intentionally rejects a separate everyday command such as `nono-opencode`, because that would make accidental insecure launches too likely.
 
 The wrapper does not need to make unwrapped launches impossible. It does need to make the secure path the normal muscle-memory path.
+
+Verification for this contract must include observable shell evidence such as `command -v opencode` and `type -a opencode`, showing that the wrapped executable is resolved before the real binary.
 
 ## nono Configuration Contract
 
@@ -210,6 +261,20 @@ Instead, the supported design requires a reviewed repo-specific `nono` profile t
 - explicit credential routes for each supported provider
 - model-routing assumptions needed by the supported provider set
 - fail-closed expectations validated by the matrix
+
+### Network policy contract
+
+The repo-specific profile should default-deny sandbox child egress.
+
+Allowed from the sandbox child:
+
+- loopback access to the local `nono` proxy
+- any additional auxiliary endpoints strictly required for wrapped OpenCode operation and explicitly recorded by verification
+
+Blocked from the sandbox child:
+
+- direct outbound access to upstream provider hosts for proxy-backed providers
+- random external hosts not declared in the repo-specific profile
 
 The stock OpenCode profile is acceptable only as an early verification reference.
 
@@ -241,6 +306,8 @@ The operator workflow should remain host-controlled and simple:
 4. ensure the wrapped `opencode` launcher is the default in-pod command surface
 5. restart or redeploy the workspace as needed
 6. run verification checks
+
+Provider enablement must have one observable source of truth: a single host-local enablement manifest referenced by the runbooks. Generated runtime configuration and verification output must match that manifest exactly.
 
 ### Provider-specific workflow notes
 
@@ -274,7 +341,8 @@ The design is acceptable only when all of the following are true:
 6. UiO yellow/red remain separate providers with separate credentials and repo-tracked full current model lists.
 7. Standard providers use repo-owned integration/auth contracts plus repo-owned model allowlists, not full mirrored model catalogs.
 8. Plain `opencode` resolves to the wrapped `nono` launch path by default, while raw OpenCode remains available only by full absolute path.
-9. Provider enablement is host/operator controlled.
+9. `command -v opencode` resolves to the wrapped executable and `type -a opencode` shows that wrapped executable before the real binary.
+10. Provider enablement is host/operator controlled through a single observable host-local enablement manifest, and generated runtime configuration matches it.
 10. No tracked repo file contains secret values.
 11. If `nono` is found unsuitable in this pod environment, this design path is rejected rather than silently downgraded.
 
