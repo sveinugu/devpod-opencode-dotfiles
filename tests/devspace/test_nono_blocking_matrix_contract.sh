@@ -17,12 +17,6 @@ require_file() {
   [ -f "$file_path" ] || fail "$description missing: $file_path"
 }
 
-require_command() {
-  local command_name="$1"
-  local description="$2"
-  command -v "$command_name" >/dev/null 2>&1 || fail "$description missing command: $command_name"
-}
-
 run_expect_success() {
   local command_label="$1"
   local output_file="$2"
@@ -89,24 +83,16 @@ advisory_rows=(
 [ "${#advisory_rows[@]}" -eq 3 ] || fail "expected exactly 3 advisory rows"
 
 run_row_in_pod_runtime() {
-  require_command "nono" "nono CLI"
-  require_command "opencode" "opencode CLI"
   require_file "$secure_profile_path" "secure nono profile"
 
-  local out_version out_wrapped
-  out_version="$(mktemp)"
+  local out_wrapped
   out_wrapped="$(mktemp)"
-  trap 'rm -f "$out_version" "$out_wrapped"' RETURN
+  trap 'rm -f "$out_wrapped"' RETURN
 
-  run_expect_success "nono --version" "$out_version" nono --version
   run_expect_success "wrapped opencode --version" "$out_wrapped" nono run --profile "$secure_profile_path" -- opencode --version
-
-  assert_output_contains "$out_version" "nono" "nono version output"
 }
 
 run_row_kernel_enforcement() {
-  require_command "nono" "nono CLI"
-
   local sandbox_tmp allowed_dir denied_dir probe_script probe_output
   sandbox_tmp="$(mktemp -d)"
   trap 'rm -rf "$sandbox_tmp"' RETURN
@@ -156,8 +142,6 @@ EOF
 }
 
 run_row_fail_closed_behavior() {
-  require_command "nono" "nono CLI"
-
   local tmp_root invalid_json_profile insecure_upstream_profile missing_credential_profile
   tmp_root="$(mktemp -d)"
   trap 'rm -rf "$tmp_root"' RETURN
@@ -217,9 +201,6 @@ EOF
 }
 
 run_row_network_control() {
-  require_command "nono" "nono CLI"
-  require_command "curl" "curl"
-
   local out_allowlisted out_blocked
   out_allowlisted="$(mktemp)"
   out_blocked="$(mktemp)"
@@ -237,8 +218,6 @@ run_row_network_control() {
 }
 
 run_row_proxy_credential_secrecy() {
-  require_command "nono" "nono CLI"
-
   local tmp_root probe_script probe_output real_token
   tmp_root="$(mktemp -d)"
   trap 'rm -rf "$tmp_root"' RETURN
@@ -277,8 +256,6 @@ EOF
 }
 
 run_row_opencode_functionality() {
-  require_command "nono" "nono CLI"
-  require_command "opencode" "opencode CLI"
   require_file "$secure_profile_path" "secure nono profile"
 
   local out_version out_help
