@@ -91,6 +91,26 @@ Behavior notes:
 - no `dd()` compatibility alias
 - no `fzf` integration in v1
 
+## Secure OpenCode launch behavior (canonical)
+
+For the repo-supported secure path:
+
+- invoking `opencode` by name should resolve to the wrapped launcher at `$HOME/.config/opencode/bin/opencode`
+- wrapped launcher behavior is expected to run under `nono` with the reviewed repo profile and fixed secret-boundary contracts
+- raw OpenCode remains available only by explicit absolute path (for example `$HOME/.opencode/bin/opencode`) and is out-of-scope manual use
+
+Quick verification commands:
+
+```bash
+command -v opencode
+type -a opencode
+```
+
+Expected shape:
+
+- `command -v opencode` prints the wrapped path first: `$HOME/.config/opencode/bin/opencode`
+- `type -a opencode` shows wrapped path before raw path
+
 ## Managed local retirement
 
 Retire lane worktrees with the managed command instead of manual `git worktree remove` + `git branch -D`:
