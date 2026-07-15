@@ -27,6 +27,8 @@ if grep -Eq 'OPENAI_API_KEY|ANTHROPIC_API_KEY|GITHUB_TOKEN|GPT_UIO_YELLOW_API_KE
 fi
 
 grep -Eq '^\s*-\s*name:\s*HUB_NONO_PROVIDER_SECRET_DIR\s*$' "$deployment" >/dev/null || fail "deployment should expose only non-sensitive provider secret directory env hint"
+grep -Eq '^\s*-\s*name:\s*HUB_NONO_AGENT_USER\s*$' "$deployment" >/dev/null || fail "deployment must define non-sudo agent user contract env"
+grep -Eq '^\s*value:\s*agent\s*$' "$deployment" >/dev/null || fail "deployment must pin HUB_NONO_AGENT_USER to agent"
 
 if ! grep -Eq '^\s*-\s*name:\s*HUB_NONO_SECRET_HELPER_SUDO\s*$' "$deployment"; then
   fail "deployment must expose explicit HUB_NONO_SECRET_HELPER_SUDO contract"

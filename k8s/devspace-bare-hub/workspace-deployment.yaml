@@ -28,6 +28,8 @@ spec:
               value: /var/run/secrets/nono/providers
             - name: HUB_NONO_SECRET_HELPER_SUDO
               value: sudo -n
+            - name: HUB_NONO_AGENT_USER
+              value: agent
           volumeMounts:
             - name: workspace-storage
               mountPath: /workspaces/dotfiles

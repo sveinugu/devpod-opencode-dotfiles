@@ -36,5 +36,8 @@ WORKDIR /home/vscode
 # Set ZSH as default shell for the user
 RUN sudo chsh -s /usr/bin/zsh vscode
 
+# Create dedicated non-sudo runtime identity for sandboxed agent/OpenCode workloads
+RUN if ! id -u agent >/dev/null 2>&1; then useradd --create-home --shell /usr/bin/zsh agent; fi
+
 # Unbuffered Python outputs for e.g. Kubernetes
 ENV PYTHONUNBUFFERED=1
