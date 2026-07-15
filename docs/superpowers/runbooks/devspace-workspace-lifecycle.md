@@ -122,6 +122,18 @@ Once `devspace dev` is open and `/workspaces/dotfiles` is mounted:
 - onboard child repos with `/workspaces/dotfiles/main/bin/clone-repo`
 - retire managed worktrees with `/workspaces/dotfiles/main/bin/retire-worktree`
 
+Secure `opencode` launch reminder after install:
+
+```bash
+command -v opencode
+type -a opencode
+```
+
+Expected:
+
+- wrapped path first: `$HOME/.config/opencode/bin/opencode`
+- raw path still available only by explicit absolute path (for example `$HOME/.opencode/bin/opencode`)
+
 For those in-pod commands, use [DevSpace Bare Hub Usage](devspace-bare-hub-usage.md). For first-time host layout creation, use [Host Bare-Hub Bootstrap](host-bare-hub-bootstrap.md).
 
 In pod, interactive `new-worktree` / `clone-repo` shell wrappers auto-jump to created checkouts by default; set `HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1` to opt out.

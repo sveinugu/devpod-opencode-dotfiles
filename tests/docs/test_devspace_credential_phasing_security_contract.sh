@@ -37,6 +37,10 @@ grep -F 'This plan does **not** treat local-proxy-authorized provider usage as a
 grep -F 'For this contract, "shell-escape bypass attempts" means launching privileged shells from agent runtime (for example: `sudo -n /bin/sh`, `sudo -n /bin/bash`, `su -l vscode`).' "$spec" >/dev/null || fail "spec should concretize shell-escape bypass term"
 grep -F 'For this contract, "auxiliary endpoints strictly required" means explicit `<scheme>://<host>:<port>` entries recorded in repo policy + verification evidence; wildcard hosts and broad CIDR allowances are forbidden.' "$spec" >/dev/null || fail "spec should concretize auxiliary endpoint requirement"
 
+grep -F 'Plain `opencode` resolves to the wrapped `nono` launch path by default, while raw OpenCode remains available only by full absolute path.' "$spec" >/dev/null || fail "spec should preserve wrapped-default and explicit-absolute-path raw contract"
+
+grep -F '`opencode` resolves by PATH to the wrapped secure launcher' "$plan" >/dev/null || fail "plan should require PATH-resolved wrapped opencode contract"
+
 if grep -F 'Choose and implement one approved pre-sandbox credential delivery surface that matches the spec’s allowed boundary.' "$plan" >/dev/null; then
   fail "plan must not treat pre-sandbox credential delivery surface as open-ended"
 fi
