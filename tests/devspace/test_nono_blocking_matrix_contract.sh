@@ -10,6 +10,7 @@ repo_root="$(git rev-parse --show-toplevel)"
 secure_profile_default="$repo_root/.config/nono/profiles/devspace-opencode-secure.jsonc"
 secure_profile_path="${HUB_NONO_SECURE_PROFILE_PATH:-$secure_profile_default}"
 test_timeout_seconds="${HUB_NONO_TEST_TIMEOUT_SECONDS:-45}"
+nono_bin="${HUB_NONO_BIN:-nono}"
 
 require_file() {
   local file_path="$1"
@@ -30,6 +31,17 @@ run_expect_success() {
   if ! "$@" >"$output_file" 2>&1; then
     fail "$command_label failed unexpectedly: $(tr '\n' ' ' < "$output_file")"
   fi
+}
+
+resolve_nono_bin() {
+  if command -v "$nono_bin" >/dev/null 2>&1; then
+    return 0
+  fi
+  if [ "$nono_bin" = "nono" ] && [ -x "$HOME/.local/bin/nono" ]; then
+    nono_bin="$HOME/.local/bin/nono"
+    return 0
+  fi
+  fail "nono executable is required for matrix checks (set HUB_NONO_BIN or install nono)"
 }
 
 run_expect_failure() {
@@ -89,12 +101,12 @@ run_row_in_pod_runtime() {
   out_wrapped="$(mktemp)"
   trap 'rm -f "$out_wrapped"' RETURN
 
-  run_expect_success "wrapped opencode --version" "$out_wrapped" nono run --profile "$secure_profile_path" -- opencode --version
+  run_expect_success "wrapped opencode --version" "$out_wrapped" "$nono_bin" run --profile "$secure_profile_path" -- opencode --version
 }
 
 run_row_kernel_enforcement() {
   local sandbox_tmp allowed_dir denied_dir probe_script probe_output
-  sandbox_tmp="$(mktemp -d)"
+  sandbox_tmp="$(mktemp -d "$repo_root/.tmp-nono-kernel-XXXXXX")"
   trap 'rm -rf "$sandbox_tmp"' RETURN
   allowed_dir="$sandbox_tmp/allowed"
   denied_dir="$sandbox_tmp/denied"
@@ -133,7 +145,7 @@ EOF
   run_expect_success \
     "kernel enforcement probe" \
     "$probe_output" \
-    nono run --allow "$allowed_dir" -- "$probe_script" "$allowed_dir/read.txt" "$denied_dir/secret.txt" "$allowed_dir/write.txt" "$denied_dir/write.txt"
+    "$nono_bin" run --allow "$allowed_dir" -- "$probe_script" "$allowed_dir/read.txt" "$denied_dir/secret.txt" "$allowed_dir/write.txt" "$denied_dir/write.txt"
 
   assert_output_contains "$probe_output" "kernel-check:allowed-read-ok" "kernel enforcement output"
   assert_output_contains "$probe_output" "kernel-check:denied-read-blocked" "kernel enforcement output"
@@ -142,12 +154,11 @@ EOF
 }
 
 run_row_fail_closed_behavior() {
-  local tmp_root invalid_json_profile insecure_upstream_profile missing_credential_profile
+  local tmp_root invalid_json_profile insecure_upstream_profile out_missing_credential
   tmp_root="$(mktemp -d)"
   trap 'rm -rf "$tmp_root"' RETURN
   invalid_json_profile="$tmp_root/invalid-json.jsonc"
   insecure_upstream_profile="$tmp_root/insecure-upstream.jsonc"
-  missing_credential_profile="$tmp_root/missing-credential.jsonc"
 
   cat > "$invalid_json_profile" <<'EOF'
 { "meta": { "name": "broken-json" },
@@ -170,34 +181,15 @@ EOF
 }
 EOF
 
-  cat > "$missing_credential_profile" <<'EOF'
-{
-  "meta": { "name": "missing-credential" },
-  "workdir": { "access": "readwrite" },
-  "network": {
-    "credentials": ["missing_env"],
-    "custom_credentials": {
-      "missing_env": {
-        "upstream": "https://api.github.com",
-        "credential_key": "env://HUB_NONO_MISSING_ENV_TOKEN",
-        "env_var": "HUB_NONO_MISSING_ENV_TOKEN",
-        "inject_header": "Authorization",
-        "credential_format": "token {}"
-      }
-    }
-  }
-}
-EOF
-
-  local out_invalid_json out_insecure_upstream out_missing_credential
+  local out_invalid_json out_insecure_upstream
   out_invalid_json="$(mktemp)"
   out_insecure_upstream="$(mktemp)"
   out_missing_credential="$(mktemp)"
   trap 'rm -rf "$tmp_root" "$out_invalid_json" "$out_insecure_upstream" "$out_missing_credential"' RETURN
 
-  run_expect_failure "invalid JSON profile" "$out_invalid_json" nono run --profile "$invalid_json_profile" -- true
-  run_expect_failure "insecure upstream profile" "$out_insecure_upstream" nono run --profile "$insecure_upstream_profile" -- true
-  run_expect_failure "missing credential source profile" "$out_missing_credential" nono run --profile "$missing_credential_profile" -- true
+  run_expect_failure "invalid JSON profile" "$out_invalid_json" "$nono_bin" run --profile "$invalid_json_profile" -- true
+  run_expect_failure "insecure upstream profile" "$out_insecure_upstream" "$nono_bin" run --profile "$insecure_upstream_profile" -- true
+  run_expect_failure "missing env credential source" "$out_missing_credential" "$nono_bin" run --allow-cwd --env-credential HUB_NONO_MISSING_ENV_TOKEN -- true
 }
 
 run_row_network_control() {
@@ -209,12 +201,12 @@ run_row_network_control() {
   run_expect_success \
     "allowlisted host reachability" \
     "$out_allowlisted" \
-    nono run --allow-cwd --allow-domain example.com -- curl -m 10 -fsS https://example.com
+    "$nono_bin" run --allow-cwd --allow-domain example.com -- curl -m 10 -fsS https://example.com
 
   run_expect_failure \
     "non-allowlisted host blocked" \
     "$out_blocked" \
-    nono run --allow-cwd --allow-domain example.com -- curl -m 10 -fsS https://example.org
+    "$nono_bin" run --allow-cwd --allow-domain example.com -- curl -m 10 -fsS https://example.org
 }
 
 run_row_proxy_credential_secrecy() {
@@ -249,7 +241,7 @@ EOF
   run_expect_success \
     "proxy credential secrecy probe" \
     "$probe_output" \
-    env GITHUB_TOKEN="$real_token" nono run --allow "$tmp_root" --credential github -- "$probe_script" "$real_token"
+    env GITHUB_TOKEN="$real_token" "$nono_bin" run --allow "$tmp_root" --credential github -- "$probe_script" "$real_token"
 
   assert_output_contains "$probe_output" "proxy-secrecy:real-token-not-visible" "proxy secrecy output"
   assert_output_not_contains "$probe_output" "$real_token" "proxy secrecy output"
@@ -263,8 +255,8 @@ run_row_opencode_functionality() {
   out_help="$(mktemp)"
   trap 'rm -f "$out_version" "$out_help"' RETURN
 
-  run_expect_success "wrapped opencode --version" "$out_version" nono run --profile "$secure_profile_path" -- opencode --version
-  run_expect_success "wrapped opencode --help" "$out_help" nono run --profile "$secure_profile_path" -- opencode --help
+  run_expect_success "wrapped opencode --version" "$out_version" "$nono_bin" run --profile "$secure_profile_path" -- opencode --version
+  run_expect_success "wrapped opencode --help" "$out_help" "$nono_bin" run --profile "$secure_profile_path" -- opencode --help
 
   assert_output_contains "$out_help" "opencode" "opencode help output"
 }
@@ -337,6 +329,8 @@ run_row_check() {
 
 blocking_failures=0
 advisory_failures=0
+
+resolve_nono_bin
 
 for row in "${blocking_rows[@]}"; do
   IFS='|' read -r row_id row_label <<<"$row"

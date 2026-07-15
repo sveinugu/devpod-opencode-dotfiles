@@ -324,6 +324,7 @@ MOCK_PUBLIC_SOURCE_DEFAULT="$public_source_default" \
 HUB_WORKSPACE_ROOT="$workspace_provision" \
 HUB_PROVISION_SOURCE="$public_url" \
 HUB_PYENV_INSTALL_COMMAND=":" \
+HUB_NONO_INSTALL_COMMAND=":" \
 HUB_OPENCODE_INSTALL_COMMAND=":" \
 HOME="$home_provision" \
 bash "$provision_script" >"$tmpdir/public-provision-main.out" 2>&1 || fail "public provision main bootstrap should succeed"
@@ -342,6 +343,7 @@ HUB_WORKSPACE_ROOT="$workspace_provision" \
 HUB_PROVISION_SOURCE="$public_url" \
 HUB_INSTALL_BRANCH='feature/public-fetch' \
 HUB_PYENV_INSTALL_COMMAND=":" \
+HUB_NONO_INSTALL_COMMAND=":" \
 HUB_OPENCODE_INSTALL_COMMAND=":" \
 HOME="$home_provision" \
 bash "$provision_script" >"$tmpdir/public-provision-feature.out" 2>&1 || fail "public provision fetch should succeed"
@@ -360,6 +362,7 @@ MOCK_PUBLIC_SOURCE_DEFAULT="$public_source_default" \
 HUB_WORKSPACE_ROOT="$tmpdir/workspace-private-provision" \
 HUB_PROVISION_SOURCE="$private_url" \
 HUB_PYENV_INSTALL_COMMAND=":" \
+HUB_NONO_INSTALL_COMMAND=":" \
 HUB_OPENCODE_INSTALL_COMMAND=":" \
 HOME="$tmpdir/home-private-provision" \
 bash "$provision_script" >"$tmpdir/private-provision.out" 2>&1

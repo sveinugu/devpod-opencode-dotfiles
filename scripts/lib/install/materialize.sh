@@ -82,6 +82,7 @@ install_materialize() {
   install_plugin "https://github.com/zsh-users/zsh-autosuggestions" "$zsh_custom/plugins/zsh-autosuggestions"
 
   install_link_path "$source_root/.config/opencode" "$home_dir/.config/opencode"
+  install_link_path "$source_root/.config/nono" "$home_dir/.config/nono"
 
   install_run_opencode_command npx -y skills add wondelai/skills/pragmatic-programmer -y
   install_run_opencode_command npx -y skills add wondelai/skills/clean-code -y
