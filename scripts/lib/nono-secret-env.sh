@@ -3,6 +3,17 @@ set -euo pipefail
 
 nono_secret_env_emit_exports() {
   local secret_root="${1:-${HUB_NONO_PROVIDER_SECRET_DIR:-/var/run/secrets/nono/providers}}"
+  local sudo_contract="${HUB_NONO_SECRET_HELPER_SUDO:-}"
+
+  if [ -z "$sudo_contract" ]; then
+    printf 'refused: HUB_NONO_SECRET_HELPER_SUDO must be set to constrained non-interactive sudo invocation\n' >&2
+    return 1
+  fi
+
+  if [ "$sudo_contract" != 'sudo -n' ]; then
+    printf 'refused: HUB_NONO_SECRET_HELPER_SUDO must equal "sudo -n" (got: %s)\n' "$sudo_contract" >&2
+    return 1
+  fi
 
   if [ ! -d "$secret_root" ]; then
     printf 'refused: nono provider secret directory not found: %s\n' "$secret_root" >&2

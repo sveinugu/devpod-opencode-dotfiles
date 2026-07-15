@@ -34,8 +34,13 @@ grep -Eq '^\s*mountPath:\s*/var/run/secrets/nono/providers\s*$' "$deployment" ||
 grep -Eq '^\s*readOnly:\s*true\s*$' "$deployment" || fail "missing readOnly contract for nono provider secret mount"
 grep -Eq '^\s*-\s*name:\s*nono-provider-secrets\s*$' "$deployment" || fail "missing nono-provider-secrets volume contract"
 grep -Eq '^\s*secretName:\s*dotfiles-nono-provider-credentials\s*$' "$deployment" || fail "missing nono provider secret name contract"
+if ! grep -Eq '^\s*defaultMode:\s*0400\s*$|^\s*defaultMode:\s*256\s*$' "$deployment"; then
+  fail "missing fixed owner-read-only defaultMode for nono provider secret volume"
+fi
 grep -Eq '^\s*-\s*name:\s*HUB_NONO_PROVIDER_SECRET_DIR\s*$' "$deployment" || fail "missing non-sensitive provider secret dir env contract"
 grep -Eq '^\s*value:\s*/var/run/secrets/nono/providers\s*$' "$deployment" || fail "missing provider secret dir env value contract"
+grep -Eq '^\s*-\s*name:\s*HUB_NONO_SECRET_HELPER_SUDO\s*$' "$deployment" || fail "missing nono secret helper sudo env contract"
+grep -Eq '^\s*value:\s*sudo -n\s*$' "$deployment" || fail "missing nono secret helper sudo value contract"
 
 # Verify that workingDir is set explicitly for the workspace container
 grep -Eq '^\s*workingDir:\s*/workspaces/dotfiles/main\s*$' "$deployment" || fail "missing workingDir /workspaces/dotfiles/main in Deployment manifest"

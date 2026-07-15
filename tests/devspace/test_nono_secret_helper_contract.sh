@@ -34,7 +34,7 @@ red-real
 EOF
 
 out_exports="$tmp_root/exports.out"
-bash -c "source '$helper'; nono_secret_env_emit_exports '$secret_dir'" >"$out_exports" 2>&1 || fail "helper should emit exports when all secret files are present"
+HUB_NONO_SECRET_HELPER_SUDO='sudo -n' bash -c "source '$helper'; nono_secret_env_emit_exports '$secret_dir'" >"$out_exports" 2>&1 || fail "helper should emit exports when all secret files are present"
 
 for expected in \
   'export OPENAI_API_KEY=' \
@@ -45,9 +45,27 @@ for expected in \
   grep -F "$expected" "$out_exports" >/dev/null || fail "helper missing expected export line: $expected"
 done
 
+if bash -c "source '$helper'; nono_secret_env_emit_exports '$secret_dir'" >"$tmp_root/no-sudo.err" 2>&1; then
+  fail "helper should fail when HUB_NONO_SECRET_HELPER_SUDO is not set"
+fi
+
+grep -F 'refused: HUB_NONO_SECRET_HELPER_SUDO must be set to constrained non-interactive sudo invocation' "$tmp_root/no-sudo.err" >/dev/null || fail "helper should require explicit HUB_NONO_SECRET_HELPER_SUDO"
+
+out_with_sudo="$tmp_root/exports-with-sudo.out"
+HUB_NONO_SECRET_HELPER_SUDO='sudo -n' bash -c "source '$helper'; nono_secret_env_emit_exports '$secret_dir'" >"$out_with_sudo" 2>&1 || fail "helper should emit exports when HUB_NONO_SECRET_HELPER_SUDO is set"
+
+for expected in \
+  'export OPENAI_API_KEY=' \
+  'export ANTHROPIC_API_KEY=' \
+  'export GITHUB_TOKEN=' \
+  'export GPT_UIO_YELLOW_API_KEY=' \
+  'export GPT_UIO_RED_API_KEY='; do
+  grep -F "$expected" "$out_with_sudo" >/dev/null || fail "helper missing expected export line with sudo helper contract: $expected"
+done
+
 rm -f "$secret_dir/gpt_uio_red_api_key"
 
-if bash -c "source '$helper'; nono_secret_env_emit_exports '$secret_dir'" >"$tmp_root/missing.err" 2>&1; then
+if HUB_NONO_SECRET_HELPER_SUDO='sudo -n' bash -c "source '$helper'; nono_secret_env_emit_exports '$secret_dir'" >"$tmp_root/missing.err" 2>&1; then
   fail "helper should fail-closed when any required secret file is missing"
 fi
 
