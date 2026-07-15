@@ -5,6 +5,7 @@ source_root="${HUB_INSTALL_BRANCH_DIR:-/workspaces/dotfiles/main}"
 secret_helper="$source_root/scripts/lib/nono-secret-env.sh"
 profile_path="$source_root/.config/nono/profiles/devspace-opencode-secure.jsonc"
 secret_dir="${HUB_NONO_PROVIDER_SECRET_DIR:-/var/run/secrets/nono/providers}"
+secret_helper_sudo="${HUB_NONO_SECRET_HELPER_SUDO:-}"
 
 if [ ! -r "$secret_helper" ]; then
   printf 'refused: nono secret helper not found at %s\n' "$secret_helper" >&2
@@ -18,6 +19,11 @@ fi
 
 # shellcheck source=scripts/lib/nono-secret-env.sh
 source "$secret_helper"
+
+if [ -z "$secret_helper_sudo" ]; then
+  printf 'refused: HUB_NONO_SECRET_HELPER_SUDO must be set to constrained non-interactive sudo invocation\n' >&2
+  exit 1
+fi
 
 exports_payload="$(nono_secret_env_emit_exports "$secret_dir")"
 eval "$exports_payload"

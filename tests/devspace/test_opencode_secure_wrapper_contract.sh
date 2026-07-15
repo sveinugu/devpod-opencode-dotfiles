@@ -15,6 +15,7 @@ grep -F 'source "$secret_helper"' "$wrapper" >/dev/null || fail "wrapper must so
 grep -F 'nono_secret_env_emit_exports' "$wrapper" >/dev/null || fail "wrapper must call nono_secret_env_emit_exports"
 grep -F 'exec nono run --profile "$profile_path" -- opencode "$@"' "$wrapper" >/dev/null || fail "wrapper must exec nono run with secure profile"
 grep -F 'HUB_NONO_PROVIDER_SECRET_DIR' "$wrapper" >/dev/null || fail "wrapper must honor HUB_NONO_PROVIDER_SECRET_DIR"
+grep -F 'HUB_NONO_SECRET_HELPER_SUDO' "$wrapper" >/dev/null || fail "wrapper must require HUB_NONO_SECRET_HELPER_SUDO contract"
 
 tmp_root="$(mktemp -d "$repo_root/.tmp-opencode-wrapper-XXXXXX")"
 trap 'rm -rf "$tmp_root"' EXIT
@@ -53,9 +54,16 @@ env_log="$tmp_root/nono-env.log"
 PATH="$mock_bin:$PATH" \
 HUB_INSTALL_BRANCH_DIR="$install_root" \
 HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" \
+HUB_NONO_SECRET_HELPER_SUDO='sudo -n' \
 MOCK_NONO_ARG_LOG="$arg_log" \
 MOCK_NONO_ENV_LOG="$env_log" \
 bash "$wrapper" --version >/dev/null 2>&1 || fail "wrapper should execute with valid helper/profile/secret surfaces"
+
+if PATH="$mock_bin:$PATH" HUB_INSTALL_BRANCH_DIR="$install_root" HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" MOCK_NONO_ARG_LOG="$arg_log" MOCK_NONO_ENV_LOG="$env_log" bash "$wrapper" --version >"$tmp_root/no-sudo.err" 2>&1; then
+  fail "wrapper should fail when HUB_NONO_SECRET_HELPER_SUDO is missing"
+fi
+
+grep -F 'refused: HUB_NONO_SECRET_HELPER_SUDO must be set to constrained non-interactive sudo invocation' "$tmp_root/no-sudo.err" >/dev/null || fail "wrapper should surface missing HUB_NONO_SECRET_HELPER_SUDO contract"
 
 grep -F -- '--profile' "$arg_log" >/dev/null || fail "wrapper should pass profile argument to nono"
 grep -F "$install_root/.config/nono/profiles/devspace-opencode-secure.jsonc" "$arg_log" >/dev/null || fail "wrapper should point nono to install-branch secure profile"
