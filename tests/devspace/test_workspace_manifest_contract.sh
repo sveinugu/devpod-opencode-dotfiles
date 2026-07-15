@@ -34,6 +34,8 @@ grep -Eq '^\s*mountPath:\s*/var/run/secrets/nono/providers\s*$' "$deployment" ||
 grep -Eq '^\s*readOnly:\s*true\s*$' "$deployment" || fail "missing readOnly contract for nono provider secret mount"
 grep -Eq '^\s*-\s*name:\s*nono-provider-secrets\s*$' "$deployment" || fail "missing nono-provider-secrets volume contract"
 grep -Eq '^\s*secretName:\s*dotfiles-nono-provider-credentials\s*$' "$deployment" || fail "missing nono provider secret name contract"
+grep -Eq '^\s*-\s*name:\s*HUB_NONO_PROVIDER_SECRET_DIR\s*$' "$deployment" || fail "missing non-sensitive provider secret dir env contract"
+grep -Eq '^\s*value:\s*/var/run/secrets/nono/providers\s*$' "$deployment" || fail "missing provider secret dir env value contract"
 
 # Verify that workingDir is set explicitly for the workspace container
 grep -Eq '^\s*workingDir:\s*/workspaces/dotfiles/main\s*$' "$deployment" || fail "missing workingDir /workspaces/dotfiles/main in Deployment manifest"

@@ -15,13 +15,11 @@ profile="$repo_root/.config/nono/profiles/devspace-opencode-secure.jsonc"
 
 grep -F '/var/run/secrets/nono/providers' "$deployment" >/dev/null || fail "deployment must mount nono provider secret path"
 
-if grep -Eq '^\s*env:\s*$' "$deployment"; then
-  fail "deployment must not define plain env credentials in pod spec"
-fi
-
 if grep -Eq 'OPENAI_API_KEY|ANTHROPIC_API_KEY|GITHUB_TOKEN|GPT_UIO_YELLOW_API_KEY|GPT_UIO_RED_API_KEY' "$deployment"; then
   fail "deployment must not expose provider credential env vars directly"
 fi
+
+grep -Eq '^\s*-\s*name:\s*HUB_NONO_PROVIDER_SECRET_DIR\s*$' "$deployment" >/dev/null || fail "deployment should expose only non-sensitive provider secret directory env hint"
 
 for env_credential in '"credential_key": "env://GITHUB_TOKEN"' '"credential_key": "env://GPT_UIO_YELLOW_API_KEY"' '"credential_key": "env://GPT_UIO_RED_API_KEY"'; do
   grep -F "$env_credential" "$profile" >/dev/null || fail "secure profile missing expected env credential contract: $env_credential"

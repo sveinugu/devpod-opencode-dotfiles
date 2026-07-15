@@ -23,6 +23,9 @@ spec:
             - sh
             - -lc
             - sleep infinity
+          env:
+            - name: HUB_NONO_PROVIDER_SECRET_DIR
+              value: /var/run/secrets/nono/providers
           volumeMounts:
             - name: workspace-storage
               mountPath: /workspaces/dotfiles

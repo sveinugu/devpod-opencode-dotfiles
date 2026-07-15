@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+source_root="${HUB_INSTALL_BRANCH_DIR:-/workspaces/dotfiles/main}"
+secret_helper="$source_root/scripts/lib/nono-secret-env.sh"
+profile_path="$source_root/.config/nono/profiles/devspace-opencode-secure.jsonc"
+secret_dir="${HUB_NONO_PROVIDER_SECRET_DIR:-/var/run/secrets/nono/providers}"
+
+if [ ! -r "$secret_helper" ]; then
+  printf 'refused: nono secret helper not found at %s\n' "$secret_helper" >&2
+  exit 1
+fi
+
+if [ ! -r "$profile_path" ]; then
+  printf 'refused: secure nono profile not found at %s\n' "$profile_path" >&2
+  exit 1
+fi
+
+# shellcheck source=scripts/lib/nono-secret-env.sh
+source "$secret_helper"
+
+exports_payload="$(nono_secret_env_emit_exports "$secret_dir")"
+eval "$exports_payload"
+
+exec nono run --profile "$profile_path" -- opencode "$@"
