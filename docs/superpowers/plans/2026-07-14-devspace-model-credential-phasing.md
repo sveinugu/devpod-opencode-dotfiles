@@ -77,6 +77,13 @@ This plan is complete only when all of the following are true:
 11. Generated runtime configuration matches that host-local enablement manifest exactly, and verification output matches it exactly as well.
 12. No tracked repo file contains secret values.
 13. If `nono` fails the suitability gate in this pod, the secure-path design is rejected rather than silently downgraded.
+14. The privilege-separation + escalation-blocking add-on is implemented with passing contract evidence and dedicated security review sign-off.
+15. For the supported path, escalation from agent runtime to owner/operator/root via `sudo`, user-switch attempts, and shell-escape bypass paths is blocked.
+
+Direction lock for this slice:
+
+- Two-user split is mandatory for this plan slice.
+- Single-user wrapper-only fallback is out of scope for this plan.
 
 ## Proposed file map
 
@@ -151,6 +158,35 @@ This plan is complete only when all of the following are true:
 **User Check-in:** confirm the chosen Kubernetes delivery surface before implementation hardens it if multiple compliant options remain viable after the red test pass/fail evidence is understood.
 
 **Review cycle:** request review focused on whether the design keeps supported-provider credentials out of ordinary interactive bash scope without inventing an unapproved fallback path.
+
+---
+
+## Task 2.5: Add owner/agent runtime identity separation hardening
+
+**Intent:** Tighten the secret boundary by separating owner/operator credential-handoff identity from the non-sudo agent runtime identity, and verify blocked escalation paths under the wrapped secure path.
+
+**Files:**
+- Modify: `k8s/devspace-bare-hub/workspace-deployment.yaml`
+- Modify: `.config/opencode/bin/opencode`
+- Modify: `scripts/lib/nono-secret-env.sh`
+- Create or modify focused `tests/devspace/` contract checks for identity separation and `sudo` behavior
+
+Sequencing note: Task 2.5 may complete identity and secret-boundary hardening before wrapper-path binding exists; if `.config/opencode/bin/opencode` is not present yet, finalize wrapper integration in Task 5.
+
+- [ ] Add failing contract/integration tests first for owner-vs-agent identity behavior and secret-file read constraints.
+- [ ] Ensure mounted provider-secret files are owner-controlled/read-restricted and are not directly readable by the everyday agent runtime user.
+- [ ] Keep credential handoff in a non-interactive owner-controlled wrapper path that fails closed when prerequisites are missing.
+- [ ] Verify `sudo` behavior under the wrapped secure path with explicit contract evidence that escalation is blocked for agent runtime.
+- [ ] Verify blocked escalation evidence for user-switch attempts and shell-escape bypass attempts under the supported path.
+- [ ] Verify GREEN on the new identity-separation/escalation-blocking contract tests plus directly touched manifest/runtime tests.
+- [ ] Perform the mandatory refactor checkpoint and keep identity-boundary rules centralized and reviewable.
+- [ ] Commit the identity-separation hardening slice.
+
+**User Check-in:** if enforcing non-sudo agent runtime behavior requires a material container-user/ownership contract shift, pause and confirm the exact owner-vs-agent runtime model before broadening rollout.
+
+**Review cycle:** request a security-focused review on identity separation, escalation-blocking evidence (`sudo`, user-switch, shell-escape bypass), and whether the resulting boundary claims remain truthful.
+
+Docs Review Gate: do not begin Task 2.5 runtime implementation until the user approves this docs clarification.
 
 ---
 
@@ -269,6 +305,7 @@ At minimum, implementation should leave behind fresh evidence for:
 - one focused verification command or test file covering the secure `opencode` launch contract and PATH precedence
 - one focused verification command or test file covering supported-provider configuration rules and model-policy boundaries
 - one focused verification command or test file proving the single host-local enablement manifest is the source of truth and that both generated runtime configuration and verification output match it exactly
+- one focused verification command or test file proving owner-vs-agent identity separation and escalation blocking (`sudo`, user-switch, and shell-escape bypass attempts) for the supported path
 - the relevant existing manifest/bootstrap/runbook contract tests touched by the slice
 - a final changed-files review plus explicit acceptance-criteria mapping
 
