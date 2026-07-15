@@ -51,6 +51,12 @@ fi
 
 grep -F 'refused: HUB_NONO_SECRET_HELPER_SUDO must be set to constrained non-interactive sudo invocation' "$tmp_root/no-sudo.err" >/dev/null || fail "helper should require explicit HUB_NONO_SECRET_HELPER_SUDO"
 
+if HUB_NONO_SECRET_HELPER_SUDO='sudo -n -u root' bash -c "source '$helper'; nono_secret_env_emit_exports '$secret_dir'" >"$tmp_root/wrong-sudo.err" 2>&1; then
+  fail "helper should fail when HUB_NONO_SECRET_HELPER_SUDO is not exactly sudo -n"
+fi
+
+grep -F 'refused: HUB_NONO_SECRET_HELPER_SUDO must equal "sudo -n"' "$tmp_root/wrong-sudo.err" >/dev/null || fail "helper should reject broadened sudo invocation"
+
 out_with_sudo="$tmp_root/exports-with-sudo.out"
 HUB_NONO_SECRET_HELPER_SUDO='sudo -n' bash -c "source '$helper'; nono_secret_env_emit_exports '$secret_dir'" >"$out_with_sudo" 2>&1 || fail "helper should emit exports when HUB_NONO_SECRET_HELPER_SUDO is set"
 

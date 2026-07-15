@@ -44,4 +44,9 @@ grep -F 'https://nono.sh/install.sh' "$provision_script" >/dev/null || fail "mis
 grep -F 'https://opencode.ai/install' "$provision_script" >/dev/null || fail "missing opencode provision installer"
 grep -F 'mkdir -p "$home_dir/.ssh" "$home_dir/.local/share/opencode"' "$provision_script" >/dev/null || fail "missing provision-time /home/vscode bootstrap directories"
 
+grep -E 'useradd .*\bagent\b' "$dockerfile" >/dev/null || fail "Dockerfile must create dedicated non-sudo agent user"
+if grep -E 'usermod\s+.*\bagent\b.*\bsudo\b|usermod\s+.*\bsudo\b.*\bagent\b|useradd\s+.*\bagent\b.*-G\s*.*\bsudo\b|adduser\s+\bagent\b\s+sudo' "$dockerfile" >/dev/null; then
+  fail "Dockerfile must not grant sudo group membership to agent user"
+fi
+
 printf 'PASS test_workspace_preinstalled_tools_contract\n'

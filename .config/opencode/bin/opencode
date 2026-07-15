@@ -6,6 +6,7 @@ secret_helper="$source_root/scripts/lib/nono-secret-env.sh"
 profile_path="$source_root/.config/nono/profiles/devspace-opencode-secure.jsonc"
 secret_dir="${HUB_NONO_PROVIDER_SECRET_DIR:-/var/run/secrets/nono/providers}"
 secret_helper_sudo="${HUB_NONO_SECRET_HELPER_SUDO:-}"
+agent_user="${HUB_NONO_AGENT_USER:-}"
 
 if [ ! -r "$secret_helper" ]; then
   printf 'refused: nono secret helper not found at %s\n' "$secret_helper" >&2
@@ -25,7 +26,12 @@ if [ -z "$secret_helper_sudo" ]; then
   exit 1
 fi
 
+if [ -z "$agent_user" ]; then
+  printf 'refused: HUB_NONO_AGENT_USER must be set to non-sudo agent username\n' >&2
+  exit 1
+fi
+
 exports_payload="$(nono_secret_env_emit_exports "$secret_dir")"
 eval "$exports_payload"
 
-exec nono run --profile "$profile_path" -- opencode "$@"
+exec nono run --profile "$profile_path" -- sudo -n -u "$agent_user" -- opencode "$@"

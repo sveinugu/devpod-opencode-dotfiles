@@ -285,6 +285,7 @@ run_row_provider_specific_verification() {
   grep -F '"credential_key": "env://GPT_UIO_RED_API_KEY"' "$secure_profile_path" >/dev/null || fail "secure profile missing explicit GPT_UIO_RED_API_KEY credential route"
 }
 
+
 run_row_check() {
   local class="$1"
   local row_id="$2"
