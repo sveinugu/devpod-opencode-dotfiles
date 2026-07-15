@@ -83,16 +83,16 @@ blocking_rows=(
   "proxy-credential-secrecy|Proxy credential secrecy"
   "opencode-functionality|OpenCode functionality"
   "uio-custom-provider-route|UiO custom provider route"
+  "provider-specific-verification|Provider-specific verification"
 )
 
 advisory_rows=(
-  "built-in-provider-fit|Built-in provider fit"
   "least-privilege-profile|Least-privilege profile"
   "reproducibility|Reproducibility"
 )
 
-[ "${#blocking_rows[@]}" -eq 7 ] || fail "expected exactly 7 blocking rows"
-[ "${#advisory_rows[@]}" -eq 3 ] || fail "expected exactly 3 advisory rows"
+[ "${#blocking_rows[@]}" -eq 8 ] || fail "expected exactly 8 blocking rows"
+[ "${#advisory_rows[@]}" -eq 2 ] || fail "expected exactly 2 advisory rows"
 
 run_row_in_pod_runtime() {
   require_file "$secure_profile_path" "secure nono profile"
@@ -269,6 +269,22 @@ run_row_uio_custom_provider_route() {
   grep -F 'https://gpt.uio.no/api/v1' "$secure_profile_path" >/dev/null || fail "secure profile missing UiO upstream URL"
 }
 
+run_row_provider_specific_verification() {
+  require_file "$secure_profile_path" "secure nono profile"
+
+  grep -F '"openai"' "$secure_profile_path" >/dev/null || fail "secure profile missing openai credential route"
+  grep -F '"anthropic"' "$secure_profile_path" >/dev/null || fail "secure profile missing anthropic credential route"
+  grep -F '"github-copilot"' "$secure_profile_path" >/dev/null || fail "secure profile missing github-copilot credential route"
+  grep -F '"gpt-uio-yellow"' "$secure_profile_path" >/dev/null || fail "secure profile missing gpt-uio-yellow credential route"
+  grep -F '"gpt-uio-red"' "$secure_profile_path" >/dev/null || fail "secure profile missing gpt-uio-red credential route"
+
+  grep -F '"credential_key": "env://OPENAI_API_KEY"' "$secure_profile_path" >/dev/null || fail "secure profile missing explicit OPENAI_API_KEY credential route"
+  grep -F '"credential_key": "env://ANTHROPIC_API_KEY"' "$secure_profile_path" >/dev/null || fail "secure profile missing explicit ANTHROPIC_API_KEY credential route"
+  grep -F '"credential_key": "env://GITHUB_TOKEN"' "$secure_profile_path" >/dev/null || fail "secure profile missing explicit GITHUB_TOKEN credential route"
+  grep -F '"credential_key": "env://GPT_UIO_YELLOW_API_KEY"' "$secure_profile_path" >/dev/null || fail "secure profile missing explicit GPT_UIO_YELLOW_API_KEY credential route"
+  grep -F '"credential_key": "env://GPT_UIO_RED_API_KEY"' "$secure_profile_path" >/dev/null || fail "secure profile missing explicit GPT_UIO_RED_API_KEY credential route"
+}
+
 run_row_check() {
   local class="$1"
   local row_id="$2"
@@ -301,8 +317,8 @@ run_row_check() {
     uio-custom-provider-route)
       ( run_row_uio_custom_provider_route ) >"$output_file" 2>&1
       ;;
-    built-in-provider-fit)
-      printf 'advisory-row:pending built-in provider fit checks\n' >"$output_file"
+    provider-specific-verification)
+      ( run_row_provider_specific_verification ) >"$output_file" 2>&1
       ;;
     least-privilege-profile)
       printf 'advisory-row:pending least-privilege profile minimization checks\n' >"$output_file"
