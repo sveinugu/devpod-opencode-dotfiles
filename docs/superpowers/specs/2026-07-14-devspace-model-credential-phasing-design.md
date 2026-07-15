@@ -207,7 +207,7 @@ A dedicated hardening add-on is now explicitly in scope for security review:
 
 Identity semantics for this slice:
 
-- owner/operator identity is a privileged non-agent identity; it may be root or a dedicated owner UID depending on deployment constraints.
+- owner/operator identity is the main sudo-capable workspace user: `vscode`.
 - agent runtime identity is the default non-sudo identity for everyday OpenCode/agent workloads.
 
 About `sudo` semantics in this design:

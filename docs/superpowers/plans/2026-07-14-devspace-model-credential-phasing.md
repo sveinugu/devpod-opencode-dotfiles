@@ -165,6 +165,8 @@ Direction lock for this slice:
 
 **Intent:** Tighten the secret boundary by separating owner/operator credential-handoff identity from the non-sudo agent runtime identity, and verify blocked escalation paths under the wrapped secure path.
 
+Owner/operator identity for this slice is the main sudo-capable workspace user: `vscode`.
+
 **Files:**
 - Modify: `k8s/devspace-bare-hub/workspace-deployment.yaml`
 - Modify: `.config/opencode/bin/opencode`
