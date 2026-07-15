@@ -54,6 +54,7 @@ configure_git_identity() {
 }
 
 pyenv_install_command="${HUB_PYENV_INSTALL_COMMAND:-curl -fsSL https://pyenv.run | zsh}"
+nono_install_command="${HUB_NONO_INSTALL_COMMAND:-curl -fsSL https://nono.sh/install.sh | sh}"
 opencode_install_command="${HUB_OPENCODE_INSTALL_COMMAND:-curl -fsSL https://opencode.ai/install | zsh}"
 
 if [ -d "$workspace_root" ] && [ "$(stat -c '%u' "$workspace_root" 2>/dev/null)" != "$(id -u)" ]; then
@@ -70,6 +71,7 @@ fi
 mkdir -p "$home_dir/.ssh" "$home_dir/.local/share/opencode"
 mkdir -p "$tool_state_dir"
 run_tool_installer "$tool_state_dir/pyenv.installed" "$pyenv_install_command"
+run_tool_installer "$tool_state_dir/nono.installed" "$nono_install_command"
 run_tool_installer "$tool_state_dir/opencode.installed" "$opencode_install_command"
 
 if [ "$install_branch" = "main" ]; then

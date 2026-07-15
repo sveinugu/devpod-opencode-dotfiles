@@ -55,6 +55,7 @@ HUB_WORKSPACE_ROOT="$workspace_root" \
 HUB_PROVISION_SOURCE="$source_repo" \
   HUB_INSTALL_BRANCH='feature/env-override' \
   HUB_PYENV_INSTALL_COMMAND=":" \
+  HUB_NONO_INSTALL_COMMAND=":" \
   HUB_OPENCODE_INSTALL_COMMAND=":" \
   HOME="$home_dir" \
   bash "$repo_root/scripts/provision-workspace.sh" >/dev/null

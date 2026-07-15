@@ -40,6 +40,7 @@ fi
 
 grep -F -- '--refresh-tools' "$provision_script" >/dev/null || fail "missing --refresh-tools contract in provision script"
 grep -F 'https://pyenv.run' "$provision_script" >/dev/null || fail "missing pyenv provision installer"
+grep -F 'https://nono.sh/install.sh' "$provision_script" >/dev/null || fail "missing nono provision installer"
 grep -F 'https://opencode.ai/install' "$provision_script" >/dev/null || fail "missing opencode provision installer"
 grep -F 'mkdir -p "$home_dir/.ssh" "$home_dir/.local/share/opencode"' "$provision_script" >/dev/null || fail "missing provision-time /home/vscode bootstrap directories"
 

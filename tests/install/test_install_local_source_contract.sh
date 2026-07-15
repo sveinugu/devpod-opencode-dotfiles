@@ -47,16 +47,20 @@ copy_install_support_tree() {
 mkdir -p \
   "$workspace_root/.bare" \
   "$workspace_root/main/.config/opencode" \
+  "$workspace_root/main/.config/nono/profiles" \
   "$workspace_root/work/feature-x/.config/opencode" \
+  "$workspace_root/work/feature-x/.config/nono/profiles" \
   "$workspace_root/state" \
   "$target_home" \
   "$offcwd"
 
 printf 'export MAIN_ZSHRC=1\n' > "$workspace_root/main/.zshrc"
 printf '{"name":"main"}\n' > "$workspace_root/main/.config/opencode/opencode.jsonc"
+printf '{"meta":{"name":"main"}}\n' > "$workspace_root/main/.config/nono/profiles/devspace-opencode-secure.jsonc"
 
 printf 'export FEATURE_ZSHRC=1\n' > "$workspace_root/work/feature-x/.zshrc"
 printf '{"name":"feature-x"}\n' > "$workspace_root/work/feature-x/.config/opencode/opencode.jsonc"
+printf '{"meta":{"name":"feature-x"}}\n' > "$workspace_root/work/feature-x/.config/nono/profiles/devspace-opencode-secure.jsonc"
 
 if [ -f "install.sh" ]; then
   cp "install.sh" "$workspace_root/main/install.sh"
@@ -91,6 +95,12 @@ grep -F "export HUB_INSTALL_BRANCH_DIR=$workspace_root/main" "$workspace_install
 
 grep -F "DRY-RUN ln -sfn $workspace_root/main/.zshrc $target_home/.zshrc" "$tmpdir/main.out" >/dev/null
 grep -F "DRY-RUN ln -sfn $workspace_root/main/.config/opencode $target_home/.config/opencode" "$tmpdir/main.out" >/dev/null
+if grep -F "DRY-RUN ln -sfn $workspace_root/main/.config/nono $target_home/.config/nono" "$tmpdir/main.out" >/dev/null; then
+  :
+else
+  printf 'expected install.sh dry-run to link .config/nono from source worktree\n' >&2
+  exit 1
+fi
 grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/pragmatic-programmer -y)" "$tmpdir/main.out" >/dev/null
 grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/clean-code -y)" "$tmpdir/main.out" >/dev/null
 if grep -F 'skills add wondelai/skills/pragmatic-programmer -g -y' "$tmpdir/main.out" >/dev/null; then
@@ -172,6 +182,12 @@ quoted_dir="$(printf '%s' "$quoted_vars_out" | sed -n '2p')"
 
 grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.zshrc $target_home/.zshrc" "$tmpdir/feature.out" >/dev/null
 grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.config/opencode $target_home/.config/opencode" "$tmpdir/feature.out" >/dev/null
+if grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.config/nono $target_home/.config/nono" "$tmpdir/feature.out" >/dev/null; then
+  :
+else
+  printf 'expected feature install.sh dry-run to link .config/nono from source worktree\n' >&2
+  exit 1
+fi
 ! grep -F "$workspace_root/main/.zshrc" "$tmpdir/feature.out" >/dev/null
 
 (
@@ -234,12 +250,15 @@ workspace_reg="$tmpdir/workspace-reg"
 home_reg="$tmpdir/home-reg"
 bin_reg="$tmpdir/bin-reg"
 mkdir -p "$workspace_reg/main/.config/opencode" "$workspace_reg/main/scripts" "$home_reg/.config/opencode" "$home_reg/.oh-my-zsh" "$bin_reg"
+mkdir -p "$workspace_reg/main/.config/nono/profiles" "$home_reg/.config/nono"
 touch "$home_reg/.oh-my-zsh/oh-my-zsh.sh"
 
 printf 'export REG_ZSHRC=1\n' > "$workspace_reg/main/.zshrc"
 printf 'source "$HOME/.zshrc"\n' > "$workspace_reg/main/.zprofile"
 printf '{"name":"reg"}\n' > "$workspace_reg/main/.config/opencode/opencode.jsonc"
+printf '{"meta":{"name":"reg"}}\n' > "$workspace_reg/main/.config/nono/profiles/devspace-opencode-secure.jsonc"
 printf 'stale\n' > "$home_reg/.config/opencode/stale.txt"
+printf 'stale\n' > "$home_reg/.config/nono/stale.txt"
 
 cp "install.sh" "$workspace_reg/main/install.sh"
 copy_install_support_tree "$workspace_reg/main"
@@ -277,14 +296,30 @@ chmod +x "$bin_reg/npx"
   exit 1
 }
 
+[ -L "$home_reg/.config/nono" ] || {
+  printf 'expected ~/.config/nono to be a symlink after install\n' >&2
+  exit 1
+}
+
 resolved_opencode="$(readlink -f "$home_reg/.config/opencode")"
 [ "$resolved_opencode" = "$workspace_reg/main/.config/opencode" ] || {
   printf 'expected ~/.config/opencode symlink target %s, got %s\n' "$workspace_reg/main/.config/opencode" "$resolved_opencode" >&2
   exit 1
 }
 
+resolved_nono="$(readlink -f "$home_reg/.config/nono")"
+[ "$resolved_nono" = "$workspace_reg/main/.config/nono" ] || {
+  printf 'expected ~/.config/nono symlink target %s, got %s\n' "$workspace_reg/main/.config/nono" "$resolved_nono" >&2
+  exit 1
+}
+
 [ ! -e "$home_reg/.config/opencode/stale.txt" ] || {
   printf 'expected stale file to be removed when replacing directory target\n' >&2
+  exit 1
+}
+
+[ ! -e "$home_reg/.config/nono/stale.txt" ] || {
+  printf 'expected stale nono file to be removed when replacing directory target\n' >&2
   exit 1
 }
 
