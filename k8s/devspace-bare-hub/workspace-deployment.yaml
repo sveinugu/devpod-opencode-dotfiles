@@ -30,7 +30,13 @@ spec:
             - name: workspace-storage
               mountPath: /home/vscode
               subPath: home-vscode
+            - name: nono-provider-secrets
+              mountPath: /var/run/secrets/nono/providers
+              readOnly: true
       volumes:
         - name: workspace-storage
           persistentVolumeClaim:
             claimName: dotfiles-workspace
+        - name: nono-provider-secrets
+          secret:
+            secretName: dotfiles-nono-provider-credentials
