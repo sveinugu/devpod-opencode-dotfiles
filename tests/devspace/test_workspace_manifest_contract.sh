@@ -30,6 +30,11 @@ grep -Eq '^\s*subPath:\s*workspace-root\s*$' "$deployment" || fail "missing subP
 grep -Eq '^\s*mountPath:\s*/home/vscode\s*$' "$deployment" || fail "missing /home/vscode mount"
 grep -Eq '^\s*subPath:\s*home-vscode\s*$' "$deployment" || fail "missing subPath home-vscode"
 
+grep -Eq '^\s*mountPath:\s*/var/run/secrets/nono/providers\s*$' "$deployment" || fail "missing nono provider secret mount path"
+grep -Eq '^\s*readOnly:\s*true\s*$' "$deployment" || fail "missing readOnly contract for nono provider secret mount"
+grep -Eq '^\s*-\s*name:\s*nono-provider-secrets\s*$' "$deployment" || fail "missing nono-provider-secrets volume contract"
+grep -Eq '^\s*secretName:\s*dotfiles-nono-provider-credentials\s*$' "$deployment" || fail "missing nono provider secret name contract"
+
 # Verify that workingDir is set explicitly for the workspace container
 grep -Eq '^\s*workingDir:\s*/workspaces/dotfiles/main\s*$' "$deployment" || fail "missing workingDir /workspaces/dotfiles/main in Deployment manifest"
 
