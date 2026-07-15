@@ -32,8 +32,19 @@
 ## Spec review cycle outcome
 
 - The spec is implementation-ready for planning and intentionally keeps the work high-level: it defines the blocking gate, supported-provider contract, forbidden fallback routes, launch contract, and operator workflow expectations.
-- The most planning-sensitive open points are operational rather than architectural: the exact Kubernetes secret delivery surface before sandboxing, the exact repo layout for new `nono`/OpenCode runtime assets, and any auxiliary endpoints that must remain allowed for wrapped OpenCode usability.
-- Those points should be resolved during implementation behind explicit `User Check-in` markers rather than silently fixed in advance here.
+- The most planning-sensitive open points are operational rather than architectural: the exact repo layout for new `nono`/OpenCode runtime assets, and any auxiliary endpoints that must remain allowed for wrapped OpenCode usability.
+- The Kubernetes pre-sandbox credential-delivery surface is fixed by this plan/spec and is not an open option set.
+- Remaining operational open points should be resolved during implementation behind explicit `User Check-in` markers rather than silently fixed in advance here.
+
+Verification-matrix classification for this plan is fixed at: 8 Blocking rows and 2 Advisory rows.
+
+Provider failure handling (mandatory stop rule):
+
+- On any supported-provider verification failure, stop shipment for the current slice immediately.
+- If the provider remains in supported scope, fix and re-verify to green before continuing.
+- If proposing provider removal from supported scope, pause implementation and request explicit user re-approval before continuing with updated spec/plan/acceptance criteria.
+
+This plan does **not** treat local-proxy-authorized provider usage as a misuse-prevention control surface.
 
 ## Scope
 
@@ -148,14 +159,16 @@ Direction lock for this slice:
 - Modify: `k8s/devspace-bare-hub/workspace-deployment.yaml`
 - Modify any directly related lifecycle/bootstrap surface only if it is part of the approved pre-sandbox credential handoff
 
-- [ ] Choose and implement one approved pre-sandbox credential delivery surface that matches the spec’s allowed boundary.
+- [ ] Implement the fixed pre-sandbox credential surface: read-only mount `/var/run/secrets/nono/providers` plus constrained non-interactive `sudo -n` helper handoff from `vscode`.
+- [ ] For this plan, the secret-reading helper principal is effective UID 0 (root) invoked non-interactively via `sudo -n` by `vscode` only for pre-sandbox handoff.
 - [ ] Keep real credentials out of shell startup files, persistent user env setup, repo files, and supported-provider `auth.json` surfaces.
+- [ ] Verify that direct interactive-shell reads of `/var/run/secrets/nono/providers/*` by `vscode` are blocked for the supported path contract.
 - [ ] Make the failure mode clear and fail-closed when the credential source, route, or wrapper prerequisites are missing or malformed.
 - [ ] Verify GREEN on the secret-boundary contract tests and any manifest/lifecycle tests touched by the change.
 - [ ] Perform the mandatory refactor checkpoint and keep the credential-boundary contract authoritative in one place.
 - [ ] Commit the secret-boundary slice.
 
-**User Check-in:** confirm the chosen Kubernetes delivery surface before implementation hardens it if multiple compliant options remain viable after the red test pass/fail evidence is understood.
+**User Check-in:** if the fixed `/var/run/secrets/nono/providers` + `sudo -n` helper surface cannot be enforced in this pod/runtime, pause and request explicit user direction before introducing any alternate surface.
 
 **Review cycle:** request review focused on whether the design keeps supported-provider credentials out of ordinary interactive bash scope without inventing an unapproved fallback path.
 
@@ -319,7 +332,7 @@ For this plan, “contract/integration” tests are intended to be **shell-drive
 
 - **Hard-gate risk:** if the `nono` suitability matrix fails, the correct outcome is rejection or redesign of this secure path, not a weakened fallback.
 - **Boundary-truthfulness risk:** documentation and tests must not confuse “not in ordinary bash scope” with “unreachable by all workspace code.”
-- **Kubernetes-surface ambiguity:** the spec allows a narrow pre-sandbox credential surface but does not pre-select the exact implementation shape; this needs an implementation-time check-in.
+- **Kubernetes-surface enforcement risk:** if the fixed `/var/run/secrets/nono/providers` + `sudo -n` helper surface cannot be enforced, this slice must pause for explicit re-approval rather than silently broadening the boundary.
 - **Network-policy risk:** wrapped OpenCode may require auxiliary endpoints beyond loopback; those must be explicitly discovered, justified, and approved.
 - **Enablement-drift risk:** the host-local enablement manifest, generated runtime configuration, and verification output can drift unless one testable contract ties them together exactly.
 - **DRY risk:** provider policy, model policy, route policy, and operator docs can easily drift if spread across too many surfaces; keep one authoritative contract per concern.

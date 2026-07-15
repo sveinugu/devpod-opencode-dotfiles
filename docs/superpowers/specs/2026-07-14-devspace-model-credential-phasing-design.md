@@ -31,6 +31,7 @@ The goal here is not to build a full broker platform now. The goal is to make di
 - The expected providers are either local to UiO or sanctioned by UiO for the user's use case.
 - The current baseline tolerated by the user and institutional context is weaker than the proposed `nono`-guarded path.
 - The design must remain honest: this is a practical hardening design, not an absolute proof of isolation.
+- This design does **not** prevent misuse of already-authorized provider access through the local proxy route.
 
 ## Goals
 
@@ -98,6 +99,8 @@ The gate passes only when **all blocking rows** in the verification matrix pass.
 | Profile minimization | Advisory | compare stock profile vs repo-specific profile and retest denied extra paths | least-privilege repo profile identified |
 | Reproducibility | Advisory | rerun the relevant checks after pod restart/reprovision | behavior remains stable across pod lifecycle |
 
+Verification-matrix classification for this design is fixed at: 8 Blocking rows and 2 Advisory rows.
+
 All early verification should use dummy credentials first.
 
 ## Provider Eligibility and Target Supported Set
@@ -129,6 +132,19 @@ A provider is eligible for this design only if all of the following are true:
 
 - Google/Gemini, because the documented OpenCode + `nono` proxy route is known not to work there
 - any provider that requires falling back to plain env-credential exposure inside the sandbox
+
+### Provider verification failure stop rule (mandatory):
+
+On any supported-provider verification failure, stop shipment for the current slice immediately.
+
+Allowed recovery paths are limited to:
+
+1. fix the failing provider route/contract and re-run the failing verification to green under the current approved provider set; or
+2. propose dropping that provider from the supported set by updating this spec + the implementation plan + acceptance criteria, then resume only after explicit user re-approval of the updated supported-provider contract.
+
+Without one of those outcomes, the slice remains blocked and must not be declared complete.
+
+If the failing provider is in the current target supported-provider list, the slice must pause and cannot be accepted until either recovery-path (1) or (2) is completed.
 
 ### Provider ownership rules
 
@@ -169,7 +185,15 @@ Unsupported steady-state routes:
 
 Operator-managed Kubernetes secrets remain the source of credential material for this workspace deployment.
 
+Kubernetes secret delivery surface is fixed to the read-only mount path `/var/run/secrets/nono/providers`.
+
 The design does not require a system keyring inside the pod. It does require that any pre-sandbox credential access be confined to a narrowly defined non-interactive launch path.
+
+Before sandbox entry, raw secret-file reads are performed only by a constrained non-interactive privileged helper invocation (`sudo -n`) initiated by `vscode`.
+
+That helper invocation runs with effective UID 0 (root) only for the secret-read handoff step.
+
+Direct interactive-shell reads of raw secret files by `vscode` are forbidden for the supported path.
 
 Allowed pre-sandbox credential visibility is limited to:
 
@@ -220,7 +244,7 @@ Security-review scope for this add-on includes:
 
 1. whether user/identity split is implemented in a way that prevents agent-side direct reads of raw secret mounts
 2. whether wrapped-launch credential handoff remains non-interactive and fail-closed
-3. whether attempted privilege escalation paths (`sudo`, user switching, shell escape paths) are correctly blocked or intentionally constrained in the supported path
+3. whether attempted privilege escalation paths (`sudo`, user switching, shell escape paths) are correctly blocked in the supported path
 
 Required `sudo` outcome for supported-path acceptance:
 
@@ -231,6 +255,8 @@ Required non-`sudo` escalation outcomes for supported-path acceptance:
 
 - agent runtime user-switch attempts to owner/operator identity are blocked in the supported path
 - shell-escape paths that attempt to bypass the agent-runtime boundary are blocked in the supported path
+
+For this contract, "shell-escape bypass attempts" means launching privileged shells from agent runtime (for example: `sudo -n /bin/sh`, `sudo -n /bin/bash`, `su -l vscode`).
 
 ## OpenCode Configuration Contract
 
@@ -313,6 +339,8 @@ Allowed from the sandbox child:
 - loopback access to the local `nono` proxy
 - any additional auxiliary endpoints strictly required for wrapped OpenCode operation and explicitly recorded by verification
 
+For this contract, "auxiliary endpoints strictly required" means explicit `<scheme>://<host>:<port>` entries recorded in repo policy + verification evidence; wildcard hosts and broad CIDR allowances are forbidden.
+
 Blocked from the sandbox child:
 
 - direct outbound access to upstream provider hosts for proxy-backed providers
@@ -389,6 +417,7 @@ The design is acceptable only when all of the following are true:
 12. If `nono` is found unsuitable in this pod environment, this design path is rejected rather than silently downgraded.
 13. The privilege-separation + escalation-blocking add-on is implemented with passing contract evidence and dedicated security review sign-off.
 14. For the supported path, escalation from agent runtime to owner/operator/root via `sudo`, user-switch attempts, and shell-escape bypass paths is blocked.
+15. The supported path uses the fixed Kubernetes secret mount surface `/var/run/secrets/nono/providers`; pre-sandbox raw secret reads occur only via constrained non-interactive `sudo -n` helper invocation from `vscode`, and direct interactive-shell reads by `vscode` are forbidden.
 
 ## Deferred Alternatives
 
