@@ -190,6 +190,48 @@ Success is therefore defined by both of the following:
 - real credentials do not enter the sandbox scope
 - real credentials are not exposed through ordinary interactive shell/startup/env surfaces before sandboxing
 
+### Privilege separation and `sudo` handling (security-hardening add-on)
+
+This design’s baseline contract focuses on reducing credential exposure in ordinary interactive shell scope while using `nono` as the secure runtime path.
+
+Chosen direction: **mandatory two-user split**.
+
+Single-user strict-wrapper-only direction is rejected for this slice.
+
+A dedicated hardening add-on is now explicitly in scope for security review:
+
+- separate the **owner/operator user** from the **agent runtime user**
+- keep raw Kubernetes-mounted credential files readable only by the owner-controlled launch path
+- run everyday agent workloads (including wrapped OpenCode) as a non-sudo runtime identity by default
+- preserve a deliberate owner/operator path for credential rotation and maintenance
+
+Identity semantics for this slice:
+
+- owner/operator identity is a privileged non-agent identity; it may be root or a dedicated owner UID depending on deployment constraints.
+- agent runtime identity is the default non-sudo identity for everyday OpenCode/agent workloads.
+
+About `sudo` semantics in this design:
+
+- `nono` kernel enforcement is expected to remain authoritative for sandboxed child behavior, including subprocesses invoked from inside the sandbox
+- however, `sudo` behavior must be treated as **verification-required**, not assumed
+- this repo therefore requires explicit contract evidence for `sudo` behavior in the current pod/runtime before calling this hardening complete
+
+Security-review scope for this add-on includes:
+
+1. whether user/identity split is implemented in a way that prevents agent-side direct reads of raw secret mounts
+2. whether wrapped-launch credential handoff remains non-interactive and fail-closed
+3. whether attempted privilege escalation paths (`sudo`, user switching, shell escape paths) are correctly blocked or intentionally constrained in the supported path
+
+Required `sudo` outcome for supported-path acceptance:
+
+- agent runtime `sudo` escalation to owner/root is blocked in the supported path
+- if any environment-specific exception exists, it must be explicitly recorded as a rejected configuration for this slice rather than treated as acceptable drift
+
+Required non-`sudo` escalation outcomes for supported-path acceptance:
+
+- agent runtime user-switch attempts to owner/operator identity are blocked in the supported path
+- shell-escape paths that attempt to bypass the agent-runtime boundary are blocked in the supported path
+
 ## OpenCode Configuration Contract
 
 The OpenCode-facing configuration should stay minimal and provider-specific only where necessary.
@@ -345,6 +387,8 @@ The design is acceptable only when all of the following are true:
 10. Provider enablement is host/operator controlled through a single observable host-local enablement manifest, and generated runtime configuration matches it.
 11. No tracked repo file contains secret values.
 12. If `nono` is found unsuitable in this pod environment, this design path is rejected rather than silently downgraded.
+13. The privilege-separation + escalation-blocking add-on is implemented with passing contract evidence and dedicated security review sign-off.
+14. For the supported path, escalation from agent runtime to owner/operator/root via `sudo`, user-switch attempts, and shell-escape bypass paths is blocked.
 
 ## Deferred Alternatives
 
@@ -362,6 +406,7 @@ The remaining open questions are verification-driven rather than architecture-dr
 2. Can the repo-specific `nono` profile be tightened below the stock OpenCode profile without breaking usability?
 3. What is the exact custom credential-route shape needed for UiO yellow/red under the OpenCode provider configuration surface?
 4. Does `github-copilot` work cleanly enough under the chosen proxy route to remain in the supported set after verification?
+5. Is there any pod/runtime-specific edge case that prevents enforcing blocked escalation (`sudo`, user-switch, shell-escape bypass) from agent runtime for the supported path?
 
 ## Pragmatic Assessment
 
