@@ -14,6 +14,25 @@ script="$repo_root/ops/check-workspace.sh"
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
 
+mock_bin_ok="$tmpdir/mock-bin-ok"
+mock_bin_bad="$tmpdir/mock-bin-bad"
+mkdir -p "$mock_bin_ok" "$mock_bin_bad"
+
+cat > "$mock_bin_ok/direnv" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '2.35.0\n'
+EOF
+chmod +x "$mock_bin_ok/direnv"
+
+cat > "$mock_bin_bad/direnv" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'direnv: command not found\n' >&2
+exit 127
+EOF
+chmod +x "$mock_bin_bad/direnv"
+
 workspace_root="$tmpdir/workspace"
 home_dir="$tmpdir/home"
 source_repo="$tmpdir/source"
@@ -47,23 +66,31 @@ mkdir -p "$workspace_root/state/hub/etc"
 printf 'export HUB_INSTALL_BRANCH=feature/install-checkout\n' > "$workspace_root/state/hub/etc/install.env"
 printf 'export HUB_INSTALL_BRANCH_DIR=/workspaces/dotfiles/work/feature/install-checkout\n' >> "$workspace_root/state/hub/etc/install.env"
 
-if ! HUB_CHECK_DEPLOYMENT=yes HUB_CHECK_PVC=yes HUB_CHECK_POD=test-pod HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" >"$tmpdir/pass.out" 2>&1; then
+if ! PATH="$mock_bin_ok:$PATH" HUB_CHECK_DEPLOYMENT=yes HUB_CHECK_PVC=yes HUB_CHECK_POD=test-pod HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" >"$tmpdir/pass.out" 2>&1; then
   fail "doctor should pass when all checks are healthy"
 fi
 
 grep -F 'PASS' "$tmpdir/pass.out" >/dev/null || fail "doctor output should be human-readable checklist"
 grep -F 'installed-branch state from install.env' "$tmpdir/pass.out" >/dev/null || fail "doctor should report installed branch state"
 grep -F '[PASS] top-level main exists and is attached' "$tmpdir/pass.out" >/dev/null || fail "doctor should explicitly report main attachment check"
+grep -F '[PASS] direnv is available in workspace image' "$tmpdir/pass.out" >/dev/null || fail "doctor should report direnv availability"
+
+set +e
+PATH="$mock_bin_bad:$PATH" HUB_CHECK_DEPLOYMENT=yes HUB_CHECK_PVC=yes HUB_CHECK_POD=test-pod HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" >"$tmpdir/missing-direnv.out" 2>&1
+missing_direnv_rc="$?"
+set -e
+[ "$missing_direnv_rc" = "1" ] || fail "doctor should fail when direnv is unavailable in the workspace image"
+grep -F '[FAIL] direnv is available in workspace image' "$tmpdir/missing-direnv.out" >/dev/null || fail "doctor should include direnv failure in checklist output"
 
 rm -f "$workspace_root/main/.zshrc"
 set +e
-HUB_CHECK_DEPLOYMENT=yes HUB_CHECK_PVC=yes HUB_CHECK_POD=test-pod HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" >"$tmpdir/broken-symlink.out" 2>&1
+PATH="$mock_bin_ok:$PATH" HUB_CHECK_DEPLOYMENT=yes HUB_CHECK_PVC=yes HUB_CHECK_POD=test-pod HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" >"$tmpdir/broken-symlink.out" 2>&1
 broken_symlink_rc="$?"
 set -e
 [ "$broken_symlink_rc" = "1" ] || fail "doctor should fail when /home symlink points to missing target"
 
 set +e
-HUB_CHECK_DEPLOYMENT=no HUB_CHECK_PVC=yes HUB_CHECK_POD=test-pod HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" >"$tmpdir/fail.out" 2>&1
+PATH="$mock_bin_ok:$PATH" HUB_CHECK_DEPLOYMENT=no HUB_CHECK_PVC=yes HUB_CHECK_POD=test-pod HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" >"$tmpdir/fail.out" 2>&1
 doctor_rc="$?"
 set -e
 if [ "$doctor_rc" = "0" ]; then
@@ -73,7 +100,7 @@ fi
 [ "$doctor_rc" = "1" ] || fail "doctor should exit 1 when checks fail"
 
 set +e
-HUB_CHECK_DEPLOYMENT=yes HUB_CHECK_PVC=yes HUB_CHECK_POD=test-pod HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" --bad-flag >"$tmpdir/usage.out" 2>&1
+PATH="$mock_bin_ok:$PATH" HUB_CHECK_DEPLOYMENT=yes HUB_CHECK_PVC=yes HUB_CHECK_POD=test-pod HUB_WORKSPACE_ROOT="$workspace_root" HUB_HOME_DIR="$home_dir" bash "$script" --bad-flag >"$tmpdir/usage.out" 2>&1
 usage_rc="$?"
 set -e
 if [ "$usage_rc" = "0" ]; then

@@ -39,6 +39,13 @@ check "managed directory tmp/ exists" test -d "$workspace_root/tmp"
 check "canonical top-level state path exists" test -d "$workspace_root/state/hub/main"
 check "canonical top-level tmp path exists" test -d "$workspace_root/tmp/hub/main"
 
+check_direnv_available() {
+  command -v direnv >/dev/null 2>&1 || return 1
+  direnv --version >/dev/null 2>&1
+}
+
+check "direnv is available in workspace image" check_direnv_available
+
 check_symlink_points_to_top_level_worktree() {
   local rel="$1"
   local link_path="$home_dir/$rel"
