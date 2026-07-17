@@ -111,6 +111,32 @@ Expected shape:
 - `command -v opencode` prints the wrapped path first: `$HOME/.config/opencode/bin/opencode`
 - `type -a opencode` shows wrapped path before raw path
 
+## Provider policy + enablement workflow (canonical)
+
+Provider model policy is repo-owned at:
+
+```text
+/workspaces/dotfiles/main/.config/opencode/provider-policy.jsonc
+```
+
+Provider enablement manifest is host-local at:
+
+```text
+/workspaces/dotfiles/state/hub/etc/provider-enablement.json
+```
+
+Workflow contract:
+
+- `provider-policy.jsonc` defines supported-provider model policy
+- `provider-enablement.json` is the single source of truth for which supported providers are enabled in this workspace
+- generated runtime configuration and verification output must both match `provider-enablement.json` exactly
+
+Current policy note:
+
+- openai/anthropic with `all` mode
+- `github-copilot` is constrained by allowlist mode in repo policy
+- UiO providers (`gpt-uio-yellow`, `gpt-uio-red`) use full current model lists
+
 ## Managed local retirement
 
 Retire lane worktrees with the managed command instead of manual `git worktree remove` + `git branch -D`:
