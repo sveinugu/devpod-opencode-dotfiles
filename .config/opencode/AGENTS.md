@@ -466,6 +466,7 @@ between active sessions.
     - If more than one session is a plausible match, ask rather than guessing.
 3. Explicit resume precedence:
     - If the user supplies a resume token in the message (line begins with `$<task_id>`), route the message to that session immediately and verbatim (no spawn).
+    - Apply the general correction rule above to resume tokens: if a later `$<task_id>`-prefaced message clearly corrects or restates an immediately preceding near-identical message, the later message completely replaces the earlier one for routing, whether or not the earlier message also had a `$<task_id>` prefix.
     - If the user uses "switch to <subagent>" and provides a resume token, route to that token.
     - If the user uses "switch" without a token and the orchestrator cannot find any reasonable candidate session, ask: `No recent <subagent> session found. Start a new one?` and wait for confirmation.
     - A `$<task_id>` references the exact session identified by that task_id — never a replacement or a "new session of the same type." If delivery fails, report the failure and do not create any new session from that message.
@@ -557,6 +558,7 @@ Interaction rules:
 - If more questions are still pending after the current batch, say so and give a rough estimate of the remaining question count or follow-up rounds.
 - Exact-token or other protocol-sensitive prompts may remain isolated when batching would reduce reliability or make the required reply ambiguous.
 - Repository policy override: when a loaded skill or subagent prompt prefers one-question-at-a-time discovery, subagents in this repository should follow the batching policy above unless a stricter protocol or routing rule in `AGENTS.md` applies.
+- If the user sends an immediately following message that clearly corrects or amends their previous message, treat the later message as authoritative for any overlapping or conflicting content, even when the correction changes meaning or adds/removes sentences. If it is not clear that the later message is a correction or amendment, ask instead of assuming.
 - Perform only the responsibilities listed in the subagent file and only for the currently delegated scope.
 - Session metadata is router-owned. Ordinary subagents should not be required to emit `Session:` / `Resume:` metadata in start, pause, resume, or completion messages.
 - Exception: subagents that themselves delegate work inherit router obligations for the child session they create.
