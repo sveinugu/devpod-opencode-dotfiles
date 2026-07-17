@@ -13,8 +13,8 @@ repo_root="$(git rev-parse --show-toplevel)"
 
 manifest_path="/workspaces/dotfiles/state/hub/etc/provider-enablement.json"
 policy_path="$repo_root/.config/opencode/provider-policy.jsonc"
-runtime_output_path="/workspaces/dotfiles/state/hub/etc/provider-runtime.json"
-verification_output_path="/workspaces/dotfiles/state/hub/etc/provider-verification.json"
+runtime_output_path="$repo_root/.config/opencode/provider-runtime.json"
+verification_output_path="$repo_root/.config/opencode/provider-verification.json"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in

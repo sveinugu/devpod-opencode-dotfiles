@@ -16,6 +16,8 @@ wrapper="$repo_root/.config/opencode/bin/opencode"
 [ -f "$wrapper" ] || fail "secure opencode wrapper must exist"
 
 grep -F '/workspaces/dotfiles/state/hub/etc/provider-enablement.json' "$sync_cmd" >/dev/null || fail "sync command must default to canonical host-local enablement manifest path"
+grep -F '$repo_root/.config/opencode/provider-runtime.json' "$sync_cmd" >/dev/null || fail "sync command must default runtime output path to install-branch wrapper input path"
+grep -F '$repo_root/.config/opencode/provider-verification.json' "$sync_cmd" >/dev/null || fail "sync command must default verification output path to install-branch wrapper verification path"
 grep -F 'OPENCODE_CONFIG_CONTENT' "$wrapper" >/dev/null || fail "secure opencode wrapper must provide generated runtime config to opencode via OPENCODE_CONFIG_CONTENT"
 grep -F '$source_root/.config/opencode/provider-runtime.json' "$wrapper" >/dev/null || fail "secure opencode wrapper must default to install-branch generated runtime output path"
 
