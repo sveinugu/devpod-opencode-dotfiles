@@ -21,6 +21,7 @@ grep -F '/workspaces/dotfiles/state/hub/etc/provider-verification.json' "$lifecy
 grep -F 'bin/sync-provider-enablement' "$lifecycle" >/dev/null || fail "lifecycle runbook must reference provider enablement sync command"
 grep -F '/workspaces/dotfiles/main/.config/opencode/provider-runtime.json' "$lifecycle" >/dev/null || fail "lifecycle runbook must define install-branch generated runtime output path"
 grep -F '/workspaces/dotfiles/main/.config/opencode/provider-verification.json' "$lifecycle" >/dev/null || fail "lifecycle runbook must define install-branch generated verification output path"
+grep -F 'provider-enablement.seed.json' "$lifecycle" >/dev/null || fail "lifecycle runbook must document provider enablement seed manifest bootstrap guardrail"
 
 grep -F '/workspaces/dotfiles/state/hub/etc/provider-enablement.json' "$bare_hub" >/dev/null || fail "bare-hub runbook must reference canonical provider enablement manifest path"
 grep -F 'provider-policy.jsonc' "$bare_hub" >/dev/null || fail "bare-hub runbook must connect provider policy file to enablement workflow"
@@ -29,5 +30,6 @@ grep -F 'provider-runtime.json' "$bare_hub" >/dev/null || fail "bare-hub runbook
 grep -F 'provider-verification.json' "$bare_hub" >/dev/null || fail "bare-hub runbook must document generated verification output artifact"
 grep -F '/workspaces/dotfiles/main/.config/opencode/provider-runtime.json' "$bare_hub" >/dev/null || fail "bare-hub runbook must document install-branch generated runtime output artifact"
 grep -F '/workspaces/dotfiles/main/.config/opencode/provider-verification.json' "$bare_hub" >/dev/null || fail "bare-hub runbook must document install-branch generated verification output artifact"
+grep -F 'provider-enablement.seed.json' "$bare_hub" >/dev/null || fail "bare-hub runbook must document provider enablement seed manifest bootstrap guardrail"
 
 printf 'PASS test_devspace_enablement_manifest_contract\n'

@@ -1,0 +1,9 @@
+{
+  "enabled_providers": [
+    "gpt-uio-red",
+    "gpt-uio-yellow",
+    "github-copilot",
+    "openai",
+    "anthropic"
+  ]
+}

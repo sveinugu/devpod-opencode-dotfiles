@@ -144,6 +144,12 @@ Sync command:
 /workspaces/dotfiles/main/bin/sync-provider-enablement
 ```
 
+Bootstrap guardrail:
+
+- initial enablement seed file: `/workspaces/dotfiles/main/.config/opencode/provider-enablement.seed.json`
+- provision seeds `/workspaces/dotfiles/state/hub/etc/provider-enablement.json` from the seed when missing
+- if both manifest and seed are missing, provision fails closed
+
 Current policy note:
 
 - openai/anthropic with `all` mode

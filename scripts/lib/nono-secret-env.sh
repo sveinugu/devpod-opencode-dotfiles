@@ -5,6 +5,12 @@ nono_secret_env_emit_exports() {
   local secret_root="${1:-${HUB_NONO_PROVIDER_SECRET_DIR:-/var/run/secrets/nono/providers}}"
   local sudo_contract="${HUB_NONO_SECRET_HELPER_SUDO:-}"
 
+  nono_secret_env_read_file() {
+    local file_path="$1"
+
+    sudo -n /bin/cat "$file_path"
+  }
+
   if [ -z "$sudo_contract" ]; then
     printf 'refused: HUB_NONO_SECRET_HELPER_SUDO must be set to constrained non-interactive sudo invocation\n' >&2
     return 1
@@ -33,11 +39,31 @@ nono_secret_env_emit_exports() {
   [ "$missing" -eq 0 ] || return 1
 
   local openai anthropic github yellow red
-  openai="$(<"$secret_root/openai_api_key")"
-  anthropic="$(<"$secret_root/anthropic_api_key")"
-  github="$(<"$secret_root/github_token")"
-  yellow="$(<"$secret_root/gpt_uio_yellow_api_key")"
-  red="$(<"$secret_root/gpt_uio_red_api_key")"
+
+  if ! openai="$(nono_secret_env_read_file "$secret_root/openai_api_key")"; then
+    printf 'refused: unable to read nono provider secret file via constrained sudo helper: %s/openai_api_key\n' "$secret_root" >&2
+    return 1
+  fi
+
+  if ! anthropic="$(nono_secret_env_read_file "$secret_root/anthropic_api_key")"; then
+    printf 'refused: unable to read nono provider secret file via constrained sudo helper: %s/anthropic_api_key\n' "$secret_root" >&2
+    return 1
+  fi
+
+  if ! github="$(nono_secret_env_read_file "$secret_root/github_token")"; then
+    printf 'refused: unable to read nono provider secret file via constrained sudo helper: %s/github_token\n' "$secret_root" >&2
+    return 1
+  fi
+
+  if ! yellow="$(nono_secret_env_read_file "$secret_root/gpt_uio_yellow_api_key")"; then
+    printf 'refused: unable to read nono provider secret file via constrained sudo helper: %s/gpt_uio_yellow_api_key\n' "$secret_root" >&2
+    return 1
+  fi
+
+  if ! red="$(nono_secret_env_read_file "$secret_root/gpt_uio_red_api_key")"; then
+    printf 'refused: unable to read nono provider secret file via constrained sudo helper: %s/gpt_uio_red_api_key\n' "$secret_root" >&2
+    return 1
+  fi
 
   for value in "$openai" "$anthropic" "$github" "$yellow" "$red"; do
     if [ -z "$value" ]; then
