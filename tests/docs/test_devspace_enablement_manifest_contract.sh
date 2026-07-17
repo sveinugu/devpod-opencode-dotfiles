@@ -16,9 +16,18 @@ bare_hub="$repo_root/docs/superpowers/runbooks/devspace-bare-hub-usage.md"
 grep -F '/workspaces/dotfiles/state/hub/etc/provider-enablement.json' "$lifecycle" >/dev/null || fail "lifecycle runbook must define canonical host-local provider enablement manifest path"
 grep -F 'single source of truth for provider enablement' "$lifecycle" >/dev/null || fail "lifecycle runbook must describe single-source-of-truth contract"
 grep -F 'generated runtime configuration and verification output must both match this manifest exactly' "$lifecycle" >/dev/null || fail "lifecycle runbook must require generated runtime + verification parity with enablement manifest"
+grep -F '/workspaces/dotfiles/state/hub/etc/provider-runtime.json' "$lifecycle" >/dev/null || fail "lifecycle runbook must define canonical generated runtime output path"
+grep -F '/workspaces/dotfiles/state/hub/etc/provider-verification.json' "$lifecycle" >/dev/null || fail "lifecycle runbook must define canonical generated verification output path"
+grep -F 'bin/sync-provider-enablement' "$lifecycle" >/dev/null || fail "lifecycle runbook must reference provider enablement sync command"
+grep -F '/workspaces/dotfiles/main/.config/opencode/provider-runtime.json' "$lifecycle" >/dev/null || fail "lifecycle runbook must define install-branch generated runtime output path"
+grep -F '/workspaces/dotfiles/main/.config/opencode/provider-verification.json' "$lifecycle" >/dev/null || fail "lifecycle runbook must define install-branch generated verification output path"
 
 grep -F '/workspaces/dotfiles/state/hub/etc/provider-enablement.json' "$bare_hub" >/dev/null || fail "bare-hub runbook must reference canonical provider enablement manifest path"
 grep -F 'provider-policy.jsonc' "$bare_hub" >/dev/null || fail "bare-hub runbook must connect provider policy file to enablement workflow"
 grep -F 'openai/anthropic with `all` mode' "$bare_hub" >/dev/null || fail "bare-hub runbook must document openai/anthropic all-mode policy"
+grep -F 'provider-runtime.json' "$bare_hub" >/dev/null || fail "bare-hub runbook must document generated runtime output artifact"
+grep -F 'provider-verification.json' "$bare_hub" >/dev/null || fail "bare-hub runbook must document generated verification output artifact"
+grep -F '/workspaces/dotfiles/main/.config/opencode/provider-runtime.json' "$bare_hub" >/dev/null || fail "bare-hub runbook must document install-branch generated runtime output artifact"
+grep -F '/workspaces/dotfiles/main/.config/opencode/provider-verification.json' "$bare_hub" >/dev/null || fail "bare-hub runbook must document install-branch generated verification output artifact"
 
 printf 'PASS test_devspace_enablement_manifest_contract\n'

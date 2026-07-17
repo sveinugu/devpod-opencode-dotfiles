@@ -131,6 +131,19 @@ Workflow contract:
 - `provider-enablement.json` is the single source of truth for which supported providers are enabled in this workspace
 - generated runtime configuration and verification output must both match `provider-enablement.json` exactly
 
+Generated outputs:
+
+- `/workspaces/dotfiles/state/hub/etc/provider-runtime.json`
+- `/workspaces/dotfiles/state/hub/etc/provider-verification.json`
+- `/workspaces/dotfiles/main/.config/opencode/provider-runtime.json`
+- `/workspaces/dotfiles/main/.config/opencode/provider-verification.json`
+
+Sync command:
+
+```bash
+/workspaces/dotfiles/main/bin/sync-provider-enablement
+```
+
 Current policy note:
 
 - openai/anthropic with `all` mode

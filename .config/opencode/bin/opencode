@@ -7,6 +7,7 @@ profile_path="$source_root/.config/nono/profiles/devspace-opencode-secure.jsonc"
 secret_dir="${HUB_NONO_PROVIDER_SECRET_DIR:-/var/run/secrets/nono/providers}"
 secret_helper_sudo="${HUB_NONO_SECRET_HELPER_SUDO:-}"
 agent_user="${HUB_NONO_AGENT_USER:-}"
+provider_runtime_path="${OPENCODE_PROVIDER_RUNTIME_PATH:-$source_root/.config/opencode/provider-runtime.json}"
 
 if [ ! -r "$secret_helper" ]; then
   printf 'refused: nono secret helper not found at %s\n' "$secret_helper" >&2
@@ -34,4 +35,38 @@ fi
 exports_payload="$(nono_secret_env_emit_exports "$secret_dir")"
 eval "$exports_payload"
 
-exec nono run --profile "$profile_path" -- sudo -n -u "$agent_user" -- opencode "$@"
+if [ ! -r "$provider_runtime_path" ]; then
+  printf 'refused: generated provider runtime output not found at %s\n' "$provider_runtime_path" >&2
+  exit 1
+fi
+
+opencode_provider_runtime_json="$(python3 - "$provider_runtime_path" <<'PY'
+import json
+import sys
+
+runtime_path = sys.argv[1]
+
+with open(runtime_path, 'r', encoding='utf-8') as fh:
+    runtime = json.load(fh)
+
+if not isinstance(runtime, dict):
+    raise SystemExit('refused: generated provider runtime output must be a JSON object')
+
+allowed_keys = {'enabled_providers'}
+runtime_keys = set(runtime.keys())
+if runtime_keys != allowed_keys:
+    raise SystemExit('refused: generated provider runtime output contains unsupported keys')
+
+enabled = runtime.get('enabled_providers')
+if not isinstance(enabled, list):
+    raise SystemExit('refused: generated provider runtime output must define enabled_providers as a list')
+
+for provider in enabled:
+    if not isinstance(provider, str) or not provider.strip():
+        raise SystemExit('refused: generated provider runtime output has invalid enabled_providers entry')
+
+print(json.dumps({'enabled_providers': enabled}))
+PY
+)"
+
+exec nono run --profile "$profile_path" -- sudo -n -u "$agent_user" -- env OPENCODE_CONFIG_CONTENT="$opencode_provider_runtime_json" opencode "$@"
