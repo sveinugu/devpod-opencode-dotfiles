@@ -10,9 +10,10 @@ repo_root="$(git rev-parse --show-toplevel)"
 helper="$repo_root/scripts/lib/nono-secret-env.sh"
 
 [ -f "$helper" ] || fail "nono secret helper not found"
+grep -F '/bin/cat' "$helper" >/dev/null || fail "helper must perform privileged reads via constrained sudo cat path"
 
 tmp_root="$(mktemp -d "$repo_root/.tmp-nono-secret-helper-XXXXXX")"
-trap 'rm -rf "$tmp_root"' EXIT
+trap 'sudo rm -rf "$tmp_root" >/dev/null 2>&1 || rm -rf "$tmp_root"' EXIT
 
 secret_dir="$tmp_root/secrets"
 mkdir -p "$secret_dir"
@@ -68,6 +69,38 @@ for expected in \
   'export GPT_UIO_RED_API_KEY='; do
   grep -F "$expected" "$out_with_sudo" >/dev/null || fail "helper missing expected export line with sudo helper contract: $expected"
 done
+
+real_root_secret_dir="$tmp_root/root-only-secrets"
+mkdir -p "$real_root_secret_dir"
+
+cat >"$real_root_secret_dir/openai_api_key" <<'EOF'
+openai-root-only
+EOF
+cat >"$real_root_secret_dir/anthropic_api_key" <<'EOF'
+anthropic-root-only
+EOF
+cat >"$real_root_secret_dir/github_token" <<'EOF'
+github-root-only
+EOF
+cat >"$real_root_secret_dir/gpt_uio_yellow_api_key" <<'EOF'
+yellow-root-only
+EOF
+cat >"$real_root_secret_dir/gpt_uio_red_api_key" <<'EOF'
+red-root-only
+EOF
+
+sudo chown root:root "$real_root_secret_dir"/*
+sudo chmod 0400 "$real_root_secret_dir"/*
+
+if cat "$real_root_secret_dir/openai_api_key" >/dev/null 2>&1; then
+  fail "test setup invalid: direct non-root read must fail on root-owned 0400 secret files"
+fi
+
+out_root_only="$tmp_root/exports-root-only.out"
+HUB_NONO_SECRET_HELPER_SUDO='sudo -n' bash -c "source '$helper'; nono_secret_env_emit_exports '$real_root_secret_dir'" >"$out_root_only" 2>&1 || fail "helper must read root-owned 0400 files via constrained sudo path"
+
+grep -F 'export OPENAI_API_KEY=openai-root-only' "$out_root_only" >/dev/null || fail "helper must export OPENAI_API_KEY from root-owned 0400 secret file"
+grep -F 'export GITHUB_TOKEN=github-root-only' "$out_root_only" >/dev/null || fail "helper must export GITHUB_TOKEN from root-owned 0400 secret file"
 
 rm -f "$secret_dir/gpt_uio_red_api_key"
 

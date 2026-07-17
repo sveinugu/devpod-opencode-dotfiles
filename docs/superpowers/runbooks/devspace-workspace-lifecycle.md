@@ -74,6 +74,11 @@ Canonical sync command:
 /workspaces/dotfiles/main/bin/sync-provider-enablement
 ```
 
+Bootstrap guardrail for first-time provision:
+
+- if `/workspaces/dotfiles/state/hub/etc/provider-enablement.json` is missing, provision seeds it from `/workspaces/dotfiles/main/.config/opencode/provider-enablement.seed.json`
+- if both are missing, provision must fail closed before runtime-provider sync
+
 ## Rebuild workspace image
 
 ```bash

@@ -72,6 +72,27 @@ with open(manifest_path, 'r', encoding='utf-8') as fh:
 with open(policy_path, 'r', encoding='utf-8') as fh:
     policy = json.load(fh)
 
+supported = policy.get('supported_providers')
+if not isinstance(supported, dict):
+    raise SystemExit('refused: provider policy must define supported_providers object')
+
+def policy_entry(name):
+    entry = supported.get(name)
+    if entry is None:
+        return None
+    if not isinstance(entry, dict):
+        raise SystemExit(f'refused: provider policy entry must be an object: {name}')
+    return entry
+
+def model_entries(name):
+    entry = policy_entry(name)
+    if entry is None:
+        return []
+    models = entry.get('models', [])
+    if not isinstance(models, list):
+        raise SystemExit(f'refused: provider policy models must be an array: {name}')
+    return models
+
 enabled = manifest.get('enabled_providers')
 if not isinstance(enabled, list):
     raise SystemExit('refused: provider enablement manifest must define enabled_providers as a list')
@@ -85,18 +106,75 @@ for provider in enabled:
 if len(set(normalized)) != len(normalized):
     raise SystemExit('refused: enabled_providers must not contain duplicates')
 
-supported = policy.get('supported_providers')
-if not isinstance(supported, dict):
-    raise SystemExit('refused: provider policy must define supported_providers object')
-
 unsupported = sorted([provider for provider in normalized if provider not in supported])
 if unsupported:
     raise SystemExit(f'refused: unknown providers in enablement manifest: {", ".join(unsupported)}')
 
 manifest_order_enabled = normalized
 
+def provider_enabled(name):
+    return name in manifest_order_enabled
+
+provider_payload = {}
+
+if provider_enabled('gpt-uio-red'):
+    red_models = {}
+    for model in model_entries('gpt-uio-red'):
+        if not isinstance(model, dict):
+            raise SystemExit('refused: gpt-uio-red model entries must be objects')
+        model_id = model.get('id')
+        model_name = model.get('name')
+        if not isinstance(model_id, str) or not model_id:
+            raise SystemExit('refused: gpt-uio-red model entry missing id')
+        red_models[model_id] = {
+            'id': model_id,
+            'name': model_name if isinstance(model_name, str) and model_name else model_id,
+        }
+    provider_payload['gpt-uio-red'] = {
+        'api': 'openai',
+        'options': {
+            'baseURL': 'https://gpt.uio.no/api/v1',
+        },
+        'models': red_models,
+    }
+
+if provider_enabled('gpt-uio-yellow'):
+    yellow_models = {}
+    for model in model_entries('gpt-uio-yellow'):
+        if not isinstance(model, dict):
+            raise SystemExit('refused: gpt-uio-yellow model entries must be objects')
+        model_id = model.get('id')
+        model_name = model.get('name')
+        if not isinstance(model_id, str) or not model_id:
+            raise SystemExit('refused: gpt-uio-yellow model entry missing id')
+        yellow_models[model_id] = {
+            'id': model_id,
+            'name': model_name if isinstance(model_name, str) and model_name else model_id,
+        }
+    provider_payload['gpt-uio-yellow'] = {
+        'api': 'openai',
+        'options': {
+            'baseURL': 'https://gpt.uio.no/api/v1',
+        },
+        'models': yellow_models,
+    }
+
+if provider_enabled('github-copilot'):
+    copilot_allowlist = []
+    for model in model_entries('github-copilot'):
+        if not isinstance(model, dict):
+            raise SystemExit('refused: github-copilot model entries must be objects')
+        model_id = model.get('id')
+        if not isinstance(model_id, str) or not model_id:
+            raise SystemExit('refused: github-copilot model entry missing id')
+        copilot_allowlist.append(model_id)
+    provider_payload['github-copilot'] = {
+        'whitelist': copilot_allowlist,
+    }
+
 runtime_payload = {
     'enabled_providers': manifest_order_enabled,
+    'provider': provider_payload,
 }
 
 verification_payload = {

@@ -48,5 +48,10 @@ grep -F 'eval "$HUB_GIT_IDENTITY_ENV"' "$cfg" >/dev/null || fail "provision pipe
 grep -F 'env HUB_GITHUB_USER_NAME="${HUB_GITHUB_USER_NAME:-}" HUB_GITHUB_USER_EMAIL="${HUB_GITHUB_USER_EMAIL:-}" HUB_INSTALL_BRANCH="${HUB_INSTALL_BRANCH:-main}"' "$cfg" >/dev/null || fail "provision pipeline should quote identity env vars when forwarding into pod provision"
 grep -F 'bin/sync-provider-enablement' "$cfg" >/dev/null || fail "provision pipeline should synchronize provider enablement runtime outputs"
 grep -F 'HUB_WORKSPACE_ROOT=/workspaces/dotfiles /tmp/bin/sync-provider-enablement --runtime-output "$HUB_INSTALL_BRANCH_DIR/.config/opencode/provider-runtime.json" --verification-output "$HUB_INSTALL_BRANCH_DIR/.config/opencode/provider-verification.json"' "$cfg" >/dev/null || fail "provision pipeline should generate install-branch runtime and verification provider outputs"
+grep -F 'provider_manifest=/workspaces/dotfiles/state/hub/etc/provider-enablement.json' "$cfg" >/dev/null || fail "provision pipeline should define canonical host-local provider enablement manifest path before sync"
+grep -F 'provider_seed="$HUB_INSTALL_BRANCH_DIR/.config/opencode/provider-enablement.seed.json"' "$cfg" >/dev/null || fail "provision pipeline should define install-branch provider enablement seed path"
+grep -F 'if [ ! -f "$provider_manifest" ]; then' "$cfg" >/dev/null || fail "provision pipeline should guard missing host-local provider enablement manifest"
+grep -F 'cp "$provider_seed" "$provider_manifest"' "$cfg" >/dev/null || fail "provision pipeline should bootstrap missing enablement manifest from repo seed"
+grep -F 'refused: provider enablement manifest missing and seed not found' "$cfg" >/dev/null || fail "provision pipeline should fail closed when neither manifest nor seed exists"
 
 printf 'PASS test_devspace_command_surface\n'

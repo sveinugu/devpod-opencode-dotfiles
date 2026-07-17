@@ -39,5 +39,15 @@ RUN sudo chsh -s /usr/bin/zsh vscode
 # Create dedicated non-sudo runtime identity for sandboxed agent/OpenCode workloads
 RUN if ! id -u agent >/dev/null 2>&1; then useradd --create-home --shell /usr/bin/zsh agent; fi
 
+# Constrained sudoers contract for secure non-interactive nono/opencode launch path
+RUN printf '%s\n' \
+    'vscode ALL=(root) NOPASSWD: /bin/cat /var/run/secrets/nono/providers/*' \
+    'vscode ALL=(agent) NOPASSWD: /usr/bin/env OPENCODE_CONFIG_CONTENT=* opencode *' \
+    > /tmp/99-dotfiles-nono \
+    && sudo mv /tmp/99-dotfiles-nono /etc/sudoers.d/99-dotfiles-nono \
+    && sudo chown root:root /etc/sudoers.d/99-dotfiles-nono \
+    && sudo chmod 0440 /etc/sudoers.d/99-dotfiles-nono \
+    && sudo visudo -cf /etc/sudoers.d/99-dotfiles-nono
+
 # Unbuffered Python outputs for e.g. Kubernetes
 ENV PYTHONUNBUFFERED=1
