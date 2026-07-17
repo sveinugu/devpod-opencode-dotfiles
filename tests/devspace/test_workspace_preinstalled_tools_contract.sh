@@ -52,5 +52,6 @@ fi
 grep -F '/etc/sudoers.d/99-dotfiles-nono' "$dockerfile" >/dev/null || fail "Dockerfile must install constrained sudoers contract for non-interactive agent-run helper path"
 grep -F '/bin/cat /var/run/secrets/nono/providers/' "$dockerfile" >/dev/null || fail "Dockerfile sudoers contract must constrain provider secret reads to fixed mount path"
 grep -F '/usr/bin/env OPENCODE_CONFIG_CONTENT=' "$dockerfile" >/dev/null || fail "Dockerfile sudoers contract must allow runtime wrapper env handoff into opencode"
+grep -F '/home/vscode/.opencode/bin/opencode' "$dockerfile" >/dev/null || fail "Dockerfile sudoers runtime rule must pin exact raw opencode binary path"
 
 printf 'PASS test_workspace_preinstalled_tools_contract\n'
