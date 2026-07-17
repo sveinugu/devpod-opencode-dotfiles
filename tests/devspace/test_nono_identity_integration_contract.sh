@@ -19,7 +19,30 @@ grep -F 'sudo -n /bin/cat' "$helper" >/dev/null || fail "helper must perform pri
 grep -F 'sudo -n -u "$agent_user" -- env OPENCODE_CONFIG_CONTENT=' "$wrapper" >/dev/null || fail "wrapper must execute opencode through constrained sudo -n -u agent path"
 
 grep -F 'NOPASSWD: /bin/cat /var/run/secrets/nono/providers/*' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for mounted provider secret reads"
-grep -F 'NOPASSWD: /usr/bin/env OPENCODE_CONFIG_CONTENT=* opencode *' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for runtime wrapper path"
+grep -F 'NOPASSWD: /usr/bin/env OPENCODE_CONFIG_CONTENT=* /home/vscode/.opencode/bin/opencode *' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for exact wrapper runtime path"
+
+python3 - "$wrapper" "$dockerfile" <<'PY'
+import re
+import sys
+
+wrapper_path, dockerfile_path = sys.argv[1:]
+
+with open(wrapper_path, 'r', encoding='utf-8') as fh:
+    wrapper = fh.read()
+
+with open(dockerfile_path, 'r', encoding='utf-8') as fh:
+    dockerfile = fh.read()
+
+match = re.search(r'raw_opencode_binary="\$\{OPENCODE_RAW_BINARY:-([^}]+)\}"', wrapper)
+if not match:
+    raise SystemExit('wrapper missing default raw_opencode_binary contract')
+
+default_path = match.group(1)
+expected_rule = f'NOPASSWD: /usr/bin/env OPENCODE_CONFIG_CONTENT=* {default_path} *'
+
+if expected_rule not in dockerfile:
+    raise SystemExit('dockerfile sudoers rule does not match wrapper default raw binary path')
+PY
 
 if grep -E 'NOPASSWD:.*(ALL|/bin/sh|/bin/bash|/usr/bin/su)' "$dockerfile" >/dev/null; then
   fail "Dockerfile sudoers contract must not allow broad shell/su escalation paths"
