@@ -264,25 +264,101 @@ run_row_opencode_functionality() {
 run_row_uio_custom_provider_route() {
   require_file "$secure_profile_path" "secure nono profile"
 
-  grep -F 'gpt-uio-yellow' "$secure_profile_path" >/dev/null || fail "secure profile missing gpt-uio-yellow route"
-  grep -F 'gpt-uio-red' "$secure_profile_path" >/dev/null || fail "secure profile missing gpt-uio-red route"
-  grep -F 'https://gpt.uio.no/api/v1' "$secure_profile_path" >/dev/null || fail "secure profile missing UiO upstream URL"
+  local tmp_root probe_script out_yellow out_red yellow_token red_token
+  tmp_root="$(mktemp -d "$repo_root/.tmp-nono-uio-route-XXXXXX")"
+  trap 'rm -rf "$tmp_root"' RETURN
+  probe_script="$tmp_root/uio-proxy-secrecy-probe.sh"
+  out_yellow="$(mktemp)"
+  out_red="$(mktemp)"
+  trap 'rm -rf "$tmp_root" "$out_yellow" "$out_red"' RETURN
+
+  cat > "$probe_script" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+provider_label="$1"
+real_token="$2"
+if env | grep -F "$real_token" >/dev/null; then
+  printf '%s:real-token-visible-in-env\n' "$provider_label"
+  exit 61
+fi
+if tr '\0' '\n' < /proc/self/environ | grep -F "$real_token" >/dev/null; then
+  printf '%s:real-token-visible-in-proc-environ\n' "$provider_label"
+  exit 62
+fi
+printf '%s:real-token-not-visible\n' "$provider_label"
+EOF
+  chmod +x "$probe_script"
+
+  yellow_token='REAL_UIO_YELLOW_TOKEN_SHOULD_NEVER_LEAK'
+  red_token='REAL_UIO_RED_TOKEN_SHOULD_NEVER_LEAK'
+
+  run_expect_success \
+    "uio yellow credential route probe" \
+    "$out_yellow" \
+    env GPT_UIO_YELLOW_API_KEY="$yellow_token" \
+      "$nono_bin" run --profile "$secure_profile_path" --allow "$tmp_root" --credential gpt-uio-yellow -- "$probe_script" "uio-yellow" "$yellow_token"
+
+  run_expect_success \
+    "uio red credential route probe" \
+    "$out_red" \
+    env GPT_UIO_RED_API_KEY="$red_token" \
+      "$nono_bin" run --profile "$secure_profile_path" --allow "$tmp_root" --credential gpt-uio-red -- "$probe_script" "uio-red" "$red_token"
+
+  assert_output_contains "$out_yellow" "uio-yellow:real-token-not-visible" "uio yellow credential route output"
+  assert_output_contains "$out_red" "uio-red:real-token-not-visible" "uio red credential route output"
+  assert_output_not_contains "$out_yellow" "$yellow_token" "uio yellow credential route output"
+  assert_output_not_contains "$out_red" "$red_token" "uio red credential route output"
 }
 
 run_row_provider_specific_verification() {
   require_file "$secure_profile_path" "secure nono profile"
 
-  grep -F '"openai"' "$secure_profile_path" >/dev/null || fail "secure profile missing openai credential route"
-  grep -F '"anthropic"' "$secure_profile_path" >/dev/null || fail "secure profile missing anthropic credential route"
-  grep -F '"github-copilot"' "$secure_profile_path" >/dev/null || fail "secure profile missing github-copilot credential route"
-  grep -F '"gpt-uio-yellow"' "$secure_profile_path" >/dev/null || fail "secure profile missing gpt-uio-yellow credential route"
-  grep -F '"gpt-uio-red"' "$secure_profile_path" >/dev/null || fail "secure profile missing gpt-uio-red credential route"
+  local tmp_root probe_script
+  tmp_root="$(mktemp -d "$repo_root/.tmp-nono-provider-specific-XXXXXX")"
+  trap 'rm -rf "$tmp_root"' RETURN
+  probe_script="$tmp_root/provider-specific-probe.sh"
 
-  grep -F '"credential_key": "env://OPENAI_API_KEY"' "$secure_profile_path" >/dev/null || fail "secure profile missing explicit OPENAI_API_KEY credential route"
-  grep -F '"credential_key": "env://ANTHROPIC_API_KEY"' "$secure_profile_path" >/dev/null || fail "secure profile missing explicit ANTHROPIC_API_KEY credential route"
-  grep -F '"credential_key": "env://GITHUB_TOKEN"' "$secure_profile_path" >/dev/null || fail "secure profile missing explicit GITHUB_TOKEN credential route"
-  grep -F '"credential_key": "env://GPT_UIO_YELLOW_API_KEY"' "$secure_profile_path" >/dev/null || fail "secure profile missing explicit GPT_UIO_YELLOW_API_KEY credential route"
-  grep -F '"credential_key": "env://GPT_UIO_RED_API_KEY"' "$secure_profile_path" >/dev/null || fail "secure profile missing explicit GPT_UIO_RED_API_KEY credential route"
+  cat > "$probe_script" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+provider_label="$1"
+real_token="$2"
+if env | grep -F "$real_token" >/dev/null; then
+  printf '%s:real-token-visible-in-env\n' "$provider_label"
+  exit 71
+fi
+if tr '\0' '\n' < /proc/self/environ | grep -F "$real_token" >/dev/null; then
+  printf '%s:real-token-visible-in-proc-environ\n' "$provider_label"
+  exit 72
+fi
+printf '%s:real-token-not-visible\n' "$provider_label"
+EOF
+  chmod +x "$probe_script"
+
+  run_provider_route_probe() {
+    local provider_label="$1"
+    local env_key="$2"
+    local route_name="$3"
+    local token_value="$4"
+    local out_file
+    out_file="$(mktemp)"
+
+    run_expect_success \
+      "$provider_label credential route probe" \
+      "$out_file" \
+      env "$env_key=$token_value" \
+        "$nono_bin" run --profile "$secure_profile_path" --allow "$tmp_root" --credential "$route_name" -- "$probe_script" "$provider_label" "$token_value"
+
+    assert_output_contains "$out_file" "$provider_label:real-token-not-visible" "$provider_label credential route output"
+    assert_output_not_contains "$out_file" "$token_value" "$provider_label credential route output"
+    rm -f "$out_file"
+  }
+
+  run_provider_route_probe "openai" "OPENAI_API_KEY" "openai" "REAL_OPENAI_TOKEN_SHOULD_NEVER_LEAK"
+  run_provider_route_probe "anthropic" "ANTHROPIC_API_KEY" "anthropic" "REAL_ANTHROPIC_TOKEN_SHOULD_NEVER_LEAK"
+  run_provider_route_probe "github-copilot" "GITHUB_TOKEN" "github-copilot" "REAL_GITHUB_TOKEN_SHOULD_NEVER_LEAK_PROVIDER_ROW"
+  run_provider_route_probe "gpt-uio-yellow" "GPT_UIO_YELLOW_API_KEY" "gpt-uio-yellow" "REAL_UIO_YELLOW_TOKEN_SHOULD_NEVER_LEAK_PROVIDER_ROW"
+  run_provider_route_probe "gpt-uio-red" "GPT_UIO_RED_API_KEY" "gpt-uio-red" "REAL_UIO_RED_TOKEN_SHOULD_NEVER_LEAK_PROVIDER_ROW"
 }
 
 
@@ -290,6 +366,8 @@ run_row_check() {
   local class="$1"
   local row_id="$2"
   local row_label="$3"
+
+  RUN_ROW_STATUS="pass"
 
   local output_file
   output_file="$(mktemp)"
@@ -337,8 +415,15 @@ run_row_check() {
   set -e
 
   if [ "$rc" -ne 0 ]; then
+    RUN_ROW_STATUS="fail"
     printf 'row=%s class=%s status=fail label=%s detail=%s\n' "$row_id" "$class" "$row_label" "$(tr '\n' ' ' < "$output_file")"
     return 1
+  fi
+
+  if [ "$class" = "advisory" ] && grep -F 'advisory-row:pending' "$output_file" >/dev/null; then
+    RUN_ROW_STATUS="pending"
+    printf 'row=%s class=%s status=pending label=%s detail=%s\n' "$row_id" "$class" "$row_label" "$(tr '\n' ' ' < "$output_file")"
+    return 0
   fi
 
   printf 'row=%s class=%s status=pass label=%s detail=%s\n' "$row_id" "$class" "$row_label" "$(tr '\n' ' ' < "$output_file")"
@@ -346,6 +431,7 @@ run_row_check() {
 
 blocking_failures=0
 advisory_failures=0
+advisory_pending=0
 
 resolve_nono_bin
 
@@ -360,8 +446,14 @@ for row in "${advisory_rows[@]}"; do
   IFS='|' read -r row_id row_label <<<"$row"
   if ! run_row_check "advisory" "$row_id" "$row_label"; then
     advisory_failures=$((advisory_failures + 1))
+  elif [ "$RUN_ROW_STATUS" = "pending" ]; then
+    advisory_pending=$((advisory_pending + 1))
   fi
 done
+
+if [ "$advisory_pending" -gt 0 ]; then
+  printf 'advisory_rows_pending=%s\n' "$advisory_pending"
+fi
 
 if [ "$advisory_failures" -gt 0 ]; then
   printf 'advisory_rows_pending=%s\n' "$advisory_failures"

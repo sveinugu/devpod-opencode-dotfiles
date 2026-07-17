@@ -180,6 +180,8 @@ Direction lock for this slice:
 
 Owner/operator identity for this slice is the main sudo-capable workspace user: `vscode`.
 
+Owner/operator `sudo` use by `vscode` remains a trusted maintenance path and is not itself classified as escalation failure for this slice.
+
 **Files:**
 - Modify: `k8s/devspace-bare-hub/workspace-deployment.yaml`
 - Modify: `.config/opencode/bin/opencode`
@@ -191,7 +193,7 @@ Sequencing note: Task 2.5 may complete identity and secret-boundary hardening be
 - [ ] Add failing contract/integration tests first for owner-vs-agent identity behavior and secret-file read constraints.
 - [ ] Ensure mounted provider-secret files are owner-controlled/read-restricted and are not directly readable by the everyday agent runtime user.
 - [ ] Keep credential handoff in a non-interactive owner-controlled wrapper path that fails closed when prerequisites are missing.
-- [ ] Verify `sudo` behavior under the wrapped secure path with explicit contract evidence that escalation is blocked for agent runtime.
+- [ ] Verify `sudo` behavior under the wrapped secure path with explicit contract evidence that the trusted owner/operator `sudo` path remains constrained and that agent runtime escalation paths stay blocked.
 - [ ] Verify blocked escalation evidence for user-switch attempts and shell-escape bypass attempts under the supported path.
 - [ ] Verify GREEN on the new identity-separation/escalation-blocking contract tests plus directly touched manifest/runtime tests.
 - [ ] Perform the mandatory refactor checkpoint and keep identity-boundary rules centralized and reviewable.
@@ -237,7 +239,7 @@ Docs Review Gate: do not begin Task 2.5 runtime implementation until the user ap
 - [ ] Add repo-tracked configuration for the exact supported provider set and exclude unsupported providers from the secure path.
 - [ ] Keep that provider selection scoped to the repo-supported secure path only; do not redefine out-of-scope raw OpenCode use into a repo-enforced global allowlist.
 - [ ] Keep UiO yellow/red as separate providers with separate routing identities and repo-tracked full current model lists.
-- [ ] Keep standard-provider model policy as repo-tracked allowlists rather than full mirrored catalogs.
+- [ ] Keep standard-provider model policy as repo-tracked allowlists, with approved explicit `mode: all` exceptions for `openai` and `anthropic`.
 - [ ] Ensure the supported-provider auth contract stays consistent with the `nono` credential-route contract and does not make supported-provider `auth.json` authoritative.
 - [ ] Verify GREEN on provider-specific auth/list/request smoke tests, including `GITHUB_TOKEN`-based evidence for GitHub Copilot.
 - [ ] Perform the mandatory refactor checkpoint and keep model-policy ownership boundaries clear.

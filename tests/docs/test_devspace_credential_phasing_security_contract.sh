@@ -34,6 +34,9 @@ grep -F 'pause implementation and request explicit user re-approval before conti
 grep -F 'This design does **not** prevent misuse of already-authorized provider access through the local proxy route.' "$spec" >/dev/null || fail "spec should explicitly state proxy-misuse non-protection"
 grep -F 'This plan does **not** treat local-proxy-authorized provider usage as a misuse-prevention control surface.' "$plan" >/dev/null || fail "plan should explicitly state proxy-misuse non-protection"
 
+grep -F '**Standard providers** use repo-tracked allowlists, except approved explicit `mode: all` entries for `openai` and `anthropic`.' "$spec" >/dev/null || fail "spec should document openai/anthropic mode-all approved exception"
+grep -F 'Keep standard-provider model policy as repo-tracked allowlists, with approved explicit `mode: all` exceptions for `openai` and `anthropic`.' "$plan" >/dev/null || fail "plan should document openai/anthropic mode-all approved exception"
+
 grep -F 'For this contract, "shell-escape bypass attempts" means launching privileged shells from agent runtime (for example: `sudo -n /bin/sh`, `sudo -n /bin/bash`, `su -l vscode`).' "$spec" >/dev/null || fail "spec should concretize shell-escape bypass term"
 grep -F 'For this contract, "auxiliary endpoints strictly required" means explicit `<scheme>://<host>:<port>` entries recorded in repo policy + verification evidence; wildcard hosts and broad CIDR allowances are forbidden.' "$spec" >/dev/null || fail "spec should concretize auxiliary endpoint requirement"
 

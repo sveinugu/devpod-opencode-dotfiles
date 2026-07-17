@@ -233,6 +233,7 @@ Identity semantics for this slice:
 
 - owner/operator identity is the main sudo-capable workspace user: `vscode`.
 - agent runtime identity is the default non-sudo identity for everyday OpenCode/agent workloads.
+- owner/operator `sudo` is a trusted maintenance path for this slice and is not treated as an escalation failure by itself.
 
 About `sudo` semantics in this design:
 
@@ -248,7 +249,8 @@ Security-review scope for this add-on includes:
 
 Required `sudo` outcome for supported-path acceptance:
 
-- agent runtime `sudo` escalation to owner/root is blocked in the supported path
+- trusted owner/operator `sudo` use by `vscode` remains constrained to the documented maintenance and launch-helper paths
+- agent runtime `sudo` escalation to owner/root remains blocked in the supported path
 - if any environment-specific exception exists, it must be explicitly recorded as a rejected configuration for this slice rather than treated as acceptable drift
 
 Required non-`sudo` escalation outcomes for supported-path acceptance:
@@ -289,6 +291,7 @@ the repo should define the integration/auth contract needed to make the provider
 
 - **UiO providers** use repo-tracked full current model lists.
 - **Standard providers** use repo-tracked allowlists, expected to map to OpenCode provider filtering such as `whitelist`, so the workspace does not surface the full upstream model catalog by default.
+- **Standard providers** use repo-tracked allowlists, except approved explicit `mode: all` entries for `openai` and `anthropic`.
 
 This is required because provider-owned catalogs can be much broader than the sanctioned or intended set for this workspace, including the reduced UiO-provided GitHub Copilot model set.
 
