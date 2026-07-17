@@ -435,6 +435,14 @@ before any other orchestration text beyond the required handoff wording.
 - Matching: task_id matching should be treated as case-insensitive when manual lookup is required.
 - Escape: if a user needs a literal leading dollar, instruct them to prefix with `$$` (for example, `"$$hello" => "$hello"` no resume).
 - Routing guarantee: when a valid `$<task_id>` token is present, the reply MUST be routed directly and verbatim to that session's owning subagent rather than being re-triaged as a fresh task for the dispatching agent. The subagent-facing payload begins immediately after the token and extends unchanged to the end of the user message.
+
+The `$<task_id>` token defines the exact session — `task_id` and
+`session_id` are synonymous and refer to the same entity. If a
+`$<task_id>` token is present but no session with that ID exists
+(was never created or was already cleaned up), the orchestrator
+MUST report the error and suggest the most likely correct task_id
+from recent sessions — the user may have typo'd while switching
+between active sessions.
 - Never override or reroute a user-provided `$<task_id>` token. Always route to that exact session regardless of other active sessions.
 - Preserve resume tokens verbatim. Do not rewrite, normalize, shorten, or absorb them.
 
@@ -460,10 +468,12 @@ before any other orchestration text beyond the required handoff wording.
     - If the user supplies a resume token in the message (line begins with `$<task_id>`), route the message to that session immediately and verbatim (no spawn).
     - If the user uses "switch to <subagent>" and provides a resume token, route to that token.
     - If the user uses "switch" without a token and the orchestrator cannot find any reasonable candidate session, ask: `No recent <subagent> session found. Start a new one?` and wait for confirmation.
+    - A `$<task_id>` references the exact session identified by that task_id — never a replacement or a "new session of the same type." If delivery fails, report the failure and do not create any new session from that message.
 4. Error / tool-failure behavior:
     - On Task/tool schema errors (for example, missing required params) or other tool-level failures, do not auto-retry or spawn a new subagent.
     - Instead, surface the error to the user with a concise explanation and suggest corrective actions. Example: `Task invocation failed: missing parameter 'subagent_type'. Please confirm and retry. (no auto-retry)`
     - The orchestrating agent must only retry or spawn after explicit user confirmation.
+    - If a `$<task_id>` delivery fails but the session did previously exist, the message's routing authority remains bound to that exact session ID — do not substitute a new session of the same type, do not absorb the message, and do not paraphrase it. Report the delivery failure and ask the user how to proceed.
 
 ## Recovery alignment
 
