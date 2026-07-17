@@ -440,16 +440,16 @@ The `$<task_id>` token defines the exact session — `task_id` and
 `session_id` are synonymous and refer to the same entity. If a
 `$<task_id>` token is present but no session with that ID exists
 (was never created or was already cleaned up), the orchestrator
-MUST report the error and suggest the most likely correct task_id
-from recent sessions — the user may have typo'd while switching
-between active sessions.
+MUST report the error and may suggest a recent task_id only as a
+possible match — never as an implicit reroute — because the user may have
+mistyped the task_id while switching between active sessions.
 - Never override or reroute a user-provided `$<task_id>` token. Always route to that exact session regardless of other active sessions.
 - Preserve resume tokens verbatim. Do not rewrite, normalize, shorten, or absorb them.
 
 ### Session-resume and "switch" semantics
 
 1. Definitions:
-    - "session" (aka process instance): a single subagent session identified by the exact Task-returned `task_id` when available. Current task_ids may look like `ses_...`. A subagent process may host multiple sessions, but UI/resume tokens map to sessions.
+    - "session": the exact subagent session identified by the exact Task-returned `task_id` when available. Current task_ids may look like `ses_...`. UI/resume tokens map 1:1 to sessions, and this policy does not treat a separate "process instance" as a routing target.
     - "work item": the scope a subagent session is bound to: use the approved artifact path when one exists; otherwise use a short ad-hoc descriptor (for example `explore-shell-startup-lag`).
     - Intended session model: use one session per `(subagent type, lane-qualified work item)` for scoped work, and one session per `(subagent type, work item)` otherwise. Do not reuse a session across subagent types or across different lane-qualified work items. An implementer session stays with its current plan/lane-qualified work item until that work item is complete; a new plan requires a new implementer session.
     - Session metadata: subagent start/resume messages SHOULD also include `Work item: <artifact path|short descriptor>` when available.
@@ -466,7 +466,7 @@ between active sessions.
     - If more than one session is a plausible match, ask rather than guessing.
 3. Explicit resume precedence:
     - If the user supplies a resume token in the message (line begins with `$<task_id>`), route the message to that session immediately and verbatim (no spawn).
-    - Apply the general correction rule above to resume tokens: if a later `$<task_id>`-prefaced message clearly corrects or restates an immediately preceding near-identical message, the later message completely replaces the earlier one for routing, whether or not the earlier message also had a `$<task_id>` prefix.
+    - Apply the later-message correction rule defined in `## Subagent interaction rules` to resume tokens: if a later `$<task_id>`-prefaced message clearly corrects or restates an immediately preceding near-identical message, the later message completely replaces the earlier one for routing, whether or not the earlier message also had a `$<task_id>` prefix.
     - If the user uses "switch to <subagent>" and provides a resume token, route to that token.
     - If the user uses "switch" without a token and the orchestrator cannot find any reasonable candidate session, ask: `No recent <subagent> session found. Start a new one?` and wait for confirmation.
     - A `$<task_id>` references the exact session identified by that task_id — never a replacement or a "new session of the same type." If delivery fails, report the failure and do not create any new session from that message.
