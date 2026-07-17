@@ -82,7 +82,7 @@ Bootstrap guardrail for first-time provision:
 ## Rebuild workspace image
 
 ```bash
-devspace build -i workspace
+devspace build
 ```
 
 Then redeploy:
