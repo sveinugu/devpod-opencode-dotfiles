@@ -46,5 +46,7 @@ grep -F 'HUB_GIT_IDENTITY_ENV=$(bash scripts/resolve-git-identity.sh ${HUB_GIT_I
 grep -F '/tmp/provision-workspace.sh ${HUB_PROVISION_RUNTIME_ARGS:-}' "$cfg" >/dev/null || fail "provision pipeline should forward computed provision runtime args"
 grep -F 'eval "$HUB_GIT_IDENTITY_ENV"' "$cfg" >/dev/null || fail "provision pipeline should evaluate resolved identity assignments before kubectl exec"
 grep -F 'env HUB_GITHUB_USER_NAME="${HUB_GITHUB_USER_NAME:-}" HUB_GITHUB_USER_EMAIL="${HUB_GITHUB_USER_EMAIL:-}" HUB_INSTALL_BRANCH="${HUB_INSTALL_BRANCH:-main}"' "$cfg" >/dev/null || fail "provision pipeline should quote identity env vars when forwarding into pod provision"
+grep -F 'bin/sync-provider-enablement' "$cfg" >/dev/null || fail "provision pipeline should synchronize provider enablement runtime outputs"
+grep -F 'HUB_WORKSPACE_ROOT=/workspaces/dotfiles /tmp/bin/sync-provider-enablement --runtime-output "$HUB_INSTALL_BRANCH_DIR/.config/opencode/provider-runtime.json" --verification-output "$HUB_INSTALL_BRANCH_DIR/.config/opencode/provider-verification.json"' "$cfg" >/dev/null || fail "provision pipeline should generate install-branch runtime and verification provider outputs"
 
 printf 'PASS test_devspace_command_surface\n'

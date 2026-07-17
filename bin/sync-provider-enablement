@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+usage: sync-provider-enablement [--manifest <path>] [--policy <path>] [--runtime-output <path>] [--verification-output <path>]
+
+Synchronize provider enablement from host-local manifest to generated runtime and verification outputs.
+USAGE
+}
+
+repo_root="$(git rev-parse --show-toplevel)"
+
+manifest_path="/workspaces/dotfiles/state/hub/etc/provider-enablement.json"
+policy_path="$repo_root/.config/opencode/provider-policy.jsonc"
+runtime_output_path="/workspaces/dotfiles/state/hub/etc/provider-runtime.json"
+verification_output_path="/workspaces/dotfiles/state/hub/etc/provider-verification.json"
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --manifest)
+      [ "$#" -ge 2 ] || { usage >&2; exit 2; }
+      manifest_path="$2"
+      shift 2
+      ;;
+    --policy)
+      [ "$#" -ge 2 ] || { usage >&2; exit 2; }
+      policy_path="$2"
+      shift 2
+      ;;
+    --runtime-output)
+      [ "$#" -ge 2 ] || { usage >&2; exit 2; }
+      runtime_output_path="$2"
+      shift 2
+      ;;
+    --verification-output)
+      [ "$#" -ge 2 ] || { usage >&2; exit 2; }
+      verification_output_path="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
+
+[ -f "$manifest_path" ] || {
+  printf 'refused: provider enablement manifest not found: %s\n' "$manifest_path" >&2
+  exit 1
+}
+
+[ -f "$policy_path" ] || {
+  printf 'refused: provider policy not found: %s\n' "$policy_path" >&2
+  exit 1
+}
+
+python3 - "$manifest_path" "$policy_path" "$runtime_output_path" "$verification_output_path" <<'PY'
+import json
+import os
+import sys
+
+manifest_path, policy_path, runtime_output_path, verification_output_path = sys.argv[1:]
+
+with open(manifest_path, 'r', encoding='utf-8') as fh:
+    manifest = json.load(fh)
+
+with open(policy_path, 'r', encoding='utf-8') as fh:
+    policy = json.load(fh)
+
+enabled = manifest.get('enabled_providers')
+if not isinstance(enabled, list):
+    raise SystemExit('refused: provider enablement manifest must define enabled_providers as a list')
+
+normalized = []
+for provider in enabled:
+    if not isinstance(provider, str) or not provider.strip():
+        raise SystemExit('refused: enabled_providers entries must be non-empty strings')
+    normalized.append(provider)
+
+if len(set(normalized)) != len(normalized):
+    raise SystemExit('refused: enabled_providers must not contain duplicates')
+
+supported = policy.get('supported_providers')
+if not isinstance(supported, dict):
+    raise SystemExit('refused: provider policy must define supported_providers object')
+
+unsupported = sorted([provider for provider in normalized if provider not in supported])
+if unsupported:
+    raise SystemExit(f'refused: unknown providers in enablement manifest: {", ".join(unsupported)}')
+
+manifest_order_enabled = normalized
+
+runtime_payload = {
+    'enabled_providers': manifest_order_enabled,
+}
+
+verification_payload = {
+    'source_manifest': manifest_path,
+    'enabled_providers': manifest_order_enabled,
+    'status': 'match',
+}
+
+for output_path, payload in (
+    (runtime_output_path, runtime_payload),
+    (verification_output_path, verification_payload),
+):
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, 'w', encoding='utf-8') as fh:
+        json.dump(payload, fh, indent=2)
+        fh.write('\n')
+
+print(json.dumps({'enabled_providers': manifest_order_enabled}))
+PY

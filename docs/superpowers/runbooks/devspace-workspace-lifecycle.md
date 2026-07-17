@@ -54,6 +54,26 @@ Contract:
 - provider policy updates (for example `.config/opencode/provider-policy.jsonc`) and enablement selections must stay consistent
 - if manifest, generated runtime config, and verification output drift, pause and correct before treating the slice as complete
 
+Generated artifacts for this contract:
+
+```text
+/workspaces/dotfiles/state/hub/etc/provider-runtime.json
+/workspaces/dotfiles/state/hub/etc/provider-verification.json
+```
+
+Install-branch generated runtime artifacts (used by wrapped `opencode`):
+
+```text
+/workspaces/dotfiles/main/.config/opencode/provider-runtime.json
+/workspaces/dotfiles/main/.config/opencode/provider-verification.json
+```
+
+Canonical sync command:
+
+```bash
+/workspaces/dotfiles/main/bin/sync-provider-enablement
+```
+
 ## Rebuild workspace image
 
 ```bash

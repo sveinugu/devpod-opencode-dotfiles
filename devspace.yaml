@@ -70,7 +70,9 @@ pipelines:
         HUB_PROVISION_RUNTIME_ARGS="--refresh-tools ${HUB_PROVISION_ARGS:-}"
       fi
       tar cf - -C scripts lib/hub-repo-core.sh lib/worktree-env.sh provision-workspace.sh | kubectl exec -i "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- tar xf - -C /tmp
+      tar cf - bin/sync-provider-enablement | kubectl exec -i "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- tar xf - -C /tmp
       kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- env HUB_GITHUB_USER_NAME="${HUB_GITHUB_USER_NAME:-}" HUB_GITHUB_USER_EMAIL="${HUB_GITHUB_USER_EMAIL:-}" HUB_INSTALL_BRANCH="${HUB_INSTALL_BRANCH:-main}" sh -lc 'HUB_WORKSPACE_ROOT=/workspaces/dotfiles HUB_PROVISION_SOURCE=https://github.com/sveinugu/devpod-opencode-dotfiles.git /tmp/provision-workspace.sh ${HUB_PROVISION_RUNTIME_ARGS:-}'
+      kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- sh -lc '. /workspaces/dotfiles/state/hub/etc/install.env && HUB_WORKSPACE_ROOT=/workspaces/dotfiles /tmp/bin/sync-provider-enablement --runtime-output "$HUB_INSTALL_BRANCH_DIR/.config/opencode/provider-runtime.json" --verification-output "$HUB_INSTALL_BRANCH_DIR/.config/opencode/provider-verification.json"'
 
   doctor: |-
     create_deployments --all
