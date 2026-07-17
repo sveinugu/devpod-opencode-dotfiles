@@ -38,6 +38,22 @@ HUB_INSTALL_BRANCH=feature/env-override devspace run-pipeline provision
 
 If `HUB_INSTALL_BRANCH` is not set, provision defaults to `main`.
 
+## Provider enablement manifest (single source of truth)
+
+Canonical host-local enablement manifest path:
+
+```text
+/workspaces/dotfiles/state/hub/etc/provider-enablement.json
+```
+
+This file is the single source of truth for provider enablement in the repo-supported secure path.
+
+Contract:
+
+- generated runtime configuration and verification output must both match this manifest exactly
+- provider policy updates (for example `.config/opencode/provider-policy.jsonc`) and enablement selections must stay consistent
+- if manifest, generated runtime config, and verification output drift, pause and correct before treating the slice as complete
+
 ## Rebuild workspace image
 
 ```bash
