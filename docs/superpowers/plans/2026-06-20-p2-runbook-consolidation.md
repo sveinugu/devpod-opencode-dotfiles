@@ -208,7 +208,7 @@ If `HUB_INSTALL_BRANCH` is not set, provision defaults to `main`.
 ## Rebuild workspace image
 
 ```bash
-devspace build -i workspace
+devspace build
 ```
 
 Then redeploy:
