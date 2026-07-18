@@ -11,6 +11,31 @@
 
 This runbook is the canonical source for in-pod install, navigation, and managed worktree usage. For host lifecycle operations, see [DevSpace Workspace Lifecycle](devspace-workspace-lifecycle.md).
 
+## Required provider credential secret (before deployment)
+
+Create this secret before deploying the workspace.
+
+Run in the same namespace as the workspace Deployment/Pod:
+
+```bash
+kubectl create secret generic dotfiles-nono-provider-credentials \
+  --from-literal=openai_api_key='<openai_api_key>' \
+  --from-literal=anthropic_api_key='<anthropic_api_key>' \
+  --from-literal=github_token='<github_token>' \
+  --from-literal=gpt_uio_yellow_api_key='<gpt_uio_yellow_api_key>' \
+  --from-literal=gpt_uio_red_api_key='<gpt_uio_red_api_key>'
+```
+
+Required keys:
+
+- `openai_api_key`
+- `anthropic_api_key`
+- `github_token`
+- `gpt_uio_yellow_api_key`
+- `gpt_uio_red_api_key`
+
+If the workspace was already deployed before the secret existed, the pod may need a restart or you may need to re-apply the deployment.
+
 Use `/workspaces/dotfiles/main` as the editable workspace checkout.
 
 ```bash
