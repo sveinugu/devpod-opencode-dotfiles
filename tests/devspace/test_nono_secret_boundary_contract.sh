@@ -36,8 +36,14 @@ fi
 
 grep -Eq '^\s*value:\s*sudo -n\s*$' "$deployment" >/dev/null || fail "deployment must pin HUB_NONO_SECRET_HELPER_SUDO to sudo -n"
 
-for env_credential in '"credential_key": "env://GITHUB_TOKEN"' '"credential_key": "env://GPT_UIO_YELLOW_API_KEY"' '"credential_key": "env://GPT_UIO_RED_API_KEY"'; do
+for env_credential in '"credential_key": "env://GITHUB_TOKEN"'; do
   grep -F "$env_credential" "$profile" >/dev/null || fail "secure profile missing expected env credential contract: $env_credential"
+done
+
+for forbidden_env_credential in '"credential_key": "env://OPENAI_API_KEY"' '"credential_key": "env://ANTHROPIC_API_KEY"' '"credential_key": "env://GPT_UIO_YELLOW_API_KEY"' '"credential_key": "env://GPT_UIO_RED_API_KEY"'; do
+  if grep -F "$forbidden_env_credential" "$profile" >/dev/null; then
+    fail "secure profile should not proxy unmanaged credential contract: $forbidden_env_credential"
+  fi
 done
 
 printf 'PASS test_nono_secret_boundary_contract\n'
