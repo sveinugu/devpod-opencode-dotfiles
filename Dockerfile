@@ -42,7 +42,7 @@ RUN sudo chsh -s /usr/bin/zsh vscode
 # Constrained sudoers contract for secure non-interactive nono/opencode launch path
 RUN printf '%s\n' \
     'vscode ALL=(root) NOPASSWD: /bin/cat /var/run/secrets/nono/providers/*' \
-    'vscode ALL=(agent) NOPASSWD: /usr/bin/env OPENCODE_CONFIG_CONTENT=* /home/vscode/.opencode/bin/opencode *' \
+    'vscode ALL=(agent) NOPASSWD: /home/vscode/.local/bin/nono run --profile * -- /usr/bin/env OPENCODE_CONFIG_CONTENT=* /home/vscode/.opencode/bin/opencode *' \
     > /tmp/99-dotfiles-nono \
     && sudo mv /tmp/99-dotfiles-nono /etc/sudoers.d/99-dotfiles-nono \
     && sudo chown root:root /etc/sudoers.d/99-dotfiles-nono \

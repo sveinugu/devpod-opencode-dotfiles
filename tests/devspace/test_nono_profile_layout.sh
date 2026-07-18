@@ -16,6 +16,11 @@ if grep -F '"extends": "nolabs-ai/opencode"' "$profile" >/dev/null; then
   fail "profile should not rely on remote pack inheritance; secure path must stay repo-contained"
 fi
 
+grep -F '"groups"' "$profile" >/dev/null || fail "profile should declare explicit group exclusions for incompatible startup command blocking"
+grep -F '"exclude"' "$profile" >/dev/null || fail "profile should define group exclusion list"
+grep -F '"dangerous_commands"' "$profile" >/dev/null || fail "profile should exclude dangerous_commands to permit constrained startup sudo launch"
+grep -F '"dangerous_commands_linux"' "$profile" >/dev/null || fail "profile should exclude dangerous_commands_linux to permit constrained startup sudo launch"
+
 for credential in '"openai"' '"anthropic"' '"github-copilot"' '"gpt-uio-yellow"' '"gpt-uio-red"'; do
   grep -F "$credential" "$profile" >/dev/null || fail "profile missing required credential route $credential"
 done

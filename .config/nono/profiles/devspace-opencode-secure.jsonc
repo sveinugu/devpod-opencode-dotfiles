@@ -3,6 +3,12 @@
     "name": "devspace-opencode-secure",
     "description": "DevSpace secure OpenCode profile with explicit provider credential routes"
   },
+  "groups": {
+    "exclude": [
+      "dangerous_commands",
+      "dangerous_commands_linux"
+    ]
+  },
   "workdir": {
     "access": "readwrite"
   },

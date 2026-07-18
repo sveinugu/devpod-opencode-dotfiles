@@ -9,6 +9,7 @@ secret_helper_sudo="${HUB_NONO_SECRET_HELPER_SUDO:-}"
 agent_user="${HUB_NONO_AGENT_USER:-}"
 provider_runtime_path="${OPENCODE_PROVIDER_RUNTIME_PATH:-$source_root/.config/opencode/provider-runtime.json}"
 raw_opencode_binary="${OPENCODE_RAW_BINARY:-/home/vscode/.opencode/bin/opencode}"
+nono_binary="${HUB_NONO_BINARY:-/home/vscode/.local/bin/nono}"
 
 if [ ! -r "$secret_helper" ]; then
   printf 'refused: nono secret helper not found at %s\n' "$secret_helper" >&2
@@ -104,6 +105,11 @@ if [ ! -x "$raw_opencode_binary" ]; then
   exit 1
 fi
 
+if [ ! -x "$nono_binary" ]; then
+  printf 'refused: nono binary not executable at %s\n' "$nono_binary" >&2
+  exit 1
+fi
+
 opencode_provider_runtime_json="$(python3 - "$provider_runtime_path" <<'PY'
 import json
 import sys
@@ -143,4 +149,4 @@ print(json.dumps({'enabled_providers': enabled, 'provider': provider_payload}))
 PY
 )"
 
-exec nono run --profile "$profile_path" -- sudo -n -u "$agent_user" -- env OPENCODE_CONFIG_CONTENT="$opencode_provider_runtime_json" "$raw_opencode_binary" "$@"
+exec sudo -n -u "$agent_user" -- "$nono_binary" run --profile "$profile_path" -- /usr/bin/env OPENCODE_CONFIG_CONTENT="$opencode_provider_runtime_json" "$raw_opencode_binary" "$@"
