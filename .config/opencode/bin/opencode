@@ -33,12 +33,70 @@ if [ -z "$agent_user" ]; then
   exit 1
 fi
 
-exports_payload="$(nono_secret_env_emit_exports "$secret_dir")"
-eval "$exports_payload"
-
 if [ ! -r "$provider_runtime_path" ]; then
   printf 'refused: generated provider runtime output not found at %s\n' "$provider_runtime_path" >&2
   exit 1
+fi
+
+required_secret_keys="$({
+  python3 - "$provider_runtime_path" <<'PY'
+import json
+import sys
+
+runtime_path = sys.argv[1]
+
+with open(runtime_path, 'r', encoding='utf-8') as fh:
+    runtime = json.load(fh)
+
+if not isinstance(runtime, dict):
+    raise SystemExit('refused: generated provider runtime output must be a JSON object')
+
+allowed_keys = {'enabled_providers', 'provider'}
+runtime_keys = set(runtime.keys())
+if runtime_keys != allowed_keys:
+    raise SystemExit('refused: generated provider runtime output contains unsupported keys')
+
+enabled = runtime.get('enabled_providers')
+if not isinstance(enabled, list):
+    raise SystemExit('refused: generated provider runtime output must define enabled_providers as a list')
+
+for provider in enabled:
+    if not isinstance(provider, str) or not provider.strip():
+        raise SystemExit('refused: generated provider runtime output has invalid enabled_providers entry')
+
+provider_payload = runtime.get('provider')
+if not isinstance(provider_payload, dict):
+    raise SystemExit('refused: generated provider runtime output must define provider as an object')
+
+for provider_name, provider_config in provider_payload.items():
+    if not isinstance(provider_name, str) or not provider_name.strip():
+        raise SystemExit('refused: generated provider runtime output has invalid provider key')
+    if not isinstance(provider_config, dict):
+        raise SystemExit('refused: generated provider runtime output provider entries must be objects')
+
+secret_key_by_provider = {
+    'openai': 'openai_api_key',
+    'anthropic': 'anthropic_api_key',
+    'github-copilot': 'github_token',
+    'gpt-uio-yellow': 'gpt_uio_yellow_api_key',
+    'gpt-uio-red': 'gpt_uio_red_api_key',
+}
+
+required = []
+for provider in provider_payload.keys():
+    key = secret_key_by_provider.get(provider)
+    if key and key not in required:
+        required.append(key)
+
+for key in required:
+    print(key)
+PY
+} || exit 1)"
+
+if [ -n "$required_secret_keys" ]; then
+  mapfile -t required_secret_key_list <<<"$required_secret_keys"
+  exports_payload="$(nono_secret_env_emit_exports "$secret_dir" --keys "${required_secret_key_list[@]}")"
+  eval "$exports_payload"
 fi
 
 if [ ! -x "$raw_opencode_binary" ]; then

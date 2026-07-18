@@ -46,7 +46,7 @@ for expected in \
   grep -F "$expected" "$out_exports" >/dev/null || fail "helper missing expected export line: $expected"
 done
 
-if bash -c "source '$helper'; nono_secret_env_emit_exports '$secret_dir'" >"$tmp_root/no-sudo.err" 2>&1; then
+if env -u HUB_NONO_SECRET_HELPER_SUDO bash -c "source '$helper'; nono_secret_env_emit_exports '$secret_dir'" >"$tmp_root/no-sudo.err" 2>&1; then
   fail "helper should fail when HUB_NONO_SECRET_HELPER_SUDO is not set"
 fi
 
