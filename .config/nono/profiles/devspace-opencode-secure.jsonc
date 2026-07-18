@@ -19,6 +19,7 @@
       "$XDG_CACHE_HOME/opencode",
       "$XDG_DATA_HOME/opencode",
       "$XDG_DATA_HOME/opentui",
+      "$XDG_STATE_HOME/opencode",
       "/tmp"
     ]
   },
