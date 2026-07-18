@@ -12,6 +12,8 @@ wrapper="$repo_root/.config/opencode/bin/opencode"
 [ -f "$wrapper" ] || fail "secure opencode wrapper not found"
 
 grep -F 'source "$secret_helper"' "$wrapper" >/dev/null || fail "wrapper must source nono secret helper"
+grep -F 'if [ "${1:-}" = "completion" ]; then' "$wrapper" >/dev/null || fail "wrapper must special-case completion subcommand"
+grep -F 'exec "$raw_opencode_binary" "$@"' "$wrapper" >/dev/null || fail "wrapper must execute raw opencode binary directly for completion subcommand"
 grep -F 'nono_secret_env_emit_exports' "$wrapper" >/dev/null || fail "wrapper must call nono_secret_env_emit_exports"
 grep -F 'exec sudo -n -u "$agent_user" -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" "$nono_binary" run --profile "$profile_path" -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" OPENCODE_CONFIG_CONTENT="$opencode_provider_runtime_json" "$raw_opencode_binary" "$@"' "$wrapper" >/dev/null || fail "wrapper must pin runtime HOME/XDG before nono and opencode execution"
 grep -F 'HUB_NONO_PROVIDER_SECRET_DIR' "$wrapper" >/dev/null || fail "wrapper must honor HUB_NONO_PROVIDER_SECRET_DIR"
@@ -114,6 +116,7 @@ else
   exit 64
 fi
 printf 'sudo-user=%s cmd=%s\n' "$user" "$*" >"${MOCK_SUDO_LOG:?MOCK_SUDO_LOG must be set}"
+
 if [ "${1:-}" = "--" ]; then
   shift
 fi
@@ -218,5 +221,25 @@ if PATH="$mock_bin:$PATH" HUB_INSTALL_BRANCH_DIR="$install_root" HUB_NONO_PROVID
 fi
 
 grep -F 'refused: missing nono provider secret file:' "$tmp_root/missing-enabled-secret.err" >/dev/null || fail "wrapper should report missing secret file for enabled provider"
+
+completion_log="$tmp_root/completion.log"
+rm -f "$completion_log"
+
+cat >"$tmp_root/opencode-completion-raw" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'RAW-COMPLETION:%s\n' "$*"
+EOF
+chmod +x "$tmp_root/opencode-completion-raw"
+
+if ! PATH="$mock_bin:$PATH" HUB_INSTALL_BRANCH_DIR="$install_root" HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" HUB_NONO_SECRET_HELPER_SUDO='sudo -n' HUB_NONO_AGENT_USER='agent' HUB_NONO_BINARY="$mock_bin/nono" OPENCODE_PROVIDER_RUNTIME_PATH="$provider_runtime" OPENCODE_RAW_BINARY="$tmp_root/opencode-completion-raw" MOCK_NONO_ARG_LOG="$completion_log" MOCK_NONO_ENV_LOG="$env_log" MOCK_SUDO_LOG="$sudo_log" bash "$wrapper" completion zsh >"$tmp_root/completion.out" 2>&1; then
+  fail "wrapper should execute completion subcommand directly through raw opencode binary"
+fi
+
+grep -F 'RAW-COMPLETION:completion zsh' "$tmp_root/completion.out" >/dev/null || fail "wrapper should emit raw completion output"
+
+if [ -s "$completion_log" ]; then
+  fail "wrapper completion subcommand should bypass nono invocation"
+fi
 
 printf 'PASS test_opencode_secure_wrapper_contract\n'

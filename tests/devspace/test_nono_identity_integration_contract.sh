@@ -20,6 +20,7 @@ grep -F 'sudo -n -u "$agent_user" -- /usr/bin/env HOME="$runtime_home" XDG_CONFI
 
 grep -F 'NOPASSWD: /bin/cat /var/run/secrets/nono/providers/*' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for mounted provider secret reads"
 grep -F 'NOPASSWD: /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* /home/vscode/.local/bin/nono run --profile * -- /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* OPENCODE_CONFIG_CONTENT=* /home/vscode/.opencode/bin/opencode *' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for pinned runtime env and pre-sandbox user-switch path"
+grep -F 'Defaults:vscode env_keep += "OPENAI_API_KEY ANTHROPIC_API_KEY GITHUB_TOKEN GPT_UIO_YELLOW_API_KEY GPT_UIO_RED_API_KEY"' "$dockerfile" >/dev/null || fail "Dockerfile must preserve provider secret env vars across constrained sudo user switch"
 
 python3 - "$wrapper" "$dockerfile" <<'PY'
 import re
