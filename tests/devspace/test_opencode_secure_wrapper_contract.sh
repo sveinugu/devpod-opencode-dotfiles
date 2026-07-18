@@ -13,15 +13,19 @@ wrapper="$repo_root/.config/opencode/bin/opencode"
 
 grep -F 'source "$secret_helper"' "$wrapper" >/dev/null || fail "wrapper must source nono secret helper"
 grep -F 'nono_secret_env_emit_exports' "$wrapper" >/dev/null || fail "wrapper must call nono_secret_env_emit_exports"
-grep -F 'exec sudo -n -u "$agent_user" -- "$nono_binary" run --profile "$profile_path" -- /usr/bin/env OPENCODE_CONFIG_CONTENT="$opencode_provider_runtime_json" "$raw_opencode_binary" "$@"' "$wrapper" >/dev/null || fail "wrapper must exec sudo user-switch before nono run with secure profile and runtime provider config injection"
+grep -F 'exec sudo -n -u "$agent_user" -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" "$nono_binary" run --profile "$profile_path" -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" OPENCODE_CONFIG_CONTENT="$opencode_provider_runtime_json" "$raw_opencode_binary" "$@"' "$wrapper" >/dev/null || fail "wrapper must pin runtime HOME/XDG before nono and opencode execution"
 grep -F 'HUB_NONO_PROVIDER_SECRET_DIR' "$wrapper" >/dev/null || fail "wrapper must honor HUB_NONO_PROVIDER_SECRET_DIR"
 grep -F 'HUB_NONO_SECRET_HELPER_SUDO' "$wrapper" >/dev/null || fail "wrapper must require HUB_NONO_SECRET_HELPER_SUDO contract"
 grep -F 'HUB_NONO_AGENT_USER' "$wrapper" >/dev/null || fail "wrapper must require HUB_NONO_AGENT_USER contract"
 grep -F 'HUB_NONO_BINARY' "$wrapper" >/dev/null || fail "wrapper must support explicit nono binary contract"
+grep -F 'HUB_NONO_RUNTIME_HOME' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime HOME contract"
+grep -F 'HUB_NONO_RUNTIME_XDG_CONFIG_HOME' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime XDG config contract"
+grep -F 'HUB_NONO_RUNTIME_XDG_CACHE_HOME' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime XDG cache contract"
+grep -F 'HUB_NONO_RUNTIME_XDG_DATA_HOME' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime XDG data contract"
 grep -F 'OPENCODE_PROVIDER_RUNTIME_PATH' "$wrapper" >/dev/null || fail "wrapper must support canonical generated provider runtime path contract"
 grep -F 'OPENCODE_RAW_BINARY' "$wrapper" >/dev/null || fail "wrapper must support explicit raw opencode binary contract"
 grep -F '$source_root/.config/opencode/provider-runtime.json' "$wrapper" >/dev/null || fail "wrapper must default runtime provider config path to install-branch output"
-grep -F 'sudo -n -u "$agent_user" -- "$nono_binary" run --profile "$profile_path" -- /usr/bin/env OPENCODE_CONFIG_CONTENT="$opencode_provider_runtime_json" "$raw_opencode_binary" "$@"' "$wrapper" >/dev/null || fail "wrapper must switch to non-sudo agent user before entering nono"
+grep -F 'sudo -n -u "$agent_user" -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" "$nono_binary" run --profile "$profile_path"' "$wrapper" >/dev/null || fail "wrapper must switch to non-sudo agent user with pinned runtime HOME/XDG before entering nono"
 
 tmp_root="$(mktemp -d "$repo_root/.tmp-opencode-wrapper-XXXXXX")"
 trap 'rm -rf "$tmp_root"' EXIT
@@ -109,7 +113,7 @@ elif [ "$1" = "-n" ]; then
 else
   exit 64
 fi
-printf 'sudo-user=%s\n' "$user" >"${MOCK_SUDO_LOG:?MOCK_SUDO_LOG must be set}"
+printf 'sudo-user=%s cmd=%s\n' "$user" "$*" >"${MOCK_SUDO_LOG:?MOCK_SUDO_LOG must be set}"
 if [ "${1:-}" = "--" ]; then
   shift
 fi
@@ -162,8 +166,11 @@ grep -F 'sudo-user=agent' "$sudo_log" >/dev/null || fail "wrapper should run ope
 
 grep -F -- '--profile' "$arg_log" >/dev/null || fail "wrapper should pass profile argument to nono"
 grep -F "$install_root/.config/nono/profiles/devspace-opencode-secure.jsonc" "$arg_log" >/dev/null || fail "wrapper should point nono to install-branch secure profile"
-grep -F -- '-- /usr/bin/env OPENCODE_CONFIG_CONTENT=' "$arg_log" >/dev/null || fail "wrapper should inject runtime provider config into opencode process"
+grep -F -- '-- /usr/bin/env HOME=/home/vscode XDG_CONFIG_HOME=/tmp XDG_CACHE_HOME=/tmp XDG_DATA_HOME=/tmp OPENCODE_CONFIG_CONTENT=' "$arg_log" >/dev/null || fail "wrapper should inject pinned runtime HOME/XDG and provider config into opencode process"
 grep -F -- "$raw_binary --version" "$arg_log" >/dev/null || fail "wrapper should launch configured raw opencode binary through nono"
+grep -F 'sudo-user=agent' "$sudo_log" >/dev/null || fail "wrapper should run nono/opencode command as agent user"
+grep -F 'HOME=/home/vscode' "$sudo_log" >/dev/null || fail "wrapper should pin HOME during sudo user-switch command"
+grep -F 'XDG_CONFIG_HOME=/tmp' "$sudo_log" >/dev/null || fail "wrapper should pin XDG config home during sudo user-switch command"
 
 cat >"$tmp_root/provider-runtime-invalid.json" <<'JSON'
 {

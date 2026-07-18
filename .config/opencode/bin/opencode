@@ -10,6 +10,10 @@ agent_user="${HUB_NONO_AGENT_USER:-}"
 provider_runtime_path="${OPENCODE_PROVIDER_RUNTIME_PATH:-$source_root/.config/opencode/provider-runtime.json}"
 raw_opencode_binary="${OPENCODE_RAW_BINARY:-/home/vscode/.opencode/bin/opencode}"
 nono_binary="${HUB_NONO_BINARY:-/home/vscode/.local/bin/nono}"
+runtime_home="${HUB_NONO_RUNTIME_HOME:-/home/vscode}"
+runtime_xdg_config_home="${HUB_NONO_RUNTIME_XDG_CONFIG_HOME:-/tmp}"
+runtime_xdg_cache_home="${HUB_NONO_RUNTIME_XDG_CACHE_HOME:-/tmp}"
+runtime_xdg_data_home="${HUB_NONO_RUNTIME_XDG_DATA_HOME:-/tmp}"
 
 if [ ! -r "$secret_helper" ]; then
   printf 'refused: nono secret helper not found at %s\n' "$secret_helper" >&2
@@ -149,4 +153,4 @@ print(json.dumps({'enabled_providers': enabled, 'provider': provider_payload}))
 PY
 )"
 
-exec sudo -n -u "$agent_user" -- "$nono_binary" run --profile "$profile_path" -- /usr/bin/env OPENCODE_CONFIG_CONTENT="$opencode_provider_runtime_json" "$raw_opencode_binary" "$@"
+exec sudo -n -u "$agent_user" -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" "$nono_binary" run --profile "$profile_path" -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" OPENCODE_CONFIG_CONTENT="$opencode_provider_runtime_json" "$raw_opencode_binary" "$@"
