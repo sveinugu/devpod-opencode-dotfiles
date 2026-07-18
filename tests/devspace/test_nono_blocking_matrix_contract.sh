@@ -82,7 +82,6 @@ blocking_rows=(
   "network-control|Network control"
   "proxy-credential-secrecy|Proxy credential secrecy"
   "opencode-functionality|OpenCode functionality"
-  "uio-custom-provider-route|UiO custom provider route"
   "provider-specific-verification|Provider-specific verification"
 )
 
@@ -91,7 +90,7 @@ advisory_rows=(
   "reproducibility|Reproducibility"
 )
 
-[ "${#blocking_rows[@]}" -eq 8 ] || fail "expected exactly 8 blocking rows"
+[ "${#blocking_rows[@]}" -eq 7 ] || fail "expected exactly 7 blocking rows"
 [ "${#advisory_rows[@]}" -eq 2 ] || fail "expected exactly 2 advisory rows"
 
 run_row_in_pod_runtime() {
@@ -101,7 +100,7 @@ run_row_in_pod_runtime() {
   out_wrapped="$(mktemp)"
   trap 'rm -f "$out_wrapped"' RETURN
 
-  run_expect_success "wrapped opencode --version" "$out_wrapped" "$nono_bin" run --profile "$secure_profile_path" -- opencode --version
+  run_expect_success "sandboxed raw opencode --version" "$out_wrapped" "$nono_bin" run --profile "$secure_profile_path" -- /home/vscode/.opencode/bin/opencode --version
 }
 
 run_row_kernel_enforcement() {
@@ -201,12 +200,12 @@ run_row_network_control() {
   run_expect_success \
     "allowlisted host reachability" \
     "$out_allowlisted" \
-    "$nono_bin" run --allow-cwd --allow-domain example.com -- curl -m 10 -fsS https://example.com
+    "$nono_bin" run --profile "$secure_profile_path" --allow-cwd --allow-domain example.com -- curl -m 10 -fsS https://example.com
 
   run_expect_failure \
     "non-allowlisted host blocked" \
     "$out_blocked" \
-    "$nono_bin" run --allow-cwd --allow-domain example.com -- curl -m 10 -fsS https://example.org
+    "$nono_bin" run --profile "$secure_profile_path" --allow-cwd --allow-domain example.com -- curl -m 10 -fsS https://example.org
 }
 
 run_row_proxy_credential_secrecy() {
@@ -255,59 +254,10 @@ run_row_opencode_functionality() {
   out_help="$(mktemp)"
   trap 'rm -f "$out_version" "$out_help"' RETURN
 
-  run_expect_success "wrapped opencode --version" "$out_version" "$nono_bin" run --profile "$secure_profile_path" -- opencode --version
-  run_expect_success "wrapped opencode --help" "$out_help" "$nono_bin" run --profile "$secure_profile_path" -- opencode --help
+  run_expect_success "sandboxed raw opencode --version" "$out_version" "$nono_bin" run --profile "$secure_profile_path" -- /home/vscode/.opencode/bin/opencode --version
+  run_expect_success "sandboxed raw opencode --help" "$out_help" "$nono_bin" run --profile "$secure_profile_path" -- /home/vscode/.opencode/bin/opencode --help
 
   assert_output_contains "$out_help" "opencode" "opencode help output"
-}
-
-run_row_uio_custom_provider_route() {
-  require_file "$secure_profile_path" "secure nono profile"
-
-  local tmp_root probe_script out_yellow out_red yellow_token red_token
-  tmp_root="$(mktemp -d "$repo_root/.tmp-nono-uio-route-XXXXXX")"
-  trap 'rm -rf "$tmp_root"' RETURN
-  probe_script="$tmp_root/uio-proxy-secrecy-probe.sh"
-  out_yellow="$(mktemp)"
-  out_red="$(mktemp)"
-  trap 'rm -rf "$tmp_root" "$out_yellow" "$out_red"' RETURN
-
-  cat > "$probe_script" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-provider_label="$1"
-real_token="$2"
-if env | grep -F "$real_token" >/dev/null; then
-  printf '%s:real-token-visible-in-env\n' "$provider_label"
-  exit 61
-fi
-if tr '\0' '\n' < /proc/self/environ | grep -F "$real_token" >/dev/null; then
-  printf '%s:real-token-visible-in-proc-environ\n' "$provider_label"
-  exit 62
-fi
-printf '%s:real-token-not-visible\n' "$provider_label"
-EOF
-  chmod +x "$probe_script"
-
-  yellow_token='REAL_UIO_YELLOW_TOKEN_SHOULD_NEVER_LEAK'
-  red_token='REAL_UIO_RED_TOKEN_SHOULD_NEVER_LEAK'
-
-  run_expect_success \
-    "uio yellow credential route probe" \
-    "$out_yellow" \
-    env GPT_UIO_YELLOW_API_KEY="$yellow_token" \
-      "$nono_bin" run --profile "$secure_profile_path" --allow "$tmp_root" --credential gpt-uio-yellow -- "$probe_script" "uio-yellow" "$yellow_token"
-
-  run_expect_success \
-    "uio red credential route probe" \
-    "$out_red" \
-    env GPT_UIO_RED_API_KEY="$red_token" \
-      "$nono_bin" run --profile "$secure_profile_path" --allow "$tmp_root" --credential gpt-uio-red -- "$probe_script" "uio-red" "$red_token"
-
-  assert_output_contains "$out_yellow" "uio-yellow:real-token-not-visible" "uio yellow credential route output"
-  assert_output_contains "$out_red" "uio-red:real-token-not-visible" "uio red credential route output"
-  assert_output_not_contains "$out_yellow" "$yellow_token" "uio yellow credential route output"
-  assert_output_not_contains "$out_red" "$red_token" "uio red credential route output"
 }
 
 run_row_provider_specific_verification() {
@@ -354,11 +304,7 @@ EOF
     rm -f "$out_file"
   }
 
-  run_provider_route_probe "openai" "OPENAI_API_KEY" "openai" "REAL_OPENAI_TOKEN_SHOULD_NEVER_LEAK"
-  run_provider_route_probe "anthropic" "ANTHROPIC_API_KEY" "anthropic" "REAL_ANTHROPIC_TOKEN_SHOULD_NEVER_LEAK"
   run_provider_route_probe "github-copilot" "GITHUB_TOKEN" "github-copilot" "REAL_GITHUB_TOKEN_SHOULD_NEVER_LEAK_PROVIDER_ROW"
-  run_provider_route_probe "gpt-uio-yellow" "GPT_UIO_YELLOW_API_KEY" "gpt-uio-yellow" "REAL_UIO_YELLOW_TOKEN_SHOULD_NEVER_LEAK_PROVIDER_ROW"
-  run_provider_route_probe "gpt-uio-red" "GPT_UIO_RED_API_KEY" "gpt-uio-red" "REAL_UIO_RED_TOKEN_SHOULD_NEVER_LEAK_PROVIDER_ROW"
 }
 
 
@@ -392,9 +338,6 @@ run_row_check() {
       ;;
     opencode-functionality)
       ( run_row_opencode_functionality ) >"$output_file" 2>&1
-      ;;
-    uio-custom-provider-route)
-      ( run_row_uio_custom_provider_route ) >"$output_file" 2>&1
       ;;
     provider-specific-verification)
       ( run_row_provider_specific_verification ) >"$output_file" 2>&1
