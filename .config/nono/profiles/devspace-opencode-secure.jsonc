@@ -5,7 +5,6 @@
   },
   "groups": {
     "exclude": [
-      "deny_shell_configs",
       "dangerous_commands",
       "dangerous_commands_linux"
     ]
@@ -22,6 +21,10 @@
       "$XDG_DATA_HOME/opentui",
       "$XDG_STATE_HOME/opencode",
       "/tmp"
+    ],
+    "bypass_protection": [
+      "$WORKDIR/.zshrc",
+      "$WORKDIR/.zprofile"
     ]
   },
   "environment": {
