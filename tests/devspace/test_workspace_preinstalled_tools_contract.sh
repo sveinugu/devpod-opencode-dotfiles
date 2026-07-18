@@ -49,6 +49,16 @@ if grep -E 'usermod\s+.*\bagent\b.*\bsudo\b|usermod\s+.*\bsudo\b.*\bagent\b|user
   fail "Dockerfile must not grant sudo group membership to agent user"
 fi
 
+useradd_line="$(grep -nE 'useradd .*\bagent\b' "$dockerfile" | head -n1 | cut -d: -f1)"
+user_vscode_line="$(grep -nE '^\s*USER\s+vscode\s*$' "$dockerfile" | head -n1 | cut -d: -f1)"
+
+[ -n "$useradd_line" ] || fail "unable to locate agent useradd line in Dockerfile"
+[ -n "$user_vscode_line" ] || fail "unable to locate USER vscode line in Dockerfile"
+
+if [ "$useradd_line" -gt "$user_vscode_line" ]; then
+  fail "agent useradd must run as root before USER vscode is set"
+fi
+
 grep -F '/etc/sudoers.d/99-dotfiles-nono' "$dockerfile" >/dev/null || fail "Dockerfile must install constrained sudoers contract for non-interactive agent-run helper path"
 grep -F '/bin/cat /var/run/secrets/nono/providers/' "$dockerfile" >/dev/null || fail "Dockerfile sudoers contract must constrain provider secret reads to fixed mount path"
 grep -F '/usr/bin/env OPENCODE_CONFIG_CONTENT=' "$dockerfile" >/dev/null || fail "Dockerfile sudoers contract must allow runtime wrapper env handoff into opencode"
