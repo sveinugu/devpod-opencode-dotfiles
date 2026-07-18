@@ -22,6 +22,9 @@ grep -F '"dangerous_commands"' "$profile" >/dev/null || fail "profile should exc
 grep -F '"dangerous_commands_linux"' "$profile" >/dev/null || fail "profile should exclude dangerous_commands_linux to permit constrained startup sudo launch"
 
 grep -F '"bypass_protection"' "$profile" >/dev/null || fail "profile should declare bypass protection paths for shell startup overlap"
+grep -F '"read"' "$profile" >/dev/null || fail "profile should declare read grants for workdir shell startup paths used by bypass_protection"
+grep -F '"$WORKDIR/.zshrc"' "$profile" >/dev/null || fail "profile should grant read access to workdir .zshrc to satisfy bypass_protection contract"
+grep -F '"$WORKDIR/.zprofile"' "$profile" >/dev/null || fail "profile should grant read access to workdir .zprofile to satisfy bypass_protection contract"
 grep -F '"$WORKDIR/.zshrc"' "$profile" >/dev/null || fail "profile should bypass deny rule for workdir .zshrc to avoid allow-cwd overlap refusal"
 grep -F '"$WORKDIR/.zprofile"' "$profile" >/dev/null || fail "profile should bypass deny rule for workdir .zprofile to avoid allow-cwd overlap refusal"
 
