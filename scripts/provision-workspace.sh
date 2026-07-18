@@ -62,6 +62,13 @@ if [ -d "$workspace_root" ] && [ "$(stat -c '%u' "$workspace_root" 2>/dev/null)"
 fi
 
 create_bare_hub "$workspace_root" "$source_repo" main
+
+if git --git-dir="$workspace_root/.bare" remote get-url origin >/dev/null 2>&1; then
+  git --git-dir="$workspace_root/.bare" remote set-url origin "$source_repo"
+else
+  git --git-dir="$workspace_root/.bare" remote add origin "$source_repo"
+fi
+
 configure_git_identity "$workspace_root/.bare"
 
 if [ ! -e "$workspace_root/main/.envrc" ]; then

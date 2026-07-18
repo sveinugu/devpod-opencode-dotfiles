@@ -268,6 +268,29 @@ bash "$script" >"$tmpdir/branch-fetch-followup.out"
 
 [ -f "$workspace_branch_fetch/work/feature/from-origin/BRANCH_FETCH_MARKER" ] || fail "provision should fetch and attach install branch created after first bootstrap"
 
+(
+  cd "$source_branch_fetch"
+  git checkout -b feature/from-origin-after-origin-drift >/dev/null 2>&1
+  printf 'origin-drift\n' > ORIGIN_DRIFT_FETCH_MARKER
+  git add ORIGIN_DRIFT_FETCH_MARKER
+  git commit -m 'add marker branch for source-repo fetch after origin drift' >/dev/null 2>&1
+)
+
+broken_origin_remote="$tmpdir/non-repo-origin"
+mkdir -p "$broken_origin_remote"
+git --git-dir="$workspace_branch_fetch/.bare" remote set-url origin "$broken_origin_remote"
+
+HUB_WORKSPACE_ROOT="$workspace_branch_fetch" \
+HUB_PROVISION_SOURCE="$source_branch_fetch" \
+HUB_INSTALL_BRANCH='feature/from-origin-after-origin-drift' \
+HUB_PYENV_INSTALL_COMMAND=":" \
+HUB_NONO_INSTALL_COMMAND=":" \
+HUB_OPENCODE_INSTALL_COMMAND=":" \
+HOME="$home_branch_fetch" \
+bash "$script" >"$tmpdir/branch-fetch-source-repo-followup.out"
+
+[ -f "$workspace_branch_fetch/work/feature/from-origin-after-origin-drift/ORIGIN_DRIFT_FETCH_MARKER" ] || fail "provision should fetch install branch from HUB_PROVISION_SOURCE even when origin remote drifts"
+
 source_no_main="$tmpdir/source-no-main"
 workspace_no_main="$tmpdir/workspace-no-main"
 make_source_repo_without_main "$source_no_main"
