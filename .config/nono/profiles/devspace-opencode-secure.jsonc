@@ -5,6 +5,7 @@
   },
   "groups": {
     "exclude": [
+      "deny_shell_configs",
       "dangerous_commands",
       "dangerous_commands_linux"
     ]

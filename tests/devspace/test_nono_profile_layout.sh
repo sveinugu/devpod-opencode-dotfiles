@@ -18,6 +18,7 @@ fi
 
 grep -F '"groups"' "$profile" >/dev/null || fail "profile should declare explicit group exclusions for incompatible startup command blocking"
 grep -F '"exclude"' "$profile" >/dev/null || fail "profile should define group exclusion list"
+grep -F '"deny_shell_configs"' "$profile" >/dev/null || fail "profile should exclude deny_shell_configs to avoid Landlock deny-overlap conflicts under allow-cwd"
 grep -F '"dangerous_commands"' "$profile" >/dev/null || fail "profile should exclude dangerous_commands to permit constrained startup sudo launch"
 grep -F '"dangerous_commands_linux"' "$profile" >/dev/null || fail "profile should exclude dangerous_commands_linux to permit constrained startup sudo launch"
 
