@@ -28,32 +28,13 @@ grep -F '"$WORKDIR/.zprofile"' "$profile" >/dev/null || fail "profile should gra
 grep -F '"$WORKDIR/.zshrc"' "$profile" >/dev/null || fail "profile should bypass deny rule for workdir .zshrc to avoid allow-cwd overlap refusal"
 grep -F '"$WORKDIR/.zprofile"' "$profile" >/dev/null || fail "profile should bypass deny rule for workdir .zprofile to avoid allow-cwd overlap refusal"
 
-for credential in '"github-copilot"'; do
+for credential in '"openai"' '"anthropic"' '"github-copilot"' '"gpt-uio-yellow"' '"gpt-uio-red"'; do
   grep -F "$credential" "$profile" >/dev/null || fail "profile missing required credential route $credential"
 done
 
-for forbidden_credential in '"openai"' '"anthropic"' '"gpt-uio-yellow"' '"gpt-uio-red"'; do
-  if grep -F "$forbidden_credential" "$profile" >/dev/null; then
-    fail "profile should not proxy unmanaged runtime credential route $forbidden_credential"
-  fi
-done
-
-python3 - "$profile" <<'PY'
-import json
-import sys
-
-profile_path = sys.argv[1]
-
-with open(profile_path, 'r', encoding='utf-8') as fh:
-    profile = json.load(fh)
-
-credentials = profile.get('network', {}).get('credentials', [])
-if credentials != ['github-copilot']:
-    raise SystemExit(f'network.credentials must be ["github-copilot"] to avoid unmanaged openai/anthropic and UiO proxy interception warnings, got: {credentials!r}')
-PY
-
 grep -F '"$XDG_STATE_HOME/opencode"' "$profile" >/dev/null || fail "profile should allow state-home opencode runtime path for agent launch"
 
+grep -F '"upstream": "https://gpt.uio.no/api/v1"' "$profile" >/dev/null || fail "profile should route UiO providers to gpt.uio.no/api/v1"
 grep -F '"credential_key": "env://GITHUB_TOKEN"' "$profile" >/dev/null || fail "profile should source github-copilot token from env://GITHUB_TOKEN"
 
 printf 'PASS test_nono_profile_layout\n'
