@@ -18,9 +18,12 @@ fi
 
 grep -F '"groups"' "$profile" >/dev/null || fail "profile should declare explicit group exclusions for incompatible startup command blocking"
 grep -F '"exclude"' "$profile" >/dev/null || fail "profile should define group exclusion list"
-grep -F '"deny_shell_configs"' "$profile" >/dev/null || fail "profile should exclude deny_shell_configs to avoid Landlock deny-overlap conflicts under allow-cwd"
 grep -F '"dangerous_commands"' "$profile" >/dev/null || fail "profile should exclude dangerous_commands to permit constrained startup sudo launch"
 grep -F '"dangerous_commands_linux"' "$profile" >/dev/null || fail "profile should exclude dangerous_commands_linux to permit constrained startup sudo launch"
+
+grep -F '"bypass_protection"' "$profile" >/dev/null || fail "profile should declare bypass protection paths for shell startup overlap"
+grep -F '"$WORKDIR/.zshrc"' "$profile" >/dev/null || fail "profile should bypass deny rule for workdir .zshrc to avoid allow-cwd overlap refusal"
+grep -F '"$WORKDIR/.zprofile"' "$profile" >/dev/null || fail "profile should bypass deny rule for workdir .zprofile to avoid allow-cwd overlap refusal"
 
 for credential in '"openai"' '"anthropic"' '"github-copilot"' '"gpt-uio-yellow"' '"gpt-uio-red"'; do
   grep -F "$credential" "$profile" >/dev/null || fail "profile missing required credential route $credential"
