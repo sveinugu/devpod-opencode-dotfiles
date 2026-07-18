@@ -55,15 +55,47 @@
   },
   "network": {
     "credentials": [
-      "github-copilot"
+      "openai",
+      "anthropic",
+      "github-copilot",
+      "gpt-uio-yellow",
+      "gpt-uio-red"
     ],
     "custom_credentials": {
+      "openai": {
+        "upstream": "https://api.openai.com",
+        "credential_key": "env://OPENAI_API_KEY",
+        "env_var": "OPENAI_API_KEY",
+        "inject_header": "Authorization",
+        "credential_format": "Bearer {}"
+      },
+      "anthropic": {
+        "upstream": "https://api.anthropic.com",
+        "credential_key": "env://ANTHROPIC_API_KEY",
+        "env_var": "ANTHROPIC_API_KEY",
+        "inject_header": "x-api-key",
+        "credential_format": "{}"
+      },
       "github-copilot": {
         "upstream": "https://api.github.com",
         "credential_key": "env://GITHUB_TOKEN",
         "env_var": "GITHUB_TOKEN",
         "inject_header": "Authorization",
         "credential_format": "token {}"
+      },
+      "gpt-uio-yellow": {
+        "upstream": "https://gpt.uio.no/api/v1",
+        "credential_key": "env://GPT_UIO_YELLOW_API_KEY",
+        "env_var": "GPT_UIO_YELLOW_API_KEY",
+        "inject_header": "Authorization",
+        "credential_format": "Bearer {}"
+      },
+      "gpt-uio-red": {
+        "upstream": "https://gpt.uio.no/api/v1",
+        "credential_key": "env://GPT_UIO_RED_API_KEY",
+        "env_var": "GPT_UIO_RED_API_KEY",
+        "inject_header": "Authorization",
+        "credential_format": "Bearer {}"
       }
     }
   }
