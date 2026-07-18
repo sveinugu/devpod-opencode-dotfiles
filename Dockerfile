@@ -27,6 +27,9 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 ENV SHELL="/usr/bin/zsh"
 
+# Create dedicated non-sudo runtime identity for sandboxed agent/OpenCode workloads
+RUN if ! id -u agent >/dev/null 2>&1; then useradd --create-home --shell /usr/bin/zsh agent; fi
+
 # Set the existing non-root 'ubuntu' user as the default user
 USER vscode
 
@@ -35,9 +38,6 @@ WORKDIR /home/vscode
 
 # Set ZSH as default shell for the user
 RUN sudo chsh -s /usr/bin/zsh vscode
-
-# Create dedicated non-sudo runtime identity for sandboxed agent/OpenCode workloads
-RUN if ! id -u agent >/dev/null 2>&1; then useradd --create-home --shell /usr/bin/zsh agent; fi
 
 # Constrained sudoers contract for secure non-interactive nono/opencode launch path
 RUN printf '%s\n' \
