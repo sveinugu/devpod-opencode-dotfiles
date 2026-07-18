@@ -13,6 +13,10 @@
     "access": "readwrite"
   },
   "filesystem": {
+    "read": [
+      "$WORKDIR/.zshrc",
+      "$WORKDIR/.zprofile"
+    ],
     "allow": [
       "$HOME/.opencode",
       "$XDG_CONFIG_HOME/opencode",
