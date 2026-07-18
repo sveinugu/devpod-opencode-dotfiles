@@ -15,11 +15,12 @@ grep -F 'source "$secret_helper"' "$wrapper" >/dev/null || fail "wrapper must so
 grep -F 'if [ "${1:-}" = "completion" ]; then' "$wrapper" >/dev/null || fail "wrapper must special-case completion subcommand"
 grep -F 'exec "$raw_opencode_binary" "$@"' "$wrapper" >/dev/null || fail "wrapper must execute raw opencode binary directly for completion subcommand"
 grep -F 'nono_secret_env_emit_exports' "$wrapper" >/dev/null || fail "wrapper must call nono_secret_env_emit_exports"
-grep -F 'exec sudo -n -u "$agent_user" -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$runtime_xdg_state_home" "$nono_binary" run --profile "$profile_path" -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$opencode_xdg_state_home" OPENCODE_CONFIG_CONTENT="$opencode_provider_runtime_json" "$raw_opencode_binary" "$@"' "$wrapper" >/dev/null || fail "wrapper must pin runtime HOME/XDG before nono and opencode execution"
+grep -F 'exec sudo -n -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$runtime_xdg_state_home" "$nono_binary" run --profile "$profile_path" -- "$setpriv_binary" --reuid="$agent_uid" --regid="$agent_gid" --clear-groups -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$opencode_xdg_state_home" OPENCODE_CONFIG_CONTENT="$opencode_provider_runtime_json" "$raw_opencode_binary" "$@"' "$wrapper" >/dev/null || fail "wrapper must run nono as root and drop to agent via setpriv inside sandbox"
 grep -F 'HUB_NONO_PROVIDER_SECRET_DIR' "$wrapper" >/dev/null || fail "wrapper must honor HUB_NONO_PROVIDER_SECRET_DIR"
 grep -F 'HUB_NONO_SECRET_HELPER_SUDO' "$wrapper" >/dev/null || fail "wrapper must require HUB_NONO_SECRET_HELPER_SUDO contract"
 grep -F 'HUB_NONO_AGENT_USER' "$wrapper" >/dev/null || fail "wrapper must require HUB_NONO_AGENT_USER contract"
 grep -F 'HUB_NONO_BINARY' "$wrapper" >/dev/null || fail "wrapper must support explicit nono binary contract"
+grep -F 'HUB_NONO_SET_PRIV_BINARY' "$wrapper" >/dev/null || fail "wrapper must support explicit setpriv binary contract"
 grep -F 'HUB_NONO_RUNTIME_HOME' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime HOME contract"
 grep -F 'HUB_NONO_RUNTIME_XDG_CONFIG_HOME' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime XDG config contract"
 grep -F 'HUB_NONO_RUNTIME_XDG_CACHE_HOME' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime XDG cache contract"
@@ -29,7 +30,7 @@ grep -F 'HUB_OPENCODE_RUNTIME_XDG_STATE_HOME' "$wrapper" >/dev/null || fail "wra
 grep -F 'OPENCODE_PROVIDER_RUNTIME_PATH' "$wrapper" >/dev/null || fail "wrapper must support canonical generated provider runtime path contract"
 grep -F 'OPENCODE_RAW_BINARY' "$wrapper" >/dev/null || fail "wrapper must support explicit raw opencode binary contract"
 grep -F '$source_root/.config/opencode/provider-runtime.json' "$wrapper" >/dev/null || fail "wrapper must default runtime provider config path to install-branch output"
-grep -F 'sudo -n -u "$agent_user" -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$runtime_xdg_state_home" "$nono_binary" run --profile "$profile_path"' "$wrapper" >/dev/null || fail "wrapper must switch to non-sudo agent user with pinned runtime HOME/XDG before entering nono"
+grep -F 'sudo -n -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$runtime_xdg_state_home" "$nono_binary" run --profile "$profile_path"' "$wrapper" >/dev/null || fail "wrapper must launch nono under constrained root sudo path"
 
 tmp_root="$(mktemp -d "$repo_root/.tmp-opencode-wrapper-XXXXXX")"
 trap 'rm -rf "$tmp_root"' EXIT
@@ -41,6 +42,7 @@ secret_root="$tmp_root/secrets"
 mock_bin="$tmp_root/mock-bin"
 provider_runtime="$tmp_root/provider-runtime.json"
 raw_binary="$tmp_root/opencode-real"
+setpriv_binary="$mock_bin/setpriv"
 
 mkdir -p "$helper_root" "$profile_root" "$secret_root" "$mock_bin"
 
@@ -126,6 +128,20 @@ fi
 EOF
 chmod +x "$mock_bin/sudo"
 
+cat >"$setpriv_binary" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = "--" ]; then
+    shift
+    break
+  fi
+  shift
+done
+"$@"
+EOF
+chmod +x "$setpriv_binary"
+
 arg_log="$tmp_root/nono-args.log"
 env_log="$tmp_root/nono-env.log"
 sudo_log="$tmp_root/sudo.log"
@@ -136,6 +152,7 @@ HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" \
 HUB_NONO_SECRET_HELPER_SUDO='sudo -n' \
 HUB_NONO_AGENT_USER='agent' \
 HUB_NONO_BINARY="$mock_bin/nono" \
+HUB_NONO_SET_PRIV_BINARY="$setpriv_binary" \
 OPENCODE_PROVIDER_RUNTIME_PATH="$provider_runtime" \
 OPENCODE_RAW_BINARY="$raw_binary" \
 MOCK_NONO_ARG_LOG="$arg_log" \
@@ -149,31 +166,35 @@ HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" \
 HUB_NONO_SECRET_HELPER_SUDO='sudo -n' \
 HUB_NONO_AGENT_USER='agent' \
 HUB_NONO_BINARY="$mock_bin/nono" \
+HUB_NONO_SET_PRIV_BINARY="$setpriv_binary" \
 OPENCODE_RAW_BINARY="$raw_binary" \
 MOCK_NONO_ARG_LOG="$arg_log" \
 MOCK_NONO_ENV_LOG="$env_log" \
 MOCK_SUDO_LOG="$sudo_log" \
 bash "$wrapper" --version >/dev/null 2>&1 || fail "wrapper should execute using install-branch default provider runtime output path"
 
-if env -u HUB_NONO_SECRET_HELPER_SUDO PATH="$mock_bin:$PATH" HUB_INSTALL_BRANCH_DIR="$install_root" HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" HUB_NONO_AGENT_USER='agent' HUB_NONO_BINARY="$mock_bin/nono" OPENCODE_PROVIDER_RUNTIME_PATH="$provider_runtime" OPENCODE_RAW_BINARY="$raw_binary" MOCK_NONO_ARG_LOG="$arg_log" MOCK_NONO_ENV_LOG="$env_log" MOCK_SUDO_LOG="$sudo_log" bash "$wrapper" --version >"$tmp_root/no-sudo.err" 2>&1; then
+if env -u HUB_NONO_SECRET_HELPER_SUDO PATH="$mock_bin:$PATH" HUB_INSTALL_BRANCH_DIR="$install_root" HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" HUB_NONO_AGENT_USER='agent' HUB_NONO_BINARY="$mock_bin/nono" HUB_NONO_SET_PRIV_BINARY="$setpriv_binary" OPENCODE_PROVIDER_RUNTIME_PATH="$provider_runtime" OPENCODE_RAW_BINARY="$raw_binary" MOCK_NONO_ARG_LOG="$arg_log" MOCK_NONO_ENV_LOG="$env_log" MOCK_SUDO_LOG="$sudo_log" bash "$wrapper" --version >"$tmp_root/no-sudo.err" 2>&1; then
   fail "wrapper should fail when HUB_NONO_SECRET_HELPER_SUDO is missing"
 fi
 
 grep -F 'refused: HUB_NONO_SECRET_HELPER_SUDO must be set to constrained non-interactive sudo invocation' "$tmp_root/no-sudo.err" >/dev/null || fail "wrapper should surface missing HUB_NONO_SECRET_HELPER_SUDO contract"
 
-if env -u HUB_NONO_AGENT_USER PATH="$mock_bin:$PATH" HUB_INSTALL_BRANCH_DIR="$install_root" HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" HUB_NONO_SECRET_HELPER_SUDO='sudo -n' HUB_NONO_BINARY="$mock_bin/nono" OPENCODE_PROVIDER_RUNTIME_PATH="$provider_runtime" OPENCODE_RAW_BINARY="$raw_binary" MOCK_NONO_ARG_LOG="$arg_log" MOCK_NONO_ENV_LOG="$env_log" MOCK_SUDO_LOG="$sudo_log" bash "$wrapper" --version >"$tmp_root/no-agent.err" 2>&1; then
+if env -u HUB_NONO_AGENT_USER PATH="$mock_bin:$PATH" HUB_INSTALL_BRANCH_DIR="$install_root" HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" HUB_NONO_SECRET_HELPER_SUDO='sudo -n' HUB_NONO_BINARY="$mock_bin/nono" HUB_NONO_SET_PRIV_BINARY="$setpriv_binary" OPENCODE_PROVIDER_RUNTIME_PATH="$provider_runtime" OPENCODE_RAW_BINARY="$raw_binary" MOCK_NONO_ARG_LOG="$arg_log" MOCK_NONO_ENV_LOG="$env_log" MOCK_SUDO_LOG="$sudo_log" bash "$wrapper" --version >"$tmp_root/no-agent.err" 2>&1; then
   fail "wrapper should fail when HUB_NONO_AGENT_USER is missing"
 fi
 
 grep -F 'refused: HUB_NONO_AGENT_USER must be set to non-sudo agent username' "$tmp_root/no-agent.err" >/dev/null || fail "wrapper should surface missing HUB_NONO_AGENT_USER contract"
 
-grep -F 'sudo-user=agent' "$sudo_log" >/dev/null || fail "wrapper should run opencode command as agent user"
+grep -F 'sudo-user=root' "$sudo_log" >/dev/null || fail "wrapper should run nono as root via constrained sudo path"
 
 grep -F -- '--profile' "$arg_log" >/dev/null || fail "wrapper should pass profile argument to nono"
 grep -F "$install_root/.config/nono/profiles/devspace-opencode-secure.jsonc" "$arg_log" >/dev/null || fail "wrapper should point nono to install-branch secure profile"
+grep -F -- '--reuid=' "$arg_log" >/dev/null || fail "wrapper should include setpriv reuid drop inside nono command"
+grep -F -- '--regid=' "$arg_log" >/dev/null || fail "wrapper should include setpriv regid drop inside nono command"
+grep -F -- '--clear-groups -- /usr/bin/env' "$arg_log" >/dev/null || fail "wrapper should clear groups before launching opencode inside nono sandbox"
 grep -F -- '-- /usr/bin/env HOME=/home/vscode XDG_CONFIG_HOME=/tmp XDG_CACHE_HOME=/tmp XDG_DATA_HOME=/tmp XDG_STATE_HOME=/tmp OPENCODE_CONFIG_CONTENT=' "$arg_log" >/dev/null || fail "wrapper should inject pinned runtime HOME/XDG and provider config into opencode process"
 grep -F -- "$raw_binary --version" "$arg_log" >/dev/null || fail "wrapper should launch configured raw opencode binary through nono"
-grep -F 'sudo-user=agent' "$sudo_log" >/dev/null || fail "wrapper should run nono/opencode command as agent user"
+grep -F 'sudo-user=root' "$sudo_log" >/dev/null || fail "wrapper should run nono/opencode command as root before dropping with setpriv"
 grep -F 'HOME=/home/vscode' "$sudo_log" >/dev/null || fail "wrapper should pin HOME during sudo user-switch command"
 grep -F 'XDG_CONFIG_HOME=/tmp' "$sudo_log" >/dev/null || fail "wrapper should pin XDG config home during sudo user-switch command"
 grep -F 'XDG_STATE_HOME=/home/agent/.local/state' "$sudo_log" >/dev/null || fail "wrapper should pin nono XDG state home during sudo user-switch command"
@@ -185,7 +206,7 @@ cat >"$tmp_root/provider-runtime-invalid.json" <<'JSON'
 }
 JSON
 
-if PATH="$mock_bin:$PATH" HUB_INSTALL_BRANCH_DIR="$install_root" HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" HUB_NONO_SECRET_HELPER_SUDO='sudo -n' HUB_NONO_AGENT_USER='agent' HUB_NONO_BINARY="$mock_bin/nono" OPENCODE_PROVIDER_RUNTIME_PATH="$tmp_root/provider-runtime-invalid.json" OPENCODE_RAW_BINARY="$raw_binary" MOCK_NONO_ARG_LOG="$arg_log" MOCK_NONO_ENV_LOG="$env_log" MOCK_SUDO_LOG="$sudo_log" bash "$wrapper" --version >"$tmp_root/invalid-runtime.err" 2>&1; then
+if PATH="$mock_bin:$PATH" HUB_INSTALL_BRANCH_DIR="$install_root" HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" HUB_NONO_SECRET_HELPER_SUDO='sudo -n' HUB_NONO_AGENT_USER='agent' HUB_NONO_BINARY="$mock_bin/nono" HUB_NONO_SET_PRIV_BINARY="$setpriv_binary" OPENCODE_PROVIDER_RUNTIME_PATH="$tmp_root/provider-runtime-invalid.json" OPENCODE_RAW_BINARY="$raw_binary" MOCK_NONO_ARG_LOG="$arg_log" MOCK_NONO_ENV_LOG="$env_log" MOCK_SUDO_LOG="$sudo_log" bash "$wrapper" --version >"$tmp_root/invalid-runtime.err" 2>&1; then
   fail "wrapper should fail when generated provider runtime output is malformed"
 fi
 
@@ -199,13 +220,13 @@ cat >"$tmp_root/provider-runtime-invalid-key.json" <<'JSON'
 }
 JSON
 
-if PATH="$mock_bin:$PATH" HUB_INSTALL_BRANCH_DIR="$install_root" HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" HUB_NONO_SECRET_HELPER_SUDO='sudo -n' HUB_NONO_AGENT_USER='agent' HUB_NONO_BINARY="$mock_bin/nono" OPENCODE_PROVIDER_RUNTIME_PATH="$tmp_root/provider-runtime-invalid-key.json" OPENCODE_RAW_BINARY="$raw_binary" MOCK_NONO_ARG_LOG="$arg_log" MOCK_NONO_ENV_LOG="$env_log" MOCK_SUDO_LOG="$sudo_log" bash "$wrapper" --version >"$tmp_root/invalid-runtime-key.err" 2>&1; then
+if PATH="$mock_bin:$PATH" HUB_INSTALL_BRANCH_DIR="$install_root" HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" HUB_NONO_SECRET_HELPER_SUDO='sudo -n' HUB_NONO_AGENT_USER='agent' HUB_NONO_BINARY="$mock_bin/nono" HUB_NONO_SET_PRIV_BINARY="$setpriv_binary" OPENCODE_PROVIDER_RUNTIME_PATH="$tmp_root/provider-runtime-invalid-key.json" OPENCODE_RAW_BINARY="$raw_binary" MOCK_NONO_ARG_LOG="$arg_log" MOCK_NONO_ENV_LOG="$env_log" MOCK_SUDO_LOG="$sudo_log" bash "$wrapper" --version >"$tmp_root/invalid-runtime-key.err" 2>&1; then
   fail "wrapper should fail when generated provider runtime output contains unsupported keys"
 fi
 
 grep -F 'refused: generated provider runtime output contains unsupported keys' "$tmp_root/invalid-runtime-key.err" >/dev/null || fail "wrapper should explain unsupported runtime key failure"
 
-if PATH="$mock_bin:$PATH" HUB_INSTALL_BRANCH_DIR="$install_root" HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" HUB_NONO_SECRET_HELPER_SUDO='sudo -n' HUB_NONO_AGENT_USER='agent' HUB_NONO_BINARY="$mock_bin/nono" OPENCODE_PROVIDER_RUNTIME_PATH="$provider_runtime" OPENCODE_RAW_BINARY="$tmp_root/not-executable-opencode" MOCK_NONO_ARG_LOG="$arg_log" MOCK_NONO_ENV_LOG="$env_log" MOCK_SUDO_LOG="$sudo_log" bash "$wrapper" --version >"$tmp_root/raw-binary.err" 2>&1; then
+if PATH="$mock_bin:$PATH" HUB_INSTALL_BRANCH_DIR="$install_root" HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" HUB_NONO_SECRET_HELPER_SUDO='sudo -n' HUB_NONO_AGENT_USER='agent' HUB_NONO_BINARY="$mock_bin/nono" HUB_NONO_SET_PRIV_BINARY="$setpriv_binary" OPENCODE_PROVIDER_RUNTIME_PATH="$provider_runtime" OPENCODE_RAW_BINARY="$tmp_root/not-executable-opencode" MOCK_NONO_ARG_LOG="$arg_log" MOCK_NONO_ENV_LOG="$env_log" MOCK_SUDO_LOG="$sudo_log" bash "$wrapper" --version >"$tmp_root/raw-binary.err" 2>&1; then
   fail "wrapper should fail when OPENCODE_RAW_BINARY is not executable"
 fi
 
@@ -219,7 +240,7 @@ grep -F 'GPT_UIO_YELLOW_API_KEY=' "$env_log" >/dev/null || fail "wrapper should 
 
 rm -f "$secret_root/gpt_uio_red_api_key"
 
-if PATH="$mock_bin:$PATH" HUB_INSTALL_BRANCH_DIR="$install_root" HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" HUB_NONO_SECRET_HELPER_SUDO='sudo -n' HUB_NONO_AGENT_USER='agent' HUB_NONO_BINARY="$mock_bin/nono" OPENCODE_PROVIDER_RUNTIME_PATH="$provider_runtime" OPENCODE_RAW_BINARY="$raw_binary" MOCK_NONO_ARG_LOG="$arg_log" MOCK_NONO_ENV_LOG="$env_log" MOCK_SUDO_LOG="$sudo_log" bash "$wrapper" --version >"$tmp_root/missing-enabled-secret.err" 2>&1; then
+if PATH="$mock_bin:$PATH" HUB_INSTALL_BRANCH_DIR="$install_root" HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" HUB_NONO_SECRET_HELPER_SUDO='sudo -n' HUB_NONO_AGENT_USER='agent' HUB_NONO_BINARY="$mock_bin/nono" HUB_NONO_SET_PRIV_BINARY="$setpriv_binary" OPENCODE_PROVIDER_RUNTIME_PATH="$provider_runtime" OPENCODE_RAW_BINARY="$raw_binary" MOCK_NONO_ARG_LOG="$arg_log" MOCK_NONO_ENV_LOG="$env_log" MOCK_SUDO_LOG="$sudo_log" bash "$wrapper" --version >"$tmp_root/missing-enabled-secret.err" 2>&1; then
   fail "wrapper should fail when an enabled provider secret is missing"
 fi
 
@@ -235,7 +256,7 @@ printf 'RAW-COMPLETION:%s\n' "$*"
 EOF
 chmod +x "$tmp_root/opencode-completion-raw"
 
-if ! PATH="$mock_bin:$PATH" HUB_INSTALL_BRANCH_DIR="$install_root" HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" HUB_NONO_SECRET_HELPER_SUDO='sudo -n' HUB_NONO_AGENT_USER='agent' HUB_NONO_BINARY="$mock_bin/nono" OPENCODE_PROVIDER_RUNTIME_PATH="$provider_runtime" OPENCODE_RAW_BINARY="$tmp_root/opencode-completion-raw" MOCK_NONO_ARG_LOG="$completion_log" MOCK_NONO_ENV_LOG="$env_log" MOCK_SUDO_LOG="$sudo_log" bash "$wrapper" completion zsh >"$tmp_root/completion.out" 2>&1; then
+if ! PATH="$mock_bin:$PATH" HUB_INSTALL_BRANCH_DIR="$install_root" HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" HUB_NONO_SECRET_HELPER_SUDO='sudo -n' HUB_NONO_AGENT_USER='agent' HUB_NONO_BINARY="$mock_bin/nono" HUB_NONO_SET_PRIV_BINARY="$setpriv_binary" OPENCODE_PROVIDER_RUNTIME_PATH="$provider_runtime" OPENCODE_RAW_BINARY="$tmp_root/opencode-completion-raw" MOCK_NONO_ARG_LOG="$completion_log" MOCK_NONO_ENV_LOG="$env_log" MOCK_SUDO_LOG="$sudo_log" bash "$wrapper" completion zsh >"$tmp_root/completion.out" 2>&1; then
   fail "wrapper should execute completion subcommand directly through raw opencode binary"
 fi
 
