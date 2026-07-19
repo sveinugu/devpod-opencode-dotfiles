@@ -62,8 +62,8 @@ mkdir -p "$workspace_root" "$home_dir"
 
 HUB_WORKSPACE_ROOT="$workspace_root" \
 HUB_PROVISION_SOURCE="$source_repo" \
+HUB_INSTALL_BRANCH='main' \
 HUB_PYENV_INSTALL_COMMAND="printf 'pyenv-install\n' >> '$install_log'" \
-HUB_NONO_INSTALL_COMMAND="printf 'nono-install\n' >> '$install_log'" \
 HUB_OPENCODE_INSTALL_COMMAND="printf 'opencode-install\n' >> '$install_log'" \
 HOME="$home_dir" \
 bash "$script" > "$tmpdir/first-run.out"
@@ -90,11 +90,9 @@ main_branch="$(git -C "$workspace_root/main" rev-parse --abbrev-ref HEAD)"
 [ -f "$home_dir/.workspace-install-ran" ] || fail "main/install.sh was not invoked"
 
 [ -f "$home_dir/.local/state/workspace-tools/pyenv.installed" ] || fail "missing pyenv marker"
-[ -f "$home_dir/.local/state/workspace-tools/nono.installed" ] || fail "missing nono marker"
 [ -f "$home_dir/.local/state/workspace-tools/opencode.installed" ] || fail "missing opencode marker"
 
 grep -F 'pyenv-install' "$install_log" >/dev/null || fail "pyenv install command was not invoked on first run"
-grep -F 'nono-install' "$install_log" >/dev/null || fail "nono install command was not invoked on first run"
 grep -F 'opencode-install' "$install_log" >/dev/null || fail "opencode install command was not invoked on first run"
 
 exclude_file="$workspace_root/.bare/info/exclude"
@@ -109,8 +107,8 @@ printf 'manual-only\n' > "$exclude_file"
 
 HUB_WORKSPACE_ROOT="$workspace_root" \
 HUB_PROVISION_SOURCE="$source_repo" \
+HUB_INSTALL_BRANCH='main' \
 HUB_PYENV_INSTALL_COMMAND="printf 'pyenv-install\n' >> '$install_log'" \
-HUB_NONO_INSTALL_COMMAND="printf 'nono-install\n' >> '$install_log'" \
 HUB_OPENCODE_INSTALL_COMMAND="printf 'opencode-install\n' >> '$install_log'" \
 HOME="$home_dir" \
 bash "$script" > "$tmpdir/second-run.out"
@@ -125,14 +123,13 @@ fi
 
 HUB_WORKSPACE_ROOT="$workspace_root" \
 HUB_PROVISION_SOURCE="$source_repo" \
+HUB_INSTALL_BRANCH='main' \
 HUB_PYENV_INSTALL_COMMAND="printf 'pyenv-install\n' >> '$install_log'" \
-HUB_NONO_INSTALL_COMMAND="printf 'nono-install\n' >> '$install_log'" \
 HUB_OPENCODE_INSTALL_COMMAND="printf 'opencode-install\n' >> '$install_log'" \
 HOME="$home_dir" \
 bash "$script" --refresh-tools > "$tmpdir/refresh-run.out"
 
 grep -F 'pyenv-install' "$install_log" >/dev/null || fail "--refresh-tools did not force pyenv install"
-grep -F 'nono-install' "$install_log" >/dev/null || fail "--refresh-tools did not force nono install"
 grep -F 'opencode-install' "$install_log" >/dev/null || fail "--refresh-tools did not force opencode install"
 
 workspace_identity_gh="$tmpdir/workspace-identity-gh"
@@ -153,8 +150,8 @@ chmod +x "$mock_bin_gh/gh"
 PATH="$mock_bin_gh:$PATH" \
 HUB_WORKSPACE_ROOT="$workspace_identity_gh" \
 HUB_PROVISION_SOURCE="$source_identity_gh" \
+HUB_INSTALL_BRANCH='main' \
 HUB_PYENV_INSTALL_COMMAND=":" \
-HUB_NONO_INSTALL_COMMAND=":" \
 HUB_OPENCODE_INSTALL_COMMAND=":" \
 HOME="$home_identity_gh" \
 bash "$script" >"$tmpdir/identity-gh.out"
@@ -174,8 +171,8 @@ HUB_WORKSPACE_ROOT="$workspace_identity_env" \
 HUB_PROVISION_SOURCE="$source_identity_env" \
 HUB_GITHUB_USER_NAME='Env User' \
 HUB_GITHUB_USER_EMAIL='env-user@example.com' \
+HUB_INSTALL_BRANCH='main' \
 HUB_PYENV_INSTALL_COMMAND=":" \
-HUB_NONO_INSTALL_COMMAND=":" \
 HUB_OPENCODE_INSTALL_COMMAND=":" \
 HOME="$home_identity_env" \
 bash "$script" >"$tmpdir/identity-env.out"
@@ -204,8 +201,8 @@ PATH="$mock_bin_noauth:$PATH" \
 HUB_WORKSPACE_ROOT="$workspace_identity_partial_env" \
 HUB_PROVISION_SOURCE="$source_identity_partial_env" \
 HUB_GITHUB_USER_NAME='Partial Env User' \
+HUB_INSTALL_BRANCH='main' \
 HUB_PYENV_INSTALL_COMMAND=":" \
-HUB_NONO_INSTALL_COMMAND=":" \
 HUB_OPENCODE_INSTALL_COMMAND=":" \
 HOME="$home_identity_partial_env" \
 bash "$script" >"$tmpdir/identity-partial-env.out"
@@ -224,8 +221,8 @@ mkdir -p "$workspace_tools_fail" "$home_tools_fail"
 set +e
 HUB_WORKSPACE_ROOT="$workspace_tools_fail" \
 HUB_PROVISION_SOURCE="$source_tools_fail" \
+HUB_INSTALL_BRANCH='main' \
 HUB_PYENV_INSTALL_COMMAND='false | true' \
-HUB_NONO_INSTALL_COMMAND=':' \
 HUB_OPENCODE_INSTALL_COMMAND=':' \
 HOME="$home_tools_fail" \
 bash "$script" >"$tmpdir/tools-fail.out" 2>&1
@@ -243,8 +240,8 @@ mkdir -p "$workspace_branch_fetch" "$home_branch_fetch"
 
 HUB_WORKSPACE_ROOT="$workspace_branch_fetch" \
 HUB_PROVISION_SOURCE="$source_branch_fetch" \
+HUB_INSTALL_BRANCH='main' \
 HUB_PYENV_INSTALL_COMMAND=":" \
-HUB_NONO_INSTALL_COMMAND=":" \
 HUB_OPENCODE_INSTALL_COMMAND=":" \
 HOME="$home_branch_fetch" \
 bash "$script" >"$tmpdir/branch-fetch-initial.out"
@@ -261,7 +258,6 @@ HUB_WORKSPACE_ROOT="$workspace_branch_fetch" \
 HUB_PROVISION_SOURCE="$source_branch_fetch" \
 HUB_INSTALL_BRANCH='feature/from-origin' \
 HUB_PYENV_INSTALL_COMMAND=":" \
-HUB_NONO_INSTALL_COMMAND=":" \
 HUB_OPENCODE_INSTALL_COMMAND=":" \
 HOME="$home_branch_fetch" \
 bash "$script" >"$tmpdir/branch-fetch-followup.out"
@@ -284,7 +280,6 @@ HUB_WORKSPACE_ROOT="$workspace_branch_fetch" \
 HUB_PROVISION_SOURCE="$source_branch_fetch" \
 HUB_INSTALL_BRANCH='feature/from-origin-after-origin-drift' \
 HUB_PYENV_INSTALL_COMMAND=":" \
-HUB_NONO_INSTALL_COMMAND=":" \
 HUB_OPENCODE_INSTALL_COMMAND=":" \
 HOME="$home_branch_fetch" \
 bash "$script" >"$tmpdir/branch-fetch-source-repo-followup.out"
@@ -313,7 +308,6 @@ if HUB_WORKSPACE_ROOT="$workspace_no_main" \
   HUB_PROVISION_SOURCE="$source_no_main" \
   HUB_INSTALL_BRANCH='feature/install-only' \
   HUB_PYENV_INSTALL_COMMAND=":" \
-  HUB_NONO_INSTALL_COMMAND=":" \
   HUB_OPENCODE_INSTALL_COMMAND=":" \
   HOME="$home_dir" \
   bash "$script" >"$tmpdir/no-main.out" 2>&1; then
@@ -332,8 +326,8 @@ make_source_repo_with_main "$tmpdir/source-empty-main"
 
 HUB_WORKSPACE_ROOT="$workspace_empty_main" \
 HUB_PROVISION_SOURCE="$tmpdir/source-empty-main" \
+HUB_INSTALL_BRANCH='main' \
 HUB_PYENV_INSTALL_COMMAND=":" \
-HUB_NONO_INSTALL_COMMAND=":" \
 HUB_OPENCODE_INSTALL_COMMAND=":" \
 HOME="$tmpdir/home-empty-main" \
 bash "$script" >"$tmpdir/empty-main.out"
@@ -352,8 +346,8 @@ if ! (
   cd "$workspace_empty_main_cwd/main"
   HUB_WORKSPACE_ROOT="$workspace_empty_main_cwd" \
   HUB_PROVISION_SOURCE="$tmpdir/source-empty-main-cwd" \
+  HUB_INSTALL_BRANCH='main' \
   HUB_PYENV_INSTALL_COMMAND=":" \
-  HUB_NONO_INSTALL_COMMAND=":" \
   HUB_OPENCODE_INSTALL_COMMAND=":" \
   HOME="$tmpdir/home-empty-main-cwd" \
   bash "$script" >"$tmpdir/empty-main-cwd.out" 2>&1
@@ -366,8 +360,8 @@ empty_main_cwd_branch="$(git -C "$workspace_empty_main_cwd/main" rev-parse --abb
 
 HUB_WORKSPACE_ROOT="$workspace_broken" \
 HUB_PROVISION_SOURCE="$tmpdir/source-broken" \
+HUB_INSTALL_BRANCH='main' \
 HUB_PYENV_INSTALL_COMMAND=":" \
-HUB_NONO_INSTALL_COMMAND=":" \
 HUB_OPENCODE_INSTALL_COMMAND=":" \
 HOME="$tmpdir/home-broken" \
 bash "$script" >/dev/null
@@ -376,8 +370,8 @@ git -C "$workspace_broken/main" checkout --detach >/dev/null 2>&1
 
 if HUB_WORKSPACE_ROOT="$workspace_broken" \
   HUB_PROVISION_SOURCE="$tmpdir/source-broken" \
+  HUB_INSTALL_BRANCH='main' \
   HUB_PYENV_INSTALL_COMMAND=":" \
-  HUB_NONO_INSTALL_COMMAND=":" \
   HUB_OPENCODE_INSTALL_COMMAND=":" \
   HOME="$tmpdir/home-broken" \
   bash "$script" >"$tmpdir/detached.out" 2>&1; then
