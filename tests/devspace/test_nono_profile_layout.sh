@@ -29,5 +29,11 @@ done
 grep -F '"$XDG_STATE_HOME/opencode"' "$profile" >/dev/null || fail "profile should allow state-home opencode runtime path for agent launch"
 grep -F '"upstream": "https://gpt.uio.no/api/v1"' "$profile" >/dev/null || fail "profile should route UiO providers to gpt.uio.no/api/v1"
 grep -F '"credential_key": "env://GITHUB_TOKEN"' "$profile" >/dev/null || fail "profile should source github-copilot token from env://GITHUB_TOKEN"
+grep -F '"tls_intercept"' "$profile" >/dev/null || fail "profile should configure tls_intercept for generated intercept CA trust propagation"
+grep -F '"ca_env_vars"' "$profile" >/dev/null || fail "profile should configure tls_intercept ca_env_vars"
+
+for ca_var in '"SSL_CERT_FILE"' '"REQUESTS_CA_BUNDLE"' '"NODE_EXTRA_CA_CERTS"' '"CURL_CA_BUNDLE"' '"GIT_SSL_CAINFO"'; do
+  grep -F "$ca_var" "$profile" >/dev/null || fail "profile should include $ca_var in tls_intercept.ca_env_vars"
+done
 
 printf 'PASS test_nono_profile_layout\n'
