@@ -39,8 +39,12 @@ WORKDIR /home/vscode
 # Set ZSH as default shell for the user
 RUN sudo chsh -s /usr/bin/zsh vscode
 
-# Harden nono/profile install paths and runtime state ownership
-RUN sudo install -m 0755 /home/vscode/.local/bin/nono /usr/local/bin/nono \
+# Install nono at image build time and harden nono/profile paths + runtime state ownership
+RUN curl -fsSL https://nono.sh/install.sh -o /tmp/install-nono.sh \
+    && sudo env NONO_INSTALL_DIR=/usr/local/bin sh /tmp/install-nono.sh \
+    && rm -f /tmp/install-nono.sh \
+    && sudo chown root:root /usr/local/bin/nono \
+    && sudo chmod 0755 /usr/local/bin/nono \
     && sudo mkdir -p /etc/nono/profiles \
     && sudo cp /workspaces/dotfiles/main/.config/nono/profiles/devspace-opencode-secure.jsonc /etc/nono/profiles/devspace-opencode-secure.jsonc \
     && sudo chown root:root /etc/nono/profiles/devspace-opencode-secure.jsonc \

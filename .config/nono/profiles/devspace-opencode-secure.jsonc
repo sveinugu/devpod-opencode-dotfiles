@@ -62,6 +62,15 @@
       "gpt-uio-yellow",
       "gpt-uio-red"
     ],
+    "tls_intercept": {
+      "ca_env_vars": [
+        "SSL_CERT_FILE",
+        "REQUESTS_CA_BUNDLE",
+        "NODE_EXTRA_CA_CERTS",
+        "CURL_CA_BUNDLE",
+        "GIT_SSL_CAINFO"
+      ]
+    },
     "custom_credentials": {
       "openai": {
         "upstream": "https://api.openai.com",
