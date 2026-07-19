@@ -16,10 +16,10 @@ dockerfile="$repo_root/Dockerfile"
 [ -f "$dockerfile" ] || fail "Dockerfile not found"
 
 grep -F 'sudo -n /bin/cat' "$helper" >/dev/null || fail "helper must perform privileged reads via sudo -n /bin/cat"
-grep -F 'sudo -n -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$runtime_xdg_state_home" "$nono_binary" run --profile "$profile_path" -- "$setpriv_binary" --reuid="$agent_uid" --regid="$agent_gid" --clear-groups -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$opencode_xdg_state_home" OPENCODE_CONFIG_CONTENT=' "$wrapper" >/dev/null || fail "wrapper must run nono as root then drop to agent via setpriv inside sandbox"
+grep -F 'sudo -n -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$runtime_xdg_state_home" PATH="$runtime_path" LD_PRELOAD= LD_LIBRARY_PATH= PYTHONPATH= DYLD_INSERT_LIBRARIES= "$setpriv_binary" --reuid="$agent_uid" --regid="$agent_gid" --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp "$nono_binary" run --profile "$profile_path" -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$opencode_xdg_state_home" OPENCODE_CONFIG_CONTENT=' "$wrapper" >/dev/null || fail "wrapper must drop to agent with setpriv before nono launch"
 
 grep -F 'NOPASSWD: /bin/cat /var/run/secrets/nono/providers/*' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for mounted provider secret reads"
-grep -F 'NOPASSWD: /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* /home/vscode/.local/bin/nono run --profile * -- /usr/bin/setpriv --reuid=* --regid=* --clear-groups -- /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* OPENCODE_CONFIG_CONTENT=* /home/vscode/.opencode/bin/opencode *' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for root nono launch and in-sandbox setpriv drop"
+grep -F 'NOPASSWD: /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* PATH=* LD_PRELOAD=* LD_LIBRARY_PATH=* PYTHONPATH=* DYLD_INSERT_LIBRARIES=* /usr/bin/setpriv --reuid=* --regid=* --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp /usr/local/bin/nono run --profile * -- /usr/bin/env OPENCODE_CONFIG_CONTENT=* /home/vscode/.opencode/bin/opencode *' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for setpriv-before-nono launch chain"
 grep -F 'Defaults:vscode env_keep += "OPENAI_API_KEY ANTHROPIC_API_KEY GITHUB_TOKEN GPT_UIO_YELLOW_API_KEY GPT_UIO_RED_API_KEY"' "$dockerfile" >/dev/null || fail "Dockerfile must preserve provider secret env vars across constrained sudo user switch"
 
 python3 - "$wrapper" "$dockerfile" <<'PY'
@@ -39,7 +39,7 @@ if not match:
     raise SystemExit('wrapper missing default raw_opencode_binary contract')
 
 default_path = match.group(1)
-expected_rule = f'NOPASSWD: /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* /home/vscode/.local/bin/nono run --profile * -- /usr/bin/setpriv --reuid=* --regid=* --clear-groups -- /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* OPENCODE_CONFIG_CONTENT=* {default_path} *'
+expected_rule = f'NOPASSWD: /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* PATH=* LD_PRELOAD=* LD_LIBRARY_PATH=* PYTHONPATH=* DYLD_INSERT_LIBRARIES=* /usr/bin/setpriv --reuid=* --regid=* --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp /usr/local/bin/nono run --profile * -- /usr/bin/env OPENCODE_CONFIG_CONTENT=* {default_path} *'
 
 if expected_rule not in dockerfile:
     raise SystemExit('dockerfile sudoers rule does not match wrapper default raw binary path')

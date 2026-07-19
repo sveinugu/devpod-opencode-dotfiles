@@ -20,20 +20,13 @@ grep -F '"groups"' "$profile" >/dev/null || fail "profile should declare explici
 grep -F '"exclude"' "$profile" >/dev/null || fail "profile should define group exclusion list"
 grep -F '"dangerous_commands"' "$profile" >/dev/null || fail "profile should exclude dangerous_commands to permit constrained startup sudo launch"
 grep -F '"dangerous_commands_linux"' "$profile" >/dev/null || fail "profile should exclude dangerous_commands_linux to permit constrained startup sudo launch"
-
-grep -F '"bypass_protection"' "$profile" >/dev/null || fail "profile should declare bypass protection paths for shell startup overlap"
-grep -F '"read"' "$profile" >/dev/null || fail "profile should declare read grants for workdir shell startup paths used by bypass_protection"
-grep -F '"$WORKDIR/.zshrc"' "$profile" >/dev/null || fail "profile should grant read access to workdir .zshrc to satisfy bypass_protection contract"
-grep -F '"$WORKDIR/.zprofile"' "$profile" >/dev/null || fail "profile should grant read access to workdir .zprofile to satisfy bypass_protection contract"
-grep -F '"$WORKDIR/.zshrc"' "$profile" >/dev/null || fail "profile should bypass deny rule for workdir .zshrc to avoid allow-cwd overlap refusal"
-grep -F '"$WORKDIR/.zprofile"' "$profile" >/dev/null || fail "profile should bypass deny rule for workdir .zprofile to avoid allow-cwd overlap refusal"
+grep -F '"deny_shell_configs"' "$profile" >/dev/null || fail "profile should exclude deny_shell_configs to avoid allow-cwd startup overlap refusal"
 
 for credential in '"openai"' '"anthropic"' '"github-copilot"' '"gpt-uio-yellow"' '"gpt-uio-red"'; do
   grep -F "$credential" "$profile" >/dev/null || fail "profile missing required credential route $credential"
 done
 
 grep -F '"$XDG_STATE_HOME/opencode"' "$profile" >/dev/null || fail "profile should allow state-home opencode runtime path for agent launch"
-
 grep -F '"upstream": "https://gpt.uio.no/api/v1"' "$profile" >/dev/null || fail "profile should route UiO providers to gpt.uio.no/api/v1"
 grep -F '"credential_key": "env://GITHUB_TOKEN"' "$profile" >/dev/null || fail "profile should source github-copilot token from env://GITHUB_TOKEN"
 
