@@ -39,11 +39,21 @@ WORKDIR /home/vscode
 # Set ZSH as default shell for the user
 RUN sudo chsh -s /usr/bin/zsh vscode
 
+# Harden nono/profile install paths and runtime state ownership
+RUN sudo install -m 0755 /home/vscode/.local/bin/nono /usr/local/bin/nono \
+    && sudo mkdir -p /etc/nono/profiles \
+    && sudo cp /workspaces/dotfiles/main/.config/nono/profiles/devspace-opencode-secure.jsonc /etc/nono/profiles/devspace-opencode-secure.jsonc \
+    && sudo chown root:root /etc/nono/profiles/devspace-opencode-secure.jsonc \
+    && sudo chmod 0644 /etc/nono/profiles/devspace-opencode-secure.jsonc \
+    && sudo mkdir -p /var/lib/nono/state /var/lib/nono/cache \
+    && sudo chown -R agent:agent /var/lib/nono \
+    && sudo chmod 0700 /var/lib/nono /var/lib/nono/state /var/lib/nono/cache
+
 # Constrained sudoers contract for secure non-interactive nono/opencode launch path
 RUN printf '%s\n' \
     'Defaults:vscode env_keep += "OPENAI_API_KEY ANTHROPIC_API_KEY GITHUB_TOKEN GPT_UIO_YELLOW_API_KEY GPT_UIO_RED_API_KEY"' \
     'vscode ALL=(root) NOPASSWD: /bin/cat /var/run/secrets/nono/providers/*' \
-    'vscode ALL=(root) NOPASSWD: /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* /home/vscode/.local/bin/nono run --profile * -- /usr/bin/setpriv --reuid=* --regid=* --clear-groups -- /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* OPENCODE_CONFIG_CONTENT=* /home/vscode/.opencode/bin/opencode *' \
+    'vscode ALL=(root) NOPASSWD: /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* PATH=* LD_PRELOAD=* LD_LIBRARY_PATH=* PYTHONPATH=* DYLD_INSERT_LIBRARIES=* /usr/bin/setpriv --reuid=* --regid=* --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp /usr/local/bin/nono run --profile * -- /usr/bin/env OPENCODE_CONFIG_CONTENT=* /home/vscode/.opencode/bin/opencode *' \
     > /tmp/99-dotfiles-nono \
     && sudo mv /tmp/99-dotfiles-nono /etc/sudoers.d/99-dotfiles-nono \
     && sudo chown root:root /etc/sudoers.d/99-dotfiles-nono \

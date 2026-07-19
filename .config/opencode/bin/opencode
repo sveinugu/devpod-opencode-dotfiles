@@ -3,20 +3,22 @@ set -euo pipefail
 
 source_root="${HUB_INSTALL_BRANCH_DIR:-/workspaces/dotfiles/main}"
 secret_helper="$source_root/scripts/lib/nono-secret-env.sh"
-profile_path="$source_root/.config/nono/profiles/devspace-opencode-secure.jsonc"
+profile_template_path="${HUB_NONO_PROFILE_TEMPLATE_PATH:-/etc/nono/profiles/devspace-opencode-secure.jsonc}"
+profile_path="$profile_template_path"
 secret_dir="${HUB_NONO_PROVIDER_SECRET_DIR:-/var/run/secrets/nono/providers}"
 secret_helper_sudo="${HUB_NONO_SECRET_HELPER_SUDO:-}"
 agent_user="${HUB_NONO_AGENT_USER:-}"
 provider_runtime_path="${OPENCODE_PROVIDER_RUNTIME_PATH:-$source_root/.config/opencode/provider-runtime.json}"
 raw_opencode_binary="${OPENCODE_RAW_BINARY:-/home/vscode/.opencode/bin/opencode}"
-nono_binary="${HUB_NONO_BINARY:-/home/vscode/.local/bin/nono}"
+nono_binary="${HUB_NONO_BINARY:-/usr/local/bin/nono}"
 setpriv_binary="${HUB_NONO_SET_PRIV_BINARY:-/usr/bin/setpriv}"
 runtime_home="${HUB_NONO_RUNTIME_HOME:-/home/vscode}"
 runtime_xdg_config_home="${HUB_NONO_RUNTIME_XDG_CONFIG_HOME:-/tmp}"
 runtime_xdg_cache_home="${HUB_NONO_RUNTIME_XDG_CACHE_HOME:-/tmp}"
 runtime_xdg_data_home="${HUB_NONO_RUNTIME_XDG_DATA_HOME:-/tmp}"
-runtime_xdg_state_home="${HUB_NONO_RUNTIME_XDG_STATE_HOME:-/home/agent/.local/state}"
+runtime_xdg_state_home="${HUB_NONO_RUNTIME_XDG_STATE_HOME:-/var/lib/nono/state}"
 opencode_xdg_state_home="${HUB_OPENCODE_RUNTIME_XDG_STATE_HOME:-/tmp}"
+runtime_path="${HUB_NONO_RUNTIME_PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin}"
 
 agent_uid="$(id -u "$agent_user" 2>/dev/null || true)"
 agent_gid="$(id -g "$agent_user" 2>/dev/null || true)"
@@ -34,8 +36,8 @@ if [ ! -r "$secret_helper" ]; then
   exit 1
 fi
 
-if [ ! -r "$profile_path" ]; then
-  printf 'refused: secure nono profile not found at %s\n' "$profile_path" >&2
+if [ ! -r "$profile_template_path" ]; then
+  printf 'refused: secure nono profile not found at %s\n' "$profile_template_path" >&2
   exit 1
 fi
 
@@ -138,6 +140,91 @@ if [ ! -x "$setpriv_binary" ]; then
   exit 1
 fi
 
+profile_path="$({
+  python3 - "$profile_template_path" "$provider_runtime_path" <<'PY'
+import json
+import os
+import sys
+import tempfile
+
+template_path, runtime_path = sys.argv[1:]
+
+with open(template_path, 'r', encoding='utf-8') as fh:
+    profile = json.load(fh)
+
+with open(runtime_path, 'r', encoding='utf-8') as fh:
+    runtime = json.load(fh)
+
+if not isinstance(profile, dict):
+    raise SystemExit('refused: secure nono profile template must be a JSON object')
+
+enabled = runtime.get('enabled_providers')
+if not isinstance(enabled, list):
+    raise SystemExit('refused: generated provider runtime output must define enabled_providers as a list')
+
+for provider in enabled:
+    if not isinstance(provider, str) or not provider.strip():
+        raise SystemExit('refused: generated provider runtime output has invalid enabled_providers entry')
+
+provider_to_credential = {
+    'openai': 'openai',
+    'anthropic': 'anthropic',
+    'github-copilot': 'github-copilot',
+    'gpt-uio-yellow': 'gpt-uio-yellow',
+    'gpt-uio-red': 'gpt-uio-red',
+}
+
+managed_credential_names = set(provider_to_credential.values())
+enabled_credential_names = {
+    provider_to_credential[provider]
+    for provider in enabled
+    if provider in provider_to_credential
+}
+
+network = profile.get('network')
+if not isinstance(network, dict):
+    raise SystemExit('refused: secure nono profile template must define network object')
+
+credentials = network.get('credentials')
+if not isinstance(credentials, list):
+    raise SystemExit('refused: secure nono profile template must define network.credentials list')
+
+custom_credentials = network.get('custom_credentials')
+if not isinstance(custom_credentials, dict):
+    raise SystemExit('refused: secure nono profile template must define network.custom_credentials object')
+
+filtered_credentials = []
+for route_name in credentials:
+    if not isinstance(route_name, str):
+        raise SystemExit('refused: secure nono profile template has invalid network.credentials entry')
+    if route_name in managed_credential_names and route_name not in enabled_credential_names:
+        continue
+    filtered_credentials.append(route_name)
+
+filtered_custom_credentials = {}
+for route_name, route_config in custom_credentials.items():
+    if route_name in managed_credential_names and route_name not in enabled_credential_names:
+        continue
+    filtered_custom_credentials[route_name] = route_config
+
+network['credentials'] = filtered_credentials
+network['custom_credentials'] = filtered_custom_credentials
+
+fd, generated_path = tempfile.mkstemp(prefix='opencode-nono-profile-', suffix='.json', dir='/tmp')
+os.close(fd)
+with open(generated_path, 'w', encoding='utf-8') as fh:
+    json.dump(profile, fh, indent=2)
+    fh.write('\n')
+
+print(generated_path)
+PY
+} || exit 1)"
+
+if [ ! -r "$profile_path" ]; then
+  printf 'refused: generated nono profile not readable at %s\n' "$profile_path" >&2
+  exit 1
+fi
+
 opencode_provider_runtime_json="$(python3 - "$provider_runtime_path" <<'PY'
 import json
 import sys
@@ -177,4 +264,4 @@ print(json.dumps({'enabled_providers': enabled, 'provider': provider_payload}))
 PY
 )"
 
-exec sudo -n -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$runtime_xdg_state_home" "$nono_binary" run --profile "$profile_path" -- "$setpriv_binary" --reuid="$agent_uid" --regid="$agent_gid" --clear-groups -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$opencode_xdg_state_home" OPENCODE_CONFIG_CONTENT="$opencode_provider_runtime_json" "$raw_opencode_binary" "$@"
+exec sudo -n -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$runtime_xdg_state_home" PATH="$runtime_path" LD_PRELOAD= LD_LIBRARY_PATH= PYTHONPATH= DYLD_INSERT_LIBRARIES= "$setpriv_binary" --reuid="$agent_uid" --regid="$agent_gid" --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp "$nono_binary" run --profile "$profile_path" -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$opencode_xdg_state_home" OPENCODE_CONFIG_CONTENT="$opencode_provider_runtime_json" "$raw_opencode_binary" "$@"

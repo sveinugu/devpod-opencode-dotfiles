@@ -40,7 +40,9 @@ fi
 
 grep -F -- '--refresh-tools' "$provision_script" >/dev/null || fail "missing --refresh-tools contract in provision script"
 grep -F 'https://pyenv.run' "$provision_script" >/dev/null || fail "missing pyenv provision installer"
-grep -F 'https://nono.sh/install.sh' "$provision_script" >/dev/null || fail "missing nono provision installer"
+if grep -F 'https://nono.sh/install.sh' "$provision_script" >/dev/null; then
+  fail "nono must not be user-installed at provision time"
+fi
 grep -F 'https://opencode.ai/install' "$provision_script" >/dev/null || fail "missing opencode provision installer"
 grep -F 'mkdir -p "$home_dir/.ssh" "$home_dir/.local/share/opencode"' "$provision_script" >/dev/null || fail "missing provision-time /home/vscode bootstrap directories"
 
@@ -60,9 +62,10 @@ if [ "$useradd_line" -gt "$user_vscode_line" ]; then
 fi
 
 grep -F '/etc/sudoers.d/99-dotfiles-nono' "$dockerfile" >/dev/null || fail "Dockerfile must install constrained sudoers contract for non-interactive agent-run helper path"
+grep -F '/usr/local/bin/nono' "$dockerfile" >/dev/null || fail "Dockerfile must manage root-owned /usr/local/bin/nono"
 grep -F 'Defaults:vscode env_keep += "OPENAI_API_KEY ANTHROPIC_API_KEY GITHUB_TOKEN GPT_UIO_YELLOW_API_KEY GPT_UIO_RED_API_KEY"' "$dockerfile" >/dev/null || fail "Dockerfile sudoers contract must preserve provider secret env vars for constrained agent launch path"
 grep -F '/bin/cat /var/run/secrets/nono/providers/' "$dockerfile" >/dev/null || fail "Dockerfile sudoers contract must constrain provider secret reads to fixed mount path"
-grep -F '/usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* /home/vscode/.local/bin/nono run --profile * -- /usr/bin/setpriv --reuid=* --regid=* --clear-groups -- /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* OPENCODE_CONFIG_CONTENT=' "$dockerfile" >/dev/null || fail "Dockerfile sudoers contract must allow runtime wrapper handoff through nono root-supervisor path with in-sandbox setpriv drop"
+grep -F '/usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* PATH=* LD_PRELOAD=* LD_LIBRARY_PATH=* PYTHONPATH=* DYLD_INSERT_LIBRARIES=* /usr/bin/setpriv --reuid=* --regid=* --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp /usr/local/bin/nono run --profile * -- /usr/bin/env OPENCODE_CONFIG_CONTENT=' "$dockerfile" >/dev/null || fail "Dockerfile sudoers contract must allow runtime wrapper handoff through setpriv-before-nono launch path"
 grep -F '/home/vscode/.opencode/bin/opencode' "$dockerfile" >/dev/null || fail "Dockerfile sudoers runtime rule must pin exact raw opencode binary path"
 
 printf 'PASS test_workspace_preinstalled_tools_contract\n'
