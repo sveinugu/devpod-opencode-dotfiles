@@ -54,7 +54,7 @@ spec:
             - sh
             - -lc
             - |
-              mkdir -p /workspace-storage/home-agent/.config /workspace-storage/home-agent/.cache /workspace-storage/home-agent/.local/share /workspace-storage/home-agent/.local/state/nono /workspace-storage/home-agent/.local/state/opencode
+              mkdir -p /workspace-storage/home-agent/.opencode /workspace-storage/home-agent/.config /workspace-storage/home-agent/.config/opencode /workspace-storage/home-agent/.cache /workspace-storage/home-agent/.cache/opencode /workspace-storage/home-agent/.local/share /workspace-storage/home-agent/.local/share/opencode /workspace-storage/home-agent/.local/share/opentui /workspace-storage/home-agent/.local/state/nono /workspace-storage/home-agent/.local/state/opencode
               chown -R agent:agent /workspace-storage/home-agent
               chmod 0700 /workspace-storage/home-agent
           volumeMounts:

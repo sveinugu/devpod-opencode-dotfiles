@@ -66,6 +66,11 @@ grep -Eq '^\s*initContainers:\s*$' "$deployment" || fail "missing initContainers
 grep -Eq '^\s*-\s*name:\s*init-home-agent-permissions\s*$' "$deployment" || fail "missing init-home-agent-permissions contract"
 grep -Eq '^\s*runAsUser:\s*0\s*$' "$deployment" || fail "missing root runAsUser contract for home-agent init container"
 grep -Eq '^\s*mountPath:\s*/workspace-storage\s*$' "$deployment" || fail "missing workspace-storage mount path for init-home-agent-permissions"
+grep -F '/workspace-storage/home-agent/.config/opencode' "$deployment" >/dev/null || fail "missing init mkdir contract for /workspace-storage/home-agent/.config/opencode"
+grep -F '/workspace-storage/home-agent/.cache/opencode' "$deployment" >/dev/null || fail "missing init mkdir contract for /workspace-storage/home-agent/.cache/opencode"
+grep -F '/workspace-storage/home-agent/.local/share/opencode' "$deployment" >/dev/null || fail "missing init mkdir contract for /workspace-storage/home-agent/.local/share/opencode"
+grep -F '/workspace-storage/home-agent/.local/share/opentui' "$deployment" >/dev/null || fail "missing init mkdir contract for /workspace-storage/home-agent/.local/share/opentui"
+grep -F '/workspace-storage/home-agent/.opencode' "$deployment" >/dev/null || fail "missing init mkdir contract for /workspace-storage/home-agent/.opencode"
 grep -Eq '^\s*chown -R agent:agent /workspace-storage/home-agent\s*$' "$deployment" || fail "missing init chown contract for /workspace-storage/home-agent"
 grep -Eq '^\s*chmod 0700 /workspace-storage/home-agent\s*$' "$deployment" || fail "missing init chmod contract for /workspace-storage/home-agent"
 
