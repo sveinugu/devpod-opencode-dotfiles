@@ -26,6 +26,7 @@ grep -F 'HUB_NONO_RUNTIME_XDG_CONFIG_HOME' "$wrapper" >/dev/null || fail "wrappe
 grep -F 'HUB_NONO_RUNTIME_XDG_CACHE_HOME' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime XDG cache contract"
 grep -F 'HUB_NONO_RUNTIME_XDG_DATA_HOME' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime XDG data contract"
 grep -F 'HUB_NONO_RUNTIME_XDG_STATE_HOME' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime XDG state contract"
+grep -F 'HUB_NONO_GENERATED_PROFILE_DIR' "$wrapper" >/dev/null || fail "wrapper must support explicit generated nono profile directory contract"
 grep -F 'HUB_NONO_PROFILE_TEMPLATE_PATH' "$wrapper" >/dev/null || fail "wrapper must support explicit profile template path override"
 grep -F 'HUB_OPENCODE_RUNTIME_XDG_STATE_HOME' "$wrapper" >/dev/null || fail "wrapper must support explicit opencode runtime XDG state contract"
 grep -F 'OPENCODE_PROVIDER_RUNTIME_PATH' "$wrapper" >/dev/null || fail "wrapper must support canonical generated provider runtime path contract"
@@ -47,8 +48,9 @@ mock_bin="$tmp_root/mock-bin"
 provider_runtime="$tmp_root/provider-runtime.json"
 raw_binary="$tmp_root/opencode-real"
 setpriv_binary="$mock_bin/setpriv"
+generated_profile_dir="$tmp_root/generated-profiles"
 
-mkdir -p "$helper_root" "$profile_root" "$secret_root" "$mock_bin"
+mkdir -p "$helper_root" "$profile_root" "$secret_root" "$mock_bin" "$generated_profile_dir"
 
 cp "$repo_root/scripts/lib/nono-secret-env.sh" "$helper_root/nono-secret-env.sh"
 cp "$repo_root/.config/nono/profiles/devspace-opencode-secure.jsonc" "$profile_root/devspace-opencode-secure.jsonc"
@@ -166,6 +168,8 @@ chmod +x "$setpriv_binary"
 arg_log="$tmp_root/nono-args.log"
 env_log="$tmp_root/nono-env.log"
 sudo_log="$tmp_root/sudo.log"
+
+export HUB_NONO_GENERATED_PROFILE_DIR="$generated_profile_dir"
 
 PATH="$mock_bin:$PATH" \
 HUB_INSTALL_BRANCH_DIR="$install_root" \
@@ -324,6 +328,11 @@ PY
 
 [ -n "$profile_used" ] || fail "wrapper should pass a generated nono profile path"
 [ -f "$profile_used" ] || fail "wrapper should generate profile file for enabled provider set"
+
+case "$profile_used" in
+  "$generated_profile_dir"/*) ;;
+  *) fail "wrapper should generate nono profile under HUB_NONO_GENERATED_PROFILE_DIR instead of /tmp" ;;
+esac
 
 profile_mode="$(python3 - "$profile_used" <<'PY'
 import os

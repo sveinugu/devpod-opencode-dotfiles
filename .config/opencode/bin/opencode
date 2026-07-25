@@ -19,6 +19,7 @@ runtime_xdg_data_home="${HUB_NONO_RUNTIME_XDG_DATA_HOME:-/tmp}"
 runtime_xdg_state_home="${HUB_NONO_RUNTIME_XDG_STATE_HOME:-/var/lib/nono/state}"
 opencode_xdg_state_home="${HUB_OPENCODE_RUNTIME_XDG_STATE_HOME:-/tmp}"
 runtime_path="${HUB_NONO_RUNTIME_PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin}"
+generated_profile_dir="${HUB_NONO_GENERATED_PROFILE_DIR:-${runtime_home}/.cache/nono/profiles}"
 
 agent_uid="$(id -u "$agent_user" 2>/dev/null || true)"
 agent_gid="$(id -g "$agent_user" 2>/dev/null || true)"
@@ -140,14 +141,19 @@ if [ ! -x "$setpriv_binary" ]; then
   exit 1
 fi
 
+if ! mkdir -p "$generated_profile_dir"; then
+  printf 'refused: unable to create generated nono profile directory at %s\n' "$generated_profile_dir" >&2
+  exit 1
+fi
+
 profile_path="$({
-  python3 - "$profile_template_path" "$provider_runtime_path" <<'PY'
+  python3 - "$profile_template_path" "$provider_runtime_path" "$generated_profile_dir" <<'PY'
 import json
 import os
 import sys
 import tempfile
 
-template_path, runtime_path = sys.argv[1:]
+template_path, runtime_path, generated_dir = sys.argv[1:]
 
 with open(template_path, 'r', encoding='utf-8') as fh:
     profile = json.load(fh)
@@ -210,7 +216,10 @@ for route_name, route_config in custom_credentials.items():
 network['credentials'] = filtered_credentials
 network['custom_credentials'] = filtered_custom_credentials
 
-fd, generated_path = tempfile.mkstemp(prefix='opencode-nono-profile-', suffix='.json', dir='/tmp')
+if not os.path.isdir(generated_dir):
+    raise SystemExit(f'refused: generated nono profile directory not found at {generated_dir}')
+
+fd, generated_path = tempfile.mkstemp(prefix='opencode-nono-profile-', suffix='.json', dir=generated_dir)
 os.close(fd)
 with open(generated_path, 'w', encoding='utf-8') as fh:
     json.dump(profile, fh, indent=2)
