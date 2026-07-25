@@ -67,6 +67,8 @@ If `HUB_INSTALL_BRANCH` is not set, provision defaults to `main`.
 
 OpenCode is now image-installed as a pinned root-owned binary (`/usr/local/bin/opencode-raw`) and is no longer user-installed during `provision`.
 
+Provision/doctor/repair pipelines stage helper scripts under dedicated `/tmp/dotfiles-*-staging` paths and clean them automatically at pipeline exit.
+
 ## Update pinned OpenCode version
 
 Use the helper to bump pinned OpenCode version + linux checksums in `Dockerfile`:
@@ -220,6 +222,12 @@ Expected:
 
 - wrapped path first: `$HOME/.config/opencode/bin/opencode`
 - raw path still available only by explicit absolute path (for example `/usr/local/bin/opencode-raw`)
+
+Current secure-launch runtime shape:
+
+- wrapped launch uses constrained `sudo` + `setpriv` handoff to the non-sudo `agent` identity
+- nono runtime profile is generated under `/etc/nono/profiles/runtime`
+- wrapped runtime state uses `/home/agent` (`HOME` + XDG runtime paths)
 
 For those in-pod commands, use [DevSpace Bare Hub Usage](devspace-bare-hub-usage.md). For first-time host layout creation, use [Host Bare-Hub Bootstrap](host-bare-hub-bootstrap.md).
 
