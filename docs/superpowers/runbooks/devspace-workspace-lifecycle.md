@@ -12,6 +12,8 @@
 
 This runbook is the canonical source for host-side DevSpace lifecycle commands. It intentionally routes in-pod install, navigation, and managed worktree details to [DevSpace Bare Hub Usage](devspace-bare-hub-usage.md) instead of repeating them here.
 
+For operational/security changes shipped between full spec/plan rounds, see [Manual Additions Log](manual-additions-log.md).
+
 ## Required provider credential secret (before deployment)
 
 Create this secret before deploying the workspace.
@@ -48,7 +50,7 @@ ssh -o BatchMode=yes workspace.dotfiles.devspace 'pwd'
 devspace run-pipeline verify-ssh
 ```
 
-To force tool refresh during provision (pyenv + opencode):
+To force tool refresh during provision (pyenv):
 
 ```bash
 devspace run-pipeline provision --refresh-tools
@@ -62,6 +64,25 @@ HUB_INSTALL_BRANCH=feature/env-override devspace run-pipeline provision
 ```
 
 If `HUB_INSTALL_BRANCH` is not set, provision defaults to `main`.
+
+OpenCode is now image-installed as a pinned root-owned binary (`/usr/local/bin/opencode-raw`) and is no longer user-installed during `provision`.
+
+## Update pinned OpenCode version
+
+Use the helper to bump pinned OpenCode version + linux checksums in `Dockerfile`:
+
+```bash
+bin/update-opencode-version --latest
+# or
+bin/update-opencode-version --version v1.18.5
+```
+
+Then rebuild + redeploy:
+
+```bash
+devspace build
+devspace deploy
+```
 
 ## Provider enablement manifest (single source of truth)
 
@@ -198,7 +219,7 @@ type -a opencode
 Expected:
 
 - wrapped path first: `$HOME/.config/opencode/bin/opencode`
-- raw path still available only by explicit absolute path (for example `$HOME/.opencode/bin/opencode`)
+- raw path still available only by explicit absolute path (for example `/usr/local/bin/opencode-raw`)
 
 For those in-pod commands, use [DevSpace Bare Hub Usage](devspace-bare-hub-usage.md). For first-time host layout creation, use [Host Bare-Hub Bootstrap](host-bare-hub-bootstrap.md).
 

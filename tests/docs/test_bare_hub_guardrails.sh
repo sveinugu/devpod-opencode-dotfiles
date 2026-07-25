@@ -41,6 +41,9 @@ fi
 grep -F 'bin/clone-repo' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'bin/new-worktree' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'bin/retire-worktree' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F 'Manual Additions Log' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F 'Manual Additions Log' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+[ -f docs/superpowers/runbooks/manual-additions-log.md ]
 grep -F 'interactive `new-worktree` / `clone-repo` shell wrappers auto-jump to created checkouts by default' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F '`HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1`' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F '.envrc' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null

@@ -11,6 +11,8 @@
 
 This runbook is the canonical source for in-pod install, navigation, and managed worktree usage. For host lifecycle operations, see [DevSpace Workspace Lifecycle](devspace-workspace-lifecycle.md).
 
+For operational/security changes shipped between full spec/plan rounds, see [Manual Additions Log](manual-additions-log.md).
+
 ## Required provider credential secret (before deployment)
 
 Create this secret before deploying the workspace.
@@ -122,7 +124,7 @@ For the repo-supported secure path:
 
 - invoking `opencode` by name should resolve to the wrapped launcher at `$HOME/.config/opencode/bin/opencode`
 - wrapped launcher behavior is expected to run under `nono` with the reviewed repo profile and fixed secret-boundary contracts
-- raw OpenCode remains available only by explicit absolute path (for example `$HOME/.opencode/bin/opencode`) and is out-of-scope manual use
+- raw OpenCode remains available only by explicit absolute path (for example `/usr/local/bin/opencode-raw`) and is out-of-scope manual use
 
 Quick verification commands:
 
