@@ -65,6 +65,7 @@ grep -F '/etc/sudoers.d/99-dotfiles-nono' "$dockerfile" >/dev/null || fail "Dock
 grep -F '/usr/local/bin/nono' "$dockerfile" >/dev/null || fail "Dockerfile must manage root-owned /usr/local/bin/nono"
 grep -F 'https://nono.sh/install.sh' "$dockerfile" >/dev/null || fail "Dockerfile must install nono at image build time"
 grep -F 'COPY .config/nono/profiles/devspace-opencode-secure.jsonc /tmp/devspace-opencode-secure.jsonc' "$dockerfile" >/dev/null || fail "Dockerfile must copy secure nono profile from build context"
+grep -F 'sudo rm -f /tmp/devspace-opencode-secure.jsonc' "$dockerfile" >/dev/null || fail "Dockerfile must remove staged secure nono profile via sudo in sticky /tmp"
 if grep -F '/workspaces/dotfiles/main/.config/nono/profiles/devspace-opencode-secure.jsonc' "$dockerfile" >/dev/null; then
   fail "Dockerfile must not read secure nono profile from runtime-only /workspaces path during build"
 fi
