@@ -325,6 +325,18 @@ PY
 [ -n "$profile_used" ] || fail "wrapper should pass a generated nono profile path"
 [ -f "$profile_used" ] || fail "wrapper should generate profile file for enabled provider set"
 
+profile_mode="$(python3 - "$profile_used" <<'PY'
+import os
+import stat
+import sys
+
+mode = stat.S_IMODE(os.stat(sys.argv[1]).st_mode)
+print(oct(mode))
+PY
+)"
+
+[ "$profile_mode" = "0o644" ] || fail "wrapper should chmod generated nono profile to 0644 so setpriv agent can read it"
+
 grep -F '"gpt-uio-yellow"' "$profile_used" >/dev/null || fail "generated profile should keep yellow credential route when yellow provider is enabled"
 if grep -F '"gpt-uio-red"' "$profile_used" >/dev/null; then
   fail "generated profile should remove red credential route when red provider is disabled"

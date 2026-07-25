@@ -216,6 +216,8 @@ with open(generated_path, 'w', encoding='utf-8') as fh:
     json.dump(profile, fh, indent=2)
     fh.write('\n')
 
+os.chmod(generated_path, 0o644)
+
 print(generated_path)
 PY
 } || exit 1)"
