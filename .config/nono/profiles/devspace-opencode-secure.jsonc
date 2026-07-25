@@ -17,8 +17,10 @@
       "$WORKDIR/.zshrc",
       "$WORKDIR/.zprofile"
     ],
+    "allow_file": [
+      "/usr/local/bin/opencode-raw"
+    ],
     "allow": [
-      "/usr/local/bin/opencode-raw",
       "$HOME/.opencode",
       "$XDG_CONFIG_HOME/opencode",
       "$XDG_CACHE_HOME/opencode",

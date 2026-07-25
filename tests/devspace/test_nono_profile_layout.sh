@@ -32,7 +32,24 @@ for credential in '"openai"' '"anthropic"' '"github-copilot"' '"gpt-uio-yellow"'
 done
 
 grep -F '"$XDG_STATE_HOME/opencode"' "$profile" >/dev/null || fail "profile should allow state-home opencode runtime path for agent launch"
-grep -F '"/usr/local/bin/opencode-raw"' "$profile" >/dev/null || fail "profile should allow access to root-owned opencode raw binary path"
+python3 - "$profile" <<'PY' || fail "profile should grant /usr/local/bin/opencode-raw as filesystem.allow_file (not directory allow)"
+import json
+import sys
+
+profile_path = sys.argv[1]
+with open(profile_path, 'r', encoding='utf-8') as fh:
+    profile = json.load(fh)
+
+filesystem = profile.get('filesystem', {})
+allow_file = filesystem.get('allow_file', [])
+allow_dir = filesystem.get('allow', [])
+
+if '/usr/local/bin/opencode-raw' not in allow_file:
+    raise SystemExit(1)
+
+if '/usr/local/bin/opencode-raw' in allow_dir:
+    raise SystemExit(1)
+PY
 grep -F '"upstream": "https://gpt.uio.no/api/v1"' "$profile" >/dev/null || fail "profile should route UiO providers to gpt.uio.no/api/v1"
 grep -F '"credential_key": "env://GITHUB_TOKEN"' "$profile" >/dev/null || fail "profile should source github-copilot token from env://GITHUB_TOKEN"
 grep -F '"tls_intercept"' "$profile" >/dev/null || fail "profile should configure tls_intercept for generated intercept CA trust propagation"
