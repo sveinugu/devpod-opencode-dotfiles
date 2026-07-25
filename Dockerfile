@@ -43,23 +43,30 @@ RUN sudo chsh -s /usr/bin/zsh vscode
 COPY .config/nono/profiles/devspace-opencode-secure.jsonc /tmp/devspace-opencode-secure.jsonc
 COPY scripts/lib/generate-nono-profile.py /tmp/generate-nono-profile.py
 
-# Install nono at image build time and harden nono/profile paths + runtime state ownership
+# Install nono at image build time (slow step; isolated for caching)
 RUN curl -fsSL https://nono.sh/install.sh -o /tmp/install-nono.sh \
     && sudo env NONO_INSTALL_DIR=/usr/local/bin sh /tmp/install-nono.sh \
     && rm -f /tmp/install-nono.sh \
     && sudo chown root:root /usr/local/bin/nono \
-    && sudo chmod 0755 /usr/local/bin/nono \
-    && sudo install -m 0755 /tmp/generate-nono-profile.py /usr/local/libexec/dotfiles-generate-nono-profile \
-    && rm -f /tmp/generate-nono-profile.py \
-    && sudo mkdir -p /etc/nono/profiles \
+    && sudo chmod 0755 /usr/local/bin/nono
+
+# Install root-owned generated profile writer helper
+RUN sudo install -m 0755 /tmp/generate-nono-profile.py /usr/local/libexec/dotfiles-generate-nono-profile \
+    && sudo chown root:root /usr/local/libexec/dotfiles-generate-nono-profile \
+    && sudo rm -f /tmp/generate-nono-profile.py
+
+# Install root-owned nono profile template and runtime profile directory
+RUN sudo mkdir -p /etc/nono/profiles \
     && sudo cp /tmp/devspace-opencode-secure.jsonc /etc/nono/profiles/devspace-opencode-secure.jsonc \
     && sudo chown root:root /etc/nono/profiles/devspace-opencode-secure.jsonc \
     && sudo chmod 0644 /etc/nono/profiles/devspace-opencode-secure.jsonc \
     && sudo mkdir -p /etc/nono/profiles/runtime \
     && sudo chown root:root /etc/nono/profiles/runtime \
     && sudo chmod 0755 /etc/nono/profiles/runtime \
-    && sudo rm -f /tmp/devspace-opencode-secure.jsonc \
-    && sudo mkdir -p /var/lib/nono/state /var/lib/nono/cache \
+    && sudo rm -f /tmp/devspace-opencode-secure.jsonc
+
+# Prepare root-owned nono runtime state/cache surfaces
+RUN sudo mkdir -p /var/lib/nono/state /var/lib/nono/cache \
     && sudo chown -R agent:agent /var/lib/nono \
     && sudo chmod 0700 /var/lib/nono /var/lib/nono/state /var/lib/nono/cache
 
