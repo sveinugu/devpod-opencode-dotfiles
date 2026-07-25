@@ -20,7 +20,12 @@ grep -F '"groups"' "$profile" >/dev/null || fail "profile should declare explici
 grep -F '"exclude"' "$profile" >/dev/null || fail "profile should define group exclusion list"
 grep -F '"dangerous_commands"' "$profile" >/dev/null || fail "profile should exclude dangerous_commands to permit constrained startup sudo launch"
 grep -F '"dangerous_commands_linux"' "$profile" >/dev/null || fail "profile should exclude dangerous_commands_linux to permit constrained startup sudo launch"
-grep -F '"deny_shell_configs"' "$profile" >/dev/null || fail "profile should exclude deny_shell_configs to avoid allow-cwd startup overlap refusal"
+if grep -F '"deny_shell_configs"' "$profile" >/dev/null; then
+  fail "profile must not exclude required deny_shell_configs group"
+fi
+grep -F '"bypass_protection"' "$profile" >/dev/null || fail "profile should use bypass_protection for explicit shell config exceptions"
+grep -F '"$WORKDIR/.zshrc"' "$profile" >/dev/null || fail "profile should declare explicit .zshrc path exception"
+grep -F '"$WORKDIR/.zprofile"' "$profile" >/dev/null || fail "profile should declare explicit .zprofile path exception"
 
 for credential in '"openai"' '"anthropic"' '"github-copilot"' '"gpt-uio-yellow"' '"gpt-uio-red"'; do
   grep -F "$credential" "$profile" >/dev/null || fail "profile missing required credential route $credential"
