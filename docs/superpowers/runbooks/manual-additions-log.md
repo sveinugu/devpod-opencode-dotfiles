@@ -2,6 +2,15 @@
 
 Purpose: track operational/security changes implemented between full spec/plan cycles so runbooks and implementation remain auditable.
 
+## Organizing principles
+
+- Primary ordering is chronological by **commit date** (oldest first).
+- Each entry header includes **date + commit(s)** and summarizes one stable addition.
+- Entries record only **still-valid additions at current `HEAD`**.
+- Do not list implementation-only fixes that merely align existing approved behavior.
+- Do not list reverted experiments or superseded states.
+- Use thematic section headers only as optional grouping; they do not override date ordering.
+
 ## Security/runtime boundary additions (ordered by commit date)
 
 ### 2026-07-18 · `7e08f1a` — Dedicated non-sudo `agent` identity created in image
