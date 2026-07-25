@@ -12,7 +12,7 @@
 
 This runbook is the canonical source for host-side DevSpace lifecycle commands. It intentionally routes in-pod install, navigation, and managed worktree details to [DevSpace Bare Hub Usage](devspace-bare-hub-usage.md) instead of repeating them here.
 
-For operational/security changes shipped between full spec/plan rounds, see [Manual Additions Log](manual-additions-log.md).
+For operational/security changes shipped between full spec/plan rounds, see [Manual Additions Log](../change-records/manual-additions-log.md).
 
 ## Required provider credential secret (before deployment)
 

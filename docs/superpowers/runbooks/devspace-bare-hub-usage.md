@@ -11,7 +11,7 @@
 
 This runbook is the canonical source for in-pod install, navigation, and managed worktree usage. For host lifecycle operations, see [DevSpace Workspace Lifecycle](devspace-workspace-lifecycle.md).
 
-For operational/security changes shipped between full spec/plan rounds, see [Manual Additions Log](manual-additions-log.md).
+For operational/security changes shipped between full spec/plan rounds, see [Manual Additions Log](../change-records/manual-additions-log.md).
 
 ## Required provider credential secret (before deployment)
 
