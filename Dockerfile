@@ -3,6 +3,10 @@ FROM mcr.microsoft.com/devcontainers/python:3
 # Prevent prompts during installation
 ENV DEBIAN_FRONTEND=noninteractive
 
+ARG OPENCODE_VERSION=1.18.5
+ARG OPENCODE_LINUX_X64_SHA256=cd4a2557a3d6550f27cb5c0257ebe8d73388bb34beda8b6121e6428a74c1eae2
+ARG OPENCODE_LINUX_ARM64_SHA256=18b643362fdf0b8d5b8711b3e160dafb4e68d0bfc00288f56fd1298fd72da69d
+
 # 1. Install dependencies
 # 2. Add NodeSource GPG key and repository
 # 3. Install Node.js
@@ -29,6 +33,25 @@ ENV SHELL="/usr/bin/zsh"
 
 # Create dedicated non-sudo runtime identity for sandboxed agent/OpenCode workloads
 RUN if ! id -u agent >/dev/null 2>&1; then useradd --create-home --shell /usr/bin/zsh agent; fi
+
+# Install pinned root-owned OpenCode raw binary (versioned path + stable symlink)
+RUN set -eux; \
+    opencode_version="v${OPENCODE_VERSION#v}"; \
+    case "$(dpkg --print-architecture)" in \
+      amd64) opencode_archive="opencode-linux-x64.tar.gz"; opencode_sha256="$OPENCODE_LINUX_X64_SHA256" ;; \
+      arm64) opencode_archive="opencode-linux-arm64.tar.gz"; opencode_sha256="$OPENCODE_LINUX_ARM64_SHA256" ;; \
+      *) echo "Unsupported architecture for pinned OpenCode install: $(dpkg --print-architecture)" >&2; exit 1 ;; \
+    esac; \
+    tmp_dir="$(mktemp -d)"; \
+    curl -fsSL "https://github.com/anomalyco/opencode/releases/download/${opencode_version}/${opencode_archive}" -o "${tmp_dir}/opencode.tar.gz"; \
+    printf '%s  %s\n' "$opencode_sha256" "${tmp_dir}/opencode.tar.gz" | sha256sum -c -; \
+    mkdir -p "/usr/local/libexec/opencode/${OPENCODE_VERSION}"; \
+    tar -xzf "${tmp_dir}/opencode.tar.gz" -C "$tmp_dir"; \
+    install -m 0755 "$tmp_dir/opencode" "/usr/local/libexec/opencode/${OPENCODE_VERSION}/opencode"; \
+    ln -sfn "/usr/local/libexec/opencode/${OPENCODE_VERSION}/opencode" /usr/local/bin/opencode-raw; \
+    chown -R root:root /usr/local/libexec/opencode; \
+    chown -h root:root /usr/local/bin/opencode-raw; \
+    rm -rf "$tmp_dir"
 
 # Set the existing non-root 'ubuntu' user as the default user
 USER vscode
@@ -75,7 +98,7 @@ RUN printf '%s\n' \
     'Defaults:vscode env_keep += "OPENAI_API_KEY ANTHROPIC_API_KEY GITHUB_TOKEN GPT_UIO_YELLOW_API_KEY GPT_UIO_RED_API_KEY"' \
     'vscode ALL=(root) NOPASSWD: /bin/cat /var/run/secrets/nono/providers/*' \
     'vscode ALL=(root) NOPASSWD: /usr/local/libexec/dotfiles-generate-nono-profile --template * --runtime * --output-dir /etc/nono/profiles/runtime' \
-    'vscode ALL=(root) NOPASSWD: /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* PATH=* LD_PRELOAD=* LD_LIBRARY_PATH=* PYTHONPATH=* DYLD_INSERT_LIBRARIES=* /usr/bin/setpriv --reuid=* --regid=* --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp /usr/local/bin/nono run --profile * -- /usr/bin/env OPENCODE_CONFIG_CONTENT=* /home/vscode/.opencode/bin/opencode *' \
+    'vscode ALL=(root) NOPASSWD: /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* PATH=* LD_PRELOAD=* LD_LIBRARY_PATH=* PYTHONPATH=* DYLD_INSERT_LIBRARIES=* /usr/bin/setpriv --reuid=* --regid=* --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp /usr/local/bin/nono run --profile * -- /usr/bin/env OPENCODE_CONFIG_CONTENT=* /usr/local/bin/opencode-raw *' \
     > /tmp/99-dotfiles-nono \
     && sudo mv /tmp/99-dotfiles-nono /etc/sudoers.d/99-dotfiles-nono \
     && sudo chown root:root /etc/sudoers.d/99-dotfiles-nono \

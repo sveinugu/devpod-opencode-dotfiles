@@ -32,6 +32,7 @@ for credential in '"openai"' '"anthropic"' '"github-copilot"' '"gpt-uio-yellow"'
 done
 
 grep -F '"$XDG_STATE_HOME/opencode"' "$profile" >/dev/null || fail "profile should allow state-home opencode runtime path for agent launch"
+grep -F '"/usr/local/bin/opencode-raw"' "$profile" >/dev/null || fail "profile should allow access to root-owned opencode raw binary path"
 grep -F '"upstream": "https://gpt.uio.no/api/v1"' "$profile" >/dev/null || fail "profile should route UiO providers to gpt.uio.no/api/v1"
 grep -F '"credential_key": "env://GITHUB_TOKEN"' "$profile" >/dev/null || fail "profile should source github-copilot token from env://GITHUB_TOKEN"
 grep -F '"tls_intercept"' "$profile" >/dev/null || fail "profile should configure tls_intercept for generated intercept CA trust propagation"

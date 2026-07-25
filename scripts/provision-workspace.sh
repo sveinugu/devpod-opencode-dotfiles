@@ -56,7 +56,6 @@ configure_git_identity() {
 }
 
 pyenv_install_command="${HUB_PYENV_INSTALL_COMMAND:-curl -fsSL https://pyenv.run | zsh}"
-opencode_install_command="${HUB_OPENCODE_INSTALL_COMMAND:-curl -fsSL https://opencode.ai/install | zsh}"
 
 if [ -d "$workspace_root" ] && [ "$(stat -c '%u' "$workspace_root" 2>/dev/null)" != "$(id -u)" ]; then
   sudo chown "$(id -u):$(id -g)" "$workspace_root"
@@ -76,10 +75,9 @@ if [ ! -e "$workspace_root/main/.envrc" ]; then
   "$script_dir/lib/worktree-env.sh" "$workspace_root/main" hub >/dev/null
 fi
 
-mkdir -p "$home_dir/.ssh" "$home_dir/.local/share/opencode"
+mkdir -p "$home_dir/.ssh"
 mkdir -p "$tool_state_dir"
 run_tool_installer "$tool_state_dir/pyenv.installed" "$pyenv_install_command"
-run_tool_installer "$tool_state_dir/opencode.installed" "$opencode_install_command"
 
 if [ "$install_branch" = "main" ]; then
   install_dir="$workspace_root/main"

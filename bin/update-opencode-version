@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat >&2 <<'USAGE'
+usage: update-opencode-version [--latest | --version <vX.Y.Z|X.Y.Z>]
+
+Examples:
+  bin/update-opencode-version --latest
+  bin/update-opencode-version --version v1.18.5
+USAGE
+}
+
+repo_root="$(git rev-parse --show-toplevel)"
+dockerfile="$repo_root/Dockerfile"
+
+mode="latest"
+requested_version=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --latest)
+      mode="latest"
+      ;;
+    --version)
+      if [ -z "${2:-}" ]; then
+        usage
+        exit 2
+      fi
+      mode="version"
+      requested_version="$2"
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      usage
+      exit 2
+      ;;
+  esac
+  shift
+done
+
+if [ ! -f "$dockerfile" ]; then
+  printf 'refused: Dockerfile not found at %s\n' "$dockerfile" >&2
+  exit 1
+fi
+
+normalize_version() {
+  local raw="$1"
+  raw="${raw#v}"
+  if [ -z "$raw" ]; then
+    printf 'refused: version cannot be empty\n' >&2
+    exit 1
+  fi
+  printf '%s\n' "$raw"
+}
+
+fetch_release_json() {
+  local url="$1"
+  curl -fsSL "$url"
+}
+
+extract_value() {
+  local json="$1"
+  local expr="$2"
+  python3 -c '
+import json
+import sys
+
+expr = sys.argv[1]
+doc = json.load(sys.stdin)
+
+if expr == "tag_name":
+    print(doc.get("tag_name", ""))
+    raise SystemExit(0)
+
+for asset in doc.get("assets", []):
+    if asset.get("name") == expr:
+        digest = asset.get("digest", "")
+        if digest.startswith("sha256:"):
+            print(digest.split(":", 1)[1])
+        else:
+            print("")
+        raise SystemExit(0)
+
+print("")
+' "$expr" <<<"$json"
+}
+
+if [ "$mode" = "latest" ]; then
+  release_json="$(fetch_release_json 'https://api.github.com/repos/anomalyco/opencode/releases/latest')"
+  opencode_version="$(extract_value "$release_json" 'tag_name')"
+  opencode_version="$(normalize_version "$opencode_version")"
+else
+  opencode_version="$(normalize_version "$requested_version")"
+  release_json="$(fetch_release_json "https://api.github.com/repos/anomalyco/opencode/releases/tags/v${opencode_version}")"
+fi
+
+x64_sha256="$(extract_value "$release_json" 'opencode-linux-x64.tar.gz')"
+arm64_sha256="$(extract_value "$release_json" 'opencode-linux-arm64.tar.gz')"
+
+if [ -z "$x64_sha256" ] || [ -z "$arm64_sha256" ]; then
+  printf 'refused: missing required linux release digests for v%s\n' "$opencode_version" >&2
+  exit 1
+fi
+
+python3 - "$dockerfile" "$opencode_version" "$x64_sha256" "$arm64_sha256" <<'PY'
+import pathlib
+import re
+import sys
+
+dockerfile_path = pathlib.Path(sys.argv[1])
+version = sys.argv[2]
+x64_sha = sys.argv[3]
+arm64_sha = sys.argv[4]
+
+text = dockerfile_path.read_text(encoding='utf-8')
+
+patterns = {
+    r'^ARG OPENCODE_VERSION=.*$': f'ARG OPENCODE_VERSION={version}',
+    r'^ARG OPENCODE_LINUX_X64_SHA256=.*$': f'ARG OPENCODE_LINUX_X64_SHA256={x64_sha}',
+    r'^ARG OPENCODE_LINUX_ARM64_SHA256=.*$': f'ARG OPENCODE_LINUX_ARM64_SHA256={arm64_sha}',
+}
+
+for pattern, replacement in patterns.items():
+    text, count = re.subn(pattern, replacement, text, count=1, flags=re.MULTILINE)
+    if count != 1:
+        raise SystemExit(f'refused: failed to update Dockerfile pattern: {pattern}')
+
+dockerfile_path.write_text(text, encoding='utf-8')
+PY
+
+printf 'Updated Dockerfile pinned OpenCode version to v%s\n' "$opencode_version"
+printf '  OPENCODE_LINUX_X64_SHA256=%s\n' "$x64_sha256"
+printf '  OPENCODE_LINUX_ARM64_SHA256=%s\n' "$arm64_sha256"
+printf '\nNext steps:\n'
+printf '  devspace build\n'
+printf '  devspace deploy\n'

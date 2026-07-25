@@ -18,6 +18,7 @@
       "$WORKDIR/.zprofile"
     ],
     "allow": [
+      "/usr/local/bin/opencode-raw",
       "$HOME/.opencode",
       "$XDG_CONFIG_HOME/opencode",
       "$XDG_CACHE_HOME/opencode",

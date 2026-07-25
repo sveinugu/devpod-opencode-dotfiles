@@ -22,9 +22,11 @@ if grep -F 'curl https://pyenv.run | zsh' "$dockerfile" >/dev/null; then
   fail "pyenv must not be image-installed; install at provision time"
 fi
 
-if grep -F 'curl -fsSL https://opencode.ai/install | zsh' "$dockerfile" >/dev/null; then
-  fail "opencode must not be image-installed; install at provision time"
-fi
+grep -F 'ARG OPENCODE_VERSION=' "$dockerfile" >/dev/null || fail "Dockerfile must pin an explicit OPENCODE_VERSION build arg"
+grep -F 'ARG OPENCODE_LINUX_X64_SHA256=' "$dockerfile" >/dev/null || fail "Dockerfile must pin OPENCODE_LINUX_X64_SHA256 build arg"
+grep -F 'ARG OPENCODE_LINUX_ARM64_SHA256=' "$dockerfile" >/dev/null || fail "Dockerfile must pin OPENCODE_LINUX_ARM64_SHA256 build arg"
+grep -F '/usr/local/bin/opencode-raw' "$dockerfile" >/dev/null || fail "Dockerfile must install root-owned opencode raw binary shim at /usr/local/bin/opencode-raw"
+grep -F '/usr/local/libexec/opencode' "$dockerfile" >/dev/null || fail "Dockerfile must install versioned opencode binaries under /usr/local/libexec/opencode"
 
 if grep -F 'mkdir -p /home/vscode/.ssh' "$dockerfile" >/dev/null; then
   fail "/home/vscode setup must not happen in Dockerfile; PVC mount hides it"
@@ -43,8 +45,13 @@ grep -F 'https://pyenv.run' "$provision_script" >/dev/null || fail "missing pyen
 if grep -F 'https://nono.sh/install.sh' "$provision_script" >/dev/null; then
   fail "nono must not be user-installed at provision time"
 fi
-grep -F 'https://opencode.ai/install' "$provision_script" >/dev/null || fail "missing opencode provision installer"
-grep -F 'mkdir -p "$home_dir/.ssh" "$home_dir/.local/share/opencode"' "$provision_script" >/dev/null || fail "missing provision-time /home/vscode bootstrap directories"
+if grep -F 'https://opencode.ai/install' "$provision_script" >/dev/null; then
+  fail "opencode must not be user-installed at provision time"
+fi
+if grep -F 'opencode.installed' "$provision_script" >/dev/null; then
+  fail "provision script must not track opencode install markers when opencode is image-installed"
+fi
+grep -F 'mkdir -p "$home_dir/.ssh"' "$provision_script" >/dev/null || fail "missing provision-time /home/vscode bootstrap directories"
 
 grep -E 'useradd .*\bagent\b' "$dockerfile" >/dev/null || fail "Dockerfile must create dedicated non-sudo agent user"
 if grep -E 'usermod\s+.*\bagent\b.*\bsudo\b|usermod\s+.*\bsudo\b.*\bagent\b|useradd\s+.*\bagent\b.*-G\s*.*\bsudo\b|adduser\s+\bagent\b\s+sudo' "$dockerfile" >/dev/null; then
@@ -76,7 +83,11 @@ grep -F 'Defaults:vscode env_keep += "OPENAI_API_KEY ANTHROPIC_API_KEY GITHUB_TO
 grep -F '/bin/cat /var/run/secrets/nono/providers/' "$dockerfile" >/dev/null || fail "Dockerfile sudoers contract must constrain provider secret reads to fixed mount path"
 grep -F 'vscode ALL=(root) NOPASSWD: /usr/local/libexec/dotfiles-generate-nono-profile --template * --runtime * --output-dir /etc/nono/profiles/runtime' "$dockerfile" >/dev/null || fail "Dockerfile sudoers contract must allow fixed generated profile writer helper path"
 grep -F '/usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* PATH=* LD_PRELOAD=* LD_LIBRARY_PATH=* PYTHONPATH=* DYLD_INSERT_LIBRARIES=* /usr/bin/setpriv --reuid=* --regid=* --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp /usr/local/bin/nono run --profile * -- /usr/bin/env OPENCODE_CONFIG_CONTENT=' "$dockerfile" >/dev/null || fail "Dockerfile sudoers contract must allow runtime wrapper handoff through setpriv-before-nono launch path"
-grep -F '/home/vscode/.opencode/bin/opencode' "$dockerfile" >/dev/null || fail "Dockerfile sudoers runtime rule must pin exact raw opencode binary path"
+grep -F '/usr/local/bin/opencode-raw' "$dockerfile" >/dev/null || fail "Dockerfile sudoers runtime rule must pin exact raw opencode binary path"
+
+[ -x "$repo_root/bin/update-opencode-version" ] || fail "bin/update-opencode-version must exist and be executable"
+grep -F -- '--latest' "$repo_root/bin/update-opencode-version" >/dev/null || fail "update-opencode-version must support --latest"
+grep -F -- '--version <vX.Y.Z|X.Y.Z>' "$repo_root/bin/update-opencode-version" >/dev/null || fail "update-opencode-version must document pinned-version argument"
 
 run_steps="$(grep -Ec '^RUN ' "$dockerfile")"
 if [ "$run_steps" -lt 5 ]; then

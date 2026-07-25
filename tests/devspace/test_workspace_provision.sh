@@ -68,7 +68,6 @@ HUB_WORKSPACE_ROOT="$workspace_root" \
 HUB_PROVISION_SOURCE="$source_repo" \
 HUB_INSTALL_BRANCH='main' \
 HUB_PYENV_INSTALL_COMMAND="printf 'pyenv-install\n' >> '$install_log'" \
-HUB_OPENCODE_INSTALL_COMMAND="printf 'opencode-install\n' >> '$install_log'" \
 HOME="$home_dir" \
 bash "$script" > "$tmpdir/first-run.out"
 
@@ -94,10 +93,8 @@ main_branch="$(git -C "$workspace_root/main" rev-parse --abbrev-ref HEAD)"
 [ -f "$home_dir/.workspace-install-ran" ] || fail "main/install.sh was not invoked"
 
 [ -f "$home_dir/.local/state/workspace-tools/pyenv.installed" ] || fail "missing pyenv marker"
-[ -f "$home_dir/.local/state/workspace-tools/opencode.installed" ] || fail "missing opencode marker"
 
 grep -F 'pyenv-install' "$install_log" >/dev/null || fail "pyenv install command was not invoked on first run"
-grep -F 'opencode-install' "$install_log" >/dev/null || fail "opencode install command was not invoked on first run"
 
 exclude_file="$workspace_root/.bare/info/exclude"
 [ -f "$exclude_file" ] || fail "missing top-level bare info/exclude after first provision"
@@ -113,7 +110,6 @@ HUB_WORKSPACE_ROOT="$workspace_root" \
 HUB_PROVISION_SOURCE="$source_repo" \
 HUB_INSTALL_BRANCH='main' \
 HUB_PYENV_INSTALL_COMMAND="printf 'pyenv-install\n' >> '$install_log'" \
-HUB_OPENCODE_INSTALL_COMMAND="printf 'opencode-install\n' >> '$install_log'" \
 HOME="$home_dir" \
 bash "$script" > "$tmpdir/second-run.out"
 
@@ -122,19 +118,17 @@ for pattern in '.envrc' '.envrc.local' '.envrc.bak.*' '.opencode/'; do
 done
 
 if [ -s "$install_log" ]; then
-  fail "tool installers should not run when markers are present and --refresh-tools is absent"
+  fail "pyenv installer should not run when marker is present and --refresh-tools is absent"
 fi
 
 HUB_WORKSPACE_ROOT="$workspace_root" \
 HUB_PROVISION_SOURCE="$source_repo" \
 HUB_INSTALL_BRANCH='main' \
 HUB_PYENV_INSTALL_COMMAND="printf 'pyenv-install\n' >> '$install_log'" \
-HUB_OPENCODE_INSTALL_COMMAND="printf 'opencode-install\n' >> '$install_log'" \
 HOME="$home_dir" \
 bash "$script" --refresh-tools > "$tmpdir/refresh-run.out"
 
 grep -F 'pyenv-install' "$install_log" >/dev/null || fail "--refresh-tools did not force pyenv install"
-grep -F 'opencode-install' "$install_log" >/dev/null || fail "--refresh-tools did not force opencode install"
 
 workspace_identity_gh="$tmpdir/workspace-identity-gh"
 home_identity_gh="$tmpdir/home-identity-gh"
