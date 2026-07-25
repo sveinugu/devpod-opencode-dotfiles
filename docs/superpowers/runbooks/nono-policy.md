@@ -8,6 +8,24 @@ Primary enforcing artifacts:
 - Profile: `.config/nono/profiles/devspace-opencode-secure.jsonc`
 - Contracts: `tests/devspace/test_nono_profile_layout.sh`, `tests/devspace/test_opencode_secure_wrapper_contract.sh`, `tests/devspace/test_nono_identity_integration_contract.sh`
 
+## Quick orientation
+
+`nono` is a kernel-enforced sandbox for running commands with explicit filesystem, environment, and network permissions.
+
+This runbook explains the repo-supported secure `opencode` path for readers who need the practical policy before they dive into the spec, profile JSON, wrapper, or tests.
+
+## Supported path at a glance
+
+- `opencode` by name resolves to the repo wrapper, not directly to the raw binary.
+- The wrapper reads only the provider secrets needed for the enabled routes through the constrained pre-sandbox helper.
+- The wrapper drops from `vscode` to the non-sudo `agent` identity with `setpriv` before the sandboxed process starts.
+- `nono` launches `/usr/local/bin/opencode-raw` with the reviewed generated profile and filtered runtime configuration.
+
+## In scope vs. out of scope
+
+- In scope: the repo-supported secure path reached by invoking `opencode` from `PATH` after install.
+- Out of scope: intentionally invoking `/usr/local/bin/opencode-raw` directly or using ad hoc user-defined providers outside this repo contract.
+
 ## Scope & authority
 
 This runbook is the first-read policy surface for the repo-supported secure `opencode` path under `nono`.
@@ -25,12 +43,19 @@ Use this runbook to understand the supported path, then verify details against:
 
 Assume the reader knows nothing about stock `nono` behavior.
 
+The upstream engine default is not the same thing as the stock `default` profile or the stock `opencode` profile.
+
+### Upstream engine defaults
+
 Upstream `nono` defaults relevant here are:
 
 - filesystem access is deny-by-default unless explicitly granted
 - network access is allowed by default unless restricted
 - all environment variables are inherited by default unless filtered
-- the stock default profile includes sensitive-path deny groups and `dangerous_commands`-style command blocking
+
+### Stock profiles and groups
+
+Separately from the engine defaults, the stock `default` profile and stock tool profiles layer in built-in sensitive-path deny groups and `dangerous_commands`-style command blocking.
 
 Examples of upstream-sensitive paths called out in the `nono` docs include:
 
@@ -39,6 +64,8 @@ Examples of upstream-sensitive paths called out in the `nono` docs include:
 - `~/.gnupg/`
 - `~/.kube/`
 - shell history and shell config files
+
+### Repo-specific overrides
 
 This repo-specific profile does **not** assume those defaults are obvious. It overrides and narrows behavior explicitly:
 
@@ -70,6 +97,8 @@ The supported path is practical hardening, not a claim of absolute isolation, an
 - no broad grants for `/home/agent` or `~/.local/share`
 - explicit subdir grants only
 - precreate runtime dirs via init container
+
+Plain-language summary: the sandbox gets the current worktree, a narrow set of OpenCode runtime directories under `/home/agent`, `/tmp`, and the single raw binary path — nothing broader.
 
 The reviewed profile allows only the runtime surfaces OpenCode needs, plus the fixed raw binary path `/usr/local/bin/opencode-raw` as `allow_file`.
 Runtime state is pinned under `/home/agent` with specific XDG paths, and the deployment precreates those directories via an init container before daily use.
@@ -149,6 +178,10 @@ Allowed inherited environment variables in this profile are exactly:
 
 This profile explicitly strips `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, `GPT_UIO_YELLOW_API_KEY`, and `GPT_UIO_RED_API_KEY` from inherited sandbox environment state.
 Real provider secrets are loaded before sandbox entry by the constrained helper and are then consumed by the wrapped launch path, rather than being inherited from the caller shell.
+
+The important handoff detail is that these secrets are not ordinary interactive-shell environment variables.
+They are read from `/var/run/secrets/nono/providers` during the constrained pre-sandbox helper step, preserved only across the one documented `sudo` handoff, and then consumed by the wrapped launch path for proxy setup and launch.
+The sudoers contract keeps only the launch-step provider variables needed for that handoff; it is not a general-purpose shell inheritance path.
 
 Credential routes configured in this profile are exactly `openai`, `anthropic`, `github-copilot`, `gpt-uio-yellow`, and `gpt-uio-red`.
 Their configured upstreams are:
