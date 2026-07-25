@@ -90,7 +90,10 @@ for provider_name in ('gpt-uio-red', 'gpt-uio-yellow'):
         }
 
 for model in providers.get('github-copilot', {}).get('models', []):
-    provider_payload['github-copilot']['whitelist'].append(model['id'])
+    model_id = model['id']
+    if isinstance(model_id, str) and model_id.startswith('github-copilot/'):
+        model_id = model_id.split('/', 1)[1]
+    provider_payload['github-copilot']['whitelist'].append(model_id)
 
 for provider_name in ('gpt-uio-red', 'gpt-uio-yellow', 'github-copilot'):
     if provider_name not in providers:
@@ -144,6 +147,14 @@ if runtime.get('enabled_providers') != expected:
 provider_payload = runtime.get('provider')
 if not isinstance(provider_payload, dict):
     raise SystemExit('runtime provider payload must be an object')
+
+copilot_payload = provider_payload.get('github-copilot', {})
+if not isinstance(copilot_payload, dict):
+    raise SystemExit('runtime github-copilot payload must be an object when enabled')
+
+for model_id in copilot_payload.get('whitelist', []):
+    if isinstance(model_id, str) and model_id.startswith('github-copilot/'):
+        raise SystemExit(f'github-copilot whitelist must use canonical model ids without provider prefix: {model_id}')
 
 if verification.get('enabled_providers') != expected:
     raise SystemExit(f'verification output mismatch: {verification.get("enabled_providers")!r}')

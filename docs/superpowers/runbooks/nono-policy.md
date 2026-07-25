@@ -188,7 +188,7 @@ Their configured upstreams are:
 
 - `openai` → `https://api.openai.com`
 - `anthropic` → `https://api.anthropic.com`
-- `github-copilot` → `https://api.github.com`
+- `github-copilot` → `https://api.githubcopilot.com` (Authorization: `Bearer <token>`)
 - `gpt-uio-yellow` → `https://gpt.uio.no/api/v1`
 - `gpt-uio-red` → `https://gpt.uio.no/api/v1`
 

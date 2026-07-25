@@ -89,11 +89,11 @@
         "credential_format": "{}"
       },
       "github-copilot": {
-        "upstream": "https://api.github.com",
+        "upstream": "https://api.githubcopilot.com",
         "credential_key": "env://GITHUB_TOKEN",
         "env_var": "GITHUB_TOKEN",
         "inject_header": "Authorization",
-        "credential_format": "token {}"
+        "credential_format": "Bearer {}"
       },
       "gpt-uio-yellow": {
         "upstream": "https://gpt.uio.no/api/v1",

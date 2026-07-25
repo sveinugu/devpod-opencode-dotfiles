@@ -52,6 +52,11 @@ if '/usr/local/bin/opencode-raw' in allow_dir:
 PY
 grep -F '"upstream": "https://gpt.uio.no/api/v1"' "$profile" >/dev/null || fail "profile should route UiO providers to gpt.uio.no/api/v1"
 grep -F '"credential_key": "env://GITHUB_TOKEN"' "$profile" >/dev/null || fail "profile should source github-copilot token from env://GITHUB_TOKEN"
+grep -F '"upstream": "https://api.githubcopilot.com"' "$profile" >/dev/null || fail "profile should route github-copilot credential injection to api.githubcopilot.com"
+grep -F '"credential_format": "Bearer {}"' "$profile" >/dev/null || fail "profile should send github-copilot credentials as Bearer token"
+if grep -F '"upstream": "https://api.github.com"' "$profile" >/dev/null; then
+  fail "profile must not route github-copilot credential injection to api.github.com"
+fi
 grep -F '"tls_intercept"' "$profile" >/dev/null || fail "profile should configure tls_intercept for generated intercept CA trust propagation"
 grep -F '"ca_env_vars"' "$profile" >/dev/null || fail "profile should configure tls_intercept ca_env_vars"
 
