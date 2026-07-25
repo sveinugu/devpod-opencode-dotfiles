@@ -68,7 +68,7 @@ check_fixed "$policy" '- `/home/agent/.cache/opencode` (`$XDG_CACHE_HOME/opencod
 check_fixed "$policy" '- `/home/agent/.config/opencode` (`$XDG_CONFIG_HOME/opencode`) — read+write' 'policy xdg config grant'
 check_fixed "$policy" '- `/home/agent/.local/share/opencode` (`$XDG_DATA_HOME/opencode`) — read+write' 'policy xdg data opencode grant'
 check_fixed "$policy" '- `/home/agent/.local/share/opentui` (`$XDG_DATA_HOME/opentui`) — read+write' 'policy xdg data opentui grant'
-check_fixed "$policy" '- `/home/agent/.local/state/nono/opencode` (`$XDG_STATE_HOME/opencode` in the profile template) — read+write' 'policy xdg state grant'
+check_fixed "$policy" '- `/home/agent/.local/state/opencode` (derived from `$HOME/.local/state/opencode` in the profile template) — read+write' 'policy xdg state grant'
 check_fixed "$policy" '- `/home/agent/.opencode` (`$HOME/.opencode`) — read+write' 'policy home opencode grant'
 check_fixed "$policy" '- `/tmp` — read+write temporary workspace' 'policy tmp grant'
 check_fixed "$policy" '- `/usr/local/bin/opencode-raw` (`allow_file`) — single-file read/execute target, not directory access' 'policy raw binary allow-file grant'
@@ -143,7 +143,7 @@ assert_in_order([
     '- `/home/agent/.config/opencode` (`$XDG_CONFIG_HOME/opencode`) — read+write',
     '- `/home/agent/.local/share/opencode` (`$XDG_DATA_HOME/opencode`) — read+write',
     '- `/home/agent/.local/share/opentui` (`$XDG_DATA_HOME/opentui`) — read+write',
-    '- `/home/agent/.local/state/nono/opencode` (`$XDG_STATE_HOME/opencode` in the profile template) — read+write',
+    '- `/home/agent/.local/state/opencode` (derived from `$HOME/.local/state/opencode` in the profile template) — read+write',
     '- `/home/agent/.opencode` (`$HOME/.opencode`) — read+write',
     '- `/tmp` — read+write temporary workspace',
     '- `/usr/local/bin/opencode-raw` (`allow_file`) — single-file read/execute target, not directory access',

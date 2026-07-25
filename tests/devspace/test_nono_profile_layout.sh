@@ -31,7 +31,7 @@ for credential in '"openai"' '"anthropic"' '"github-copilot"' '"gpt-uio-yellow"'
   grep -F "$credential" "$profile" >/dev/null || fail "profile missing required credential route $credential"
 done
 
-grep -F '"$XDG_STATE_HOME/opencode"' "$profile" >/dev/null || fail "profile should allow state-home opencode runtime path for agent launch"
+grep -F '"$HOME/.local/state/opencode"' "$profile" >/dev/null || fail "profile should allow explicit opencode runtime state root path for nested state writes"
 python3 - "$profile" <<'PY' || fail "profile should grant /usr/local/bin/opencode-raw as filesystem.allow_file (not directory allow)"
 import json
 import sys
