@@ -88,6 +88,8 @@ devspace deploy
 
 ## Provider enablement manifest (single source of truth)
 
+For the secure-path policy summary and verification checklist behind this workflow, see [nono Policy](nono-policy.md).
+
 Canonical host-local enablement manifest path:
 
 ```text

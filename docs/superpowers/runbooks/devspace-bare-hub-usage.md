@@ -122,6 +122,7 @@ Behavior notes:
 
 For the repo-supported secure path:
 
+- policy summary and change guardrails live in [nono Policy](nono-policy.md)
 - invoking `opencode` by name should resolve to the wrapped launcher at `$HOME/.config/opencode/bin/opencode`
 - wrapped launcher behavior is expected to run under `nono` with the reviewed repo profile and fixed secret-boundary contracts
 - raw binary is image-installed/pinned and root-owned at `/usr/local/bin/opencode-raw`
