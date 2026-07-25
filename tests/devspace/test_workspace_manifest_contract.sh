@@ -30,6 +30,9 @@ grep -Eq '^\s*subPath:\s*workspace-root\s*$' "$deployment" || fail "missing subP
 grep -Eq '^\s*mountPath:\s*/home/vscode\s*$' "$deployment" || fail "missing /home/vscode mount"
 grep -Eq '^\s*subPath:\s*home-vscode\s*$' "$deployment" || fail "missing subPath home-vscode"
 
+grep -Eq '^\s*mountPath:\s*/home/agent\s*$' "$deployment" || fail "missing /home/agent mount"
+grep -Eq '^\s*subPath:\s*home-agent\s*$' "$deployment" || fail "missing subPath home-agent"
+
 grep -Eq '^\s*mountPath:\s*/var/run/secrets/nono/providers\s*$' "$deployment" || fail "missing nono provider secret mount path"
 grep -Eq '^\s*readOnly:\s*true\s*$' "$deployment" || fail "missing readOnly contract for nono provider secret mount"
 grep -Eq '^\s*-\s*name:\s*nono-provider-secrets\s*$' "$deployment" || fail "missing nono-provider-secrets volume contract"
@@ -41,6 +44,30 @@ grep -Eq '^\s*-\s*name:\s*HUB_NONO_PROVIDER_SECRET_DIR\s*$' "$deployment" || fai
 grep -Eq '^\s*value:\s*/var/run/secrets/nono/providers\s*$' "$deployment" || fail "missing provider secret dir env value contract"
 grep -Eq '^\s*-\s*name:\s*HUB_NONO_SECRET_HELPER_SUDO\s*$' "$deployment" || fail "missing nono secret helper sudo env contract"
 grep -Eq '^\s*value:\s*sudo -n\s*$' "$deployment" || fail "missing nono secret helper sudo value contract"
+if grep -Eq '^\s*-\s*name:\s*HUB_NONO_RUNTIME_HOME\s*$' "$deployment"; then
+  fail "deployment must not expose agent runtime HOME override env; wrapper defaults own this contract"
+fi
+if grep -Eq '^\s*-\s*name:\s*HUB_NONO_RUNTIME_XDG_CONFIG_HOME\s*$' "$deployment"; then
+  fail "deployment must not expose agent runtime XDG config override env; wrapper defaults own this contract"
+fi
+if grep -Eq '^\s*-\s*name:\s*HUB_NONO_RUNTIME_XDG_CACHE_HOME\s*$' "$deployment"; then
+  fail "deployment must not expose agent runtime XDG cache override env; wrapper defaults own this contract"
+fi
+if grep -Eq '^\s*-\s*name:\s*HUB_NONO_RUNTIME_XDG_DATA_HOME\s*$' "$deployment"; then
+  fail "deployment must not expose agent runtime XDG data override env; wrapper defaults own this contract"
+fi
+if grep -Eq '^\s*-\s*name:\s*HUB_NONO_RUNTIME_XDG_STATE_HOME\s*$' "$deployment"; then
+  fail "deployment must not expose agent runtime XDG state override env; wrapper defaults own this contract"
+fi
+if grep -Eq '^\s*-\s*name:\s*HUB_OPENCODE_RUNTIME_XDG_STATE_HOME\s*$' "$deployment"; then
+  fail "deployment must not expose opencode runtime XDG state override env; wrapper defaults own this contract"
+fi
+grep -Eq '^\s*initContainers:\s*$' "$deployment" || fail "missing initContainers contract for /home/agent ownership bootstrap"
+grep -Eq '^\s*-\s*name:\s*init-home-agent-permissions\s*$' "$deployment" || fail "missing init-home-agent-permissions contract"
+grep -Eq '^\s*runAsUser:\s*0\s*$' "$deployment" || fail "missing root runAsUser contract for home-agent init container"
+grep -Eq '^\s*mountPath:\s*/workspace-storage\s*$' "$deployment" || fail "missing workspace-storage mount path for init-home-agent-permissions"
+grep -Eq '^\s*chown -R agent:agent /workspace-storage/home-agent\s*$' "$deployment" || fail "missing init chown contract for /workspace-storage/home-agent"
+grep -Eq '^\s*chmod 0700 /workspace-storage/home-agent\s*$' "$deployment" || fail "missing init chmod contract for /workspace-storage/home-agent"
 
 # Verify that workingDir is set explicitly for the workspace container
 grep -Eq '^\s*workingDir:\s*/workspaces/dotfiles/main\s*$' "$deployment" || fail "missing workingDir /workspaces/dotfiles/main in Deployment manifest"

@@ -69,10 +69,13 @@ pipelines:
       if [ "$(get_flag "refresh-tools")" = "true" ]; then
         HUB_PROVISION_RUNTIME_ARGS="--refresh-tools ${HUB_PROVISION_ARGS:-}"
       fi
-      tar cf - -C scripts lib/hub-repo-core.sh lib/hub-repo-core-source.sh lib/hub-repo-core-bootstrap.sh lib/hub-repo-core-upstream.sh lib/ensure-bare-excludes.sh lib/bare-excludes.list lib/worktree-env.sh provision-workspace.sh | kubectl exec -i "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- tar xf - -C /tmp
-      tar cf - bin/sync-provider-enablement | kubectl exec -i "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- tar xf - -C /tmp
-      kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- env HUB_GITHUB_USER_NAME="${HUB_GITHUB_USER_NAME:-}" HUB_GITHUB_USER_EMAIL="${HUB_GITHUB_USER_EMAIL:-}" HUB_INSTALL_BRANCH="${HUB_INSTALL_BRANCH:-main}" sh -lc 'HUB_WORKSPACE_ROOT=/workspaces/dotfiles HUB_PROVISION_SOURCE=https://github.com/sveinugu/devpod-opencode-dotfiles.git /tmp/provision-workspace.sh ${HUB_PROVISION_RUNTIME_ARGS:-}'
-      kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- sh -lc '. /workspaces/dotfiles/state/hub/etc/install.env && provider_manifest=/workspaces/dotfiles/state/hub/etc/provider-enablement.json && provider_seed="$HUB_INSTALL_BRANCH_DIR/.config/opencode/provider-enablement.seed.json" && if [ ! -f "$provider_manifest" ]; then if [ -f "$provider_seed" ]; then mkdir -p /workspaces/dotfiles/state/hub/etc && cp "$provider_seed" "$provider_manifest"; else printf "refused: provider enablement manifest missing and seed not found\n" >&2; exit 1; fi; fi && HUB_WORKSPACE_ROOT=/workspaces/dotfiles /tmp/bin/sync-provider-enablement --policy "$HUB_INSTALL_BRANCH_DIR/.config/opencode/provider-policy.jsonc" --runtime-output "$HUB_INSTALL_BRANCH_DIR/.config/opencode/provider-runtime.json" --verification-output "$HUB_INSTALL_BRANCH_DIR/.config/opencode/provider-verification.json"'
+      cleanup() { kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- sh -lc 'rm -rf /tmp/dotfiles-provision-staging' >/dev/null 2>&1 || true; }
+      trap cleanup EXIT
+      kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- sh -lc 'rm -rf /tmp/dotfiles-provision-staging && mkdir -p /tmp/dotfiles-provision-staging'
+      tar cf - -C scripts lib/hub-repo-core.sh lib/hub-repo-core-source.sh lib/hub-repo-core-bootstrap.sh lib/hub-repo-core-upstream.sh lib/ensure-bare-excludes.sh lib/bare-excludes.list lib/worktree-env.sh provision-workspace.sh | kubectl exec -i "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- tar xf - -C /tmp/dotfiles-provision-staging
+      tar cf - bin/sync-provider-enablement | kubectl exec -i "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- tar xf - -C /tmp/dotfiles-provision-staging
+      kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- env HUB_GITHUB_USER_NAME="${HUB_GITHUB_USER_NAME:-}" HUB_GITHUB_USER_EMAIL="${HUB_GITHUB_USER_EMAIL:-}" HUB_INSTALL_BRANCH="${HUB_INSTALL_BRANCH:-main}" sh -lc 'HUB_WORKSPACE_ROOT=/workspaces/dotfiles HUB_PROVISION_SOURCE=https://github.com/sveinugu/devpod-opencode-dotfiles.git /tmp/dotfiles-provision-staging/provision-workspace.sh ${HUB_PROVISION_RUNTIME_ARGS:-}'
+      kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- sh -lc '. /workspaces/dotfiles/state/hub/etc/install.env && provider_manifest=/workspaces/dotfiles/state/hub/etc/provider-enablement.json && provider_seed="$HUB_INSTALL_BRANCH_DIR/.config/opencode/provider-enablement.seed.json" && if [ ! -f "$provider_manifest" ]; then if [ -f "$provider_seed" ]; then mkdir -p /workspaces/dotfiles/state/hub/etc && cp "$provider_seed" "$provider_manifest"; else printf "refused: provider enablement manifest missing and seed not found\n" >&2; exit 1; fi; fi && HUB_WORKSPACE_ROOT=/workspaces/dotfiles /tmp/dotfiles-provision-staging/bin/sync-provider-enablement --policy "$HUB_INSTALL_BRANCH_DIR/.config/opencode/provider-policy.jsonc" --runtime-output "$HUB_INSTALL_BRANCH_DIR/.config/opencode/provider-runtime.json" --verification-output "$HUB_INSTALL_BRANCH_DIR/.config/opencode/provider-verification.json"'
 
   doctor: |-
     create_deployments --all
@@ -81,8 +84,11 @@ pipelines:
     [ -n "$POD_NAME" ]
     HUB_CHECK_DEPLOYMENT=$(kubectl get deployment dotfiles-workspace -n ${DEVSPACE_NAMESPACE} -o name >/dev/null 2>&1 && printf yes || printf no)
     HUB_CHECK_PVC=$(kubectl get pvc dotfiles-workspace -n ${DEVSPACE_NAMESPACE} -o name >/dev/null 2>&1 && printf yes || printf no)
-    tar cf - -C ops check-workspace.sh | kubectl exec -i "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- tar xf - -C /tmp
-    kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- env DEVSPACE_NAMESPACE=${DEVSPACE_NAMESPACE} HUB_WORKSPACE_ROOT=/workspaces/dotfiles HUB_HOME_DIR=/home/vscode HUB_CHECK_DEPLOYMENT="$HUB_CHECK_DEPLOYMENT" HUB_CHECK_PVC="$HUB_CHECK_PVC" HUB_CHECK_POD="$POD_NAME" bash /tmp/check-workspace.sh
+    cleanup() { kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- sh -lc 'rm -rf /tmp/dotfiles-doctor-staging' >/dev/null 2>&1 || true; }
+    trap cleanup EXIT
+    kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- sh -lc 'rm -rf /tmp/dotfiles-doctor-staging && mkdir -p /tmp/dotfiles-doctor-staging'
+    tar cf - -C ops check-workspace.sh | kubectl exec -i "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- tar xf - -C /tmp/dotfiles-doctor-staging
+    kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- env DEVSPACE_NAMESPACE=${DEVSPACE_NAMESPACE} HUB_WORKSPACE_ROOT=/workspaces/dotfiles HUB_HOME_DIR=/home/vscode HUB_CHECK_DEPLOYMENT="$HUB_CHECK_DEPLOYMENT" HUB_CHECK_PVC="$HUB_CHECK_PVC" HUB_CHECK_POD="$POD_NAME" bash /tmp/dotfiles-doctor-staging/check-workspace.sh
 
   repair: |-
     create_deployments --all
@@ -90,8 +96,11 @@ pipelines:
     POD_NAME=$(kubectl get pods -l app.kubernetes.io/name=dotfiles-workspace -n ${DEVSPACE_NAMESPACE} -o jsonpath='{.items[0].metadata.name}')
     [ -n "$POD_NAME" ]
     HUB_INSTALL_BRANCH="${HUB_INSTALL_BRANCH:-main}"
-    tar cf - -C bin repair-workspace | kubectl exec -i "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- tar xf - -C /tmp
-    kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- env HUB_WORKSPACE_ROOT=/workspaces/dotfiles HUB_HOME_DIR=/home/vscode HUB_INSTALL_BRANCH="$HUB_INSTALL_BRANCH" bash /tmp/repair-workspace
+    cleanup() { kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- sh -lc 'rm -rf /tmp/dotfiles-repair-staging' >/dev/null 2>&1 || true; }
+    trap cleanup EXIT
+    kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- sh -lc 'rm -rf /tmp/dotfiles-repair-staging && mkdir -p /tmp/dotfiles-repair-staging'
+    tar cf - -C bin repair-workspace | kubectl exec -i "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- tar xf - -C /tmp/dotfiles-repair-staging
+    kubectl exec "$POD_NAME" -n ${DEVSPACE_NAMESPACE} -- env HUB_WORKSPACE_ROOT=/workspaces/dotfiles HUB_HOME_DIR=/home/vscode HUB_INSTALL_BRANCH="$HUB_INSTALL_BRANCH" bash /tmp/dotfiles-repair-staging/repair-workspace
 
   destroy: |-
     bash ops/destroy-workspace.sh

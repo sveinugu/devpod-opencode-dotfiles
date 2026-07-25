@@ -37,9 +37,29 @@ spec:
             - name: workspace-storage
               mountPath: /home/vscode
               subPath: home-vscode
+            - name: workspace-storage
+              mountPath: /home/agent
+              subPath: home-agent
             - name: nono-provider-secrets
               mountPath: /var/run/secrets/nono/providers
               readOnly: true
+      initContainers:
+        - name: init-home-agent-permissions
+          image: devspace-bare-hub:task1-20260524
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          command:
+            - sh
+            - -lc
+            - |
+              mkdir -p /workspace-storage/home-agent/.config /workspace-storage/home-agent/.cache /workspace-storage/home-agent/.local/share /workspace-storage/home-agent/.local/state/nono /workspace-storage/home-agent/.local/state/opencode
+              chown -R agent:agent /workspace-storage/home-agent
+              chmod 0700 /workspace-storage/home-agent
+          volumeMounts:
+            - name: workspace-storage
+              mountPath: /workspace-storage
       volumes:
         - name: workspace-storage
           persistentVolumeClaim:

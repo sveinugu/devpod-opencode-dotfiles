@@ -11,6 +11,10 @@ script="$repo_root/scripts/provision-workspace.sh"
 
 [ -f "$script" ] || fail "scripts/provision-workspace.sh not found"
 
+if grep -Eq '^cd /tmp$' "$script"; then
+  fail "provision-workspace.sh should not force execution from /tmp"
+fi
+
 if grep -F -- '--no-prompts' "$script" >/dev/null; then
   fail "provision-workspace.sh should not expose unused --no-prompts option"
 fi

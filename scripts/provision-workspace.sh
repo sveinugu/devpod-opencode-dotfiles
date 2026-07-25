@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd /tmp
-
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 # shellcheck source=scripts/lib/hub-repo-core.sh
 source "$script_dir/lib/hub-repo-core.sh"
@@ -13,6 +11,10 @@ install_branch="${HUB_INSTALL_BRANCH:-main}"
 home_dir="${HOME:?HOME must be set}"
 refresh_tools=false
 tool_state_dir="$home_dir/.local/state/workspace-tools"
+
+# Ensure we are not running from a managed worktree path that may need to be
+# removed/recreated during bootstrap (for example an empty $workspace_root/main).
+cd "$home_dir"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
