@@ -63,14 +63,17 @@ fi
 
 grep -F '/etc/sudoers.d/99-dotfiles-nono' "$dockerfile" >/dev/null || fail "Dockerfile must install constrained sudoers contract for non-interactive agent-run helper path"
 grep -F '/usr/local/bin/nono' "$dockerfile" >/dev/null || fail "Dockerfile must manage root-owned /usr/local/bin/nono"
+grep -F '/usr/local/libexec/dotfiles-generate-nono-profile' "$dockerfile" >/dev/null || fail "Dockerfile must install root-owned generated profile writer helper"
 grep -F 'https://nono.sh/install.sh' "$dockerfile" >/dev/null || fail "Dockerfile must install nono at image build time"
 grep -F 'COPY .config/nono/profiles/devspace-opencode-secure.jsonc /tmp/devspace-opencode-secure.jsonc' "$dockerfile" >/dev/null || fail "Dockerfile must copy secure nono profile from build context"
+grep -F 'COPY scripts/lib/generate-nono-profile.py /tmp/generate-nono-profile.py' "$dockerfile" >/dev/null || fail "Dockerfile must copy generated profile writer from build context"
 grep -F 'sudo rm -f /tmp/devspace-opencode-secure.jsonc' "$dockerfile" >/dev/null || fail "Dockerfile must remove staged secure nono profile via sudo in sticky /tmp"
 if grep -F '/workspaces/dotfiles/main/.config/nono/profiles/devspace-opencode-secure.jsonc' "$dockerfile" >/dev/null; then
   fail "Dockerfile must not read secure nono profile from runtime-only /workspaces path during build"
 fi
 grep -F 'Defaults:vscode env_keep += "OPENAI_API_KEY ANTHROPIC_API_KEY GITHUB_TOKEN GPT_UIO_YELLOW_API_KEY GPT_UIO_RED_API_KEY"' "$dockerfile" >/dev/null || fail "Dockerfile sudoers contract must preserve provider secret env vars for constrained agent launch path"
 grep -F '/bin/cat /var/run/secrets/nono/providers/' "$dockerfile" >/dev/null || fail "Dockerfile sudoers contract must constrain provider secret reads to fixed mount path"
+grep -F 'vscode ALL=(root) NOPASSWD: /usr/local/libexec/dotfiles-generate-nono-profile --template * --runtime * --output-dir /etc/nono/profiles/runtime' "$dockerfile" >/dev/null || fail "Dockerfile sudoers contract must allow fixed generated profile writer helper path"
 grep -F '/usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* PATH=* LD_PRELOAD=* LD_LIBRARY_PATH=* PYTHONPATH=* DYLD_INSERT_LIBRARIES=* /usr/bin/setpriv --reuid=* --regid=* --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp /usr/local/bin/nono run --profile * -- /usr/bin/env OPENCODE_CONFIG_CONTENT=' "$dockerfile" >/dev/null || fail "Dockerfile sudoers contract must allow runtime wrapper handoff through setpriv-before-nono launch path"
 grep -F '/home/vscode/.opencode/bin/opencode' "$dockerfile" >/dev/null || fail "Dockerfile sudoers runtime rule must pin exact raw opencode binary path"
 

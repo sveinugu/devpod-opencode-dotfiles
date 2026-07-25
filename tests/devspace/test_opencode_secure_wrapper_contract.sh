@@ -26,13 +26,16 @@ grep -F 'HUB_NONO_RUNTIME_XDG_CONFIG_HOME' "$wrapper" >/dev/null || fail "wrappe
 grep -F 'HUB_NONO_RUNTIME_XDG_CACHE_HOME' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime XDG cache contract"
 grep -F 'HUB_NONO_RUNTIME_XDG_DATA_HOME' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime XDG data contract"
 grep -F 'HUB_NONO_RUNTIME_XDG_STATE_HOME' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime XDG state contract"
-grep -F 'HUB_NONO_GENERATED_PROFILE_DIR' "$wrapper" >/dev/null || fail "wrapper must support explicit generated nono profile directory contract"
+grep -F 'HUB_NONO_GENERATED_PROFILE_WRITER' "$wrapper" >/dev/null || fail "wrapper must support explicit generated nono profile writer contract"
+grep -F 'HUB_NONO_GENERATED_PROFILE_DIR' "$wrapper" >/dev/null || fail "wrapper must support explicit generated nono profile output directory contract"
 grep -F 'HUB_NONO_PROFILE_TEMPLATE_PATH' "$wrapper" >/dev/null || fail "wrapper must support explicit profile template path override"
 grep -F 'HUB_OPENCODE_RUNTIME_XDG_STATE_HOME' "$wrapper" >/dev/null || fail "wrapper must support explicit opencode runtime XDG state contract"
 grep -F 'OPENCODE_PROVIDER_RUNTIME_PATH' "$wrapper" >/dev/null || fail "wrapper must support canonical generated provider runtime path contract"
 grep -F 'OPENCODE_RAW_BINARY' "$wrapper" >/dev/null || fail "wrapper must support explicit raw opencode binary contract"
 grep -F '$source_root/.config/opencode/provider-runtime.json' "$wrapper" >/dev/null || fail "wrapper must default runtime provider config path to install-branch output"
 grep -F '/etc/nono/profiles/devspace-opencode-secure.jsonc' "$wrapper" >/dev/null || fail "wrapper must default profile template path to /etc/nono/profiles"
+grep -F '/usr/local/libexec/dotfiles-generate-nono-profile' "$wrapper" >/dev/null || fail "wrapper must default generated profile writer path to root-owned helper"
+grep -F '/etc/nono/profiles/runtime' "$wrapper" >/dev/null || fail "wrapper must default generated profile output directory to root-owned runtime profile path"
 grep -F '/usr/local/bin/nono' "$wrapper" >/dev/null || fail "wrapper must default nono binary path to /usr/local/bin/nono"
 grep -F 'sudo -n -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$runtime_xdg_state_home" PATH="$runtime_path" LD_PRELOAD= LD_LIBRARY_PATH= PYTHONPATH= DYLD_INSERT_LIBRARIES= "$setpriv_binary" --reuid="$agent_uid" --regid="$agent_gid" --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp "$nono_binary" run --profile "$profile_path"' "$wrapper" >/dev/null || fail "wrapper must launch nono through setpriv-before-nono chain"
 grep -F 'HUB_NONO_RUNTIME_PATH' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime PATH contract"
@@ -49,6 +52,7 @@ provider_runtime="$tmp_root/provider-runtime.json"
 raw_binary="$tmp_root/opencode-real"
 setpriv_binary="$mock_bin/setpriv"
 generated_profile_dir="$tmp_root/generated-profiles"
+generated_profile_writer="$tmp_root/generate-nono-profile"
 
 mkdir -p "$helper_root" "$profile_root" "$secret_root" "$mock_bin" "$generated_profile_dir"
 
@@ -138,7 +142,7 @@ elif [ "$1" = "-n" ]; then
 else
   exit 64
 fi
-printf 'sudo-user=%s cmd=%s\n' "$user" "$*" >"${MOCK_SUDO_LOG:?MOCK_SUDO_LOG must be set}"
+printf 'sudo-user=%s cmd=%s\n' "$user" "$*" >>"${MOCK_SUDO_LOG:?MOCK_SUDO_LOG must be set}"
 
 if [ "${1:-}" = "--" ]; then
   shift
@@ -165,11 +169,75 @@ done
 EOF
 chmod +x "$setpriv_binary"
 
+cat >"$generated_profile_writer" <<'EOF'
+#!/usr/bin/env python3
+import argparse
+import json
+import os
+import tempfile
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--template', required=True)
+parser.add_argument('--runtime', required=True)
+parser.add_argument('--output-dir', required=True)
+args = parser.parse_args()
+
+with open(args.template, 'r', encoding='utf-8') as fh:
+    profile = json.load(fh)
+
+with open(args.runtime, 'r', encoding='utf-8') as fh:
+    runtime = json.load(fh)
+
+enabled = runtime.get('enabled_providers')
+if not isinstance(enabled, list):
+    raise SystemExit('refused: generated provider runtime output must define enabled_providers as a list')
+
+provider_to_credential = {
+    'openai': 'openai',
+    'anthropic': 'anthropic',
+    'github-copilot': 'github-copilot',
+    'gpt-uio-yellow': 'gpt-uio-yellow',
+    'gpt-uio-red': 'gpt-uio-red',
+}
+managed_credential_names = set(provider_to_credential.values())
+enabled_credential_names = {
+    provider_to_credential[p]
+    for p in enabled
+    if p in provider_to_credential
+}
+
+network = profile.get('network')
+credentials = network.get('credentials', [])
+custom_credentials = network.get('custom_credentials', {})
+
+network['credentials'] = [
+    route for route in credentials
+    if route not in managed_credential_names or route in enabled_credential_names
+]
+network['custom_credentials'] = {
+    route: cfg
+    for route, cfg in custom_credentials.items()
+    if route not in managed_credential_names or route in enabled_credential_names
+}
+
+os.makedirs(args.output_dir, exist_ok=True)
+fd, generated_path = tempfile.mkstemp(prefix='opencode-nono-profile-', suffix='.json', dir=args.output_dir)
+os.close(fd)
+with open(generated_path, 'w', encoding='utf-8') as fh:
+    json.dump(profile, fh, indent=2)
+    fh.write('\n')
+
+os.chmod(generated_path, 0o644)
+print(generated_path)
+EOF
+chmod +x "$generated_profile_writer"
+
 arg_log="$tmp_root/nono-args.log"
 env_log="$tmp_root/nono-env.log"
 sudo_log="$tmp_root/sudo.log"
 
 export HUB_NONO_GENERATED_PROFILE_DIR="$generated_profile_dir"
+export HUB_NONO_GENERATED_PROFILE_WRITER="$generated_profile_writer"
 
 PATH="$mock_bin:$PATH" \
 HUB_INSTALL_BRANCH_DIR="$install_root" \
@@ -345,6 +413,7 @@ PY
 )"
 
 [ "$profile_mode" = "0o644" ] || fail "wrapper should chmod generated nono profile to 0644 so setpriv agent can read it"
+grep -E -- "${generated_profile_writer//\//\\/} --template ${profile_root//\//\\/}/devspace-opencode-secure\.jsonc --runtime .* --output-dir ${generated_profile_dir//\//\\/}" "$sudo_log" >/dev/null || fail "wrapper should invoke generated profile writer through constrained sudo contract"
 
 grep -F '"gpt-uio-yellow"' "$profile_used" >/dev/null || fail "generated profile should keep yellow credential route when yellow provider is enabled"
 if grep -F '"gpt-uio-red"' "$profile_used" >/dev/null; then

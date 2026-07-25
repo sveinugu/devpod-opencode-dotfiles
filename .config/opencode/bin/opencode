@@ -19,7 +19,8 @@ runtime_xdg_data_home="${HUB_NONO_RUNTIME_XDG_DATA_HOME:-/tmp}"
 runtime_xdg_state_home="${HUB_NONO_RUNTIME_XDG_STATE_HOME:-/var/lib/nono/state}"
 opencode_xdg_state_home="${HUB_OPENCODE_RUNTIME_XDG_STATE_HOME:-/tmp}"
 runtime_path="${HUB_NONO_RUNTIME_PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin}"
-generated_profile_dir="${HUB_NONO_GENERATED_PROFILE_DIR:-${runtime_home}/.cache/nono/profiles}"
+generated_profile_writer="${HUB_NONO_GENERATED_PROFILE_WRITER:-/usr/local/libexec/dotfiles-generate-nono-profile}"
+generated_profile_dir="${HUB_NONO_GENERATED_PROFILE_DIR:-/etc/nono/profiles/runtime}"
 
 agent_uid="$(id -u "$agent_user" 2>/dev/null || true)"
 agent_gid="$(id -g "$agent_user" 2>/dev/null || true)"
@@ -141,95 +142,12 @@ if [ ! -x "$setpriv_binary" ]; then
   exit 1
 fi
 
-if ! mkdir -p "$generated_profile_dir"; then
-  printf 'refused: unable to create generated nono profile directory at %s\n' "$generated_profile_dir" >&2
+if [ ! -x "$generated_profile_writer" ]; then
+  printf 'refused: generated nono profile writer not executable at %s\n' "$generated_profile_writer" >&2
   exit 1
 fi
 
-profile_path="$({
-  python3 - "$profile_template_path" "$provider_runtime_path" "$generated_profile_dir" <<'PY'
-import json
-import os
-import sys
-import tempfile
-
-template_path, runtime_path, generated_dir = sys.argv[1:]
-
-with open(template_path, 'r', encoding='utf-8') as fh:
-    profile = json.load(fh)
-
-with open(runtime_path, 'r', encoding='utf-8') as fh:
-    runtime = json.load(fh)
-
-if not isinstance(profile, dict):
-    raise SystemExit('refused: secure nono profile template must be a JSON object')
-
-enabled = runtime.get('enabled_providers')
-if not isinstance(enabled, list):
-    raise SystemExit('refused: generated provider runtime output must define enabled_providers as a list')
-
-for provider in enabled:
-    if not isinstance(provider, str) or not provider.strip():
-        raise SystemExit('refused: generated provider runtime output has invalid enabled_providers entry')
-
-provider_to_credential = {
-    'openai': 'openai',
-    'anthropic': 'anthropic',
-    'github-copilot': 'github-copilot',
-    'gpt-uio-yellow': 'gpt-uio-yellow',
-    'gpt-uio-red': 'gpt-uio-red',
-}
-
-managed_credential_names = set(provider_to_credential.values())
-enabled_credential_names = {
-    provider_to_credential[provider]
-    for provider in enabled
-    if provider in provider_to_credential
-}
-
-network = profile.get('network')
-if not isinstance(network, dict):
-    raise SystemExit('refused: secure nono profile template must define network object')
-
-credentials = network.get('credentials')
-if not isinstance(credentials, list):
-    raise SystemExit('refused: secure nono profile template must define network.credentials list')
-
-custom_credentials = network.get('custom_credentials')
-if not isinstance(custom_credentials, dict):
-    raise SystemExit('refused: secure nono profile template must define network.custom_credentials object')
-
-filtered_credentials = []
-for route_name in credentials:
-    if not isinstance(route_name, str):
-        raise SystemExit('refused: secure nono profile template has invalid network.credentials entry')
-    if route_name in managed_credential_names and route_name not in enabled_credential_names:
-        continue
-    filtered_credentials.append(route_name)
-
-filtered_custom_credentials = {}
-for route_name, route_config in custom_credentials.items():
-    if route_name in managed_credential_names and route_name not in enabled_credential_names:
-        continue
-    filtered_custom_credentials[route_name] = route_config
-
-network['credentials'] = filtered_credentials
-network['custom_credentials'] = filtered_custom_credentials
-
-if not os.path.isdir(generated_dir):
-    raise SystemExit(f'refused: generated nono profile directory not found at {generated_dir}')
-
-fd, generated_path = tempfile.mkstemp(prefix='opencode-nono-profile-', suffix='.json', dir=generated_dir)
-os.close(fd)
-with open(generated_path, 'w', encoding='utf-8') as fh:
-    json.dump(profile, fh, indent=2)
-    fh.write('\n')
-
-os.chmod(generated_path, 0o644)
-
-print(generated_path)
-PY
-} || exit 1)"
+profile_path="$(sudo -n -- "$generated_profile_writer" --template "$profile_template_path" --runtime "$provider_runtime_path" --output-dir "$generated_profile_dir")"
 
 if [ ! -r "$profile_path" ]; then
   printf 'refused: generated nono profile not readable at %s\n' "$profile_path" >&2
