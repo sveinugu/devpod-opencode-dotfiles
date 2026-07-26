@@ -127,7 +127,10 @@ For the repo-supported secure path:
 - wrapped launcher behavior is expected to run under `nono` with the reviewed repo profile and fixed secret-boundary contracts
 - raw binary is image-installed/pinned and root-owned at `/usr/local/bin/opencode-raw`
 - wrapped runtime executes through constrained `sudo` + `setpriv` to the `agent` identity and uses `/home/agent` runtime state paths
+- `/home/agent/.config/opencode` is linked to the same repo-managed config tree as `$HOME/.config/opencode`; agent-run provider/runtime selection is still enforced at launch by `OPENCODE_CONFIG_CONTENT`
 - raw OpenCode remains available only by explicit absolute path (for example `/usr/local/bin/opencode-raw`) and is out-of-scope manual use
+
+Image-build override note: `DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1 devspace build` keeps broad `vscode` sudo for temporary local debugging; default builds keep the constrained sudoers-only boundary.
 
 Quick verification commands:
 

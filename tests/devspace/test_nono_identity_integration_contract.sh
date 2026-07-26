@@ -19,8 +19,13 @@ grep -F 'sudo -n /bin/cat' "$helper" >/dev/null || fail "helper must perform pri
 grep -F 'sudo -n -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$runtime_xdg_state_home" PATH="$runtime_path" LD_PRELOAD= LD_LIBRARY_PATH= PYTHONPATH= DYLD_INSERT_LIBRARIES= "$setpriv_binary" --reuid="$agent_uid" --regid="$agent_gid" --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp "$nono_binary" run --profile "$profile_path" -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$opencode_xdg_state_home" OPENCODE_CONFIG_CONTENT=' "$wrapper" >/dev/null || fail "wrapper must drop to agent with setpriv before nono launch"
 
 grep -F 'NOPASSWD: /bin/cat /var/run/secrets/nono/providers/*' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for mounted provider secret reads"
+grep -F 'NOPASSWD: /usr/bin/mkdir -p /home/agent/.config' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for agent config dir bootstrap"
+grep -F 'NOPASSWD: /usr/bin/rm -rf /home/agent/.config/opencode' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for replacing stale agent opencode config target"
+grep -F 'NOPASSWD: /usr/bin/ln -sfn /workspaces/dotfiles/main/.config/opencode /home/agent/.config/opencode' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for main install-branch agent config symlink"
+grep -F 'NOPASSWD: /usr/bin/ln -sfn /workspaces/dotfiles/work/*/.config/opencode /home/agent/.config/opencode' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for worktree install-branch agent config symlink"
 grep -F 'NOPASSWD: /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* PATH=* LD_PRELOAD=* LD_LIBRARY_PATH=* PYTHONPATH=* DYLD_INSERT_LIBRARIES=* /usr/bin/setpriv --reuid=* --regid=* --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp /usr/local/bin/nono run --profile * -- /usr/bin/env OPENCODE_CONFIG_CONTENT=* /usr/local/bin/opencode-raw *' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for setpriv-before-nono launch chain"
 grep -F 'Defaults:vscode env_keep += "OPENAI_API_KEY ANTHROPIC_API_KEY GITHUB_TOKEN GPT_UIO_YELLOW_API_KEY GPT_UIO_RED_API_KEY"' "$dockerfile" >/dev/null || fail "Dockerfile must preserve provider secret env vars across constrained sudo user switch"
+grep -F 'if [ "${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL}" != "1" ]; then sudo rm -f /etc/sudoers.d/vscode; fi' "$dockerfile" >/dev/null || fail "Dockerfile must gate broad vscode sudoers removal behind DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL"
 
 python3 - "$wrapper" "$dockerfile" <<'PY'
 import re
@@ -45,8 +50,12 @@ if expected_rule not in dockerfile:
     raise SystemExit('dockerfile sudoers rule does not match wrapper default raw binary path')
 PY
 
-if grep -E 'NOPASSWD:.*(ALL|/bin/sh|/bin/bash|/usr/bin/su)' "$dockerfile" >/dev/null; then
+if grep -E 'NOPASSWD:.*(ALL|/bin/sh|/bin/bash|/usr/bin/su|/usr/bin/sudo)' "$dockerfile" >/dev/null; then
   fail "Dockerfile sudoers contract must not allow broad shell/su escalation paths"
+fi
+
+if grep -F '/etc/sudoers.d/vscode' "$dockerfile" | grep -v 'rm -f' | grep -v 'DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL' >/dev/null; then
+  fail "Dockerfile must not keep or recreate /etc/sudoers.d/vscode broad sudoers grant"
 fi
 
 printf 'PASS test_nono_identity_integration_contract\n'

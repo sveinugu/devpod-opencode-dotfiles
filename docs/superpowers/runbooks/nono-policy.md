@@ -39,6 +39,12 @@ Use this runbook to understand the supported path, then verify details against:
 - `scripts/lib/nono-secret-env.sh`
 - `k8s/devspace-bare-hub/workspace-deployment.yaml`
 
+Build-time sudoers toggle (workspace image only):
+
+- `DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=0` (default) removes `/etc/sudoers.d/vscode` and keeps constrained sudoers rules only.
+- `DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1` keeps broad `vscode` sudo for temporary local debugging.
+- This toggle changes operator convenience only; the supported secure launch path and its constrained wrapper contracts remain the canonical production-like target.
+
 ## What nono does by default
 
 Assume the reader knows nothing about stock `nono` behavior.

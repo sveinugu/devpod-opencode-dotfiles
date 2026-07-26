@@ -135,6 +135,15 @@ Bootstrap guardrail for first-time provision:
 devspace build
 ```
 
+Optional local-development override to keep broad `sudo` during image iteration:
+
+```bash
+DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1 devspace build
+```
+
+Default behavior is hardened (`DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=0`), which removes `/etc/sudoers.d/vscode` and keeps only the constrained sudoers rules used by the secure launch chain.
+Use the override only for temporary local debugging; do not keep it enabled for shared or production-like images.
+
 Then redeploy:
 
 ```bash

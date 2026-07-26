@@ -6,6 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ARG OPENCODE_VERSION=1.18.5
 ARG OPENCODE_LINUX_X64_SHA256=cd4a2557a3d6550f27cb5c0257ebe8d73388bb34beda8b6121e6428a74c1eae2
 ARG OPENCODE_LINUX_ARM64_SHA256=18b643362fdf0b8d5b8711b3e160dafb4e68d0bfc00288f56fd1298fd72da69d
+ARG DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=0
 
 # 1. Install dependencies
 # 2. Add NodeSource GPG key and repository
@@ -100,12 +101,17 @@ RUN sudo mkdir -p /var/lib/nono/state /var/lib/nono/cache \
 RUN printf '%s\n' \
     'Defaults:vscode env_keep += "OPENAI_API_KEY ANTHROPIC_API_KEY GITHUB_TOKEN GPT_UIO_YELLOW_API_KEY GPT_UIO_RED_API_KEY"' \
     'vscode ALL=(root) NOPASSWD: /bin/cat /var/run/secrets/nono/providers/*' \
+    'vscode ALL=(agent) NOPASSWD: /usr/bin/mkdir -p /home/agent/.config' \
+    'vscode ALL=(agent) NOPASSWD: /usr/bin/rm -rf /home/agent/.config/opencode' \
+    'vscode ALL=(agent) NOPASSWD: /usr/bin/ln -sfn /workspaces/dotfiles/main/.config/opencode /home/agent/.config/opencode' \
+    'vscode ALL=(agent) NOPASSWD: /usr/bin/ln -sfn /workspaces/dotfiles/work/*/.config/opencode /home/agent/.config/opencode' \
     'vscode ALL=(root) NOPASSWD: /usr/local/libexec/dotfiles-generate-nono-profile --template * --runtime * --output-dir /etc/nono/profiles/runtime' \
     'vscode ALL=(root) NOPASSWD: /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* PATH=* LD_PRELOAD=* LD_LIBRARY_PATH=* PYTHONPATH=* DYLD_INSERT_LIBRARIES=* /usr/bin/setpriv --reuid=* --regid=* --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp /usr/local/bin/nono run --profile * -- /usr/bin/env OPENCODE_CONFIG_CONTENT=* /usr/local/bin/opencode-raw *' \
     > /tmp/99-dotfiles-nono \
     && sudo mv /tmp/99-dotfiles-nono /etc/sudoers.d/99-dotfiles-nono \
     && sudo chown root:root /etc/sudoers.d/99-dotfiles-nono \
     && sudo chmod 0440 /etc/sudoers.d/99-dotfiles-nono \
+    && if [ "${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL}" != "1" ]; then sudo rm -f /etc/sudoers.d/vscode; fi \
     && sudo visudo -cf /etc/sudoers.d/99-dotfiles-nono
 
 # Unbuffered Python outputs for e.g. Kubernetes

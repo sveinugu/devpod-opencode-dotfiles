@@ -52,6 +52,8 @@ grep -F 'HUB_WORKSPACE_ROOT=/workspaces/dotfiles /tmp/dotfiles-provision-staging
 grep -F -- '--runtime-output "$HUB_INSTALL_BRANCH_DIR/.config/opencode/provider-runtime.json" --verification-output "$HUB_INSTALL_BRANCH_DIR/.config/opencode/provider-verification.json"' "$cfg" >/dev/null || fail "provision pipeline should generate install-branch runtime and verification provider outputs"
 grep -F 'provider_manifest=/workspaces/dotfiles/state/hub/etc/provider-enablement.json' "$cfg" >/dev/null || fail "provision pipeline should define canonical host-local provider enablement manifest path before sync"
 grep -F 'provider_seed="$HUB_INSTALL_BRANCH_DIR/.config/opencode/provider-enablement.seed.json"' "$cfg" >/dev/null || fail "provision pipeline should define install-branch provider enablement seed path"
+grep -Eq '^\s{4}buildArgs:\s*$' "$cfg" || fail "workspace image should define buildArgs"
+grep -F 'DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL: ${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL:-0}' "$cfg" >/dev/null || fail "workspace image should wire DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL build arg with safe default"
 grep -F 'if [ ! -f "$provider_manifest" ]; then' "$cfg" >/dev/null || fail "provision pipeline should guard missing host-local provider enablement manifest"
 grep -F 'cp "$provider_seed" "$provider_manifest"' "$cfg" >/dev/null || fail "provision pipeline should bootstrap missing enablement manifest from repo seed"
 grep -F 'refused: provider enablement manifest missing and seed not found' "$cfg" >/dev/null || fail "provision pipeline should fail closed when neither manifest nor seed exists"

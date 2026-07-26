@@ -33,6 +33,10 @@ check_fixed "$policy" '## In scope vs. out of scope' 'policy scope-plain-languag
 check_fixed "$policy" '- In scope: the repo-supported secure path reached by invoking `opencode` from `PATH` after install.' 'policy in-scope bullet'
 check_fixed "$policy" '- Out of scope: intentionally invoking `/usr/local/bin/opencode-raw` directly or using ad hoc user-defined providers outside this repo contract.' 'policy out-of-scope bullet'
 check_fixed "$policy" '## Scope & authority' 'policy scope section'
+check_fixed "$policy" 'Build-time sudoers toggle (workspace image only):' 'policy build-time sudoers toggle section'
+check_fixed "$policy" '- `DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=0` (default) removes `/etc/sudoers.d/vscode` and keeps constrained sudoers rules only.' 'policy build-time toggle hardened default'
+check_fixed "$policy" '- `DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1` keeps broad `vscode` sudo for temporary local debugging.' 'policy build-time toggle debug override'
+check_fixed "$policy" '- This toggle changes operator convenience only; the supported secure launch path and its constrained wrapper contracts remain the canonical production-like target.' 'policy build-time toggle scope clarification'
 check_fixed "$policy" '## What nono does by default' 'policy upstream-defaults section'
 check_fixed "$policy" 'The upstream engine default is not the same thing as the stock `default` profile or the stock `opencode` profile.' 'policy default-layer distinction'
 check_fixed "$policy" '### Upstream engine defaults' 'policy upstream defaults subsection'
@@ -166,6 +170,10 @@ PY
 
 check_fixed "$bare_hub" '[nono Policy](nono-policy.md)' 'bare-hub cross-link to nono policy'
 check_fixed "$lifecycle" '[nono Policy](nono-policy.md)' 'lifecycle cross-link to nono policy'
+check_fixed "$bare_hub" '/home/agent/.config/opencode' 'bare-hub notes agent opencode config symlink'
+check_fixed "$bare_hub" 'OPENCODE_CONFIG_CONTENT' 'bare-hub notes runtime config-content override'
+check_fixed "$bare_hub" 'DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1 devspace build' 'bare-hub notes debug sudo override build command'
+check_fixed "$lifecycle" 'DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1 devspace build' 'lifecycle notes debug sudo override build command'
 
 if [ "$fail" -eq 0 ]; then
     printf 'PASS test_nono_policy_runbook_contract\n'
