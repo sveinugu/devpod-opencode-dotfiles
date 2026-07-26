@@ -109,6 +109,15 @@ Purpose: track operational/security changes implemented between full spec/plan c
   - keep build-time `DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL` gate behavior unchanged
 - rationale: avoid build failures when `/tmp` ownership/mode checks block `sudo` usage during Docker build while preserving constrained sudo policy semantics.
 
+### 2026-07-26 · `343efd0` — Sudoers runtime rule now matches wrapped OpenCode env chain exactly
+
+- scope: `Dockerfile`, nono runbook + sudoers/wrapper contract tests
+- change:
+  - constrained sudoers allowlist for the `setpriv -> nono -> opencode-raw` launch chain now includes the wrapped child `/usr/bin/env` assignment prefix (`HOME`, XDG paths, `OPENCODE_CONFIG_CONTENT`) exactly as invoked by `.config/opencode/bin/opencode`
+  - test fixtures now emulate `id -u/-g agent` resolution in wrapper contract tests so the constrained launch path remains verifiable in non-agent local test environments
+  - runbook contract anchors updated to document the exact runtime env-prefix match requirement
+- rationale: resolve false sudo password prompts and launch denials caused by command-pattern drift between sudoers allowlist and actual wrapped runtime invocation.
+
 ## Commit-range review notes
 
 Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current `HEAD`.
