@@ -118,6 +118,16 @@ Purpose: track operational/security changes implemented between full spec/plan c
   - runbook contract anchors updated to document the exact runtime env-prefix match requirement
 - rationale: resolve false sudo password prompts and launch denials caused by command-pattern drift between sudoers allowlist and actual wrapped runtime invocation.
 
+### 2026-07-26 · `63140b5` — Root-owned launch helper contract replaces inline sudoers runtime chain
+
+- scope: `.config/opencode/bin/opencode`, `scripts/lib/launch-opencode-nono.sh`, `Dockerfile`, nono runbook + contract tests
+- change:
+  - add root-owned launch helper (`/usr/local/libexec/dotfiles-launch-opencode-nono`) that validates absolute executable paths, pinned basenames, numeric uid/gid, and runtime path inputs before executing `setpriv -> nono -> opencode-raw`
+  - wrapper now delegates the runtime handoff to that helper via `sudo -n -- "$launch_helper" ...` instead of embedding the full chain inline
+  - Dockerfile now installs the helper and narrows sudoers runtime allowance to the helper command contract
+  - tests/runbook anchors updated to enforce the helper-based handoff contract and runtime-env pinning behavior
+- rationale: reduce sudoers drift risk from long inline command-pattern matching while keeping least-privilege launch boundaries explicit and verifiable.
+
 ## Commit-range review notes
 
 Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current `HEAD`.
