@@ -80,6 +80,15 @@ Purpose: track operational/security changes implemented between full spec/plan c
   - runbook/tests updated to enforce the new ACL/trust/profile contracts
 - rationale: remove post-provision manual fixes required for cross-user git workflows and restore deterministic session/project visibility for wrapped OpenCode runs.
 
+### 2026-07-26 · `f77c95f` — Install now links OpenCode config for both `vscode` and `agent` homes
+
+- scope: `scripts/lib/install/materialize.sh`, `tests/install/test_install_local_source_contract.sh`
+- change:
+  - install keeps linking `<home>/.config/opencode` for `vscode` and now also links `/home/agent/.config/opencode` side-by-side to the same source tree
+  - shared `install_link_path` now supports optional sudo-as-user linking so privileged agent-home linking reuses the same code path instead of a custom helper
+  - install contract tests now verify both dry-run and applied agent-side symlink behavior
+- rationale: keep one canonical repo-owned OpenCode config tree while ensuring both runtime identities resolve it consistently under the secure launch chain.
+
 ## Commit-range review notes
 
 Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current `HEAD`.
