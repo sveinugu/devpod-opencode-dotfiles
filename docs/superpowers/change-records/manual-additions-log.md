@@ -136,6 +136,16 @@ Purpose: track operational/security changes implemented between full spec/plan c
   - simplify agent-home link replacement flow to `sudo -n -u <agent> rm -rf <target> && ln -sfn ...` and remove intermediate `sudo ... test` probes
 - rationale: fix real-world provision failures where constrained sudoers allows mkdir/rm/ln but not `test`, which previously triggered `sudo: a password is required` despite a valid least-privilege sudoers profile.
 
+### 2026-07-26 · `bf6d3a5` — Helper-only secure launch + explicit debug sudoers file contract
+
+- scope: `.config/opencode/bin/opencode`, `Dockerfile`, `devspace.yaml`, runbooks + contract tests
+- change:
+  - remove fallback launch duplication and keep one runtime path: wrapper requires executable root-owned helper (`/usr/local/libexec/dotfiles-launch-opencode-nono`) and launches only through that helper
+  - update debug sudo mode so `DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1` installs/validates an explicit sudoers file (`/etc/sudoers.d/99-dotfiles-vscode-debug`) containing `vscode ALL=(ALL) NOPASSWD:ALL`
+  - keep hardened mode by removing broad sudoers grants when the flag is not `1`
+  - require explicit build-mode invocation in docs (`DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=0|1 devspace build`) and align tests/contracts
+- rationale: eliminate launch-path drift risk while making debug sudo behavior deterministic across image rebuilds.
+
 ## Commit-range review notes
 
 Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current `HEAD`.
