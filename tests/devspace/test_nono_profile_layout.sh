@@ -34,6 +34,7 @@ for credential in '"openai"' '"anthropic"' '"github-copilot"' '"gpt-uio-yellow"'
 done
 
 grep -F '"$HOME/.gitconfig"' "$profile" >/dev/null || fail "profile should allow read-only access to home git config for safe.directory trust"
+grep -F '"/etc/gitconfig"' "$profile" >/dev/null || fail "profile should allow read-only access to system git config for safe.directory trust"
 grep -F '"$HOME/.local/state/opencode"' "$profile" >/dev/null || fail "profile should allow explicit opencode runtime state root path for nested state writes"
 python3 - "$profile" <<'PY' || fail "profile should grant /usr/local/bin/opencode-raw as filesystem.allow_file (not directory allow)"
 import json
@@ -76,7 +77,11 @@ for path in required_readwrite:
 
 if '$HOME/.gitconfig' not in read_paths:
     raise SystemExit(1)
+if '/etc/gitconfig' not in read_paths:
+    raise SystemExit(1)
 if '$HOME/.gitconfig' in allow_paths:
+    raise SystemExit(1)
+if '/etc/gitconfig' in allow_paths:
     raise SystemExit(1)
 PY
 
