@@ -36,7 +36,7 @@ grep -F 'OPENCODE_RAW_BINARY' "$wrapper" >/dev/null || fail "wrapper must suppor
 grep -F '$source_root/.config/opencode/provider-runtime.json' "$wrapper" >/dev/null || fail "wrapper must default runtime provider config path to install-branch output"
 grep -F '/etc/nono/profiles/devspace-opencode-secure.jsonc' "$wrapper" >/dev/null || fail "wrapper must default profile template path to /etc/nono/profiles"
 grep -F '/usr/local/libexec/dotfiles-generate-nono-profile' "$wrapper" >/dev/null || fail "wrapper must default generated profile writer path to root-owned helper"
-grep -F '$source_root/scripts/lib/launch-opencode-nono.sh' "$wrapper" >/dev/null || fail "wrapper must default launch helper path to install-branch helper"
+grep -F '/usr/local/libexec/dotfiles-launch-opencode-nono' "$wrapper" >/dev/null || fail "wrapper must default launch helper path to root-owned helper"
 grep -F '/etc/nono/profiles/runtime' "$wrapper" >/dev/null || fail "wrapper must default generated profile output directory to root-owned runtime profile path"
 grep -F '/usr/local/bin/nono' "$wrapper" >/dev/null || fail "wrapper must default nono binary path to /usr/local/bin/nono"
 grep -F '/usr/local/bin/opencode-raw' "$wrapper" >/dev/null || fail "wrapper must default raw opencode binary path to root-owned /usr/local/bin/opencode-raw"

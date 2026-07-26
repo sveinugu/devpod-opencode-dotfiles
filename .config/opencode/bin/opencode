@@ -21,7 +21,7 @@ opencode_xdg_state_home="${HUB_OPENCODE_RUNTIME_XDG_STATE_HOME:-/home/agent/.loc
 runtime_path="${HUB_NONO_RUNTIME_PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin}"
 generated_profile_writer="${HUB_NONO_GENERATED_PROFILE_WRITER:-/usr/local/libexec/dotfiles-generate-nono-profile}"
 generated_profile_dir="${HUB_NONO_GENERATED_PROFILE_DIR:-/etc/nono/profiles/runtime}"
-launch_helper="${HUB_NONO_LAUNCH_HELPER:-$source_root/scripts/lib/launch-opencode-nono.sh}"
+launch_helper="${HUB_NONO_LAUNCH_HELPER:-/usr/local/libexec/dotfiles-launch-opencode-nono}"
 
 agent_uid="$(id -u "$agent_user" 2>/dev/null || true)"
 agent_gid="$(id -g "$agent_user" 2>/dev/null || true)"

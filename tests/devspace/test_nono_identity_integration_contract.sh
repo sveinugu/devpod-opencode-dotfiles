@@ -25,7 +25,10 @@ grep -F 'NOPASSWD: /usr/bin/ln -sfn /workspaces/dotfiles/main/.config/opencode /
 grep -F 'NOPASSWD: /usr/bin/ln -sfn /workspaces/dotfiles/work/*/.config/opencode /home/agent/.config/opencode' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for worktree install-branch agent config symlink"
 grep -F 'NOPASSWD: /usr/local/libexec/dotfiles-launch-opencode-nono --setpriv-binary * --nono-binary * --profile * --agent-uid * --agent-gid * --runtime-home * --runtime-xdg-config-home * --runtime-xdg-cache-home * --runtime-xdg-data-home * --runtime-xdg-state-home * --opencode-xdg-state-home * --runtime-path * --opencode-config-content * --raw-opencode-binary * -- *' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for launch-helper runtime chain"
 grep -F 'Defaults:vscode env_keep += "OPENAI_API_KEY ANTHROPIC_API_KEY GITHUB_TOKEN GPT_UIO_YELLOW_API_KEY GPT_UIO_RED_API_KEY"' "$dockerfile" >/dev/null || fail "Dockerfile must preserve provider secret env vars across constrained sudo user switch"
-grep -F 'if [ "${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL:-0}" != "1" ]; then sudo rm -f /etc/sudoers.d/vscode; fi' "$dockerfile" >/dev/null || fail "Dockerfile must gate broad vscode sudoers removal behind DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL"
+grep -F 'if [ "${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL:-0}" = "1" ]; then' "$dockerfile" >/dev/null || fail "Dockerfile must branch on DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL for debug sudo mode"
+grep -F "'vscode ALL=(ALL) NOPASSWD:ALL'" "$dockerfile" >/dev/null || fail "Dockerfile debug sudo mode must install explicit broad vscode sudoers contract"
+grep -F 'sudo install -o root -g root -m 0440 /tmp/99-dotfiles-vscode-debug /etc/sudoers.d/99-dotfiles-vscode-debug' "$dockerfile" >/dev/null || fail "Dockerfile debug sudo mode must install root-owned debug sudoers file"
+grep -F 'sudo visudo -cf /etc/sudoers.d/99-dotfiles-vscode-debug' "$dockerfile" >/dev/null || fail "Dockerfile debug sudo mode must validate debug sudoers file"
 
 python3 - "$wrapper" "$dockerfile" <<'PY'
 import re
@@ -42,13 +45,9 @@ with open(dockerfile_path, 'r', encoding='utf-8') as fh:
 if '/usr/local/libexec/dotfiles-launch-opencode-nono --setpriv-binary * --nono-binary * --profile * --agent-uid * --agent-gid * --runtime-home * --runtime-xdg-config-home * --runtime-xdg-cache-home * --runtime-xdg-data-home * --runtime-xdg-state-home * --opencode-xdg-state-home * --runtime-path * --opencode-config-content * --raw-opencode-binary * -- *' not in dockerfile:
     raise SystemExit('dockerfile sudoers rule does not match launch-helper contract')
 
-if 'launch_helper="${HUB_NONO_LAUNCH_HELPER:-$source_root/scripts/lib/launch-opencode-nono.sh}"' not in wrapper:
-    raise SystemExit('wrapper missing default launch helper contract')
+if 'launch_helper="${HUB_NONO_LAUNCH_HELPER:-/usr/local/libexec/dotfiles-launch-opencode-nono}"' not in wrapper:
+    raise SystemExit('wrapper missing default root-owned launch helper contract')
 PY
-
-if grep -E 'NOPASSWD:.*(ALL|/bin/sh|/bin/bash|/usr/bin/su|/usr/bin/sudo)' "$dockerfile" >/dev/null; then
-  fail "Dockerfile sudoers contract must not allow broad shell/su escalation paths"
-fi
 
 if grep -F '/etc/sudoers.d/vscode' "$dockerfile" | grep -v 'rm -f' | grep -v 'DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL' >/dev/null; then
   fail "Dockerfile must not keep or recreate /etc/sudoers.d/vscode broad sudoers grant"

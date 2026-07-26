@@ -117,7 +117,15 @@ RUN printf '%s\n' \
     && sudo install -o root -g root -m 0440 /tmp/99-dotfiles-nono /etc/sudoers.d/99-dotfiles-nono \
     && sudo visudo -cf /etc/sudoers.d/99-dotfiles-nono \
     && sudo rm -f /tmp/99-dotfiles-nono \
-    && if [ "${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL:-0}" != "1" ]; then sudo rm -f /etc/sudoers.d/vscode; fi
+    && if [ "${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL:-0}" = "1" ]; then \
+         sudo rm -f /etc/sudoers.d/vscode; \
+         printf '%s\n' 'vscode ALL=(ALL) NOPASSWD:ALL' > /tmp/99-dotfiles-vscode-debug; \
+         sudo install -o root -g root -m 0440 /tmp/99-dotfiles-vscode-debug /etc/sudoers.d/99-dotfiles-vscode-debug; \
+         sudo visudo -cf /etc/sudoers.d/99-dotfiles-vscode-debug; \
+         sudo rm -f /tmp/99-dotfiles-vscode-debug; \
+       else \
+         sudo rm -f /etc/sudoers.d/vscode /etc/sudoers.d/99-dotfiles-vscode-debug; \
+       fi
 
 # Unbuffered Python outputs for e.g. Kubernetes
 ENV PYTHONUNBUFFERED=1

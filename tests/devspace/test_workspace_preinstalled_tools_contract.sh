@@ -72,7 +72,9 @@ if [ "$useradd_line" -gt "$user_vscode_line" ]; then
 fi
 
 grep -F '/etc/sudoers.d/99-dotfiles-nono' "$dockerfile" >/dev/null || fail "Dockerfile must install constrained sudoers contract for non-interactive agent-run helper path"
-grep -F 'if [ "${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL:-0}" != "1" ]; then sudo rm -f /etc/sudoers.d/vscode; fi' "$dockerfile" >/dev/null || fail "Dockerfile must gate broad vscode sudoers removal behind DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL"
+grep -F 'if [ "${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL:-0}" = "1" ]; then' "$dockerfile" >/dev/null || fail "Dockerfile must branch on DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL for debug sudo mode"
+grep -F "'vscode ALL=(ALL) NOPASSWD:ALL'" "$dockerfile" >/dev/null || fail "Dockerfile debug sudo mode must define explicit broad vscode sudoers contract"
+grep -F '/etc/sudoers.d/99-dotfiles-vscode-debug' "$dockerfile" >/dev/null || fail "Dockerfile debug sudo mode must manage dedicated debug sudoers file"
 grep -F '/usr/local/bin/nono' "$dockerfile" >/dev/null || fail "Dockerfile must manage root-owned /usr/local/bin/nono"
 grep -F '/usr/local/libexec/dotfiles-generate-nono-profile' "$dockerfile" >/dev/null || fail "Dockerfile must install root-owned generated profile writer helper"
 grep -F '/usr/local/libexec/dotfiles-launch-opencode-nono' "$dockerfile" >/dev/null || fail "Dockerfile must install root-owned launch helper for constrained runtime handoff"

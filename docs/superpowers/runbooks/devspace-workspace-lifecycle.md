@@ -132,7 +132,7 @@ Bootstrap guardrail for first-time provision:
 ## Rebuild workspace image
 
 ```bash
-devspace build
+DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=0 devspace build
 ```
 
 Optional local-development override to keep broad `sudo` during image iteration:
