@@ -102,6 +102,7 @@ check_fixed "$policy" 'Real provider secrets are loaded before sandbox entry by 
 check_fixed "$policy" 'The important handoff detail is that these secrets are not ordinary interactive-shell environment variables.' 'policy secret handoff intro'
 check_fixed "$policy" 'They are read from `/var/run/secrets/nono/providers` during the constrained pre-sandbox helper step, preserved only across the one documented `sudo` handoff, and then consumed by the wrapped launch path for proxy setup and launch.' 'policy secret handoff explicit sentence'
 check_fixed "$policy" 'The sudoers contract keeps only the launch-step provider variables needed for that handoff; it is not a general-purpose shell inheritance path.' 'policy sudoers handoff clarification'
+check_fixed "$policy" '/usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* OPENCODE_CONFIG_CONTENT=* /usr/local/bin/opencode-raw *' 'policy sudoers runtime env contract anchor'
 check_fixed "$policy" 'Credential routes configured in this profile are exactly `openai`, `anthropic`, `github-copilot`, `gpt-uio-yellow`, and `gpt-uio-red`.' 'policy credential route list'
 check_fixed "$policy" '## Change policy' 'policy change section'
 check_fixed "$policy" '- how to add a new writable path/provider safely' 'policy change writable-path rule'

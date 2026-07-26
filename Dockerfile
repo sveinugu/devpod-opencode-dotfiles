@@ -106,7 +106,7 @@ RUN printf '%s\n' \
     'vscode ALL=(agent) NOPASSWD: /usr/bin/ln -sfn /workspaces/dotfiles/main/.config/opencode /home/agent/.config/opencode' \
     'vscode ALL=(agent) NOPASSWD: /usr/bin/ln -sfn /workspaces/dotfiles/work/*/.config/opencode /home/agent/.config/opencode' \
     'vscode ALL=(root) NOPASSWD: /usr/local/libexec/dotfiles-generate-nono-profile --template * --runtime * --output-dir /etc/nono/profiles/runtime' \
-    'vscode ALL=(root) NOPASSWD: /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* PATH=* LD_PRELOAD=* LD_LIBRARY_PATH=* PYTHONPATH=* DYLD_INSERT_LIBRARIES=* /usr/bin/setpriv --reuid=* --regid=* --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp /usr/local/bin/nono run --profile * -- /usr/bin/env OPENCODE_CONFIG_CONTENT=* /usr/local/bin/opencode-raw *' \
+    'vscode ALL=(root) NOPASSWD: /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* PATH=* LD_PRELOAD=* LD_LIBRARY_PATH=* PYTHONPATH=* DYLD_INSERT_LIBRARIES=* /usr/bin/setpriv --reuid=* --regid=* --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp /usr/local/bin/nono run --profile * -- /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* OPENCODE_CONFIG_CONTENT=* /usr/local/bin/opencode-raw *' \
     > /tmp/99-dotfiles-nono \
     && sudo install -o root -g root -m 0440 /tmp/99-dotfiles-nono /etc/sudoers.d/99-dotfiles-nono \
     && sudo visudo -cf /etc/sudoers.d/99-dotfiles-nono \

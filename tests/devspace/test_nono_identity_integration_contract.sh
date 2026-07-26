@@ -23,7 +23,7 @@ grep -F 'NOPASSWD: /usr/bin/mkdir -p /home/agent/.config' "$dockerfile" >/dev/nu
 grep -F 'NOPASSWD: /usr/bin/rm -rf /home/agent/.config/opencode' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for replacing stale agent opencode config target"
 grep -F 'NOPASSWD: /usr/bin/ln -sfn /workspaces/dotfiles/main/.config/opencode /home/agent/.config/opencode' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for main install-branch agent config symlink"
 grep -F 'NOPASSWD: /usr/bin/ln -sfn /workspaces/dotfiles/work/*/.config/opencode /home/agent/.config/opencode' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for worktree install-branch agent config symlink"
-grep -F 'NOPASSWD: /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* PATH=* LD_PRELOAD=* LD_LIBRARY_PATH=* PYTHONPATH=* DYLD_INSERT_LIBRARIES=* /usr/bin/setpriv --reuid=* --regid=* --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp /usr/local/bin/nono run --profile * -- /usr/bin/env OPENCODE_CONFIG_CONTENT=* /usr/local/bin/opencode-raw *' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for setpriv-before-nono launch chain"
+grep -F 'NOPASSWD: /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* PATH=* LD_PRELOAD=* LD_LIBRARY_PATH=* PYTHONPATH=* DYLD_INSERT_LIBRARIES=* /usr/bin/setpriv --reuid=* --regid=* --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp /usr/local/bin/nono run --profile * -- /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* OPENCODE_CONFIG_CONTENT=* /usr/local/bin/opencode-raw *' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for setpriv-before-nono launch chain"
 grep -F 'Defaults:vscode env_keep += "OPENAI_API_KEY ANTHROPIC_API_KEY GITHUB_TOKEN GPT_UIO_YELLOW_API_KEY GPT_UIO_RED_API_KEY"' "$dockerfile" >/dev/null || fail "Dockerfile must preserve provider secret env vars across constrained sudo user switch"
 grep -F 'if [ "${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL:-0}" != "1" ]; then sudo rm -f /etc/sudoers.d/vscode; fi' "$dockerfile" >/dev/null || fail "Dockerfile must gate broad vscode sudoers removal behind DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL"
 
@@ -44,7 +44,7 @@ if not match:
     raise SystemExit('wrapper missing default raw_opencode_binary contract')
 
 default_path = match.group(1)
-expected_rule = f'NOPASSWD: /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* PATH=* LD_PRELOAD=* LD_LIBRARY_PATH=* PYTHONPATH=* DYLD_INSERT_LIBRARIES=* /usr/bin/setpriv --reuid=* --regid=* --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp /usr/local/bin/nono run --profile * -- /usr/bin/env OPENCODE_CONFIG_CONTENT=* {default_path} *'
+expected_rule = f'NOPASSWD: /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* PATH=* LD_PRELOAD=* LD_LIBRARY_PATH=* PYTHONPATH=* DYLD_INSERT_LIBRARIES=* /usr/bin/setpriv --reuid=* --regid=* --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp /usr/local/bin/nono run --profile * -- /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* OPENCODE_CONFIG_CONTENT=* {default_path} *'
 
 if expected_rule not in dockerfile:
     raise SystemExit('dockerfile sudoers rule does not match wrapper default raw binary path')

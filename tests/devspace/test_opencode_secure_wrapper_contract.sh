@@ -38,7 +38,7 @@ grep -F '/usr/local/libexec/dotfiles-generate-nono-profile' "$wrapper" >/dev/nul
 grep -F '/etc/nono/profiles/runtime' "$wrapper" >/dev/null || fail "wrapper must default generated profile output directory to root-owned runtime profile path"
 grep -F '/usr/local/bin/nono' "$wrapper" >/dev/null || fail "wrapper must default nono binary path to /usr/local/bin/nono"
 grep -F '/usr/local/bin/opencode-raw' "$wrapper" >/dev/null || fail "wrapper must default raw opencode binary path to root-owned /usr/local/bin/opencode-raw"
-grep -F 'sudo -n -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$runtime_xdg_state_home" PATH="$runtime_path" LD_PRELOAD= LD_LIBRARY_PATH= PYTHONPATH= DYLD_INSERT_LIBRARIES= "$setpriv_binary" --reuid="$agent_uid" --regid="$agent_gid" --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp "$nono_binary" run --profile "$profile_path"' "$wrapper" >/dev/null || fail "wrapper must launch nono through setpriv-before-nono chain"
+grep -F 'sudo -n -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$runtime_xdg_state_home" PATH="$runtime_path" LD_PRELOAD= LD_LIBRARY_PATH= PYTHONPATH= DYLD_INSERT_LIBRARIES= "$setpriv_binary" --reuid="$agent_uid" --regid="$agent_gid" --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp "$nono_binary" run --profile "$profile_path" -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$opencode_xdg_state_home" OPENCODE_CONFIG_CONTENT=' "$wrapper" >/dev/null || fail "wrapper must launch nono through setpriv-before-nono chain"
 grep -F 'HUB_NONO_RUNTIME_PATH' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime PATH contract"
 
 tmp_root="$(mktemp -d "$repo_root/.tmp-opencode-wrapper-XXXXXX")"
@@ -54,6 +54,7 @@ raw_binary="$tmp_root/opencode-real"
 setpriv_binary="$mock_bin/setpriv"
 generated_profile_dir="$tmp_root/generated-profiles"
 generated_profile_writer="$tmp_root/generate-nono-profile"
+mock_passwd="$tmp_root/passwd"
 
 mkdir -p "$helper_root" "$profile_root" "$secret_root" "$mock_bin" "$generated_profile_dir"
 
@@ -151,6 +152,21 @@ fi
 "$@"
 EOF
 chmod +x "$mock_bin/sudo"
+
+cat >"$mock_bin/id" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+if [ "$#" -eq 2 ] && [ "$1" = "-u" ] && [ "$2" = "agent" ]; then
+  printf '1001\n'
+  exit 0
+fi
+if [ "$#" -eq 2 ] && [ "$1" = "-g" ] && [ "$2" = "agent" ]; then
+  printf '1001\n'
+  exit 0
+fi
+/usr/bin/id "$@"
+EOF
+chmod +x "$mock_bin/id"
 
 cat >"$setpriv_binary" <<'EOF'
 #!/usr/bin/env bash

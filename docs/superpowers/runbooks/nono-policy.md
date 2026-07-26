@@ -194,6 +194,12 @@ The important handoff detail is that these secrets are not ordinary interactive-
 They are read from `/var/run/secrets/nono/providers` during the constrained pre-sandbox helper step, preserved only across the one documented `sudo` handoff, and then consumed by the wrapped launch path for proxy setup and launch.
 The sudoers contract keeps only the launch-step provider variables needed for that handoff; it is not a general-purpose shell inheritance path.
 
+The constrained sudoers runtime launch rule explicitly includes the wrapped child `/usr/bin/env` assignment prefix (`HOME`, `XDG_CONFIG_HOME`, `XDG_CACHE_HOME`, `XDG_DATA_HOME`, `XDG_STATE_HOME`, `OPENCODE_CONFIG_CONTENT`) before `/usr/local/bin/opencode-raw` so the allowed command pattern matches the actual wrapper invocation exactly.
+
+Contract anchor shape:
+
+- `/usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* OPENCODE_CONFIG_CONTENT=* /usr/local/bin/opencode-raw *`
+
 Credential routes configured in this profile are exactly `openai`, `anthropic`, `github-copilot`, `gpt-uio-yellow`, and `gpt-uio-red`.
 Their configured upstreams are:
 
