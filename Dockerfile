@@ -108,11 +108,10 @@ RUN printf '%s\n' \
     'vscode ALL=(root) NOPASSWD: /usr/local/libexec/dotfiles-generate-nono-profile --template * --runtime * --output-dir /etc/nono/profiles/runtime' \
     'vscode ALL=(root) NOPASSWD: /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* PATH=* LD_PRELOAD=* LD_LIBRARY_PATH=* PYTHONPATH=* DYLD_INSERT_LIBRARIES=* /usr/bin/setpriv --reuid=* --regid=* --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp /usr/local/bin/nono run --profile * -- /usr/bin/env OPENCODE_CONFIG_CONTENT=* /usr/local/bin/opencode-raw *' \
     > /tmp/99-dotfiles-nono \
-    && sudo mv /tmp/99-dotfiles-nono /etc/sudoers.d/99-dotfiles-nono \
-    && sudo chown root:root /etc/sudoers.d/99-dotfiles-nono \
-    && sudo chmod 0440 /etc/sudoers.d/99-dotfiles-nono \
-    && if [ "${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL}" != "1" ]; then sudo rm -f /etc/sudoers.d/vscode; fi \
-    && sudo visudo -cf /etc/sudoers.d/99-dotfiles-nono
+    && sudo install -o root -g root -m 0440 /tmp/99-dotfiles-nono /etc/sudoers.d/99-dotfiles-nono \
+    && sudo visudo -cf /etc/sudoers.d/99-dotfiles-nono \
+    && sudo rm -f /tmp/99-dotfiles-nono \
+    && if [ "${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL:-0}" != "1" ]; then sudo rm -f /etc/sudoers.d/vscode; fi
 
 # Unbuffered Python outputs for e.g. Kubernetes
 ENV PYTHONUNBUFFERED=1
