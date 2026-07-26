@@ -15,7 +15,8 @@
   "filesystem": {
     "read": [
       "$WORKDIR/.zshrc",
-      "$WORKDIR/.zprofile"
+      "$WORKDIR/.zprofile",
+      "$HOME/.gitconfig"
     ],
     "allow_file": [
       "/usr/local/bin/opencode-raw"

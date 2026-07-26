@@ -70,6 +70,7 @@ check_fixed "$policy" '- `/home/agent/.local/share/opencode` (`$XDG_DATA_HOME/op
 check_fixed "$policy" '- `/home/agent/.local/share/opentui` (`$XDG_DATA_HOME/opentui`) — read+write' 'policy xdg data opentui grant'
 check_fixed "$policy" '- `/home/agent/.local/state/opencode` (derived from `$HOME/.local/state/opencode` in the profile template) — read+write' 'policy xdg state grant'
 check_fixed "$policy" '- `/home/agent/.opencode` (`$HOME/.opencode`) — read+write' 'policy home opencode grant'
+check_fixed "$policy" '- `/home/agent/.gitconfig` (`$HOME/.gitconfig`) — read-only, so git `safe.directory` trust config is visible without granting write to home-level git config' 'policy home gitconfig read grant'
 check_fixed "$policy" '- `/tmp` — read+write temporary workspace' 'policy tmp grant'
 check_fixed "$policy" '- `/usr/local/bin/opencode-raw` (`allow_file`) — single-file read/execute target, not directory access' 'policy raw binary allow-file grant'
 check_fixed "$policy" 'Worktree-dependent grants are:' 'policy worktree-dependent grant intro'
@@ -147,6 +148,7 @@ assert_in_order([
     '- `/home/agent/.local/share/opentui` (`$XDG_DATA_HOME/opentui`) — read+write',
     '- `/home/agent/.local/state/opencode` (derived from `$HOME/.local/state/opencode` in the profile template) — read+write',
     '- `/home/agent/.opencode` (`$HOME/.opencode`) — read+write',
+    '- `/home/agent/.gitconfig` (`$HOME/.gitconfig`) — read-only, so git `safe.directory` trust config is visible without granting write to home-level git config',
     '- `/tmp` — read+write temporary workspace',
     '- `/usr/local/bin/opencode-raw` (`allow_file`) — single-file read/execute target, not directory access',
 ], 'fixed-path-grants')

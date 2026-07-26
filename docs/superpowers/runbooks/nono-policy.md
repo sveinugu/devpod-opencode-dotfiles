@@ -122,6 +122,7 @@ Fixed-path grants for the sandboxed agent are exactly:
 - `/home/agent/.local/share/opentui` (`$XDG_DATA_HOME/opentui`) — read+write
 - `/home/agent/.local/state/opencode` (derived from `$HOME/.local/state/opencode` in the profile template) — read+write
 - `/home/agent/.opencode` (`$HOME/.opencode`) — read+write
+- `/home/agent/.gitconfig` (`$HOME/.gitconfig`) — read-only, so git `safe.directory` trust config is visible without granting write to home-level git config
 - `/tmp` — read+write temporary workspace
 - `/usr/local/bin/opencode-raw` (`allow_file`) — single-file read/execute target, not directory access
 

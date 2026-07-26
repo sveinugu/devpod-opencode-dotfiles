@@ -33,6 +33,7 @@ for credential in '"openai"' '"anthropic"' '"github-copilot"' '"gpt-uio-yellow"'
   grep -F "$credential" "$profile" >/dev/null || fail "profile missing required credential route $credential"
 done
 
+grep -F '"$HOME/.gitconfig"' "$profile" >/dev/null || fail "profile should allow read-only access to home git config for safe.directory trust"
 grep -F '"$HOME/.local/state/opencode"' "$profile" >/dev/null || fail "profile should allow explicit opencode runtime state root path for nested state writes"
 python3 - "$profile" <<'PY' || fail "profile should grant /usr/local/bin/opencode-raw as filesystem.allow_file (not directory allow)"
 import json
@@ -72,6 +73,11 @@ for path in required_readwrite:
         raise SystemExit(1)
     if path in read_paths:
         raise SystemExit(1)
+
+if '$HOME/.gitconfig' not in read_paths:
+    raise SystemExit(1)
+if '$HOME/.gitconfig' in allow_paths:
+    raise SystemExit(1)
 PY
 
 grep -F '"upstream": "https://gpt.uio.no/api/v1"' "$profile" >/dev/null || fail "profile should route UiO providers to gpt.uio.no/api/v1"
