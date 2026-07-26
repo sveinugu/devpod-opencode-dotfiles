@@ -31,7 +31,9 @@ devspace run-pipeline provision
 devspace run-pipeline doctor
 devspace run-pipeline repair
 devspace run-pipeline destroy
+devspace deploy
 devspace dev
+devspace enter -- zsh
 ```
 
 Workspace image build variants:
