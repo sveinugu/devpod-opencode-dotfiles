@@ -22,9 +22,12 @@ RUN apt-get update \
 # Install additional packages
 RUN apt-get update \
     && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends direnv emacs gh ripgrep \
+    && apt-get -y install --no-install-recommends acl direnv emacs gh ripgrep \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
+
+# Trust only workspace-managed repositories across shared runtime users.
+RUN git config --system --add safe.directory /workspaces/dotfiles/*
 
 # Install 'uv' globally
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/

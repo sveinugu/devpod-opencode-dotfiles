@@ -71,8 +71,12 @@ grep -F '/workspace-storage/home-agent/.cache/opencode' "$deployment" >/dev/null
 grep -F '/workspace-storage/home-agent/.local/share/opencode' "$deployment" >/dev/null || fail "missing init mkdir contract for /workspace-storage/home-agent/.local/share/opencode"
 grep -F '/workspace-storage/home-agent/.local/share/opentui' "$deployment" >/dev/null || fail "missing init mkdir contract for /workspace-storage/home-agent/.local/share/opentui"
 grep -F '/workspace-storage/home-agent/.opencode' "$deployment" >/dev/null || fail "missing init mkdir contract for /workspace-storage/home-agent/.opencode"
+grep -F 'touch /workspace-storage/home-agent/.gitconfig' "$deployment" >/dev/null || fail "missing init touch contract for /workspace-storage/home-agent/.gitconfig"
 grep -Eq '^\s*chown -R agent:agent /workspace-storage/home-agent\s*$' "$deployment" || fail "missing init chown contract for /workspace-storage/home-agent"
 grep -Eq '^\s*chmod 0700 /workspace-storage/home-agent\s*$' "$deployment" || fail "missing init chmod contract for /workspace-storage/home-agent"
+grep -Eq '^\s*chmod 0600 /workspace-storage/home-agent/.gitconfig\s*$' "$deployment" || fail "missing init chmod contract for /workspace-storage/home-agent/.gitconfig"
+grep -Eq '^\s*setfacl -R -m u:agent:rwX /workspace-storage/workspace-root\s*$' "$deployment" || fail "missing init acl grant contract for /workspace-storage/workspace-root"
+grep -Eq '^\s*setfacl -R -d -m u:agent:rwX /workspace-storage/workspace-root\s*$' "$deployment" || fail "missing init default acl grant contract for /workspace-storage/workspace-root"
 
 # Verify that workingDir is set explicitly for the workspace container
 grep -Eq '^\s*workingDir:\s*/workspaces/dotfiles/main\s*$' "$deployment" || fail "missing workingDir /workspaces/dotfiles/main in Deployment manifest"

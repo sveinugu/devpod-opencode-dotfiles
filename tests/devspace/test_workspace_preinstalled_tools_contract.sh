@@ -25,6 +25,8 @@ fi
 grep -F 'ARG OPENCODE_VERSION=' "$dockerfile" >/dev/null || fail "Dockerfile must pin an explicit OPENCODE_VERSION build arg"
 grep -F 'ARG OPENCODE_LINUX_X64_SHA256=' "$dockerfile" >/dev/null || fail "Dockerfile must pin OPENCODE_LINUX_X64_SHA256 build arg"
 grep -F 'ARG OPENCODE_LINUX_ARM64_SHA256=' "$dockerfile" >/dev/null || fail "Dockerfile must pin OPENCODE_LINUX_ARM64_SHA256 build arg"
+grep -E 'apt-get -y install --no-install-recommends .*\bacl\b' "$dockerfile" >/dev/null || fail "Dockerfile must install acl tooling for managed workspace ACL bootstrap"
+grep -F 'git config --system --add safe.directory /workspaces/dotfiles/*' "$dockerfile" >/dev/null || fail "Dockerfile must seed system git safe.directory trust for managed workspace paths"
 grep -F '/usr/local/bin/opencode-raw' "$dockerfile" >/dev/null || fail "Dockerfile must install root-owned opencode raw binary shim at /usr/local/bin/opencode-raw"
 grep -F '/usr/local/libexec/opencode' "$dockerfile" >/dev/null || fail "Dockerfile must install versioned opencode binaries under /usr/local/libexec/opencode"
 

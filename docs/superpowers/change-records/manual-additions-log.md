@@ -66,6 +66,17 @@ Purpose: track operational/security changes implemented between full spec/plan c
   - add updater helper with `--latest` and `--version <vX.Y.Z|X.Y.Z>` to refresh pinned version/checksums in `Dockerfile`
 - rationale: remove mixed ownership between runtime sandbox and executable source while keeping updates simple and controlled.
 
+### 2026-07-26 · `pending` — Shared-workspace git operability hardening (ACL bootstrap + trust/readability contracts)
+
+- scope: `Dockerfile`, `k8s/devspace-bare-hub/workspace-deployment.yaml`, nono profile/runbook contracts, DevSpace contract tests
+- change:
+  - image installs `acl` tooling and seeds system git trust for managed workspace repos via `safe.directory /workspaces/dotfiles/*`
+  - deployment init container bootstraps `/workspace-storage/home-agent/.gitconfig` ownership/mode and applies recursive/default ACL grants for `agent` on `/workspace-storage/workspace-root`
+  - secure nono profile grants shared bare-repo paths (`$WORKDIR/../.bare`, `$WORKDIR/../../.bare`) as read+write for branch/worktree/commit flows
+  - secure nono profile grants `$HOME/.gitconfig` as read-only so git trust config is visible in sandboxed runs
+  - runbook/tests updated to enforce the new ACL/trust/profile contracts
+- rationale: remove post-provision manual fixes required for cross-user git workflows and restore deterministic session/project visibility for wrapped OpenCode runs.
+
 ## Commit-range review notes
 
 Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current `HEAD`.
