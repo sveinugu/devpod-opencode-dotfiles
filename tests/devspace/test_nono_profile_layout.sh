@@ -26,6 +26,8 @@ fi
 grep -F '"bypass_protection"' "$profile" >/dev/null || fail "profile should use bypass_protection for explicit shell config exceptions"
 grep -F '"$WORKDIR/.zshrc"' "$profile" >/dev/null || fail "profile should declare explicit .zshrc path exception"
 grep -F '"$WORKDIR/.zprofile"' "$profile" >/dev/null || fail "profile should declare explicit .zprofile path exception"
+grep -F '"$WORKDIR/../.bare"' "$profile" >/dev/null || fail "profile should allow shared bare repo path for default-branch worktree contexts"
+grep -F '"$WORKDIR/../../.bare"' "$profile" >/dev/null || fail "profile should allow shared bare repo path for nested worktree contexts"
 
 for credential in '"openai"' '"anthropic"' '"github-copilot"' '"gpt-uio-yellow"' '"gpt-uio-red"'; do
   grep -F "$credential" "$profile" >/dev/null || fail "profile missing required credential route $credential"
@@ -50,6 +52,28 @@ if '/usr/local/bin/opencode-raw' not in allow_file:
 if '/usr/local/bin/opencode-raw' in allow_dir:
     raise SystemExit(1)
 PY
+
+python3 - "$profile" <<'PY' || fail "profile should grant shared bare repo paths as read+write"
+import json
+import sys
+
+profile_path = sys.argv[1]
+with open(profile_path, 'r', encoding='utf-8') as fh:
+    profile = json.load(fh)
+
+filesystem = profile.get('filesystem', {})
+read_paths = filesystem.get('read', [])
+allow_paths = filesystem.get('allow', [])
+
+required_readwrite = ['$WORKDIR/../.bare', '$WORKDIR/../../.bare']
+
+for path in required_readwrite:
+    if path not in allow_paths:
+        raise SystemExit(1)
+    if path in read_paths:
+        raise SystemExit(1)
+PY
+
 grep -F '"upstream": "https://gpt.uio.no/api/v1"' "$profile" >/dev/null || fail "profile should route UiO providers to gpt.uio.no/api/v1"
 grep -F '"credential_key": "env://GITHUB_TOKEN"' "$profile" >/dev/null || fail "profile should source github-copilot token from env://GITHUB_TOKEN"
 grep -F '"upstream": "https://api.githubcopilot.com"' "$profile" >/dev/null || fail "profile should route github-copilot credential injection to api.githubcopilot.com"

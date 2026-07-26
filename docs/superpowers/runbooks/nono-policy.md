@@ -99,6 +99,7 @@ The supported path is practical hardening, not a claim of absolute isolation, an
 - precreate runtime dirs via init container
 
 Plain-language summary: the sandbox gets the current worktree, a narrow set of OpenCode runtime directories under `/home/agent`, `/tmp`, and the single raw binary path — nothing broader.
+For shared bare-hub git worktrees, the profile also grants narrow read+write access to the related `.bare` repository path via `$WORKDIR/../.bare` and `$WORKDIR/../../.bare` so agent-side git operations (commit, branch, worktree) can function.
 
 The reviewed profile allows only the runtime surfaces OpenCode needs, plus the fixed raw binary path `/usr/local/bin/opencode-raw` as `allow_file`.
 Runtime state is pinned under `/home/agent` with specific XDG paths, and the deployment precreates those directories via an init container before daily use.
@@ -129,6 +130,8 @@ Worktree-dependent grants are:
 - `<current active worktree>` (`$WORKDIR`) — read+write worktree access
 - `<current active worktree>/.zprofile` (`$WORKDIR/.zprofile`) — read-only, with explicit bypass through the upstream shell-config deny group
 - `<current active worktree>/.zshrc` (`$WORKDIR/.zshrc`) — read-only, with explicit bypass through the upstream shell-config deny group
+- `<current active worktree>/../.bare` (`$WORKDIR/../.bare`) — read+write, for shared bare-repo operations when the active checkout is a default branch directory (for example `main`)
+- `<current active worktree>/../../.bare` (`$WORKDIR/../../.bare`) — read+write, for shared bare-repo operations when the active checkout is a nested worktree directory (for example `work/<branch>`)
 
 At runtime, the wrapper pins these paths under the `agent` identity, centered on `/home/agent` plus the worktree.
 

@@ -27,6 +27,8 @@
       "$XDG_DATA_HOME/opencode",
       "$XDG_DATA_HOME/opentui",
       "$HOME/.local/state/opencode",
+      "$WORKDIR/../.bare",
+      "$WORKDIR/../../.bare",
       "/tmp"
     ],
     "bypass_protection": [

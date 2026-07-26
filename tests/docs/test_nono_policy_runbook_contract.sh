@@ -76,6 +76,8 @@ check_fixed "$policy" 'Worktree-dependent grants are:' 'policy worktree-dependen
 check_fixed "$policy" '- `<current active worktree>` (`$WORKDIR`) — read+write worktree access' 'policy workdir grant'
 check_fixed "$policy" '- `<current active worktree>/.zprofile` (`$WORKDIR/.zprofile`) — read-only, with explicit bypass through the upstream shell-config deny group' 'policy zprofile grant'
 check_fixed "$policy" '- `<current active worktree>/.zshrc` (`$WORKDIR/.zshrc`) — read-only, with explicit bypass through the upstream shell-config deny group' 'policy zshrc grant'
+check_fixed "$policy" '- `<current active worktree>/../.bare` (`$WORKDIR/../.bare`) — read+write, for shared bare-repo operations when the active checkout is a default branch directory (for example `main`)' 'policy parent bare metadata grant'
+check_fixed "$policy" '- `<current active worktree>/../../.bare` (`$WORKDIR/../../.bare`) — read+write, for shared bare-repo operations when the active checkout is a nested worktree directory (for example `work/<branch>`)' 'policy nested bare metadata grant'
 check_fixed "$policy" 'The sandboxed agent is not granted broad access to `/home/agent`, `/home/agent/.local/share`, `/usr/local/bin`, or `/var/run/secrets/nono/providers`.' 'policy explicit non-grants'
 check_fixed "$policy" '## Execution chain policy' 'policy execution-chain section'
 check_fixed "$policy" '- wrapped launcher → constrained sudo → setpriv drop to `agent` → `nono` → raw `opencode`' 'policy execution chain overview'
@@ -153,6 +155,8 @@ assert_in_order([
     '- `<current active worktree>` (`$WORKDIR`) — read+write worktree access',
     '- `<current active worktree>/.zprofile` (`$WORKDIR/.zprofile`) — read-only, with explicit bypass through the upstream shell-config deny group',
     '- `<current active worktree>/.zshrc` (`$WORKDIR/.zshrc`) — read-only, with explicit bypass through the upstream shell-config deny group',
+    '- `<current active worktree>/../.bare` (`$WORKDIR/../.bare`) — read+write, for shared bare-repo operations when the active checkout is a default branch directory (for example `main`)',
+    '- `<current active worktree>/../../.bare` (`$WORKDIR/../../.bare`) — read+write, for shared bare-repo operations when the active checkout is a nested worktree directory (for example `work/<branch>`)',
 ], 'worktree-grants')
 PY
 
