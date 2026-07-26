@@ -25,10 +25,7 @@ install_link_path() {
     fi
 
     sudo -n -u "$run_as_user" /usr/bin/mkdir -p "$link_parent_dir"
-    if sudo -n -u "$run_as_user" /usr/bin/test -e "$link_path" >/dev/null 2>&1 && \
-       ! sudo -n -u "$run_as_user" /usr/bin/test -L "$link_path" >/dev/null 2>&1; then
-      sudo -n -u "$run_as_user" /usr/bin/rm -rf "$link_path"
-    fi
+    sudo -n -u "$run_as_user" /usr/bin/rm -rf "$link_path"
     sudo -n -u "$run_as_user" /usr/bin/ln -sfn "$source_path" "$link_path"
     return 0
   fi
