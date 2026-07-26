@@ -128,6 +128,14 @@ Purpose: track operational/security changes implemented between full spec/plan c
   - tests/runbook anchors updated to enforce the helper-based handoff contract and runtime-env pinning behavior
 - rationale: reduce sudoers drift risk from long inline command-pattern matching while keeping least-privilege launch boundaries explicit and verifiable.
 
+### 2026-07-26 · `592bdbc` — Provision/install sudo contract compatibility for agent config linking
+
+- scope: `scripts/lib/install/materialize.sh`, `scripts/lib/launch-opencode-nono.sh`
+- change:
+  - restore executable mode for `scripts/lib/launch-opencode-nono.sh` so wrapper default helper path is runnable from install-branch checkouts
+  - simplify agent-home link replacement flow to `sudo -n -u <agent> rm -rf <target> && ln -sfn ...` and remove intermediate `sudo ... test` probes
+- rationale: fix real-world provision failures where constrained sudoers allows mkdir/rm/ln but not `test`, which previously triggered `sudo: a password is required` despite a valid least-privilege sudoers profile.
+
 ## Commit-range review notes
 
 Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current `HEAD`.
