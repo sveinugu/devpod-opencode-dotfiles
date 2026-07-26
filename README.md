@@ -34,6 +34,16 @@ devspace run-pipeline destroy
 devspace dev
 ```
 
+Workspace image build variants:
+
+```bash
+devspace build
+DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1 devspace build
+```
+
+- default build keeps constrained sudoers-only behavior.
+- override build keeps broad `vscode` sudo (`/etc/sudoers.d/vscode`) for temporary local debugging.
+
 ### In-pod setup and navigation
 
 ```bash
