@@ -86,6 +86,7 @@ Purpose: track operational/security changes implemented between full spec/plan c
 - change:
   - install keeps linking `<home>/.config/opencode` for `vscode` and now also links `/home/agent/.config/opencode` side-by-side to the same source tree
   - shared `install_link_path` now supports optional sudo-as-user linking so privileged agent-home linking reuses the same code path instead of a custom helper
+  - runtime provider selection/credentials override still applies for agent-run OpenCode through `OPENCODE_CONFIG_CONTENT`; this addition only aligns filesystem config visibility across identities
   - install contract tests now verify both dry-run and applied agent-side symlink behavior
 - rationale: keep one canonical repo-owned OpenCode config tree while ensuring both runtime identities resolve it consistently under the secure launch chain.
 
