@@ -90,6 +90,16 @@ Purpose: track operational/security changes implemented between full spec/plan c
   - install contract tests now verify both dry-run and applied agent-side symlink behavior
 - rationale: keep one canonical repo-owned OpenCode config tree while ensuring both runtime identities resolve it consistently under the secure launch chain.
 
+### 2026-07-26 · `59377cf` — Build-time gate for broad `vscode` sudo during image iteration
+
+- scope: `Dockerfile`, `devspace.yaml`, nono/lifecycle/bare-hub runbooks, DevSpace/docs contract tests
+- change:
+  - add image build arg `DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL` (default `0`) and wire it in `devspace.yaml`
+  - default behavior removes `/etc/sudoers.d/vscode` to keep constrained sudoers boundaries only
+  - optional local override `DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1 devspace build` keeps broad `vscode` sudo for temporary debugging
+  - runbooks/tests now document and enforce both the hardened default and debug override workflow
+- rationale: keep least-privilege defaults for shared/production-like images while preserving an explicit local-development escape hatch.
+
 ## Commit-range review notes
 
 Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current `HEAD`.
