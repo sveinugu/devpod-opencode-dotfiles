@@ -6,6 +6,8 @@ Purpose: track operational/security changes implemented between full spec/plan c
 
 - Primary ordering is chronological by **commit date** (oldest first).
 - Each entry header includes **date + commit(s)** and summarizes one stable addition.
+- Prefer concrete commit hash(es) in each entry header; avoid `pending` unless no commit exists yet.
+- If an implementation change needs a log update, prefer a follow-up docs-only commit so the log can reference the implementation commit hash explicitly.
 - Entries record only **still-valid additions at current `HEAD`**.
 - Do not list implementation-only fixes that merely align existing approved behavior.
 - Do not list reverted experiments or superseded states.
@@ -66,7 +68,7 @@ Purpose: track operational/security changes implemented between full spec/plan c
   - add updater helper with `--latest` and `--version <vX.Y.Z|X.Y.Z>` to refresh pinned version/checksums in `Dockerfile`
 - rationale: remove mixed ownership between runtime sandbox and executable source while keeping updates simple and controlled.
 
-### 2026-07-26 · `0d7959b`, `09556af`, `82821df`, `e8ec602` — Shared-workspace git operability hardening (ACL bootstrap + trust/readability contracts)
+### 2026-07-26 · commit set `0d7959b`, `09556af`, `82821df`, `e8ec602` — Shared-workspace git operability hardening (ACL bootstrap + trust/readability contracts)
 
 - scope: `Dockerfile`, `k8s/devspace-bare-hub/workspace-deployment.yaml`, nono profile/runbook contracts, DevSpace contract tests
 - change:
