@@ -100,6 +100,15 @@ Purpose: track operational/security changes implemented between full spec/plan c
   - runbooks/tests now document and enforce both the hardened default and debug override workflow
 - rationale: keep least-privilege defaults for shared/production-like images while preserving an explicit local-development escape hatch.
 
+### 2026-07-26 · `ee649a3` — Atomic sudoers installation fix for root-owned build surfaces
+
+- scope: `Dockerfile`, DevSpace sudoers contract tests
+- change:
+  - replace staged sudoers move/chown/chmod sequence with atomic `install -o root -g root -m 0440` into `/etc/sudoers.d/99-dotfiles-nono`
+  - validate sudoers file before cleanup/toggles, then remove staged temp file
+  - keep build-time `DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL` gate behavior unchanged
+- rationale: avoid build failures when `/tmp` ownership/mode checks block `sudo` usage during Docker build while preserving constrained sudo policy semantics.
+
 ## Commit-range review notes
 
 Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current `HEAD`.
