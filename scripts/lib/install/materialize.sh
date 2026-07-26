@@ -3,19 +3,42 @@ set -euo pipefail
 
 install_link_path() {
   local source_path="$1"
-  local target_path="$2"
+  local link_path="$2"
+  local run_as_user="${3:-}"
+  local link_parent_dir=''
+
+  link_parent_dir="$(dirname "$link_path")"
 
   if [ "$dry_run" = true ]; then
-    printf 'DRY-RUN ln -sfn %s %s\n' "$source_path" "$target_path"
+    if [ -n "$run_as_user" ]; then
+      printf 'DRY-RUN sudo -n -u %s ln -sfn %s %s\n' "$run_as_user" "$source_path" "$link_path"
+    else
+      printf 'DRY-RUN ln -sfn %s %s\n' "$source_path" "$link_path"
+    fi
     return 0
   fi
 
-  if [ -e "$target_path" ] && [ ! -L "$target_path" ]; then
-    rm -rf "$target_path"
+  if [ -n "$run_as_user" ]; then
+    if ! command -v sudo >/dev/null 2>&1; then
+      printf 'refused: sudo is required to link %s as user %s\n' "$link_path" "$run_as_user" >&2
+      exit 1
+    fi
+
+    sudo -n -u "$run_as_user" /usr/bin/mkdir -p "$link_parent_dir"
+    if sudo -n -u "$run_as_user" /usr/bin/test -e "$link_path" >/dev/null 2>&1 && \
+       ! sudo -n -u "$run_as_user" /usr/bin/test -L "$link_path" >/dev/null 2>&1; then
+      sudo -n -u "$run_as_user" /usr/bin/rm -rf "$link_path"
+    fi
+    sudo -n -u "$run_as_user" /usr/bin/ln -sfn "$source_path" "$link_path"
+    return 0
   fi
 
-  mkdir -p "$(dirname "$target_path")"
-  ln -sfn "$source_path" "$target_path"
+  if [ -e "$link_path" ] && [ ! -L "$link_path" ]; then
+    rm -rf "$link_path"
+  fi
+
+  mkdir -p "$link_parent_dir"
+  ln -sfn "$source_path" "$link_path"
 }
 
 install_plugin() {
@@ -66,6 +89,9 @@ install_ensure_oh_my_zsh() {
 }
 
 install_materialize() {
+  local agent_user=''
+  local agent_home=''
+
   install_ensure_oh_my_zsh
 
   mkdir -p "$home_dir/.config"
@@ -82,6 +108,11 @@ install_materialize() {
   install_plugin "https://github.com/zsh-users/zsh-autosuggestions" "$zsh_custom/plugins/zsh-autosuggestions"
 
   install_link_path "$source_root/.config/opencode" "$home_dir/.config/opencode"
+  agent_user="${HUB_NONO_AGENT_USER:-agent}"
+  agent_home="${HUB_NONO_RUNTIME_HOME:-/home/agent}"
+  if [ -d "$agent_home" ] && [ "$agent_home" != "$home_dir" ]; then
+    install_link_path "$source_root/.config/opencode" "$agent_home/.config/opencode" "$agent_user"
+  fi
   install_link_path "$source_root/.config/nono" "$home_dir/.config/nono"
 
   install_run_opencode_command npx -y skills add wondelai/skills/pragmatic-programmer -y

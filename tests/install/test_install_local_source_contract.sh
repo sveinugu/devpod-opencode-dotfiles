@@ -50,6 +50,7 @@ mkdir -p \
   "$workspace_root/main/.config/nono/profiles" \
   "$workspace_root/work/feature-x/.config/opencode" \
   "$workspace_root/work/feature-x/.config/nono/profiles" \
+  "$tmpdir/agent-home" \
   "$workspace_root/state" \
   "$target_home" \
   "$offcwd"
@@ -75,7 +76,7 @@ copy_install_support_tree "$workspace_root"
 
 (
   cd "$offcwd"
-  HOME="$target_home" WORKSPACE_ROOT="$workspace_root" bash "$workspace_root/main/install.sh" --dry-run >"$tmpdir/main.out" 2>&1
+  HOME="$target_home" WORKSPACE_ROOT="$workspace_root" HUB_NONO_AGENT_USER='agent' HUB_NONO_RUNTIME_HOME="$tmpdir/agent-home" bash "$workspace_root/main/install.sh" --dry-run >"$tmpdir/main.out" 2>&1
 )
 
 [ -f "$workspace_install_env" ] || {
@@ -95,6 +96,7 @@ grep -F "export HUB_INSTALL_BRANCH_DIR=$workspace_root/main" "$workspace_install
 
 grep -F "DRY-RUN ln -sfn $workspace_root/main/.zshrc $target_home/.zshrc" "$tmpdir/main.out" >/dev/null
 grep -F "DRY-RUN ln -sfn $workspace_root/main/.config/opencode $target_home/.config/opencode" "$tmpdir/main.out" >/dev/null
+grep -F "DRY-RUN sudo -n -u agent ln -sfn $workspace_root/main/.config/opencode $tmpdir/agent-home/.config/opencode" "$tmpdir/main.out" >/dev/null
 if grep -F "DRY-RUN ln -sfn $workspace_root/main/.config/nono $target_home/.config/nono" "$tmpdir/main.out" >/dev/null; then
   :
 else
@@ -123,7 +125,7 @@ fi
 
 (
   cd "$offcwd"
-  HOME="$target_home" WORKSPACE_ROOT="$workspace_root" bash "$workspace_root/work/feature-x/install.sh" --dry-run >"$tmpdir/feature.out" 2>&1
+  HOME="$target_home" WORKSPACE_ROOT="$workspace_root" HUB_NONO_AGENT_USER='agent' HUB_NONO_RUNTIME_HOME="$tmpdir/agent-home" bash "$workspace_root/work/feature-x/install.sh" --dry-run >"$tmpdir/feature.out" 2>&1
 )
 
 grep -F "export HUB_INSTALL_BRANCH=feature-x" "$workspace_install_env" >/dev/null || {
@@ -182,6 +184,7 @@ quoted_dir="$(printf '%s' "$quoted_vars_out" | sed -n '2p')"
 
 grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.zshrc $target_home/.zshrc" "$tmpdir/feature.out" >/dev/null
 grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.config/opencode $target_home/.config/opencode" "$tmpdir/feature.out" >/dev/null
+grep -F "DRY-RUN sudo -n -u agent ln -sfn $workspace_root/work/feature-x/.config/opencode $tmpdir/agent-home/.config/opencode" "$tmpdir/feature.out" >/dev/null
 if grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.config/nono $target_home/.config/nono" "$tmpdir/feature.out" >/dev/null; then
   :
 else
@@ -249,8 +252,10 @@ grep -F "export HUB_INSTALL_BRANCH_DIR=$workspace_root/main" "$workspace_install
 workspace_reg="$tmpdir/workspace-reg"
 home_reg="$tmpdir/home-reg"
 bin_reg="$tmpdir/bin-reg"
+agent_home_reg="$tmpdir/agent-home-reg"
 mkdir -p "$workspace_reg/main/.config/opencode" "$workspace_reg/main/scripts" "$home_reg/.config/opencode" "$home_reg/.oh-my-zsh" "$bin_reg"
 mkdir -p "$workspace_reg/main/.config/nono/profiles" "$home_reg/.config/nono"
+mkdir -p "$agent_home_reg"
 touch "$home_reg/.oh-my-zsh/oh-my-zsh.sh"
 
 printf 'export REG_ZSHRC=1\n' > "$workspace_reg/main/.zshrc"
@@ -286,9 +291,19 @@ exit 0
 EOF
 chmod +x "$bin_reg/npx"
 
+cat > "$bin_reg/sudo" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+if [ "$1" = "-n" ] && [ "$2" = "-u" ]; then
+  shift 3
+fi
+exec "$@"
+EOF
+chmod +x "$bin_reg/sudo"
+
 (
   cd "$offcwd"
-  PATH="$bin_reg:$PATH" HOME="$home_reg" WORKSPACE_ROOT="$workspace_reg" bash "$workspace_reg/main/install.sh" >"$tmpdir/reg.out" 2>&1
+  PATH="$bin_reg:$PATH" HOME="$home_reg" WORKSPACE_ROOT="$workspace_reg" HUB_NONO_AGENT_USER='agent' HUB_NONO_RUNTIME_HOME="$agent_home_reg" bash "$workspace_reg/main/install.sh" >"$tmpdir/reg.out" 2>&1
 )
 
 [ -L "$home_reg/.config/opencode" ] || {
@@ -320,6 +335,17 @@ resolved_nono="$(readlink -f "$home_reg/.config/nono")"
 
 [ ! -e "$home_reg/.config/nono/stale.txt" ] || {
   printf 'expected stale nono file to be removed when replacing directory target\n' >&2
+  exit 1
+}
+
+[ -L "$agent_home_reg/.config/opencode" ] || {
+  printf 'expected agent runtime ~/.config/opencode to be a symlink after install\n' >&2
+  exit 1
+}
+
+resolved_agent_opencode="$(readlink -f "$agent_home_reg/.config/opencode")"
+[ "$resolved_agent_opencode" = "$workspace_reg/main/.config/opencode" ] || {
+  printf 'expected agent runtime ~/.config/opencode symlink target %s, got %s\n' "$workspace_reg/main/.config/opencode" "$resolved_agent_opencode" >&2
   exit 1
 }
 
