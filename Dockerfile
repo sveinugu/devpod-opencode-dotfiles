@@ -69,6 +69,7 @@ RUN sudo chsh -s /usr/bin/zsh vscode
 # Stage secure nono profile from build context for root-owned install
 COPY .config/nono/profiles/devspace-opencode-secure.jsonc /tmp/devspace-opencode-secure.jsonc
 COPY scripts/lib/generate-nono-profile.py /tmp/generate-nono-profile.py
+COPY scripts/lib/launch-opencode-nono.sh /tmp/launch-opencode-nono.sh
 
 # Install nono at image build time (slow step; isolated for caching)
 RUN curl -fsSL https://nono.sh/install.sh -o /tmp/install-nono.sh \
@@ -81,6 +82,11 @@ RUN curl -fsSL https://nono.sh/install.sh -o /tmp/install-nono.sh \
 RUN sudo install -m 0755 /tmp/generate-nono-profile.py /usr/local/libexec/dotfiles-generate-nono-profile \
     && sudo chown root:root /usr/local/libexec/dotfiles-generate-nono-profile \
     && sudo rm -f /tmp/generate-nono-profile.py
+
+# Install root-owned launch helper for constrained sudoers handoff
+RUN sudo install -m 0755 /tmp/launch-opencode-nono.sh /usr/local/libexec/dotfiles-launch-opencode-nono \
+    && sudo chown root:root /usr/local/libexec/dotfiles-launch-opencode-nono \
+    && sudo rm -f /tmp/launch-opencode-nono.sh
 
 # Install root-owned nono profile template and runtime profile directory
 RUN sudo mkdir -p /etc/nono/profiles \
@@ -106,7 +112,7 @@ RUN printf '%s\n' \
     'vscode ALL=(agent) NOPASSWD: /usr/bin/ln -sfn /workspaces/dotfiles/main/.config/opencode /home/agent/.config/opencode' \
     'vscode ALL=(agent) NOPASSWD: /usr/bin/ln -sfn /workspaces/dotfiles/work/*/.config/opencode /home/agent/.config/opencode' \
     'vscode ALL=(root) NOPASSWD: /usr/local/libexec/dotfiles-generate-nono-profile --template * --runtime * --output-dir /etc/nono/profiles/runtime' \
-    'vscode ALL=(root) NOPASSWD: /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* PATH=* LD_PRELOAD=* LD_LIBRARY_PATH=* PYTHONPATH=* DYLD_INSERT_LIBRARIES=* /usr/bin/setpriv --reuid=* --regid=* --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp /usr/local/bin/nono run --profile * -- /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* OPENCODE_CONFIG_CONTENT=* /usr/local/bin/opencode-raw *' \
+    'vscode ALL=(root) NOPASSWD: /usr/local/libexec/dotfiles-launch-opencode-nono --setpriv-binary * --nono-binary * --profile * --agent-uid * --agent-gid * --runtime-home * --runtime-xdg-config-home * --runtime-xdg-cache-home * --runtime-xdg-data-home * --runtime-xdg-state-home * --opencode-xdg-state-home * --runtime-path * --opencode-config-content * --raw-opencode-binary * -- *' \
     > /tmp/99-dotfiles-nono \
     && sudo install -o root -g root -m 0440 /tmp/99-dotfiles-nono /etc/sudoers.d/99-dotfiles-nono \
     && sudo visudo -cf /etc/sudoers.d/99-dotfiles-nono \

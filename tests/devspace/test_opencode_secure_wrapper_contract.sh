@@ -15,7 +15,7 @@ grep -F 'source "$secret_helper"' "$wrapper" >/dev/null || fail "wrapper must so
 grep -F 'if [ "${1:-}" = "completion" ]; then' "$wrapper" >/dev/null || fail "wrapper must special-case completion subcommand"
 grep -F 'exec "$raw_opencode_binary" "$@"' "$wrapper" >/dev/null || fail "wrapper must execute raw opencode binary directly for completion subcommand"
 grep -F 'nono_secret_env_emit_exports' "$wrapper" >/dev/null || fail "wrapper must call nono_secret_env_emit_exports"
-grep -F 'exec sudo -n -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$runtime_xdg_state_home" PATH="$runtime_path" LD_PRELOAD= LD_LIBRARY_PATH= PYTHONPATH= DYLD_INSERT_LIBRARIES= "$setpriv_binary" --reuid="$agent_uid" --regid="$agent_gid" --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp "$nono_binary" run --profile "$profile_path" -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$opencode_xdg_state_home" OPENCODE_CONFIG_CONTENT="$opencode_provider_runtime_json" "$raw_opencode_binary" "$@"' "$wrapper" >/dev/null || fail "wrapper must drop to agent with setpriv before nono launch"
+grep -F 'exec sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-binary "$nono_binary" --profile "$profile_path" --agent-uid "$agent_uid" --agent-gid "$agent_gid" --runtime-home "$runtime_home" --runtime-xdg-config-home "$runtime_xdg_config_home" --runtime-xdg-cache-home "$runtime_xdg_cache_home" --runtime-xdg-data-home "$runtime_xdg_data_home" --runtime-xdg-state-home "$runtime_xdg_state_home" --opencode-xdg-state-home "$opencode_xdg_state_home" --runtime-path "$runtime_path" --opencode-config-content "$opencode_provider_runtime_json" --raw-opencode-binary "$raw_opencode_binary" -- "$@"' "$wrapper" >/dev/null || fail "wrapper must launch through constrained helper before setpriv+nono runtime chain"
 grep -F 'HUB_NONO_PROVIDER_SECRET_DIR' "$wrapper" >/dev/null || fail "wrapper must honor HUB_NONO_PROVIDER_SECRET_DIR"
 grep -F 'HUB_NONO_SECRET_HELPER_SUDO' "$wrapper" >/dev/null || fail "wrapper must require HUB_NONO_SECRET_HELPER_SUDO contract"
 grep -F 'HUB_NONO_AGENT_USER' "$wrapper" >/dev/null || fail "wrapper must require HUB_NONO_AGENT_USER contract"
@@ -28,6 +28,7 @@ grep -F 'HUB_NONO_RUNTIME_XDG_DATA_HOME' "$wrapper" >/dev/null || fail "wrapper 
 grep -F 'HUB_NONO_RUNTIME_XDG_STATE_HOME' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime XDG state contract"
 grep -F 'HUB_NONO_GENERATED_PROFILE_WRITER' "$wrapper" >/dev/null || fail "wrapper must support explicit generated nono profile writer contract"
 grep -F 'HUB_NONO_GENERATED_PROFILE_DIR' "$wrapper" >/dev/null || fail "wrapper must support explicit generated nono profile output directory contract"
+grep -F 'HUB_NONO_LAUNCH_HELPER' "$wrapper" >/dev/null || fail "wrapper must support explicit launch helper path contract"
 grep -F 'HUB_NONO_PROFILE_TEMPLATE_PATH' "$wrapper" >/dev/null || fail "wrapper must support explicit profile template path override"
 grep -F 'HUB_OPENCODE_RUNTIME_XDG_STATE_HOME' "$wrapper" >/dev/null || fail "wrapper must support explicit opencode runtime XDG state contract"
 grep -F 'OPENCODE_PROVIDER_RUNTIME_PATH' "$wrapper" >/dev/null || fail "wrapper must support canonical generated provider runtime path contract"
@@ -35,10 +36,11 @@ grep -F 'OPENCODE_RAW_BINARY' "$wrapper" >/dev/null || fail "wrapper must suppor
 grep -F '$source_root/.config/opencode/provider-runtime.json' "$wrapper" >/dev/null || fail "wrapper must default runtime provider config path to install-branch output"
 grep -F '/etc/nono/profiles/devspace-opencode-secure.jsonc' "$wrapper" >/dev/null || fail "wrapper must default profile template path to /etc/nono/profiles"
 grep -F '/usr/local/libexec/dotfiles-generate-nono-profile' "$wrapper" >/dev/null || fail "wrapper must default generated profile writer path to root-owned helper"
+grep -F '$source_root/scripts/lib/launch-opencode-nono.sh' "$wrapper" >/dev/null || fail "wrapper must default launch helper path to install-branch helper"
 grep -F '/etc/nono/profiles/runtime' "$wrapper" >/dev/null || fail "wrapper must default generated profile output directory to root-owned runtime profile path"
 grep -F '/usr/local/bin/nono' "$wrapper" >/dev/null || fail "wrapper must default nono binary path to /usr/local/bin/nono"
 grep -F '/usr/local/bin/opencode-raw' "$wrapper" >/dev/null || fail "wrapper must default raw opencode binary path to root-owned /usr/local/bin/opencode-raw"
-grep -F 'sudo -n -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$runtime_xdg_state_home" PATH="$runtime_path" LD_PRELOAD= LD_LIBRARY_PATH= PYTHONPATH= DYLD_INSERT_LIBRARIES= "$setpriv_binary" --reuid="$agent_uid" --regid="$agent_gid" --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp "$nono_binary" run --profile "$profile_path" -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$opencode_xdg_state_home" OPENCODE_CONFIG_CONTENT=' "$wrapper" >/dev/null || fail "wrapper must launch nono through setpriv-before-nono chain"
+grep -F 'sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-binary "$nono_binary" --profile "$profile_path" --agent-uid "$agent_uid" --agent-gid "$agent_gid" --runtime-home "$runtime_home" --runtime-xdg-config-home "$runtime_xdg_config_home" --runtime-xdg-cache-home "$runtime_xdg_cache_home" --runtime-xdg-data-home "$runtime_xdg_data_home" --runtime-xdg-state-home "$runtime_xdg_state_home" --opencode-xdg-state-home "$opencode_xdg_state_home" --runtime-path "$runtime_path" --opencode-config-content "$opencode_provider_runtime_json" --raw-opencode-binary "$raw_opencode_binary" -- "$@"' "$wrapper" >/dev/null || fail "wrapper must launch nono through constrained launch helper chain"
 grep -F 'HUB_NONO_RUNTIME_PATH' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime PATH contract"
 
 tmp_root="$(mktemp -d "$repo_root/.tmp-opencode-wrapper-XXXXXX")"
@@ -46,11 +48,12 @@ trap 'rm -rf "$tmp_root"' EXIT
 
 install_root="$tmp_root/install-root"
 helper_root="$install_root/scripts/lib"
+launch_helper="$helper_root/launch-opencode-nono.sh"
 profile_root="$install_root/.config/nono/profiles"
 secret_root="$tmp_root/secrets"
 mock_bin="$tmp_root/mock-bin"
 provider_runtime="$tmp_root/provider-runtime.json"
-raw_binary="$tmp_root/opencode-real"
+raw_binary="$tmp_root/opencode-raw"
 setpriv_binary="$mock_bin/setpriv"
 generated_profile_dir="$tmp_root/generated-profiles"
 generated_profile_writer="$tmp_root/generate-nono-profile"
@@ -59,6 +62,8 @@ mock_passwd="$tmp_root/passwd"
 mkdir -p "$helper_root" "$profile_root" "$secret_root" "$mock_bin" "$generated_profile_dir"
 
 cp "$repo_root/scripts/lib/nono-secret-env.sh" "$helper_root/nono-secret-env.sh"
+cp "$repo_root/scripts/lib/launch-opencode-nono.sh" "$launch_helper"
+chmod +x "$launch_helper"
 cp "$repo_root/.config/nono/profiles/devspace-opencode-secure.jsonc" "$profile_root/devspace-opencode-secure.jsonc"
 
 cat >"$raw_binary" <<'EOF'
@@ -171,6 +176,15 @@ chmod +x "$mock_bin/id"
 cat >"$setpriv_binary" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
+printf 'setpriv-cmd=%s\n' "$*" >>"${MOCK_SETPRIV_LOG:?MOCK_SETPRIV_LOG must be set}"
+printf 'HOME=%s\n' "${HOME:-}" >>"$MOCK_SETPRIV_LOG"
+printf 'XDG_CONFIG_HOME=%s\n' "${XDG_CONFIG_HOME:-}" >>"$MOCK_SETPRIV_LOG"
+printf 'XDG_STATE_HOME=%s\n' "${XDG_STATE_HOME:-}" >>"$MOCK_SETPRIV_LOG"
+printf 'PATH=%s\n' "${PATH:-}" >>"$MOCK_SETPRIV_LOG"
+printf 'LD_PRELOAD=%s\n' "${LD_PRELOAD:-}" >>"$MOCK_SETPRIV_LOG"
+printf 'LD_LIBRARY_PATH=%s\n' "${LD_LIBRARY_PATH:-}" >>"$MOCK_SETPRIV_LOG"
+printf 'PYTHONPATH=%s\n' "${PYTHONPATH:-}" >>"$MOCK_SETPRIV_LOG"
+printf 'DYLD_INSERT_LIBRARIES=%s\n' "${DYLD_INSERT_LIBRARIES:-}" >>"$MOCK_SETPRIV_LOG"
 while [ "$#" -gt 0 ]; do
   if [ "$1" = "--" ]; then
     shift
@@ -252,9 +266,12 @@ chmod +x "$generated_profile_writer"
 arg_log="$tmp_root/nono-args.log"
 env_log="$tmp_root/nono-env.log"
 sudo_log="$tmp_root/sudo.log"
+setpriv_log="$tmp_root/setpriv.log"
 
 export HUB_NONO_GENERATED_PROFILE_DIR="$generated_profile_dir"
 export HUB_NONO_GENERATED_PROFILE_WRITER="$generated_profile_writer"
+export HUB_NONO_LAUNCH_HELPER="$launch_helper"
+export MOCK_SETPRIV_LOG="$setpriv_log"
 
 PATH="$mock_bin:$PATH" \
 HUB_INSTALL_BRANCH_DIR="$install_root" \
@@ -303,22 +320,24 @@ grep -F -- '--profile' "$arg_log" >/dev/null || fail "wrapper should pass profil
 if grep -F "$install_root/.config/nono/profiles/devspace-opencode-secure.jsonc" "$arg_log" >/dev/null; then
   fail "wrapper should use a generated nono profile filtered by enabled providers"
 fi
-grep -F -- '--reuid=' "$sudo_log" >/dev/null || fail "wrapper should set setpriv reuid before nono launch"
-grep -F -- '--regid=' "$sudo_log" >/dev/null || fail "wrapper should set setpriv regid before nono launch"
-grep -F -- '--clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp' "$sudo_log" >/dev/null || fail "wrapper should apply kernel-level setpriv drop flags before nono launch"
-grep -F -- 'setpriv --reuid=' "$sudo_log" >/dev/null || fail "wrapper should invoke setpriv in sudo command chain"
-grep -F -- ' run --profile ' "$sudo_log" >/dev/null || fail "wrapper should include nono launch in sudo command chain"
+grep -F "$launch_helper" "$sudo_log" >/dev/null || fail "wrapper should invoke launch helper through constrained root sudo path"
+grep -F -- '--setpriv-binary' "$sudo_log" >/dev/null || fail "wrapper should pass setpriv binary through launch helper contract"
+grep -F -- '--nono-binary' "$sudo_log" >/dev/null || fail "wrapper should pass nono binary through launch helper contract"
+grep -F -- '--reuid=' "$setpriv_log" >/dev/null || fail "launch helper should set setpriv reuid before nono launch"
+grep -F -- '--regid=' "$setpriv_log" >/dev/null || fail "launch helper should set setpriv regid before nono launch"
+grep -F -- '--clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp' "$setpriv_log" >/dev/null || fail "launch helper should apply kernel-level setpriv drop flags before nono launch"
+grep -F -- ' run --profile ' "$setpriv_log" >/dev/null || fail "launch helper should include nono launch in setpriv command chain"
 grep -F -- '-- /usr/bin/env HOME=/home/agent XDG_CONFIG_HOME=/home/agent/.config XDG_CACHE_HOME=/home/agent/.cache XDG_DATA_HOME=/home/agent/.local/share XDG_STATE_HOME=/home/agent/.local/state/opencode OPENCODE_CONFIG_CONTENT=' "$arg_log" >/dev/null || fail "wrapper should inject pinned runtime HOME/XDG and provider config into opencode process"
 grep -F -- "$raw_binary --version" "$arg_log" >/dev/null || fail "wrapper should launch configured raw opencode binary through nono"
 grep -F 'sudo-user=root' "$sudo_log" >/dev/null || fail "wrapper should run sudo as root only for setpriv handoff"
-grep -F 'HOME=/home/agent' "$sudo_log" >/dev/null || fail "wrapper should pin HOME during sudo user-switch command"
-grep -F 'XDG_CONFIG_HOME=/home/agent/.config' "$sudo_log" >/dev/null || fail "wrapper should pin XDG config home during sudo user-switch command"
-grep -F 'XDG_STATE_HOME=/home/agent/.local/state/nono' "$sudo_log" >/dev/null || fail "wrapper should pin nono XDG state home during sudo user-switch command"
-grep -F 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' "$sudo_log" >/dev/null || fail "wrapper should pin PATH during root-to-agent setpriv handoff"
-grep -F 'LD_PRELOAD=' "$sudo_log" >/dev/null || fail "wrapper should clear LD_PRELOAD before setpriv handoff"
-grep -F 'LD_LIBRARY_PATH=' "$sudo_log" >/dev/null || fail "wrapper should clear LD_LIBRARY_PATH before setpriv handoff"
-grep -F 'PYTHONPATH=' "$sudo_log" >/dev/null || fail "wrapper should clear PYTHONPATH before setpriv handoff"
-grep -F 'DYLD_INSERT_LIBRARIES=' "$sudo_log" >/dev/null || fail "wrapper should clear DYLD_INSERT_LIBRARIES before setpriv handoff"
+grep -F 'HOME=/home/agent' "$setpriv_log" >/dev/null || fail "launch helper should pin HOME during setpriv handoff"
+grep -F 'XDG_CONFIG_HOME=/home/agent/.config' "$setpriv_log" >/dev/null || fail "launch helper should pin XDG config home during setpriv handoff"
+grep -F 'XDG_STATE_HOME=/home/agent/.local/state/nono' "$setpriv_log" >/dev/null || fail "launch helper should pin nono XDG state home during setpriv handoff"
+grep -F 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' "$setpriv_log" >/dev/null || fail "launch helper should pin PATH during setpriv handoff"
+grep -F 'LD_PRELOAD=' "$setpriv_log" >/dev/null || fail "launch helper should clear LD_PRELOAD before setpriv handoff"
+grep -F 'LD_LIBRARY_PATH=' "$setpriv_log" >/dev/null || fail "launch helper should clear LD_LIBRARY_PATH before setpriv handoff"
+grep -F 'PYTHONPATH=' "$setpriv_log" >/dev/null || fail "launch helper should clear PYTHONPATH before setpriv handoff"
+grep -F 'DYLD_INSERT_LIBRARIES=' "$setpriv_log" >/dev/null || fail "launch helper should clear DYLD_INSERT_LIBRARIES before setpriv handoff"
 
 cat >"$tmp_root/provider-runtime-invalid.json" <<'JSON'
 {

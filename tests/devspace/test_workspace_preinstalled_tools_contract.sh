@@ -75,10 +75,13 @@ grep -F '/etc/sudoers.d/99-dotfiles-nono' "$dockerfile" >/dev/null || fail "Dock
 grep -F 'if [ "${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL:-0}" != "1" ]; then sudo rm -f /etc/sudoers.d/vscode; fi' "$dockerfile" >/dev/null || fail "Dockerfile must gate broad vscode sudoers removal behind DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL"
 grep -F '/usr/local/bin/nono' "$dockerfile" >/dev/null || fail "Dockerfile must manage root-owned /usr/local/bin/nono"
 grep -F '/usr/local/libexec/dotfiles-generate-nono-profile' "$dockerfile" >/dev/null || fail "Dockerfile must install root-owned generated profile writer helper"
+grep -F '/usr/local/libexec/dotfiles-launch-opencode-nono' "$dockerfile" >/dev/null || fail "Dockerfile must install root-owned launch helper for constrained runtime handoff"
 grep -F 'https://nono.sh/install.sh' "$dockerfile" >/dev/null || fail "Dockerfile must install nono at image build time"
 grep -F 'COPY .config/nono/profiles/devspace-opencode-secure.jsonc /tmp/devspace-opencode-secure.jsonc' "$dockerfile" >/dev/null || fail "Dockerfile must copy secure nono profile from build context"
 grep -F 'COPY scripts/lib/generate-nono-profile.py /tmp/generate-nono-profile.py' "$dockerfile" >/dev/null || fail "Dockerfile must copy generated profile writer from build context"
+grep -F 'COPY scripts/lib/launch-opencode-nono.sh /tmp/launch-opencode-nono.sh' "$dockerfile" >/dev/null || fail "Dockerfile must copy launch helper from build context"
 grep -F 'sudo rm -f /tmp/generate-nono-profile.py' "$dockerfile" >/dev/null || fail "Dockerfile must remove staged generated profile helper via sudo in sticky /tmp"
+grep -F 'sudo rm -f /tmp/launch-opencode-nono.sh' "$dockerfile" >/dev/null || fail "Dockerfile must remove staged launch helper via sudo in sticky /tmp"
 grep -F 'sudo rm -f /tmp/devspace-opencode-secure.jsonc' "$dockerfile" >/dev/null || fail "Dockerfile must remove staged secure nono profile via sudo in sticky /tmp"
 if grep -F '/workspaces/dotfiles/main/.config/nono/profiles/devspace-opencode-secure.jsonc' "$dockerfile" >/dev/null; then
   fail "Dockerfile must not read secure nono profile from runtime-only /workspaces path during build"
@@ -93,7 +96,7 @@ grep -F 'vscode ALL=(root) NOPASSWD: /usr/local/libexec/dotfiles-generate-nono-p
 grep -F 'sudo install -o root -g root -m 0440 /tmp/99-dotfiles-nono /etc/sudoers.d/99-dotfiles-nono' "$dockerfile" >/dev/null || fail "Dockerfile should install sudoers contract atomically with root ownership + mode"
 grep -F 'sudo visudo -cf /etc/sudoers.d/99-dotfiles-nono' "$dockerfile" >/dev/null || fail "Dockerfile should validate constrained sudoers contract before cleanup/toggles"
 grep -F 'sudo rm -f /tmp/99-dotfiles-nono' "$dockerfile" >/dev/null || fail "Dockerfile should remove staged sudoers file after installation"
-grep -F '/usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* PATH=* LD_PRELOAD=* LD_LIBRARY_PATH=* PYTHONPATH=* DYLD_INSERT_LIBRARIES=* /usr/bin/setpriv --reuid=* --regid=* --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp /usr/local/bin/nono run --profile * -- /usr/bin/env HOME=* XDG_CONFIG_HOME=* XDG_CACHE_HOME=* XDG_DATA_HOME=* XDG_STATE_HOME=* OPENCODE_CONFIG_CONTENT=' "$dockerfile" >/dev/null || fail "Dockerfile sudoers contract must allow runtime wrapper handoff through setpriv-before-nono launch path"
+grep -F 'vscode ALL=(root) NOPASSWD: /usr/local/libexec/dotfiles-launch-opencode-nono --setpriv-binary * --nono-binary * --profile * --agent-uid * --agent-gid * --runtime-home * --runtime-xdg-config-home * --runtime-xdg-cache-home * --runtime-xdg-data-home * --runtime-xdg-state-home * --opencode-xdg-state-home * --runtime-path * --opencode-config-content * --raw-opencode-binary * -- *' "$dockerfile" >/dev/null || fail "Dockerfile sudoers contract must allow runtime wrapper handoff through constrained launch helper"
 grep -F '/usr/local/bin/opencode-raw' "$dockerfile" >/dev/null || fail "Dockerfile sudoers runtime rule must pin exact raw opencode binary path"
 
 [ -x "$repo_root/bin/update-opencode-version" ] || fail "bin/update-opencode-version must exist and be executable"

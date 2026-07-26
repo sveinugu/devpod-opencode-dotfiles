@@ -21,6 +21,7 @@ opencode_xdg_state_home="${HUB_OPENCODE_RUNTIME_XDG_STATE_HOME:-/home/agent/.loc
 runtime_path="${HUB_NONO_RUNTIME_PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin}"
 generated_profile_writer="${HUB_NONO_GENERATED_PROFILE_WRITER:-/usr/local/libexec/dotfiles-generate-nono-profile}"
 generated_profile_dir="${HUB_NONO_GENERATED_PROFILE_DIR:-/etc/nono/profiles/runtime}"
+launch_helper="${HUB_NONO_LAUNCH_HELPER:-$source_root/scripts/lib/launch-opencode-nono.sh}"
 
 agent_uid="$(id -u "$agent_user" 2>/dev/null || true)"
 agent_gid="$(id -g "$agent_user" 2>/dev/null || true)"
@@ -147,6 +148,11 @@ if [ ! -x "$generated_profile_writer" ]; then
   exit 1
 fi
 
+if [ ! -x "$launch_helper" ]; then
+  printf 'refused: nono launch helper not executable at %s\n' "$launch_helper" >&2
+  exit 1
+fi
+
 profile_path="$(sudo -n -- "$generated_profile_writer" --template "$profile_template_path" --runtime "$provider_runtime_path" --output-dir "$generated_profile_dir")"
 
 if [ ! -r "$profile_path" ]; then
@@ -193,4 +199,4 @@ print(json.dumps({'enabled_providers': enabled, 'provider': provider_payload}))
 PY
 )"
 
-exec sudo -n -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$runtime_xdg_state_home" PATH="$runtime_path" LD_PRELOAD= LD_LIBRARY_PATH= PYTHONPATH= DYLD_INSERT_LIBRARIES= "$setpriv_binary" --reuid="$agent_uid" --regid="$agent_gid" --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp "$nono_binary" run --profile "$profile_path" -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$opencode_xdg_state_home" OPENCODE_CONFIG_CONTENT="$opencode_provider_runtime_json" "$raw_opencode_binary" "$@"
+exec sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-binary "$nono_binary" --profile "$profile_path" --agent-uid "$agent_uid" --agent-gid "$agent_gid" --runtime-home "$runtime_home" --runtime-xdg-config-home "$runtime_xdg_config_home" --runtime-xdg-cache-home "$runtime_xdg_cache_home" --runtime-xdg-data-home "$runtime_xdg_data_home" --runtime-xdg-state-home "$runtime_xdg_state_home" --opencode-xdg-state-home "$opencode_xdg_state_home" --runtime-path "$runtime_path" --opencode-config-content "$opencode_provider_runtime_json" --raw-opencode-binary "$raw_opencode_binary" -- "$@"
