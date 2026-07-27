@@ -39,8 +39,8 @@ devspace enter -- zsh
 Workspace image build variants:
 
 ```bash
-DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=0 devspace build
-DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1 devspace build
+devspace build
+devspace build --var DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1
 ```
 
 - default build keeps constrained sudoers-only behavior.

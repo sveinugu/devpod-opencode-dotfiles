@@ -10,7 +10,7 @@ images:
     image: devspace-bare-hub:task1-20260524
     dockerfile: ./Dockerfile
     buildArgs:
-      DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL: ${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL}
+      DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL: ${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL:-0}
 
 deployments:
   workspace:

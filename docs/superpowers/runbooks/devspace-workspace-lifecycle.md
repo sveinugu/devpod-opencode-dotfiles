@@ -132,13 +132,13 @@ Bootstrap guardrail for first-time provision:
 ## Rebuild workspace image
 
 ```bash
-DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=0 devspace build
+devspace build
 ```
 
 Optional local-development override to keep broad `sudo` during image iteration:
 
 ```bash
-DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1 devspace build
+devspace build --var DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1
 ```
 
 Default behavior is hardened (`DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=0`), which removes `/etc/sudoers.d/vscode` and keeps only the constrained sudoers rules used by the secure launch chain.

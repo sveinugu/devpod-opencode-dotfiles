@@ -174,10 +174,10 @@ check_fixed "$bare_hub" '[nono Policy](nono-policy.md)' 'bare-hub cross-link to 
 check_fixed "$lifecycle" '[nono Policy](nono-policy.md)' 'lifecycle cross-link to nono policy'
 check_fixed "$bare_hub" '/home/agent/.config/opencode' 'bare-hub notes agent opencode config symlink'
 check_fixed "$bare_hub" 'OPENCODE_CONFIG_CONTENT' 'bare-hub notes runtime config-content override'
-check_fixed "$bare_hub" 'DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1 devspace build' 'bare-hub notes debug sudo override build command'
-check_fixed "$bare_hub" 'DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=0 devspace build' 'bare-hub notes hardened sudo default build command'
-check_fixed "$lifecycle" 'DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1 devspace build' 'lifecycle notes debug sudo override build command'
-check_fixed "$lifecycle" 'DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=0 devspace build' 'lifecycle notes hardened sudo default build command'
+check_fixed "$bare_hub" 'devspace build --var DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1' 'bare-hub notes debug sudo override build command'
+check_fixed "$bare_hub" 'devspace build' 'bare-hub notes hardened sudo default build command'
+check_fixed "$lifecycle" 'devspace build --var DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1' 'lifecycle notes debug sudo override build command'
+check_fixed "$lifecycle" 'devspace build' 'lifecycle notes hardened sudo default build command'
 
 if [ "$fail" -eq 0 ]; then
     printf 'PASS test_nono_policy_runbook_contract\n'

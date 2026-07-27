@@ -130,7 +130,7 @@ For the repo-supported secure path:
 - `/home/agent/.config/opencode` is linked to the same repo-managed config tree as `$HOME/.config/opencode`; agent-run provider/runtime selection is still enforced at launch by `OPENCODE_CONFIG_CONTENT`
 - raw OpenCode remains available only by explicit absolute path (for example `/usr/local/bin/opencode-raw`) and is out-of-scope manual use
 
-Image-build override note: use `DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=0 devspace build` for hardened default images and `DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1 devspace build` only for temporary broad-`sudo` local debugging.
+Image-build override note: use `devspace build` for hardened default images and `devspace build --var DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1` only for temporary broad-`sudo` local debugging.
 
 Quick verification commands:
 
