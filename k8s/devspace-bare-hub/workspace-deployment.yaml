@@ -60,8 +60,8 @@ spec:
               chmod 0700 /workspace-storage/home-agent
               chmod 0600 /workspace-storage/home-agent/.gitconfig
               if [ -d /workspace-storage/workspace-root ]; then
-                setfacl -R -m u:agent:rwX /workspace-storage/workspace-root
-                setfacl -R -d -m u:agent:rwX /workspace-storage/workspace-root
+                setfacl -R -m u:agent:rwX,u:vscode:rwX /workspace-storage/workspace-root
+                setfacl -R -d -m u:agent:rwX,u:vscode:rwX /workspace-storage/workspace-root
               fi
           volumeMounts:
             - name: workspace-storage
