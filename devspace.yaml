@@ -10,10 +10,13 @@ vars:
   HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL:
     source: env
     default: "0"
+  HUB_WORKSPACE_IMAGE_TAG:
+    source: env
+    default: ${DEVSPACE_GIT_COMMIT}
 
 images:
   workspace:
-    image: devspace-bare-hub:task1-20260524
+    image: devspace-bare-hub:${HUB_WORKSPACE_IMAGE_TAG}
     dockerfile: ./Dockerfile
     buildArgs:
       HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL: ${HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL}

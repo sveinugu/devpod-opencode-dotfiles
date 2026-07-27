@@ -17,6 +17,11 @@ grep -F 'HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL:' "$cfg" >/dev/null || fail "devspac
 grep -F 'source: env' "$cfg" >/dev/null || fail "HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL var should source from environment"
 grep -F 'default: "0"' "$cfg" >/dev/null || fail "HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL var should default to 0"
 
+grep -F 'HUB_WORKSPACE_IMAGE_TAG:' "$cfg" >/dev/null || fail "devspace.yaml vars should define HUB_WORKSPACE_IMAGE_TAG"
+grep -F 'default: ${DEVSPACE_GIT_COMMIT}' "$cfg" >/dev/null || fail "HUB_WORKSPACE_IMAGE_TAG should default to DEVSPACE_GIT_COMMIT"
+grep -F 'image: devspace-bare-hub:${HUB_WORKSPACE_IMAGE_TAG}' "$cfg" >/dev/null || fail "workspace image should use HUB_WORKSPACE_IMAGE_TAG variable"
+grep -Fq 'task1-20260524' "$cfg" && fail "devspace.yaml must not contain hardcoded dated image tag"
+
 grep -Eq '^dev:\s*$' "$cfg" || fail "missing dev section"
 grep -Eq '^\s{2}workspace:\s*$' "$cfg" || fail "missing dev workspace entry"
 
