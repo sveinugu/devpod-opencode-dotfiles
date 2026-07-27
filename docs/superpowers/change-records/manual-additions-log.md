@@ -146,6 +146,15 @@ Purpose: track operational/security changes implemented between full spec/plan c
   - require explicit build-mode invocation in docs (`DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=0|1 devspace build`) and align tests/contracts
 - rationale: eliminate launch-path drift risk while making debug sudo behavior deterministic across image rebuilds.
 
+### 2026-07-26 · `495741e` — Sudoers launch-helper argv edge-case fix for plain `opencode`
+
+- scope: `Dockerfile`, nono runbook + sudoers/wrapper contract tests
+- change:
+  - add a second constrained sudoers allow rule for launch-helper invocation ending at `--` (no trailing argv), alongside the existing `-- *` rule
+  - keep helper-only launch behavior unchanged in wrapper; this update is strictly sudoers-pattern coverage for the zero-argument user invocation path
+  - runbook/contracts now document and enforce both allowed helper forms (`--` and `-- *`)
+- rationale: plain `opencode` forwards no explicit CLI args, so sudo matched neither the helper rule requiring trailing tokens nor broad sudo grants; this produced `sudo: a password is required` while `opencode -c` and `opencode --version` could still work.
+
 ## Commit-range review notes
 
 Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current `HEAD`.
