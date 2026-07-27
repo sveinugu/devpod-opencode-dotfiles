@@ -192,6 +192,14 @@ Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current
   - override escape hatch: `devspace build --var HUB_WORKSPACE_IMAGE_TAG=<custom-tag>`
 - rationale: commit SHA is the immutable build identifier; branch tags are mutable provision-time aliases and can drift independently via fast-forward. Automating the tag via `DEVSPACE_GIT_COMMIT` eliminates stale dated tags while keeping `HUB_INSTALL_BRANCH` as the manual install-branch override separate from the image tag.
 
+### 2026-07-27 · `65f2c97` — Dual-user setfacl ACLs (agent + vscode) for shared workspace access
+
+- scope: `k8s/devspace-bare-hub/workspace-deployment.yaml`, `tests/devspace/test_workspace_manifest_contract.sh`
+- change:
+  - init container ACL bootstrap now grants `u:agent:rwX,u:vscode:rwX` to both recursive and default ACL entries on `/workspace-storage/workspace-root`
+  - contract tests updated to enforce the dual-user ACL pattern
+- rationale: prevent cross-user lockout when the `agent` user creates new files or commits via git; the default ACL ensures newly created files inherit read/write permissions for both `agent` and `vscode`, so identity ownership changes cannot block the other user.
+
 ## Operator reminder
 
 After updates affecting `Dockerfile` or deployment manifests:
