@@ -5,12 +5,17 @@
 version: v2beta1
 name: dotfiles
 
+vars:
+  DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL:
+    source: env
+    default: "0"
+
 images:
   workspace:
     image: devspace-bare-hub:task1-20260524
     dockerfile: ./Dockerfile
     buildArgs:
-      DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL: ${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL:-0}
+      DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL: ${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL}
 
 deployments:
   workspace:

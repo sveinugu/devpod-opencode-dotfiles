@@ -26,6 +26,7 @@ grep -F 'ARG OPENCODE_VERSION=' "$dockerfile" >/dev/null || fail "Dockerfile mus
 grep -F 'ARG OPENCODE_LINUX_X64_SHA256=' "$dockerfile" >/dev/null || fail "Dockerfile must pin OPENCODE_LINUX_X64_SHA256 build arg"
 grep -F 'ARG OPENCODE_LINUX_ARM64_SHA256=' "$dockerfile" >/dev/null || fail "Dockerfile must pin OPENCODE_LINUX_ARM64_SHA256 build arg"
 grep -F 'ARG DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=0' "$dockerfile" >/dev/null || fail "Dockerfile must default DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL to 0"
+grep -F "RUN printf 'DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=%s\\n' \"\${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL}\"" "$dockerfile" >/dev/null || fail "Dockerfile should print resolved DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL early for build-time verification"
 grep -E 'apt-get -y install --no-install-recommends .*\bacl\b' "$dockerfile" >/dev/null || fail "Dockerfile must install acl tooling for managed workspace ACL bootstrap"
 grep -F 'git config --system --add safe.directory /workspaces/dotfiles/*' "$dockerfile" >/dev/null || fail "Dockerfile must seed system git safe.directory trust for managed workspace paths"
 grep -F '/usr/local/bin/opencode-raw' "$dockerfile" >/dev/null || fail "Dockerfile must install root-owned opencode raw binary shim at /usr/local/bin/opencode-raw"

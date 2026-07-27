@@ -11,6 +11,11 @@ cfg="$repo_root/devspace.yaml"
 
 [ -f "$cfg" ] || fail "devspace.yaml not found"
 
+grep -Eq '^vars:\s*$' "$cfg" || fail "devspace.yaml should declare vars section for explicit variable sources"
+grep -F 'DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL:' "$cfg" >/dev/null || fail "devspace.yaml vars should define DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL"
+grep -F 'source: env' "$cfg" >/dev/null || fail "DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL var should source from environment"
+grep -F 'default: "0"' "$cfg" >/dev/null || fail "DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL var should default to 0"
+
 grep -Eq '^dev:\s*$' "$cfg" || fail "missing dev section"
 grep -Eq '^\s{2}workspace:\s*$' "$cfg" || fail "missing dev workspace entry"
 
@@ -53,7 +58,7 @@ grep -F -- '--runtime-output "$HUB_INSTALL_BRANCH_DIR/.config/opencode/provider-
 grep -F 'provider_manifest=/workspaces/dotfiles/state/hub/etc/provider-enablement.json' "$cfg" >/dev/null || fail "provision pipeline should define canonical host-local provider enablement manifest path before sync"
 grep -F 'provider_seed="$HUB_INSTALL_BRANCH_DIR/.config/opencode/provider-enablement.seed.json"' "$cfg" >/dev/null || fail "provision pipeline should define install-branch provider enablement seed path"
 grep -Eq '^\s{4}buildArgs:\s*$' "$cfg" || fail "workspace image should define buildArgs"
-grep -F 'DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL: ${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL:-0}' "$cfg" >/dev/null || fail "workspace image should default DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL to 0 while allowing explicit overrides"
+grep -F 'DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL: ${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL}' "$cfg" >/dev/null || fail "workspace image should consume resolved DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL variable"
 grep -F 'if [ ! -f "$provider_manifest" ]; then' "$cfg" >/dev/null || fail "provision pipeline should guard missing host-local provider enablement manifest"
 grep -F 'cp "$provider_seed" "$provider_manifest"' "$cfg" >/dev/null || fail "provision pipeline should bootstrap missing enablement manifest from repo seed"
 grep -F 'refused: provider enablement manifest missing and seed not found' "$cfg" >/dev/null || fail "provision pipeline should fail closed when neither manifest nor seed exists"
