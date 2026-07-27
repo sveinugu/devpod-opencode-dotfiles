@@ -6,9 +6,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 ARG OPENCODE_VERSION=1.18.5
 ARG OPENCODE_LINUX_X64_SHA256=cd4a2557a3d6550f27cb5c0257ebe8d73388bb34beda8b6121e6428a74c1eae2
 ARG OPENCODE_LINUX_ARM64_SHA256=18b643362fdf0b8d5b8711b3e160dafb4e68d0bfc00288f56fd1298fd72da69d
-ARG DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=0
+ARG HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL=0
 
-RUN printf 'DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=%s\n' "${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL}"
+RUN printf 'HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL=%s\n' "${HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL}"
 
 # 1. Install dependencies
 # 2. Add NodeSource GPG key and repository
@@ -120,7 +120,7 @@ RUN printf '%s\n' \
     && sudo install -o root -g root -m 0440 /tmp/99-dotfiles-nono /etc/sudoers.d/99-dotfiles-nono \
     && sudo visudo -cf /etc/sudoers.d/99-dotfiles-nono \
     && sudo rm -f /tmp/99-dotfiles-nono \
-    && if [ "${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL:-0}" = "1" ]; then \
+    && if [ "${HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL:-0}" = "1" ]; then \
          printf '%s\n' 'vscode ALL=(ALL) NOPASSWD:ALL' > /tmp/99-dotfiles-vscode-debug; \
          sudo install -o root -g root -m 0440 /tmp/99-dotfiles-vscode-debug /etc/sudoers.d/99-dotfiles-vscode-debug; \
          sudo visudo -cf /etc/sudoers.d/99-dotfiles-vscode-debug; \

@@ -26,7 +26,7 @@ grep -F 'NOPASSWD: /usr/bin/ln -sfn /workspaces/dotfiles/work/*/.config/opencode
 grep -F 'NOPASSWD: /usr/local/libexec/dotfiles-launch-opencode-nono --setpriv-binary * --nono-binary * --profile * --agent-uid * --agent-gid * --runtime-home * --runtime-xdg-config-home * --runtime-xdg-cache-home * --runtime-xdg-data-home * --runtime-xdg-state-home * --opencode-xdg-state-home * --runtime-path * --opencode-config-content * --raw-opencode-binary * -- *' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for launch-helper runtime chain"
 grep -F 'NOPASSWD: /usr/local/libexec/dotfiles-launch-opencode-nono --setpriv-binary * --nono-binary * --profile * --agent-uid * --agent-gid * --runtime-home * --runtime-xdg-config-home * --runtime-xdg-cache-home * --runtime-xdg-data-home * --runtime-xdg-state-home * --opencode-xdg-state-home * --runtime-path * --opencode-config-content * --raw-opencode-binary * --' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for launch-helper invocations without trailing argv"
 grep -F 'Defaults:vscode env_keep += "OPENAI_API_KEY ANTHROPIC_API_KEY GITHUB_TOKEN GPT_UIO_YELLOW_API_KEY GPT_UIO_RED_API_KEY"' "$dockerfile" >/dev/null || fail "Dockerfile must preserve provider secret env vars across constrained sudo user switch"
-grep -F 'if [ "${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL:-0}" = "1" ]; then' "$dockerfile" >/dev/null || fail "Dockerfile must branch on DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL for debug sudo mode"
+grep -F 'if [ "${HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL:-0}" = "1" ]; then' "$dockerfile" >/dev/null || fail "Dockerfile must branch on HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL for debug sudo mode"
 grep -F "'vscode ALL=(ALL) NOPASSWD:ALL'" "$dockerfile" >/dev/null || fail "Dockerfile debug sudo mode must install explicit broad vscode sudoers contract"
 grep -F 'sudo install -o root -g root -m 0440 /tmp/99-dotfiles-vscode-debug /etc/sudoers.d/99-dotfiles-vscode-debug' "$dockerfile" >/dev/null || fail "Dockerfile debug sudo mode must install root-owned debug sudoers file"
 grep -F 'sudo visudo -cf /etc/sudoers.d/99-dotfiles-vscode-debug' "$dockerfile" >/dev/null || fail "Dockerfile debug sudo mode must validate debug sudoers file"
@@ -50,7 +50,7 @@ if 'launch_helper="${HUB_NONO_LAUNCH_HELPER:-/usr/local/libexec/dotfiles-launch-
     raise SystemExit('wrapper missing default root-owned launch helper contract')
 PY
 
-if grep -F '/etc/sudoers.d/vscode' "$dockerfile" | grep -v 'rm -f' | grep -v 'DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL' >/dev/null; then
+if grep -F '/etc/sudoers.d/vscode' "$dockerfile" | grep -v 'rm -f' | grep -v 'HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL' >/dev/null; then
   fail "Dockerfile must not keep or recreate /etc/sudoers.d/vscode broad sudoers grant"
 fi
 

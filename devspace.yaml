@@ -7,7 +7,7 @@ name: dotfiles
 
 vars:
   DEVSPACE_ENV_FILE: ".env"
-  DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL:
+  HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL:
     source: env
     default: "0"
 
@@ -16,7 +16,7 @@ images:
     image: devspace-bare-hub:task1-20260524
     dockerfile: ./Dockerfile
     buildArgs:
-      DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL: ${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL}
+      HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL: ${HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL}
 
 deployments:
   workspace:

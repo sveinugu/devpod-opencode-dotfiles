@@ -40,10 +40,10 @@ Workspace image build variants:
 
 ```bash
 devspace build
-devspace build --var DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1
+devspace build --var HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL=1
 ```
 
-`DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL` is a DevSpace variable sourced from environment with default `0`; using `--var` is the explicit, documented override path.
+`HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL` is a DevSpace variable sourced from environment with default `0`; using `--var` is the explicit, documented override path.
 
 Optional project-local defaults can be set in `.env` (loaded via `DEVSPACE_ENV_FILE`):
 
