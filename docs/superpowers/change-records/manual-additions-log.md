@@ -155,6 +155,15 @@ Purpose: track operational/security changes implemented between full spec/plan c
   - runbook/contracts now document and enforce both allowed helper forms (`--` and `-- *`)
 - rationale: plain `opencode` forwards no explicit CLI args, so sudo matched neither the helper rule requiring trailing tokens nor broad sudo grants; this produced `sudo: a password is required` while `opencode -c` and `opencode --version` could still work.
 
+### 2026-07-26 · `c3d490b` — Atomic provider-runtime output replacement for provision sync
+
+- scope: `bin/sync-provider-enablement`, provider-sync contract tests
+- change:
+  - provider runtime/verification generation now writes to per-directory temp files and atomically replaces targets with `os.replace`
+  - output files are explicitly normalized to mode `0644` before replacement
+  - contract coverage updated to verify sync succeeds when previous outputs are read-only
+- rationale: fix provision-time `PermissionError` when existing install-branch runtime output files are not directly writable by the current process but can be safely replaced via atomic rename semantics.
+
 ## Commit-range review notes
 
 Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current `HEAD`.
