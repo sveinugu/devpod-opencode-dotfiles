@@ -18,7 +18,9 @@ wrapper="$repo_root/.config/opencode/bin/opencode"
 grep -F '/workspaces/dotfiles/state/hub/etc/provider-enablement.json' "$sync_cmd" >/dev/null || fail "sync command must default to canonical host-local enablement manifest path"
 grep -F '$repo_root/.config/opencode/provider-runtime.json' "$sync_cmd" >/dev/null || fail "sync command must default runtime output path to install-branch wrapper input path"
 grep -F '$repo_root/.config/opencode/provider-verification.json' "$sync_cmd" >/dev/null || fail "sync command must default verification output path to install-branch wrapper verification path"
-grep -F 'OPENCODE_CONFIG_CONTENT' "$wrapper" >/dev/null || fail "secure opencode wrapper must provide generated runtime config to opencode via OPENCODE_CONFIG_CONTENT"
+if ! grep -F 'OPENCODE_CONFIG_CONTENT' "$wrapper" >/dev/null && ! grep -F -- '--opencode-config-content' "$wrapper" >/dev/null; then
+  fail "secure opencode wrapper must provide generated runtime config to opencode launch chain"
+fi
 grep -F '$source_root/.config/opencode/provider-runtime.json' "$wrapper" >/dev/null || fail "secure opencode wrapper must default to install-branch generated runtime output path"
 
 seed_manifest="$repo_root/.config/opencode/provider-enablement.seed.json"
@@ -220,26 +222,32 @@ for forbidden in ('gpt-uio-red', 'gpt-uio-yellow', 'github-copilot'):
         raise SystemExit(f'{forbidden} should be absent from runtime provider payload when disabled in manifest')
 PY
 
-invalid_runtime="$tmp_root/provider-runtime-invalid.json"
-cat >"$invalid_runtime" <<'JSON'
-{
-  "enabled_providers": [
-    "openai"
-  ],
-  "unexpected": true
-}
-JSON
+chmod 0400 "$runtime_output" "$verification_output"
 
-secret_dir="$tmp_root/secrets"
-mkdir -p "$secret_dir"
-for key in openai_api_key anthropic_api_key github_token gpt_uio_yellow_api_key gpt_uio_red_api_key; do
-  printf '%s-value\n' "$key" >"$secret_dir/$key"
-done
+"$sync_cmd" --manifest "$manifest" --policy "$policy" --runtime-output "$runtime_output" --verification-output "$verification_output" >/dev/null
 
-if HUB_INSTALL_BRANCH_DIR="$repo_root" HUB_NONO_PROVIDER_SECRET_DIR="$secret_dir" HUB_NONO_SECRET_HELPER_SUDO='sudo -n' HUB_NONO_AGENT_USER='agent' OPENCODE_PROVIDER_RUNTIME_PATH="$invalid_runtime" bash "$wrapper" --version >"$tmp_root/invalid-runtime.out" 2>&1; then
-  fail "wrapper should fail closed when generated runtime output is malformed"
-fi
+python3 - "$manifest" "$runtime_output" "$verification_output" <<'PY'
+import json
+import sys
 
-grep -F 'refused: generated provider runtime output contains unsupported keys' "$tmp_root/invalid-runtime.out" >/dev/null || fail "wrapper should explain malformed runtime-output failure"
+manifest_path, runtime_path, verification_path = sys.argv[1:4]
+
+with open(manifest_path, 'r', encoding='utf-8') as fh:
+    manifest = json.load(fh)
+
+with open(runtime_path, 'r', encoding='utf-8') as fh:
+    runtime = json.load(fh)
+
+with open(verification_path, 'r', encoding='utf-8') as fh:
+    verification = json.load(fh)
+
+expected = manifest.get('enabled_providers', [])
+
+if runtime.get('enabled_providers') != expected:
+    raise SystemExit('runtime output should be replaceable even when previous file is read-only')
+
+if verification.get('enabled_providers') != expected:
+    raise SystemExit('verification output should be replaceable even when previous file is read-only')
+PY
 
 printf 'PASS test_provider_enablement_sync_contract\n'

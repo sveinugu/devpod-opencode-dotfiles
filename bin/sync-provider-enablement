@@ -63,6 +63,7 @@ python3 - "$manifest_path" "$policy_path" "$runtime_output_path" "$verification_
 import json
 import os
 import sys
+import tempfile
 
 manifest_path, policy_path, runtime_output_path, verification_output_path = sys.argv[1:]
 
@@ -189,10 +190,19 @@ for output_path, payload in (
     (runtime_output_path, runtime_payload),
     (verification_output_path, verification_payload),
 ):
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    with open(output_path, 'w', encoding='utf-8') as fh:
-        json.dump(payload, fh, indent=2)
-        fh.write('\n')
+    parent_dir = os.path.dirname(output_path)
+    os.makedirs(parent_dir, exist_ok=True)
+
+    fd, temp_path = tempfile.mkstemp(prefix='.provider-sync-', suffix='.json', dir=parent_dir)
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as fh:
+            json.dump(payload, fh, indent=2)
+            fh.write('\n')
+        os.chmod(temp_path, 0o644)
+        os.replace(temp_path, output_path)
+    finally:
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
 
 print(json.dumps({'enabled_providers': manifest_order_enabled}))
 PY
