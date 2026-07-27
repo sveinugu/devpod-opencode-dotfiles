@@ -181,6 +181,17 @@ Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current
   - update `.env.example` to include `DEVSPACE_FLAGS`, `HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL`, and `HUB_INSTALL_BRANCH`
 - rationale: make variable naming consistent with other hub-scoped knobs and clearer for users operating multiple related settings.
 
+### 2026-07-27 · `6118a4e` — Automate workspace image tag via `HUB_WORKSPACE_IMAGE_TAG`
+
+- scope: `devspace.yaml`, `k8s/devspace-bare-hub/workspace-deployment.yaml`, `tests/devspace/test_devspace_command_surface.sh`
+- change:
+  - add `HUB_WORKSPACE_IMAGE_TAG` devspace var defaulting to `${DEVSPACE_GIT_COMMIT}` (short commit)
+  - replace hardcoded dated image tag `devspace-bare-hub:task1-20260524` with `devspace-bare-hub:${HUB_WORKSPACE_IMAGE_TAG}` in both `images.workspace.image` and deployment manifests (workspace + init container)
+  - `HUB_WORKSPACE_IMAGE_TAG` remains automatic and is NOT added to `.env.example`
+  - tests assert variable presence, default, substitution, and absence of dated tag
+  - override escape hatch: `devspace build --var HUB_WORKSPACE_IMAGE_TAG=<custom-tag>`
+- rationale: commit SHA is the immutable build identifier; branch tags are mutable provision-time aliases and can drift independently via fast-forward. Automating the tag via `DEVSPACE_GIT_COMMIT` eliminates stale dated tags while keeping `HUB_INSTALL_BRANCH` as the manual install-branch override separate from the image tag.
+
 ## Operator reminder
 
 After updates affecting `Dockerfile` or deployment manifests:
