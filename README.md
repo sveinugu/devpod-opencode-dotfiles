@@ -45,6 +45,12 @@ devspace build --var DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1
 
 `DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL` is a DevSpace variable sourced from environment with default `0`; using `--var` is the explicit, documented override path.
 
+Optional project-local defaults can be set in `.env` (loaded via `DEVSPACE_ENV_FILE`):
+
+```bash
+cp .env.example .env
+```
+
 - default build keeps constrained sudoers-only behavior.
 - override build keeps broad `vscode` sudo (`/etc/sudoers.d/vscode`) for temporary local debugging.
 

@@ -143,6 +143,8 @@ devspace build --var DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1
 
 The variable is declared in `devspace.yaml` via `vars` with `source: env` and `default: "0"`; `--var` is the explicit CLI override path for one-off builds.
 
+This repo also sets `DEVSPACE_ENV_FILE` to `.env` in `devspace.yaml`, so project-local `.env` values can override defaults without shell exports.
+
 Default behavior is hardened (`DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=0`), which removes `/etc/sudoers.d/vscode` and keeps only the constrained sudoers rules used by the secure launch chain.
 Use the override only for temporary local debugging; do not keep it enabled for shared or production-like images.
 

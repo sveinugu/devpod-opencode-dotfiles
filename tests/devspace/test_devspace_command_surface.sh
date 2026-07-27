@@ -12,6 +12,7 @@ cfg="$repo_root/devspace.yaml"
 [ -f "$cfg" ] || fail "devspace.yaml not found"
 
 grep -Eq '^vars:\s*$' "$cfg" || fail "devspace.yaml should declare vars section for explicit variable sources"
+grep -F 'DEVSPACE_ENV_FILE: ".env"' "$cfg" >/dev/null || fail "devspace.yaml vars should point DEVSPACE_ENV_FILE to .env"
 grep -F 'DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL:' "$cfg" >/dev/null || fail "devspace.yaml vars should define DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL"
 grep -F 'source: env' "$cfg" >/dev/null || fail "DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL var should source from environment"
 grep -F 'default: "0"' "$cfg" >/dev/null || fail "DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL var should default to 0"

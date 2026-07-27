@@ -6,6 +6,7 @@ version: v2beta1
 name: dotfiles
 
 vars:
+  DEVSPACE_ENV_FILE: ".env"
   DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL:
     source: env
     default: "0"

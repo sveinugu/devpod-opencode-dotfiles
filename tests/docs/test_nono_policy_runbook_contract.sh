@@ -176,8 +176,10 @@ check_fixed "$bare_hub" '/home/agent/.config/opencode' 'bare-hub notes agent ope
 check_fixed "$bare_hub" 'OPENCODE_CONFIG_CONTENT' 'bare-hub notes runtime config-content override'
 check_fixed "$bare_hub" 'devspace build --var DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1' 'bare-hub notes debug sudo override build command'
 check_fixed "$bare_hub" 'devspace build' 'bare-hub notes hardened sudo default build command'
+check_fixed "$bare_hub" 'DEVSPACE_ENV_FILE' 'bare-hub notes .env loading behavior'
 check_fixed "$lifecycle" 'devspace build --var DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL=1' 'lifecycle notes debug sudo override build command'
 check_fixed "$lifecycle" 'devspace build' 'lifecycle notes hardened sudo default build command'
+check_fixed "$lifecycle" 'DEVSPACE_ENV_FILE' 'lifecycle notes .env loading behavior'
 
 if [ "$fail" -eq 0 ]; then
     printf 'PASS test_nono_policy_runbook_contract\n'
