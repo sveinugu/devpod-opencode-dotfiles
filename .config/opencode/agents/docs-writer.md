@@ -1,7 +1,8 @@
 ---
 description: Superpowered and pragmatic document writer specialist.
 mode: all
-model: github-copilot/gpt-5.4
+model: gpt-uio-yellow/gpt-5.4
+# model: github-copilot/gpt-5.4
 temperature: 0.7
 reasoningEffort: high
 tools:

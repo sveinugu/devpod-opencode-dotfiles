@@ -1,7 +1,7 @@
 ---
 description: Superpowered and pragmatic  senior developer / implementation specialist
 mode: all
-model: github-copilot/gpt-5.3-codex
+model: gpt-uio-yellow/Qwen/Qwen3.6-27B-FP8
 # model: github-copilot/claude-opus-4.6
 # model: github-copilot/gpt-5.4
 reasoningEffort: high

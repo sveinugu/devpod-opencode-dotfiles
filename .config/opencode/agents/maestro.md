@@ -1,7 +1,8 @@
 ---
 description: Superpowered and pragmatic orchestrator and project manager. Handles the initial contact with the human partner, task management, git worktrees and GitHub. Delegates all other work to specialized agents.
 mode: primary
-model: opencode/deepseek-v4-flash-free
+# model: opencode/deepseek-v4-flash-free
+model: gpt-uio-yellow/moonshotai/Kimi-K2.6
 reasoningEffort: high
 tools:
   write: false

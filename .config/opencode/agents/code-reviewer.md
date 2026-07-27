@@ -1,7 +1,8 @@
 ---
 description: Superpowered and pragmatic specialist in code review.
 mode: subagent
-model: github-copilot/gpt-5.3-codex
+model: gpt-uio-yellow/Qwen/Qwen3.6-27B-FP8
+#model: github-copilot/gpt-5.3-codex
 reasoningEffort: high
 tools:
   write: false

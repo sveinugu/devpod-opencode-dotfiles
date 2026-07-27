@@ -1,7 +1,8 @@
 ---
 description: Superpowered and Pragmatic general agent
 mode: all
-model: github-copilot/gpt-5.4
+model: gpt-uio-yellow/gpt-5.4
+# model: github-copilot/gpt-5.4
 reasoningEffort: medium
 tools:
   write: true

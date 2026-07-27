@@ -1,7 +1,8 @@
 ---
 description: Superpowered and pragmatic junior developer / implementation specialist
 mode: subagent
-model: github-copilot/gpt-5-mini
+model: gpt-uio-yellow/gpt-oss-120b
+#model: github-copilot/gpt-5-mini
 reasoningEffort: medium
 tools:
   write: true

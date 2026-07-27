@@ -1,7 +1,8 @@
 ---
 description: Superpowered and pragmatic planner and system architect
 mode: all
-model: github-copilot/gpt-5.4
+model: gpt-uio-yellow/gpt-5.4
+# model: github-copilot/gpt-5.4
 reasoningEffort: high
 tools:
   write: true

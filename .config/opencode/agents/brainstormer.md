@@ -1,7 +1,8 @@
 ---
 description: Superpowered and pragmatic  brainstorming specialist.
 mode: all
-model: github-copilot/gpt-5.4
+model: gpt-uio-yellow/gpt-5.4
+#model: github-copilot/gpt-5.4
 temperature: 0.8
 reasoningEffort: high
 tools:
