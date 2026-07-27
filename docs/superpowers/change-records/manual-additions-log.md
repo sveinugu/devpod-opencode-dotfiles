@@ -172,6 +172,15 @@ Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current
 - Not included: implementation-only fixes/refactors that align existing approved behavior without introducing new functionality.
 - Not included: reverted experiments (for example temporary root-run nono changes) that are not valid at `HEAD`.
 
+### 2026-07-26 · `740713f` — Rename build-time sudo-mode variable to `HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL`
+
+- scope: `devspace.yaml`, `Dockerfile`, `.env.example`, runbooks + contract tests
+- change:
+  - rename build-time sudo-mode variable to `HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL` across build args, variable declarations, docs, and tests
+  - keep behavior unchanged (`0` hardened default, `1` debug broad sudo)
+  - update `.env.example` to include `DEVSPACE_FLAGS`, `HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL`, and `HUB_INSTALL_BRANCH`
+- rationale: make variable naming consistent with other hub-scoped knobs and clearer for users operating multiple related settings.
+
 ## Operator reminder
 
 After updates affecting `Dockerfile` or deployment manifests:
