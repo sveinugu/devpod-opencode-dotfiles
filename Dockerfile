@@ -113,16 +113,17 @@ RUN printf '%s\n' \
     'vscode ALL=(agent) NOPASSWD: /usr/bin/ln -sfn /workspaces/dotfiles/work/*/.config/opencode /home/agent/.config/opencode' \
     'vscode ALL=(root) NOPASSWD: /usr/local/libexec/dotfiles-generate-nono-profile --template * --runtime * --output-dir /etc/nono/profiles/runtime' \
     'vscode ALL=(root) NOPASSWD: /usr/local/libexec/dotfiles-launch-opencode-nono --setpriv-binary * --nono-binary * --profile * --agent-uid * --agent-gid * --runtime-home * --runtime-xdg-config-home * --runtime-xdg-cache-home * --runtime-xdg-data-home * --runtime-xdg-state-home * --opencode-xdg-state-home * --runtime-path * --opencode-config-content * --raw-opencode-binary * -- *' \
+    'vscode ALL=(root) NOPASSWD: /usr/local/libexec/dotfiles-launch-opencode-nono --setpriv-binary * --nono-binary * --profile * --agent-uid * --agent-gid * --runtime-home * --runtime-xdg-config-home * --runtime-xdg-cache-home * --runtime-xdg-data-home * --runtime-xdg-state-home * --opencode-xdg-state-home * --runtime-path * --opencode-config-content * --raw-opencode-binary * --' \
     > /tmp/99-dotfiles-nono \
     && sudo install -o root -g root -m 0440 /tmp/99-dotfiles-nono /etc/sudoers.d/99-dotfiles-nono \
     && sudo visudo -cf /etc/sudoers.d/99-dotfiles-nono \
     && sudo rm -f /tmp/99-dotfiles-nono \
     && if [ "${DOTFILES_ALLOW_VSCODE_NOPASSWD_ALL:-0}" = "1" ]; then \
-         sudo rm -f /etc/sudoers.d/vscode; \
          printf '%s\n' 'vscode ALL=(ALL) NOPASSWD:ALL' > /tmp/99-dotfiles-vscode-debug; \
          sudo install -o root -g root -m 0440 /tmp/99-dotfiles-vscode-debug /etc/sudoers.d/99-dotfiles-vscode-debug; \
          sudo visudo -cf /etc/sudoers.d/99-dotfiles-vscode-debug; \
          sudo rm -f /tmp/99-dotfiles-vscode-debug; \
+         sudo rm -f /etc/sudoers.d/vscode; \
        else \
          sudo rm -f /etc/sudoers.d/vscode /etc/sudoers.d/99-dotfiles-vscode-debug; \
        fi

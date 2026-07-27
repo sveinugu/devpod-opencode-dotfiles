@@ -196,6 +196,8 @@ The sudoers contract keeps only the launch-step provider variables needed for th
 
 The constrained sudoers runtime launch rule now delegates to one root-owned launch helper (`/usr/local/libexec/dotfiles-launch-opencode-nono`) instead of matching the full wrapped launch command inline. This reduces drift risk while keeping argument validation and least-privilege boundaries explicit in one audited helper surface.
 
+Because the wrapper always emits an end-of-options marker (`--`) before forwarding user args, the sudoers contract must allow both launch-helper forms: one with trailing argv (`-- *`) and one without trailing argv (`--`).
+
 Credential routes configured in this profile are exactly `openai`, `anthropic`, `github-copilot`, `gpt-uio-yellow`, and `gpt-uio-red`.
 Their configured upstreams are:
 

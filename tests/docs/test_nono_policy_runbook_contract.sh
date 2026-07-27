@@ -103,6 +103,7 @@ check_fixed "$policy" 'The important handoff detail is that these secrets are no
 check_fixed "$policy" 'They are read from `/var/run/secrets/nono/providers` during the constrained pre-sandbox helper step, preserved only across the one documented `sudo` handoff, and then consumed by the wrapped launch path for proxy setup and launch.' 'policy secret handoff explicit sentence'
 check_fixed "$policy" 'The sudoers contract keeps only the launch-step provider variables needed for that handoff; it is not a general-purpose shell inheritance path.' 'policy sudoers handoff clarification'
 check_fixed "$policy" '/usr/local/libexec/dotfiles-launch-opencode-nono' 'policy launch helper contract anchor'
+check_fixed "$policy" 'the sudoers contract must allow both launch-helper forms: one with trailing argv (`-- *`) and one without trailing argv (`--`).' 'policy launch helper argv forms note'
 check_fixed "$policy" 'Credential routes configured in this profile are exactly `openai`, `anthropic`, `github-copilot`, `gpt-uio-yellow`, and `gpt-uio-red`.' 'policy credential route list'
 check_fixed "$policy" '## Change policy' 'policy change section'
 check_fixed "$policy" '- how to add a new writable path/provider safely' 'policy change writable-path rule'
