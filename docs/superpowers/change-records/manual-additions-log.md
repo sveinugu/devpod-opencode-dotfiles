@@ -220,6 +220,15 @@ Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current
   - supersedes the previous `${images.workspace}` approach which also failed because DevSpace does not interpolate image variables in file-based kubectl manifests
 - rationale: the bare image name is the correct DevSpace v2beta1 kubectl-deployer contract; previous attempts with `${HUB_WORKSPACE_IMAGE_TAG}` and `${images.workspace}` both passed literal unresolved strings to Kubernetes, producing `Init:InvalidImageName` failures.
 
+### 2026-07-28 · `36d88fe` — nono profile: allow direnv + hub root, suppress interactive prompts
+
+- scope: `.config/nono/profiles/devspace-opencode-secure.jsonc`, `scripts/lib/launch-opencode-nono.sh`, tests, runbooks
+- change:
+  - add `/workspaces/dotfiles` and `$XDG_DATA_HOME/direnv` to nono profile `filesystem.allow`
+  - add `--allow-cwd --no-rollback-prompt --silent` to nono launch helper invocation
+  - update runbook and contract tests to reflect the new grants and launch flags
+- rationale: allow `direnv allow` to write its allow-list inside the sandbox, grant broader hub filesystem access, and eliminate interactive pre-launch cwd prompts and post-exit rollback prompts.
+
 ## Operator reminder
 
 After updates affecting `Dockerfile` or deployment manifests:
