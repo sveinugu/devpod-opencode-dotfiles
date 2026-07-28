@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: workspace
-          image: devspace-bare-hub:${HUB_WORKSPACE_IMAGE_TAG}
+          image: ${images.workspace}
           imagePullPolicy: IfNotPresent
           workingDir: /workspaces/dotfiles/main
           command:
@@ -45,7 +45,7 @@ spec:
               readOnly: true
       initContainers:
         - name: init-home-agent-permissions
-          image: devspace-bare-hub:${HUB_WORKSPACE_IMAGE_TAG}
+          image: ${images.workspace}
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsUser: 0
@@ -59,11 +59,11 @@ spec:
               chown -R agent:agent /workspace-storage/home-agent
               chmod 0700 /workspace-storage/home-agent
               chmod 0600 /workspace-storage/home-agent/.gitconfig
-                if [ -d /workspace-storage/workspace-root ]; then
-                  git -C /workspace-storage/workspace-root remote set-url origin git@github.com:sveinugu/devpod-opencode-dotfiles.git || true
-                  setfacl -R -m u:agent:rwX,u:vscode:rwX /workspace-storage/workspace-root
-                  setfacl -R -d -m u:agent:rwX,u:vscode:rwX /workspace-storage/workspace-root
-                fi
+              if [ -d /workspace-storage/workspace-root ]; then
+                git -C /workspace-storage/workspace-root remote set-url origin git@github.com:sveinugu/devpod-opencode-dotfiles.git || true
+                setfacl -R -m u:agent:rwX,u:vscode:rwX /workspace-storage/workspace-root
+                setfacl -R -d -m u:agent:rwX,u:vscode:rwX /workspace-storage/workspace-root
+              fi
           volumeMounts:
             - name: workspace-storage
               mountPath: /workspace-storage

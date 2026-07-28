@@ -75,8 +75,9 @@ grep -F 'touch /workspace-storage/home-agent/.gitconfig' "$deployment" >/dev/nul
 grep -Eq '^\s*chown -R agent:agent /workspace-storage/home-agent\s*$' "$deployment" || fail "missing init chown contract for /workspace-storage/home-agent"
 grep -Eq '^\s*chmod 0700 /workspace-storage/home-agent\s*$' "$deployment" || fail "missing init chmod contract for /workspace-storage/home-agent"
 grep -Eq '^\s*chmod 0600 /workspace-storage/home-agent/.gitconfig\s*$' "$deployment" || fail "missing init chmod contract for /workspace-storage/home-agent/.gitconfig"
+grep -Eq '^\s*image: \$\{images\.workspace\}' "$deployment" || fail "missing devspace image reference contract for workspace deployment"
 grep -Eq '^\s*setfacl -R -m u:agent:rwX,u:vscode:rwX /workspace-storage/workspace-root\s*$' "$deployment" || fail "missing init acl grant contract for /workspace-storage/workspace-root"
-  grep -Eq '^\s*setfacl -R -d -m u:agent:rwX,u:vscode:rwX /workspace-storage/workspace-root\s*$' "$deployment" || fail "missing init default acl grant contract for /workspace-storage/workspace-root"
+grep -Eq '^\s*setfacl -R -d -m u:agent:rwX,u:vscode:rwX /workspace-storage/workspace-root\s*$' "$deployment" || fail "missing init default acl grant contract for /workspace-storage/workspace-root"
 
 # Verify that workingDir is set explicitly for the workspace container
 grep -Eq '^\s*workingDir:\s*/workspaces/dotfiles/main\s*$' "$deployment" || fail "missing workingDir /workspaces/dotfiles/main in Deployment manifest"
