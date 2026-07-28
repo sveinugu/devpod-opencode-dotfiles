@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: workspace
-          image: ${images.workspace}
+          image: devspace-bare-hub
           imagePullPolicy: IfNotPresent
           workingDir: /workspaces/dotfiles/main
           command:
@@ -45,7 +45,7 @@ spec:
               readOnly: true
       initContainers:
         - name: init-home-agent-permissions
-          image: ${images.workspace}
+          image: devspace-bare-hub
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsUser: 0
