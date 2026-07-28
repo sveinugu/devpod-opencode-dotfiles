@@ -210,6 +210,16 @@ Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current
   - contract test image-reference regex fixed to match devspace's `${images.workspace}` syntax (backslash escape corrected)
 - rationale: prevent manual `git remote set-url` after every pod redeploy, restore ability for sandboxed sessions to reach arbitrary network endpoints, and fix `Init:InvalidImageName` failures caused by devspace not interpolating custom vars into kubectl manifests when using explicit `${variable}` syntax.
 
+### 2026-07-28 · `241def0` — Bare image name in deployment manifest (devspace `replaceImageTags` contract)
+
+- scope: `k8s/devspace-bare-hub/workspace-deployment.yaml`, `tests/devspace/test_workspace_manifest_contract.sh`
+- change:
+  - deployment manifest image references changed to bare `devspace-bare-hub` (no tag, no variables) in both workspace and init containers
+  - DevSpace `replaceImageTags` auto-fills the correct image tag during `create_deployments`
+  - contract test updated to verify bare image name in deployment manifest
+  - supersedes the previous `${images.workspace}` approach which also failed because DevSpace does not interpolate image variables in file-based kubectl manifests
+- rationale: the bare image name is the correct DevSpace v2beta1 kubectl-deployer contract; previous attempts with `${HUB_WORKSPACE_IMAGE_TAG}` and `${images.workspace}` both passed literal unresolved strings to Kubernetes, producing `Init:InvalidImageName` failures.
+
 ## Operator reminder
 
 After updates affecting `Dockerfile` or deployment manifests:
