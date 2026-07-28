@@ -61,6 +61,7 @@
     ]
   },
   "network": {
+    "allow_net": true,
     "credentials": [
       "openai",
       "anthropic",
