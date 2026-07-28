@@ -200,6 +200,14 @@ Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current
   - contract tests updated to enforce the dual-user ACL pattern
 - rationale: prevent cross-user lockout when the `agent` user creates new files or commits via git; the default ACL ensures newly created files inherit read/write permissions for both `agent` and `vscode`, so identity ownership changes cannot block the other user.
 
+### 2026-07-28 · `71234d1` — Persistent git remote origin + open outbound network in nono sandbox
+
+- scope: `.config/nono/profiles/devspace-opencode-secure.jsonc`, `k8s/devspace-bare-hub/workspace-deployment.yaml`
+- change:
+  - nono profile `network.allow_net` set to `true` to restore open outbound network access while keeping credential proxy for model API providers
+  - deployment init container now runs `git remote set-url origin` on the workspace root before ACL bootstrap, so `origin` is not lost on re-provision/redeploy
+- rationale: prevent manual `git remote set-url` after every pod redeploy and restore ability for sandboxed sessions to reach arbitrary network endpoints (doc sites, package registries, etc.) without requiring allowlist changes for each new host.
+
 ## Operator reminder
 
 After updates affecting `Dockerfile` or deployment manifests:
