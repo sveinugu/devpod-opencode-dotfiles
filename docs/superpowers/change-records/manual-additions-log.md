@@ -200,13 +200,15 @@ Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current
   - contract tests updated to enforce the dual-user ACL pattern
 - rationale: prevent cross-user lockout when the `agent` user creates new files or commits via git; the default ACL ensures newly created files inherit read/write permissions for both `agent` and `vscode`, so identity ownership changes cannot block the other user.
 
-### 2026-07-28 · `71234d1` — Persistent git remote origin + open outbound network in nono sandbox
+### 2026-07-28 · `71234d1`, `430a6f8` — Persistent git remote origin, open outbound network in nono sandbox, and devspace image reference
 
-- scope: `.config/nono/profiles/devspace-opencode-secure.jsonc`, `k8s/devspace-bare-hub/workspace-deployment.yaml`
+- scope: `.config/nono/profiles/devspace-opencode-secure.jsonc`, `k8s/devspace-bare-hub/workspace-deployment.yaml`, `tests/devspace/test_workspace_manifest_contract.sh`
 - change:
   - nono profile `network.allow_net` set to `true` to restore open outbound network access while keeping credential proxy for model API providers
   - deployment init container now runs `git remote set-url origin` on the workspace root before ACL bootstrap, so `origin` is not lost on re-provision/redeploy
-- rationale: prevent manual `git remote set-url` after every pod redeploy and restore ability for sandboxed sessions to reach arbitrary network endpoints (doc sites, package registries, etc.) without requiring allowlist changes for each new host.
+  - deployment manifest image references now use `${images.workspace}` instead of `devspace-bare-hub:${HUB_WORKSPACE_IMAGE_TAG}` so devspace handles variable interpolation correctly during deploy
+  - contract test image-reference regex fixed to match devspace's `${images.workspace}` syntax (backslash escape corrected)
+- rationale: prevent manual `git remote set-url` after every pod redeploy, restore ability for sandboxed sessions to reach arbitrary network endpoints, and fix `Init:InvalidImageName` failures caused by devspace not interpolating custom vars into kubectl manifests when using explicit `${variable}` syntax.
 
 ## Operator reminder
 
