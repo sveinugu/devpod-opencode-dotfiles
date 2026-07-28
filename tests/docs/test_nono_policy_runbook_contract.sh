@@ -58,7 +58,7 @@ check_fixed "$policy" '## Filesystem policy' 'policy filesystem section'
 check_fixed "$policy" '- no broad grants for `/home/agent` or `~/.local/share`' 'policy filesystem no-broad-grants rule'
 check_fixed "$policy" '- explicit subdir grants only' 'policy filesystem explicit-subdir rule'
 check_fixed "$policy" '- precreate runtime dirs via init container' 'policy filesystem init-container rule'
-check_fixed "$policy" 'Plain-language summary: the sandbox gets the current worktree, a narrow set of OpenCode runtime directories under `/home/agent`, `/tmp`, and the single raw binary path — nothing broader.' 'policy filesystem plain-language summary'
+check_fixed "$policy" 'Plain-language summary: the sandbox gets the current worktree, a narrow set of OpenCode runtime directories under `/home/agent`, `/tmp`, the bare-hub root at `/workspaces/dotfiles`, the direnv allow-list directory under `$XDG_DATA_HOME/direnv`, and the single raw binary path — nothing broader.' 'policy filesystem plain-language summary'
 check_fixed "$policy" 'Default path-variable values in this launch chain are:' 'policy path variable intro'
 check_fixed "$policy" '- `$HOME` = `/home/agent`' 'policy home default path'
 check_fixed "$policy" '- `$WORKDIR` = `<current active worktree>`' 'policy workdir default path'
@@ -154,10 +154,12 @@ assert_in_order([
     '- `/home/agent/.local/share/opencode` (`$XDG_DATA_HOME/opencode`) — read+write',
     '- `/home/agent/.local/share/opentui` (`$XDG_DATA_HOME/opentui`) — read+write',
     '- `/home/agent/.local/state/opencode` (derived from `$HOME/.local/state/opencode` in the profile template) — read+write',
+    '- `/home/agent/.local/share/direnv` (`$XDG_DATA_HOME/direnv`) — read+write, for `direnv allow` to write its allow-list file inside the sandbox',
     '- `/home/agent/.opencode` (`$HOME/.opencode`) — read+write',
     '- `/home/agent/.gitconfig` (`$HOME/.gitconfig`) — read-only, so git `safe.directory` trust config is visible without granting write to home-level git config',
     '- `/etc/gitconfig` — read-only, so system-level git `safe.directory` trust config remains readable to sandboxed git processes',
     '- `/tmp` — read+write temporary workspace',
+    '- `/workspaces/dotfiles` — read+write, for broader hub filesystem access by the sandboxed agent',
     '- `/usr/local/bin/opencode-raw` (`allow_file`) — single-file read/execute target, not directory access',
 ], 'fixed-path-grants')
 

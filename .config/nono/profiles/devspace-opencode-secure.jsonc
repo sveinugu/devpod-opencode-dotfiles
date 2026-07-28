@@ -31,6 +31,8 @@
       "$HOME/.local/state/opencode",
       "$WORKDIR/../.bare",
       "$WORKDIR/../../.bare",
+      "/workspaces/dotfiles",
+      "$XDG_DATA_HOME/direnv",
       "/tmp"
     ],
     "bypass_protection": [

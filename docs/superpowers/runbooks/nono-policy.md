@@ -104,7 +104,7 @@ The supported path is practical hardening, not a claim of absolute isolation, an
 - explicit subdir grants only
 - precreate runtime dirs via init container
 
-Plain-language summary: the sandbox gets the current worktree, a narrow set of OpenCode runtime directories under `/home/agent`, `/tmp`, and the single raw binary path — nothing broader.
+Plain-language summary: the sandbox gets the current worktree, a narrow set of OpenCode runtime directories under `/home/agent`, `/tmp`, the bare-hub root at `/workspaces/dotfiles`, the direnv allow-list directory under `$XDG_DATA_HOME/direnv`, and the single raw binary path — nothing broader.
 For shared bare-hub git worktrees, the profile also grants narrow read+write access to the related `.bare` repository path via `$WORKDIR/../.bare` and `$WORKDIR/../../.bare` so agent-side git operations (commit, branch, worktree) can function.
 
 The reviewed profile allows only the runtime surfaces OpenCode needs, plus the fixed raw binary path `/usr/local/bin/opencode-raw` as `allow_file`.
@@ -127,10 +127,12 @@ Fixed-path grants for the sandboxed agent are exactly:
 - `/home/agent/.local/share/opencode` (`$XDG_DATA_HOME/opencode`) — read+write
 - `/home/agent/.local/share/opentui` (`$XDG_DATA_HOME/opentui`) — read+write
 - `/home/agent/.local/state/opencode` (derived from `$HOME/.local/state/opencode` in the profile template) — read+write
+- `/home/agent/.local/share/direnv` (`$XDG_DATA_HOME/direnv`) — read+write, for `direnv allow` to write its allow-list file inside the sandbox
 - `/home/agent/.opencode` (`$HOME/.opencode`) — read+write
 - `/home/agent/.gitconfig` (`$HOME/.gitconfig`) — read-only, so git `safe.directory` trust config is visible without granting write to home-level git config
 - `/etc/gitconfig` — read-only, so system-level git `safe.directory` trust config remains readable to sandboxed git processes
 - `/tmp` — read+write temporary workspace
+- `/workspaces/dotfiles` — read+write, for broader hub filesystem access by the sandboxed agent
 - `/usr/local/bin/opencode-raw` (`allow_file`) — single-file read/execute target, not directory access
 
 Worktree-dependent grants are:
@@ -156,11 +158,17 @@ Repo anchors for this contract:
 
 - wrapped launcher → constrained sudo → setpriv drop to `agent` → `nono` → raw `opencode`
 - raw binary path and ownership contract
+- nono launched with `--allow-cwd --no-rollback-prompt --silent` to suppress interactive prompts
 
 The supported launch path is implemented by `.config/opencode/bin/opencode`.
 That wrapper reads the generated provider runtime contract, generates a filtered runtime `nono` profile through `/usr/local/libexec/dotfiles-generate-nono-profile`, and then launches the pinned raw binary at `/usr/local/bin/opencode-raw` only after the setpriv drop to `agent`.
 
-This chain is expected to be the default command resolution for `opencode` by name.
+The launch helper (`scripts/lib/launch-opencode-nono.sh`) appends three nono flags to every invocation:
+
+- `--allow-cwd` — allow the current working directory without interactive prompting, so the wrapped `opencode` launch does not pause for cwd confirmation
+- `--no-rollback-prompt` — skip the post-exit rollback review prompt that would otherwise require the user to press ESC to dismiss
+- `--silent` — suppress nono output (banner, session summary, status messages) so post-session breach reports are logged to the audit trail but not displayed interactively
+
 Raw `opencode` remains available only by explicit absolute path and is out-of-scope manual use.
 
 Important restriction detail: this profile intentionally does **not** rely on upstream dangerous-command blocking for the supported path.

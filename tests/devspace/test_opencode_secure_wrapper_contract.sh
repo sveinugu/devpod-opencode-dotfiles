@@ -120,9 +120,14 @@ fi
 if [ "$1" = "--profile" ]; then
   shift 2
 fi
-if [ "$1" = "--" ]; then
-  shift
-fi
+# Skip known nono runtime flags appended by the launch helper
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --allow-cwd|--no-rollback-prompt|--silent) shift ;;
+    --) shift; break ;;
+    *) break ;;
+  esac
+done
 "$@"
 printf 'OPENAI_API_KEY=%s\n' "${OPENAI_API_KEY:-}" >"${MOCK_NONO_ENV_LOG:?MOCK_NONO_ENV_LOG must be set}"
 printf 'ANTHROPIC_API_KEY=%s\n' "${ANTHROPIC_API_KEY:-}" >>"$MOCK_NONO_ENV_LOG"
