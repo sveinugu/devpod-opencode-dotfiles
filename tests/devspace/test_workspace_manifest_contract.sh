@@ -70,6 +70,7 @@ grep -F '/workspace-storage/home-agent/.config/opencode' "$deployment" >/dev/nul
 grep -F '/workspace-storage/home-agent/.cache/opencode' "$deployment" >/dev/null || fail "missing init mkdir contract for /workspace-storage/home-agent/.cache/opencode"
 grep -F '/workspace-storage/home-agent/.local/share/opencode' "$deployment" >/dev/null || fail "missing init mkdir contract for /workspace-storage/home-agent/.local/share/opencode"
 grep -F '/workspace-storage/home-agent/.local/share/opentui' "$deployment" >/dev/null || fail "missing init mkdir contract for /workspace-storage/home-agent/.local/share/opentui"
+grep -F '/workspace-storage/home-agent/.local/share/direnv' "$deployment" >/dev/null || fail "missing init mkdir contract for /workspace-storage/home-agent/.local/share/direnv"
 grep -F '/workspace-storage/home-agent/.opencode' "$deployment" >/dev/null || fail "missing init mkdir contract for /workspace-storage/home-agent/.opencode"
 grep -F 'touch /workspace-storage/home-agent/.gitconfig' "$deployment" >/dev/null || fail "missing init touch contract for /workspace-storage/home-agent/.gitconfig"
 grep -Eq '^\s*chown -R agent:agent /workspace-storage/home-agent\s*$' "$deployment" || fail "missing init chown contract for /workspace-storage/home-agent"

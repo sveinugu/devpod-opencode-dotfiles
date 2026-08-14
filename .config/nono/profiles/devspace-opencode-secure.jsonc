@@ -32,7 +32,7 @@
       "$WORKDIR/../.bare",
       "$WORKDIR/../../.bare",
       "/workspaces/dotfiles",
-      "$XDG_DATA_HOME/direnv",
+      "$HOME/.local/share/direnv",
       "/tmp"
     ],
     "bypass_protection": [

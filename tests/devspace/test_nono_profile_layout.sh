@@ -36,6 +36,7 @@ done
 grep -F '"$HOME/.gitconfig"' "$profile" >/dev/null || fail "profile should allow read-only access to home git config for safe.directory trust"
 grep -F '"/etc/gitconfig"' "$profile" >/dev/null || fail "profile should allow read-only access to system git config for safe.directory trust"
 grep -F '"$HOME/.local/state/opencode"' "$profile" >/dev/null || fail "profile should allow explicit opencode runtime state root path for nested state writes"
+grep -F '"$HOME/.local/share/direnv"' "$profile" >/dev/null || fail "profile should allow explicit $HOME/.local/share/direnv writes for direnv allow-list"
 python3 - "$profile" <<'PY' || fail "profile should grant /usr/local/bin/opencode-raw as filesystem.allow_file (not directory allow)"
 import json
 import sys
