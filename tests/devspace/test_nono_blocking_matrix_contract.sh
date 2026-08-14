@@ -12,42 +12,14 @@ require_outside_nono_sandbox() {
   fi
 }
 
-resolve_opencode_agent_user() {
-  local configured_agent_user="${HUB_NONO_AGENT_USER:-agent}"
-
-  if id -u "$configured_agent_user" >/dev/null 2>&1 && id -g "$configured_agent_user" >/dev/null 2>&1; then
-    printf '%s' "$configured_agent_user"
-    return
-  fi
-
-  local fallback_user
-  fallback_user="$(id -un 2>/dev/null || true)"
-  [ -n "$fallback_user" ] || fail "unable to resolve fallback username for opencode wrapper runtime"
-
-  if ! id -u "$fallback_user" >/dev/null 2>&1 || ! id -g "$fallback_user" >/dev/null 2>&1; then
-    fail "unable to resolve uid/gid for fallback user '$fallback_user'"
-  fi
-
-  printf '%s' "$fallback_user"
-}
-
-run_secure_profile_opencode() {
+# Matrix rows in this file validate nono behavior directly. They intentionally run
+# the raw OpenCode binary under nono, not the wrapper path that launches nono via
+# sudo+setpriv. Wrapper-specific behavior is covered by dedicated wrapper tests.
+run_secure_profile_raw_opencode() {
   local command_label="$1"
   local output_file="$2"
   shift 2
 
-  if command -v opencode >/dev/null 2>&1; then
-    local opencode_agent_user
-    opencode_agent_user="$(resolve_opencode_agent_user)"
-
-    run_expect_success "$command_label" "$output_file" \
-      env HUB_NONO_AGENT_USER="$opencode_agent_user" \
-        "$nono_bin" run --profile "$secure_profile_path" -- opencode "$@"
-    return
-  fi
-
-  local raw_opencode_binary
-  raw_opencode_binary="${OPENCODE_RAW_BINARY:-/usr/local/bin/opencode-raw}"
   [ -x "$raw_opencode_binary" ] || fail "raw opencode binary not executable at $raw_opencode_binary"
 
   run_expect_success "$command_label" "$output_file" \
@@ -60,6 +32,7 @@ secure_profile_path="${HUB_NONO_SECURE_PROFILE_PATH:-$secure_profile_default}"
 test_timeout_seconds="${HUB_NONO_TEST_TIMEOUT_SECONDS:-45}"
 nono_bin="${HUB_NONO_BIN:-nono}"
 test_tmpdir="${HUB_NONO_TEST_TMPDIR:-/tmp}"
+raw_opencode_binary="${OPENCODE_RAW_BINARY:-/usr/local/bin/opencode-raw}"
 
 [ -d "$test_tmpdir" ] || fail "test tmpdir not found: $test_tmpdir"
 [ -w "$test_tmpdir" ] || fail "test tmpdir not writable: $test_tmpdir"
@@ -151,11 +124,11 @@ advisory_rows=(
 run_row_in_pod_runtime() {
   require_file "$secure_profile_path" "secure nono profile"
 
-  local out_wrapped
-  out_wrapped="$(mktemp)"
-  trap 'rm -f "$out_wrapped"' RETURN
+  local out_raw
+  out_raw="$(mktemp)"
+  trap 'rm -f "$out_raw"' RETURN
 
-  run_secure_profile_opencode "wrapped opencode --version" "$out_wrapped" --version
+  run_secure_profile_raw_opencode "raw opencode --version" "$out_raw" --version
 }
 
 run_row_kernel_enforcement() {
@@ -312,8 +285,8 @@ run_row_opencode_functionality() {
   out_help="$(mktemp)"
   trap 'rm -f "$out_version" "$out_help"' RETURN
 
-  run_secure_profile_opencode "wrapped opencode --version" "$out_version" --version
-  run_secure_profile_opencode "wrapped opencode --help" "$out_help" --help
+  run_secure_profile_raw_opencode "raw opencode --version" "$out_version" --version
+  run_secure_profile_raw_opencode "raw opencode --help" "$out_help" --help
 
   assert_output_contains "$out_help" "opencode" "opencode help output"
 }
