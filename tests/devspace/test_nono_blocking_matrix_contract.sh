@@ -36,12 +36,22 @@ run_secure_profile_opencode() {
   local output_file="$2"
   shift 2
 
-  local opencode_agent_user
-  opencode_agent_user="$(resolve_opencode_agent_user)"
+  if command -v opencode >/dev/null 2>&1; then
+    local opencode_agent_user
+    opencode_agent_user="$(resolve_opencode_agent_user)"
+
+    run_expect_success "$command_label" "$output_file" \
+      env HUB_NONO_AGENT_USER="$opencode_agent_user" \
+        "$nono_bin" run --profile "$secure_profile_path" -- opencode "$@"
+    return
+  fi
+
+  local raw_opencode_binary
+  raw_opencode_binary="${OPENCODE_RAW_BINARY:-/usr/local/bin/opencode-raw}"
+  [ -x "$raw_opencode_binary" ] || fail "raw opencode binary not executable at $raw_opencode_binary"
 
   run_expect_success "$command_label" "$output_file" \
-    env HUB_NONO_AGENT_USER="$opencode_agent_user" \
-      "$nono_bin" run --profile "$secure_profile_path" -- opencode "$@"
+    "$nono_bin" run --profile "$secure_profile_path" -- "$raw_opencode_binary" "$@"
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
