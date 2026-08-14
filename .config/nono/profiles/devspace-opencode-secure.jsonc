@@ -122,13 +122,29 @@
     "commands": {
       "git": {
         "executable": "/usr/local/bin/git",
-        "sandbox": {
-          "fs_read": [
-            "/usr/local/libexec/git-core"
-          ],
-          "exec_paths": [
-            "/usr/local/libexec/git-core"
-          ]
+        "from": {
+          "session": {
+            "sandbox": {
+              "fs_read": [
+                "$WORKDIR",
+                "$WORKDIR/../.bare",
+                "$WORKDIR/../../.bare",
+                "/usr/local/libexec/git-core"
+              ],
+              "fs_write": [
+                "$WORKDIR",
+                "$WORKDIR/../.bare",
+                "$WORKDIR/../../.bare"
+              ],
+              "fs_read_file": [
+                "$HOME/.gitconfig",
+                "/etc/gitconfig"
+              ],
+              "exec_paths": [
+                "/usr/local/libexec/git-core"
+              ]
+            }
+          }
         }
       }
     }
