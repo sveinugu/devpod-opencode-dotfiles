@@ -64,14 +64,14 @@ check_fixed "$policy" '- `$HOME` = `/home/agent`' 'policy home default path'
 check_fixed "$policy" '- `$XDG_CACHE_HOME` = `/home/agent/.cache`' 'policy xdg cache default path'
 check_fixed "$policy" '- `$XDG_CONFIG_HOME` = `/home/agent/.config`' 'policy xdg config default path'
 check_fixed "$policy" '- `$XDG_DATA_HOME` = `/home/agent/.local/share`' 'policy xdg data default path'
-check_fixed "$policy" '- `$XDG_STATE_HOME` for the `nono` process = `/home/agent/.local/state/nono`' 'policy nono xdg state default path'
-check_fixed "$policy" '- `$XDG_STATE_HOME` for the wrapped `opencode` child = `/home/agent/.local/state/opencode`' 'policy opencode xdg state default path'
+check_fixed "$policy" '- `$XDG_STATE_HOME` for the `nono` process = `/home/agent/.local/state`' 'policy nono xdg state default path'
+check_fixed "$policy" '- `$XDG_STATE_HOME` for the wrapped `opencode` child = `/home/agent/.local/state`' 'policy opencode xdg state default path'
 check_fixed "$policy" 'Fixed-path grants for the sandboxed agent are exactly:' 'policy explicit fixed-path grant intro'
 check_fixed "$policy" '- `/home/agent/.cache/opencode` (`$XDG_CACHE_HOME/opencode`) — read+write' 'policy xdg cache grant'
 check_fixed "$policy" '- `/home/agent/.config/opencode` (`$XDG_CONFIG_HOME/opencode`) — read+write' 'policy xdg config grant'
 check_fixed "$policy" '- `/home/agent/.local/share/opencode` (`$XDG_DATA_HOME/opencode`) — read+write' 'policy xdg data opencode grant'
 check_fixed "$policy" '- `/home/agent/.local/share/opentui` (`$XDG_DATA_HOME/opentui`) — read+write' 'policy xdg data opentui grant'
-check_fixed "$policy" '- `/home/agent/.local/state/opencode` (derived from `$HOME/.local/state/opencode` in the profile template) — read+write' 'policy xdg state grant'
+check_fixed "$policy" '- `/home/agent/.local/state/opencode` (the app-specific state subdirectory under `$XDG_STATE_HOME`) — read+write' 'policy xdg state grant'
 check_fixed "$policy" '- `/home/agent/.opencode` (`$HOME/.opencode`) — read+write' 'policy home opencode grant'
 check_fixed "$policy" '- `/home/agent/.gitconfig` (`$HOME/.gitconfig`) — read-only, so git `safe.directory` trust config is visible without granting write to home-level git config' 'policy home gitconfig read grant'
 check_fixed "$policy" '- `/etc/gitconfig` — read-only, so system-level git `safe.directory` trust config remains readable to sandboxed git processes' 'policy system gitconfig read grant'
@@ -140,8 +140,8 @@ assert_in_order([
     '- `$XDG_CACHE_HOME` = `/home/agent/.cache`',
     '- `$XDG_CONFIG_HOME` = `/home/agent/.config`',
     '- `$XDG_DATA_HOME` = `/home/agent/.local/share`',
-    '- `$XDG_STATE_HOME` for the `nono` process = `/home/agent/.local/state/nono`',
-    '- `$XDG_STATE_HOME` for the wrapped `opencode` child = `/home/agent/.local/state/opencode`',
+    '- `$XDG_STATE_HOME` for the `nono` process = `/home/agent/.local/state`',
+    '- `$XDG_STATE_HOME` for the wrapped `opencode` child = `/home/agent/.local/state`',
 ], 'path-variable-values')
 
 assert_in_order([
@@ -149,7 +149,7 @@ assert_in_order([
     '- `/home/agent/.config/opencode` (`$XDG_CONFIG_HOME/opencode`) — read+write',
     '- `/home/agent/.local/share/opencode` (`$XDG_DATA_HOME/opencode`) — read+write',
     '- `/home/agent/.local/share/opentui` (`$XDG_DATA_HOME/opentui`) — read+write',
-    '- `/home/agent/.local/state/opencode` (derived from `$HOME/.local/state/opencode` in the profile template) — read+write',
+    '- `/home/agent/.local/state/opencode` (the app-specific state subdirectory under `$XDG_STATE_HOME`) — read+write',
     '- `/home/agent/.local/share/direnv` (`$XDG_DATA_HOME/direnv`) — read+write, for `direnv allow` to write its allow-list file inside the sandbox',
     '- `/home/agent/.opencode` (`$HOME/.opencode`) — read+write',
     '- `/home/agent/.gitconfig` (`$HOME/.gitconfig`) — read-only, so git `safe.directory` trust config is visible without granting write to home-level git config',

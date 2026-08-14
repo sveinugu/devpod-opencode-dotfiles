@@ -115,8 +115,8 @@ Default path-variable values in this launch chain are:
 - `$XDG_CACHE_HOME` = `/home/agent/.cache`
 - `$XDG_CONFIG_HOME` = `/home/agent/.config`
 - `$XDG_DATA_HOME` = `/home/agent/.local/share`
-- `$XDG_STATE_HOME` for the `nono` process = `/home/agent/.local/state/nono`
-- `$XDG_STATE_HOME` for the wrapped `opencode` child = `/home/agent/.local/state/opencode`
+- `$XDG_STATE_HOME` for the `nono` process = `/home/agent/.local/state`
+- `$XDG_STATE_HOME` for the wrapped `opencode` child = `/home/agent/.local/state`
 
 Fixed-path grants for the sandboxed agent are exactly:
 
@@ -124,7 +124,7 @@ Fixed-path grants for the sandboxed agent are exactly:
 - `/home/agent/.config/opencode` (`$XDG_CONFIG_HOME/opencode`) — read+write
 - `/home/agent/.local/share/opencode` (`$XDG_DATA_HOME/opencode`) — read+write
 - `/home/agent/.local/share/opentui` (`$XDG_DATA_HOME/opentui`) — read+write
-- `/home/agent/.local/state/opencode` (derived from `$HOME/.local/state/opencode` in the profile template) — read+write
+- `/home/agent/.local/state/opencode` (the app-specific state subdirectory under `$XDG_STATE_HOME`) — read+write
 - `/home/agent/.local/share/direnv` (`$XDG_DATA_HOME/direnv`) — read+write, for `direnv allow` to write its allow-list file inside the sandbox
 - `/home/agent/.opencode` (`$HOME/.opencode`) — read+write
 - `/home/agent/.gitconfig` (`$HOME/.gitconfig`) — read-only, so git `safe.directory` trust config is visible without granting write to home-level git config
