@@ -117,5 +117,20 @@
         "credential_format": "Bearer {}"
       }
     }
+  },
+  "command_policies": {
+    "commands": {
+      "git": {
+        "executable": "/usr/local/bin/git",
+        "sandbox": {
+          "fs_read": [
+            "/usr/local/libexec/git-core"
+          ],
+          "exec_paths": [
+            "/usr/local/libexec/git-core"
+          ]
+        }
+      }
+    }
   }
 }

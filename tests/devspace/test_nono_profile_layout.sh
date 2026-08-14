@@ -86,6 +86,32 @@ if '/etc/gitconfig' in allow_paths:
     raise SystemExit(1)
 PY
 
+python3 - "$profile" <<'PY' || fail "profile should grant git helper exec path through command_policies"
+import json
+import sys
+
+profile_path = sys.argv[1]
+with open(profile_path, 'r', encoding='utf-8') as fh:
+    profile = json.load(fh)
+
+command_policies = profile.get('command_policies', {})
+commands = command_policies.get('commands', {})
+git = commands.get('git', {})
+
+if git.get('executable') != '/usr/local/bin/git':
+    raise SystemExit(1)
+
+sandbox = git.get('sandbox', {})
+fs_read = sandbox.get('fs_read', [])
+exec_paths = sandbox.get('exec_paths', [])
+
+if '/usr/local/libexec/git-core' not in fs_read:
+    raise SystemExit(1)
+
+if '/usr/local/libexec/git-core' not in exec_paths:
+    raise SystemExit(1)
+PY
+
 grep -F '"upstream": "https://gpt.uio.no/api/v1"' "$profile" >/dev/null || fail "profile should route UiO providers to gpt.uio.no/api/v1"
 grep -F '"credential_key": "env://GITHUB_TOKEN"' "$profile" >/dev/null || fail "profile should source github-copilot token from env://GITHUB_TOKEN"
 grep -F '"upstream": "https://api.githubcopilot.com"' "$profile" >/dev/null || fail "profile should route github-copilot credential injection to api.githubcopilot.com"
