@@ -28,6 +28,39 @@ function assert(condition, message) {
   if (!condition) throw new Error(message)
 }
 
+async function captureDebugLogs(run) {
+  const calls = []
+  const previousDebug = console.debug
+  console.debug = (...args) => {
+    calls.push(args)
+  }
+  try {
+    await run(calls)
+    return calls
+  } finally {
+    console.debug = previousDebug
+  }
+}
+
+async function withDebugEnv(value, run) {
+  const previousValue = process.env.OPENCODE_PLUGIN_DEBUG
+  if (value === undefined) {
+    delete process.env.OPENCODE_PLUGIN_DEBUG
+  } else {
+    process.env.OPENCODE_PLUGIN_DEBUG = value
+  }
+
+  try {
+    await run()
+  } finally {
+    if (previousValue === undefined) {
+      delete process.env.OPENCODE_PLUGIN_DEBUG
+    } else {
+      process.env.OPENCODE_PLUGIN_DEBUG = previousValue
+    }
+  }
+}
+
 ;(async () => {
   assert(typeof OpenAICompatibleFix === "function", "OpenAICompatibleFix export missing")
 
@@ -89,6 +122,62 @@ function assert(condition, message) {
     assert(output.options.reasoningSummary === true, "non-reasoning model should keep reasoningSummary")
     assert(output.options.max_completion_tokens === undefined, "non-reasoning model should not get max_completion_tokens")
   }
+
+  // Debug logging should be opt-in and emitted only when a patch is applied.
+  await withDebugEnv(undefined, async () => {
+    const logs = await captureDebugLogs(async () => {
+      const output = {
+        maxOutputTokens: 100,
+        options: { max_tokens: 8, reasoningSummary: true },
+      }
+      await hook({ model: { modelID: "o1-mini" } }, output)
+    })
+    assert(logs.length === 0, "logging should be disabled by default")
+  })
+
+  await withDebugEnv("1", async () => {
+    const logs = await captureDebugLogs(async () => {
+      const output = {
+        maxOutputTokens: 100,
+        options: { max_tokens: 8, reasoningSummary: true },
+      }
+      await hook({ model: { modelID: "o1-mini" } }, output)
+    })
+    assert(logs.length === 1, "expected one debug log when patch is applied")
+
+    const [label, payload] = logs[0]
+    assert(label === "[openai-compatible-fix]", "debug log label mismatch")
+
+    const data = JSON.parse(payload)
+    assert(data.event === "openai-compatible-fix.patch", "debug log event mismatch")
+    assert(data.model === "o1-mini", "debug log should include model identifier")
+    assert(Array.isArray(data.changed), "debug log changed field must be an array")
+    assert(data.changed.includes("max_completion_tokens"), "debug log should report max_completion_tokens change")
+    assert(data.changed.includes("max_tokens"), "debug log should report max_tokens removal")
+    assert(data.changed.includes("reasoningSummary"), "debug log should report reasoningSummary removal")
+  })
+
+  await withDebugEnv("1", async () => {
+    const logs = await captureDebugLogs(async () => {
+      const output = {
+        maxOutputTokens: undefined,
+        options: {},
+      }
+      await hook({ model: { modelID: "gpt-5.1" } }, output)
+    })
+    assert(logs.length === 0, "debug log should not emit for no-op reasoning-model pass")
+  })
+
+  await withDebugEnv("1", async () => {
+    const logs = await captureDebugLogs(async () => {
+      const output = {
+        maxOutputTokens: 100,
+        options: { max_tokens: 8, reasoningSummary: true },
+      }
+      await hook({ model: { modelID: "moonshotai/Kimi-K2.6" } }, output)
+    })
+    assert(logs.length === 0, "debug log should not emit for non-reasoning model")
+  })
 })().catch((error) => {
   console.error(error)
   process.exit(1)
