@@ -14,3 +14,8 @@ its `chat.params` hook.
 
 When enabled, the plugin logs only when it actually patches request options,
 including model identifier and changed keys.
+
+The patch also clears `output.maxOutputTokens` after setting
+`options.max_completion_tokens` for reasoning models. This prevents downstream
+OpenAI-compatible adapters from re-adding `max_tokens` from
+`maxOutputTokens`.

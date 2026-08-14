@@ -98,6 +98,18 @@ async function withDebugEnv(value, run) {
     assert(!("max_tokens" in output.options), "max_tokens should be removed for reasoning model")
     assert(!("reasoningSummary" in output.options), "reasoningSummary should be removed for reasoning model")
     assert(output.options.max_completion_tokens === 128, "max_completion_tokens should be set from maxOutputTokens")
+    assert(output.maxOutputTokens === undefined, "maxOutputTokens should be cleared to prevent provider remapping to max_tokens")
+  }
+
+  // Provider-delimited model identifiers should still be recognized.
+  {
+    const output = {
+      maxOutputTokens: 64,
+      options: { max_tokens: 10, reasoningSummary: true },
+    }
+    await hook({ model: { modelID: "gpt-uio-yellow:gpt-5.1" } }, output)
+    assert(output.options.max_completion_tokens === 64, "provider-delimited model identifier should still patch")
+    assert(!("max_tokens" in output.options), "provider-delimited model should remove max_tokens")
   }
 
   // Fallback should use options.max_tokens if maxOutputTokens is unavailable.

@@ -19,8 +19,10 @@ function normalizeModelText(value) {
   if (typeof value !== "string") return []
   const full = value.trim().toLowerCase()
   if (!full) return []
-  const short = full.includes("/") ? full.slice(full.lastIndexOf("/") + 1) : full
-  return short === full ? [full] : [full, short]
+  const tailSlash = full.includes("/") ? full.slice(full.lastIndexOf("/") + 1) : full
+  const tailColon = full.includes(":") ? full.slice(full.lastIndexOf(":") + 1) : full
+  const variants = [full, tailSlash, tailColon]
+  return [...new Set(variants)].filter(Boolean)
 }
 
 function modelLooksLikeReasoningModel(modelName) {
@@ -112,6 +114,9 @@ export const OpenAICompatibleFix = async () => {
       if (typeof maxOutputTokens === "number" && Number.isFinite(maxOutputTokens)) {
         if (options.max_completion_tokens !== maxOutputTokens) changed.push("max_completion_tokens")
         options.max_completion_tokens = maxOutputTokens
+        if (output && Object.hasOwn(output, "maxOutputTokens")) {
+          output.maxOutputTokens = undefined
+        }
       } else if (typeof options.max_tokens === "number" && Number.isFinite(options.max_tokens)) {
         if (options.max_completion_tokens !== options.max_tokens) changed.push("max_completion_tokens")
         options.max_completion_tokens = options.max_tokens
