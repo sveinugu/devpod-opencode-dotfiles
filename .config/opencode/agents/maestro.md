@@ -1,9 +1,10 @@
 ---
 description: Superpowered and pragmatic orchestrator and project manager. Handles the initial contact with the human partner, task management, git worktrees and GitHub. Delegates all other work to specialized agents.
 mode: primary
-model: gpt-uio-yellow/moonshotai/Kimi-K2.6
+# model: gpt-uio-yellow/moonshotai/Kimi-K2.6
 # #2 switch when: Kimi orchestration drifts or you want tighter, more concise routing behavior.
 # model: gpt-uio-yellow/gpt-5-mini
+model: github-copilot/gpt-5-mini
 # #3 switch when: both above are constrained, or you want steadier long-turn planning behavior.
 # model: gpt-uio-yellow/mistralai/Mistral-Medium-3.5-128B
 reasoningEffort: medium

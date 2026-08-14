@@ -8,7 +8,7 @@
   // "model": "github-copilot/gpt-5.4",
   "small_model": "gpt-uio-yellow/google/gemma-4-31B-it",
   // #2 switch when: non-commercial low-stakes utility traffic is high and you want to preserve other UiO pools.
-  // "small_model": "gpt-uio-yellow/MiniMax/MiniMax-M3",
+  // "small_model": "gpt-uio-yellow/MiniMaxAI/MiniMax-M3-MXFP8",
   // #3 switch when: you need tighter utility consistency than small open models.
   // "small_model": "gpt-uio-yellow/gpt-5-mini",
   "plugin": [
@@ -64,7 +64,9 @@
       "**": "ask",
       "/workspaces/dotfiles/**": "allow",
       "/home/vscode/.config/opencode/**": "allow",
-      "/home/vscode/.local/share/opencode/**": "allow"
+      "/home/vscode/.local/share/opencode/**": "allow",
+      "/home/agent/.config/opencode/**": "allow",
+      "/home/agent/.local/share/opencode/**": "allow"
     }
   },
   "agent": {
@@ -97,7 +99,7 @@
       // "model": "github-copilot/gpt-5-mini"
     },
     "title": {
-      "model": "gpt-uio-yellow/MiniMax/MiniMax-M3",
+      "model": "gpt-uio-yellow/MiniMaxAI/MiniMax-M3-MXFP8",
       // #2 switch when: MiniMax is unavailable.
       // "model": "gpt-uio-yellow/google/gemma-4-31B-it",
       // #3 switch when: you want ultra-consistent short outputs.
@@ -111,7 +113,7 @@
       // "model": "gpt-uio-yellow/gpt-5-mini"
     },
     "compaction": {
-      "model": "gpt-uio-yellow/MiniMax/MiniMax-M3",
+      "model": "gpt-uio-yellow/MiniMaxAI/MiniMax-M3-MXFP8",
       // #2 switch when: MiniMax is unavailable.
       // "model": "gpt-uio-yellow/google/gemma-4-31B-it",
       // #3 switch when: you need tighter compaction quality.
