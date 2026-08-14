@@ -2,8 +2,12 @@
 description: Superpowered and pragmatic junior developer / implementation specialist
 mode: subagent
 model: gpt-uio-yellow/gpt-oss-120b
-#model: github-copilot/gpt-5-mini
+# #2 switch when: GPT-OSS output quality is uneven on the task.
+# model: gpt-uio-yellow/nvidia/GLM-5.2-NVFP4
+# #3 switch when: you want cleaner implementation style and stronger correctness.
+# model: gpt-uio-yellow/Qwen/Qwen3.6-27B-FP8
 reasoningEffort: medium
+temperature: 0.25
 tools:
   write: true
   edit: true

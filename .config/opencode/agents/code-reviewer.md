@@ -2,8 +2,12 @@
 description: Superpowered and pragmatic specialist in code review.
 mode: subagent
 model: gpt-uio-yellow/Qwen/Qwen3.6-27B-FP8
-#model: github-copilot/gpt-5.3-codex
+# #2 switch when: review needs stronger long-context analytical consistency.
+# model: gpt-uio-yellow/nvidia/GLM-5.2-NVFP4
+# #3 switch when: review requires advanced coding-specific diagnosis.
+# model: github-copilot/gpt-5.3-codex
 reasoningEffort: high
+temperature: 0.1
 tools:
   write: false
   edit: false

@@ -1,9 +1,13 @@
 ---
 description: Superpowered and pragmatic planner and system architect
 mode: all
-model: gpt-uio-yellow/gpt-5.4
+model: gpt-uio-yellow/gpt-5.1
+# #2 switch when: GPT-5.1 quota or latency is tight.
+# model: gpt-uio-yellow/gpt-5.4
+# #3 switch when: UiO GPT budgets are nearly depleted but you still need top planning quality.
 # model: github-copilot/gpt-5.4
 reasoningEffort: high
+temperature: 0.2
 tools:
   write: true
   edit: true

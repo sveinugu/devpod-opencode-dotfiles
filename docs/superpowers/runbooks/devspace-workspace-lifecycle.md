@@ -14,6 +14,8 @@ This runbook is the canonical source for host-side DevSpace lifecycle commands. 
 
 For operational/security changes shipped between full spec/plan rounds, see [Manual Additions Log](../change-records/manual-additions-log.md).
 
+For quick model-switch procedures and fallback routing across OpenCode agents, see [OpenCode Model Routing Fallback Cheat Sheet](opencode-model-routing-fallback-cheatsheet.md).
+
 ## Required provider credential secret (before deployment)
 
 Create this secret before deploying the workspace.

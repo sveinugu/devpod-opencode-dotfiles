@@ -1,10 +1,13 @@
 ---
 description: Superpowered and pragmatic document writer specialist.
 mode: all
-model: gpt-uio-yellow/gpt-5.4
-# model: github-copilot/gpt-5.4
-temperature: 0.7
+model: gpt-uio-yellow/mistralai/Mistral-Medium-3.5-128B
+# #2 switch when: documentation needs richer examples, interactive artifacts, or broader context carry.
+# model: gpt-uio-yellow/moonshotai/Kimi-K2.6
+# #3 switch when: you want to conserve premium budgets while keeping modern quality.
+# model: gpt-uio-yellow/google/gemma-4-31B-it
 reasoningEffort: high
+temperature: 0.6
 tools:
   write: true
   edit: true
