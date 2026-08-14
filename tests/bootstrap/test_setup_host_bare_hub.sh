@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [ -n "${NONO_CAP_FILE:-}" ] || [ -n "${NONO_TOOL_SANDBOX_SOCKET:-}" ] || [ -n "${NONO_TOOL_SANDBOX_SHIM_DIR:-}" ]; then
+  printf 'FAIL test_setup_host_bare_hub: host-only test must run outside nono sandbox (hint: bash tests/context/run.sh host)\n' >&2
+  exit 1
+fi
+
 # Host-only contract test.
 # This script is intended to be run on the HOST from inside a normal dotfiles checkout,
 # before DevPod starts. The bootstrap script under test must live inside that checkout:
