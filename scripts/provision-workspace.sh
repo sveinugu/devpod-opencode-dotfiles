@@ -7,6 +7,7 @@ source "$script_dir/lib/hub-repo-core.sh"
 
 workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
 source_repo="${HUB_PROVISION_SOURCE:-https://github.com/sveinugu/devpod-opencode-dotfiles.git}"
+origin_repo="${HUB_PROVISION_ORIGIN_URL:-$source_repo}"
 install_branch="${HUB_INSTALL_BRANCH:-main}"
 home_dir="${HOME:?HOME must be set}"
 refresh_tools=false
@@ -64,9 +65,9 @@ fi
 create_bare_hub "$workspace_root" "$source_repo" main
 
 if git --git-dir="$workspace_root/.bare" remote get-url origin >/dev/null 2>&1; then
-  git --git-dir="$workspace_root/.bare" remote set-url origin "$source_repo"
+  git --git-dir="$workspace_root/.bare" remote set-url origin "$origin_repo"
 else
-  git --git-dir="$workspace_root/.bare" remote add origin "$source_repo"
+  git --git-dir="$workspace_root/.bare" remote add origin "$origin_repo"
 fi
 
 configure_git_identity "$workspace_root/.bare"
@@ -86,7 +87,7 @@ else
   if ! GIT_TERMINAL_PROMPT=0 \
       GIT_ASKPASS=/bin/false \
       SSH_ASKPASS=/bin/false \
-      git --git-dir="$workspace_root/.bare" fetch origin "refs/heads/$install_branch:refs/remotes/origin/$install_branch" >/dev/null 2>&1; then
+      git --git-dir="$workspace_root/.bare" fetch "$source_repo" "refs/heads/$install_branch:refs/remotes/origin/$install_branch" >/dev/null 2>&1; then
     printf 'refused: unable to access source repo non-interactively (verify public HTTPS URL and repository visibility)\n' >&2
     exit 1
   fi

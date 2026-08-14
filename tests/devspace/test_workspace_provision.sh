@@ -233,16 +233,21 @@ set -e
 workspace_branch_fetch="$tmpdir/workspace-branch-fetch"
 home_branch_fetch="$tmpdir/home-branch-fetch"
 source_branch_fetch="$tmpdir/source-branch-fetch"
+origin_override_ssh='git@github.com:sveinugu/devpod-opencode-dotfiles.git'
 make_source_repo_with_main "$source_branch_fetch"
 mkdir -p "$workspace_branch_fetch" "$home_branch_fetch"
 
 HUB_WORKSPACE_ROOT="$workspace_branch_fetch" \
 HUB_PROVISION_SOURCE="$source_branch_fetch" \
+HUB_PROVISION_ORIGIN_URL="$origin_override_ssh" \
 HUB_INSTALL_BRANCH='main' \
 HUB_PYENV_INSTALL_COMMAND=":" \
 HUB_OPENCODE_INSTALL_COMMAND=":" \
 HOME="$home_branch_fetch" \
 bash "$script" >"$tmpdir/branch-fetch-initial.out"
+
+branch_fetch_origin_url="$(git --git-dir="$workspace_branch_fetch/.bare" remote get-url origin)"
+[ "$branch_fetch_origin_url" = "$origin_override_ssh" ] || fail "provision should honor HUB_PROVISION_ORIGIN_URL for bare origin"
 
 (
   cd "$source_branch_fetch"
@@ -254,6 +259,7 @@ bash "$script" >"$tmpdir/branch-fetch-initial.out"
 
 HUB_WORKSPACE_ROOT="$workspace_branch_fetch" \
 HUB_PROVISION_SOURCE="$source_branch_fetch" \
+HUB_PROVISION_ORIGIN_URL="$origin_override_ssh" \
 HUB_INSTALL_BRANCH='feature/from-origin' \
 HUB_PYENV_INSTALL_COMMAND=":" \
 HUB_OPENCODE_INSTALL_COMMAND=":" \
@@ -276,6 +282,7 @@ git --git-dir="$workspace_branch_fetch/.bare" remote set-url origin "$broken_ori
 
 HUB_WORKSPACE_ROOT="$workspace_branch_fetch" \
 HUB_PROVISION_SOURCE="$source_branch_fetch" \
+HUB_PROVISION_ORIGIN_URL="$origin_override_ssh" \
 HUB_INSTALL_BRANCH='feature/from-origin-after-origin-drift' \
 HUB_PYENV_INSTALL_COMMAND=":" \
 HUB_OPENCODE_INSTALL_COMMAND=":" \
@@ -283,6 +290,9 @@ HOME="$home_branch_fetch" \
 bash "$script" >"$tmpdir/branch-fetch-source-repo-followup.out"
 
 [ -f "$workspace_branch_fetch/work/feature/from-origin-after-origin-drift/ORIGIN_DRIFT_FETCH_MARKER" ] || fail "provision should fetch install branch from HUB_PROVISION_SOURCE even when origin remote drifts"
+
+branch_fetch_origin_url_after_drift="$(git --git-dir="$workspace_branch_fetch/.bare" remote get-url origin)"
+[ "$branch_fetch_origin_url_after_drift" = "$origin_override_ssh" ] || fail "provision should continue enforcing HUB_PROVISION_ORIGIN_URL after origin drift"
 
 source_no_main="$tmpdir/source-no-main"
 workspace_no_main="$tmpdir/workspace-no-main"
