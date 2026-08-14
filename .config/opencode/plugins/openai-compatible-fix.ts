@@ -3,78 +3,73 @@
  *
  * Workaround for https://github.com/anomalyco/opencode/issues/25096
  *
- * The bundled @ai-sdk/openai-compatible provider hardcodes max_tokens in
- * chat-completions requests. OpenAI's reasoning-model family (GPT-5.x, o1,
- * o3, o4) rejects that parameter and requires max_completion_tokens instead.
- * Those same models also reject reasoningSummary.
+ * The bundled @ai-sdk/openai-compatible provider can send `max_tokens` to
+ * reasoning models that require `max_completion_tokens` instead.
  *
- * This plugin intercepts chat.params and patches the options for affected
- * models: removes max_tokens, copies maxOutputTokens into
- * max_completion_tokens, and drops reasoningSummary.
+ * This plugin intercepts chat.params and patches the outgoing options for
+ * affected models: remove `max_tokens`, copy token limit into
+ * `max_completion_tokens`, and drop `reasoningSummary`.
  */
 
-/**
- * Model-name patterns that indicate a reasoning model requiring
- * max_completion_tokens instead of max_tokens.
- *
- * We match the full modelID (which may include provider prefix) plus the
- * short name portion after the last slash, to handle both
- * "gpt-uio-yellow/gpt-5.1" and bare "gpt-5.1" forms.
- */
-const REASONING_MODEL_PREFIXES = [
-  "gpt-5",
-  "o1",
-  "o3",
-  "o4",
-];
+const REASONING_MODEL_PREFIXES = ["gpt-5", "o1", "o3", "o4"]
 
-function isReasoningModel(modelID: string): boolean {
-  // Strip provider prefix (e.g. "gpt-uio-yellow/gpt-5.1" → "gpt-5.1")
-  const short = modelID.includes("/") ? modelID.slice(modelID.lastIndexOf("/") + 1) : modelID
-  return REASONING_MODEL_PREFIXES.some((prefix) => short.startsWith(prefix))
+function normalizeModelText(value) {
+  if (typeof value !== "string") return []
+  const full = value.trim().toLowerCase()
+  if (!full) return []
+  const short = full.includes("/") ? full.slice(full.lastIndexOf("/") + 1) : full
+  return short === full ? [full] : [full, short]
 }
 
-export const OpenAICompatibleFix = async (input: {
-  client: unknown
-  project: unknown
-  directory: string
-  worktree: string
-  experimental_workspace: unknown
-  serverUrl: URL
-  $: unknown
-}) => {
+function modelLooksLikeReasoningModel(modelName) {
+  if (typeof modelName !== "string") return false
+  return REASONING_MODEL_PREFIXES.some((prefix) => modelName.startsWith(prefix))
+}
+
+function extractModelCandidates(incoming) {
+  const model = incoming?.model
+  const candidates = []
+
+  if (typeof model === "string") candidates.push(model)
+
+  if (model && typeof model === "object") {
+    candidates.push(model.modelID, model.modelId, model.id, model.name, model.model)
+    if (typeof model.providerID === "string" && typeof model.modelID === "string") {
+      candidates.push(`${model.providerID}/${model.modelID}`)
+    }
+  }
+
+  candidates.push(incoming?.modelID, incoming?.modelId, incoming?.modelName, incoming?.name)
+
+  return candidates
+    .flatMap(normalizeModelText)
+    .filter(Boolean)
+}
+
+function shouldPatchForIncomingModel(incoming) {
+  return extractModelCandidates(incoming).some(modelLooksLikeReasoningModel)
+}
+
+export const OpenAICompatibleFix = async () => {
   return {
-    "chat.params": async (
-      incoming: {
-        sessionID: string
-        agent: string
-        model: { providerID: string; modelID: string }
-        provider: unknown
-        message: unknown
-      },
-      output: {
-        temperature: number
-        topP: number
-        topK: number
-        maxOutputTokens: number | undefined
-        options: Record<string, unknown>
-      },
-    ) => {
-      // Only patch for reasoning models (gpt-5*, o1*, o3*, o4*)
-      if (!isReasoningModel(incoming.model.modelID)) return
+    "chat.params": async (incoming, output) => {
+      if (!shouldPatchForIncomingModel(incoming)) return
 
-      // Remove max_tokens (the openai-compatible adapter injects this
-      // automatically; reasoning models reject it)
-      delete output.options.max_tokens
+      const options = (output && typeof output.options === "object" && output.options !== null)
+        ? output.options
+        : {}
 
-      // Set max_completion_tokens from maxOutputTokens
-      if (output.maxOutputTokens !== undefined) {
-        output.options.max_completion_tokens = output.maxOutputTokens
+      if (output) output.options = options
+
+      const maxOutputTokens = output?.maxOutputTokens
+      if (typeof maxOutputTokens === "number" && Number.isFinite(maxOutputTokens)) {
+        options.max_completion_tokens = maxOutputTokens
+      } else if (typeof options.max_tokens === "number" && Number.isFinite(options.max_tokens)) {
+        options.max_completion_tokens = options.max_tokens
       }
 
-      // Remove reasoningSummary (some reasoning models via openai-compatible
-      // proxy do not support this parameter)
-      delete output.options.reasoningSummary
+      delete options.max_tokens
+      delete options.reasoningSummary
     },
   }
 }

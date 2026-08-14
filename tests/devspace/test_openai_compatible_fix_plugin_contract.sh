@@ -40,10 +40,10 @@ grep -q '"chat.params"' "$plugin_file" || fail "plugin must register chat.params
 grep -q 'max_completion_tokens' "$plugin_file" || fail "plugin must set max_completion_tokens in output.options"
 
 # --- Removes max_tokens ------------------------------------------------------
-grep -q 'delete output\.options\.max_tokens' "$plugin_file" || fail "plugin must delete max_tokens from output.options"
+grep -q 'delete .*max_tokens' "$plugin_file" || fail "plugin must delete max_tokens from output/options"
 
 # --- Removes reasoningSummary ------------------------------------------------
-grep -q 'delete output\.options\.reasoningSummary' "$plugin_file" || fail "plugin must delete reasoningSummary from output.options"
+grep -q 'delete .*reasoningSummary' "$plugin_file" || fail "plugin must delete reasoningSummary from output/options"
 
 # --- Covers known reasoning model prefixes -----------------------------------
 for prefix in "gpt-5" "o1" "o3" "o4"; do
