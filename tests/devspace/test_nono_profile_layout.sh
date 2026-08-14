@@ -24,10 +24,8 @@ if grep -F '"deny_shell_configs"' "$profile" >/dev/null; then
   fail "profile must not exclude required deny_shell_configs group"
 fi
 grep -F '"bypass_protection"' "$profile" >/dev/null || fail "profile should use bypass_protection for explicit shell config exceptions"
-grep -F '"$WORKDIR/.zshrc"' "$profile" >/dev/null || fail "profile should declare explicit .zshrc path exception"
-grep -F '"$WORKDIR/.zprofile"' "$profile" >/dev/null || fail "profile should declare explicit .zprofile path exception"
-grep -F '"$WORKDIR/../.bare"' "$profile" >/dev/null || fail "profile should allow shared bare repo path for default-branch worktree contexts"
-grep -F '"$WORKDIR/../../.bare"' "$profile" >/dev/null || fail "profile should allow shared bare repo path for nested worktree contexts"
+grep -F '"/workspaces/dotfiles/**/.zshrc"' "$profile" >/dev/null || fail "profile should declare explicit recursive .zshrc path exception under workspace root"
+grep -F '"/workspaces/dotfiles/**/.zprofile"' "$profile" >/dev/null || fail "profile should declare explicit recursive .zprofile path exception under workspace root"
 
 for credential in '"openai"' '"anthropic"' '"github-copilot"' '"gpt-uio-yellow"' '"gpt-uio-red"'; do
   grep -F "$credential" "$profile" >/dev/null || fail "profile missing required credential route $credential"
@@ -56,7 +54,7 @@ if '/usr/local/bin/opencode-raw' in allow_dir:
     raise SystemExit(1)
 PY
 
-python3 - "$profile" <<'PY' || fail "profile should grant shared bare repo paths as read+write"
+python3 - "$profile" <<'PY' || fail "profile should grant workspace root as read+write"
 import json
 import sys
 
@@ -68,13 +66,11 @@ filesystem = profile.get('filesystem', {})
 read_paths = filesystem.get('read', [])
 allow_paths = filesystem.get('allow', [])
 
-required_readwrite = ['$WORKDIR/../.bare', '$WORKDIR/../../.bare']
+if '/workspaces/dotfiles' not in allow_paths:
+    raise SystemExit(1)
 
-for path in required_readwrite:
-    if path not in allow_paths:
-        raise SystemExit(1)
-    if path in read_paths:
-        raise SystemExit(1)
+if '/workspaces/dotfiles' in read_paths:
+    raise SystemExit(1)
 
 if '$HOME/.gitconfig' not in read_paths:
     raise SystemExit(1)
@@ -113,11 +109,11 @@ fs_write = sandbox.get('fs_write', [])
 fs_read_file = sandbox.get('fs_read_file', [])
 exec_paths = sandbox.get('exec_paths', [])
 
-for required_read in ('$WORKDIR', '$WORKDIR/../.bare', '$WORKDIR/../../.bare', '/workspaces/dotfiles', '/usr/local/libexec/git-core'):
+for required_read in ('/workspaces/dotfiles', '/usr/local/libexec/git-core'):
     if required_read not in fs_read:
         raise SystemExit(1)
 
-for required_write in ('$WORKDIR', '$WORKDIR/../.bare', '$WORKDIR/../../.bare', '/workspaces/dotfiles'):
+for required_write in ('/workspaces/dotfiles',):
     if required_write not in fs_write:
         raise SystemExit(1)
 

@@ -104,8 +104,7 @@ The supported path is practical hardening, not a claim of absolute isolation, an
 - explicit subdir grants only
 - precreate runtime dirs via init container
 
-Plain-language summary: the sandbox gets the current worktree, a narrow set of OpenCode runtime directories under `/home/agent`, `/tmp`, the bare-hub root at `/workspaces/dotfiles`, the direnv allow-list directory under `$XDG_DATA_HOME/direnv`, and the single raw binary path — nothing broader.
-For shared bare-hub git worktrees, the profile also grants narrow read+write access to the related `.bare` repository path via `$WORKDIR/../.bare` and `$WORKDIR/../../.bare` so agent-side git operations (commit, branch, worktree) can function.
+Plain-language summary: the sandbox gets broad managed-workspace access through `/workspaces/dotfiles`, a narrow set of OpenCode runtime directories under `/home/agent`, `/tmp`, the direnv allow-list directory under `$XDG_DATA_HOME/direnv`, and the single raw binary path — nothing broader.
 
 The reviewed profile allows only the runtime surfaces OpenCode needs, plus the fixed raw binary path `/usr/local/bin/opencode-raw` as `allow_file`.
 Runtime state is pinned under `/home/agent` with specific XDG paths, and the deployment precreates those directories via an init container before daily use.
@@ -113,7 +112,6 @@ Runtime state is pinned under `/home/agent` with specific XDG paths, and the dep
 Default path-variable values in this launch chain are:
 
 - `$HOME` = `/home/agent`
-- `$WORKDIR` = `<current active worktree>`
 - `$XDG_CACHE_HOME` = `/home/agent/.cache`
 - `$XDG_CONFIG_HOME` = `/home/agent/.config`
 - `$XDG_DATA_HOME` = `/home/agent/.local/share`
@@ -135,18 +133,16 @@ Fixed-path grants for the sandboxed agent are exactly:
 - `/workspaces/dotfiles` — read+write, for broader hub filesystem access by the sandboxed agent
 - `/usr/local/bin/opencode-raw` (`allow_file`) — single-file read/execute target, not directory access
 
-Worktree-dependent grants are:
+Workspace-scoped grants are:
 
-- `<current active worktree>` (`$WORKDIR`) — read+write worktree access
-- `<current active worktree>/.zprofile` (`$WORKDIR/.zprofile`) — read-only, with explicit bypass through the upstream shell-config deny group
-- `<current active worktree>/.zshrc` (`$WORKDIR/.zshrc`) — read-only, with explicit bypass through the upstream shell-config deny group
-- `<current active worktree>/../.bare` (`$WORKDIR/../.bare`) — read+write, for shared bare-repo operations when the active checkout is a default branch directory (for example `main`)
-- `<current active worktree>/../../.bare` (`$WORKDIR/../../.bare`) — read+write, for shared bare-repo operations when the active checkout is a nested worktree directory (for example `work/<branch>`)
+- `/workspaces/dotfiles` — read+write for managed top-level checkout(s), worktrees, shared bare repo metadata, and child repo trees
+- `/workspaces/dotfiles/**/.zprofile` — read-only, with explicit bypass through the upstream shell-config deny group
+- `/workspaces/dotfiles/**/.zshrc` — read-only, with explicit bypass through the upstream shell-config deny group
 
-At runtime, the wrapper pins these paths under the `agent` identity, centered on `/home/agent` plus the worktree.
+At runtime, the wrapper pins these paths under the `agent` identity, centered on `/home/agent` plus `/workspaces/dotfiles`.
 
 The sandboxed agent is not granted broad access to `/home/agent`, `/home/agent/.local/share`, `/usr/local/bin`, or `/var/run/secrets/nono/providers`.
-It also does not receive blanket exceptions for shell configs: only `$WORKDIR/.zshrc` and `$WORKDIR/.zprofile` are exempted from the upstream shell-config deny group.
+It also does not receive blanket exceptions for shell configs outside the managed workspace root: only `/workspaces/dotfiles/**/.zshrc` and `/workspaces/dotfiles/**/.zprofile` are exempted from the upstream shell-config deny group.
 
 Repo anchors for this contract:
 

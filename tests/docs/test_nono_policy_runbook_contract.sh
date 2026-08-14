@@ -58,10 +58,9 @@ check_fixed "$policy" '## Filesystem policy' 'policy filesystem section'
 check_fixed "$policy" '- no broad grants for `/home/agent` or `~/.local/share`' 'policy filesystem no-broad-grants rule'
 check_fixed "$policy" '- explicit subdir grants only' 'policy filesystem explicit-subdir rule'
 check_fixed "$policy" '- precreate runtime dirs via init container' 'policy filesystem init-container rule'
-check_fixed "$policy" 'Plain-language summary: the sandbox gets the current worktree, a narrow set of OpenCode runtime directories under `/home/agent`, `/tmp`, the bare-hub root at `/workspaces/dotfiles`, the direnv allow-list directory under `$XDG_DATA_HOME/direnv`, and the single raw binary path — nothing broader.' 'policy filesystem plain-language summary'
+check_fixed "$policy" 'Plain-language summary: the sandbox gets broad managed-workspace access through `/workspaces/dotfiles`, a narrow set of OpenCode runtime directories under `/home/agent`, `/tmp`, the direnv allow-list directory under `$XDG_DATA_HOME/direnv`, and the single raw binary path — nothing broader.' 'policy filesystem plain-language summary'
 check_fixed "$policy" 'Default path-variable values in this launch chain are:' 'policy path variable intro'
 check_fixed "$policy" '- `$HOME` = `/home/agent`' 'policy home default path'
-check_fixed "$policy" '- `$WORKDIR` = `<current active worktree>`' 'policy workdir default path'
 check_fixed "$policy" '- `$XDG_CACHE_HOME` = `/home/agent/.cache`' 'policy xdg cache default path'
 check_fixed "$policy" '- `$XDG_CONFIG_HOME` = `/home/agent/.config`' 'policy xdg config default path'
 check_fixed "$policy" '- `$XDG_DATA_HOME` = `/home/agent/.local/share`' 'policy xdg data default path'
@@ -78,12 +77,10 @@ check_fixed "$policy" '- `/home/agent/.gitconfig` (`$HOME/.gitconfig`) — read-
 check_fixed "$policy" '- `/etc/gitconfig` — read-only, so system-level git `safe.directory` trust config remains readable to sandboxed git processes' 'policy system gitconfig read grant'
 check_fixed "$policy" '- `/tmp` — read+write temporary workspace' 'policy tmp grant'
 check_fixed "$policy" '- `/usr/local/bin/opencode-raw` (`allow_file`) — single-file read/execute target, not directory access' 'policy raw binary allow-file grant'
-check_fixed "$policy" 'Worktree-dependent grants are:' 'policy worktree-dependent grant intro'
-check_fixed "$policy" '- `<current active worktree>` (`$WORKDIR`) — read+write worktree access' 'policy workdir grant'
-check_fixed "$policy" '- `<current active worktree>/.zprofile` (`$WORKDIR/.zprofile`) — read-only, with explicit bypass through the upstream shell-config deny group' 'policy zprofile grant'
-check_fixed "$policy" '- `<current active worktree>/.zshrc` (`$WORKDIR/.zshrc`) — read-only, with explicit bypass through the upstream shell-config deny group' 'policy zshrc grant'
-check_fixed "$policy" '- `<current active worktree>/../.bare` (`$WORKDIR/../.bare`) — read+write, for shared bare-repo operations when the active checkout is a default branch directory (for example `main`)' 'policy parent bare metadata grant'
-check_fixed "$policy" '- `<current active worktree>/../../.bare` (`$WORKDIR/../../.bare`) — read+write, for shared bare-repo operations when the active checkout is a nested worktree directory (for example `work/<branch>`)' 'policy nested bare metadata grant'
+check_fixed "$policy" 'Workspace-scoped grants are:' 'policy workspace-scoped grant intro'
+check_fixed "$policy" '- `/workspaces/dotfiles` — read+write for managed top-level checkout(s), worktrees, shared bare repo metadata, and child repo trees' 'policy workspace root grant'
+check_fixed "$policy" '- `/workspaces/dotfiles/**/.zprofile` — read-only, with explicit bypass through the upstream shell-config deny group' 'policy recursive zprofile grant'
+check_fixed "$policy" '- `/workspaces/dotfiles/**/.zshrc` — read-only, with explicit bypass through the upstream shell-config deny group' 'policy recursive zshrc grant'
 check_fixed "$policy" 'The sandboxed agent is not granted broad access to `/home/agent`, `/home/agent/.local/share`, `/usr/local/bin`, or `/var/run/secrets/nono/providers`.' 'policy explicit non-grants'
 check_fixed "$policy" '## Execution chain policy' 'policy execution-chain section'
 check_fixed "$policy" '- wrapped launcher → constrained sudo → setpriv drop to `agent` → `nono` → raw `opencode`' 'policy execution chain overview'
@@ -140,7 +137,6 @@ def assert_in_order(items, label):
 
 assert_in_order([
     '- `$HOME` = `/home/agent`',
-    '- `$WORKDIR` = `<current active worktree>`',
     '- `$XDG_CACHE_HOME` = `/home/agent/.cache`',
     '- `$XDG_CONFIG_HOME` = `/home/agent/.config`',
     '- `$XDG_DATA_HOME` = `/home/agent/.local/share`',
@@ -164,12 +160,10 @@ assert_in_order([
 ], 'fixed-path-grants')
 
 assert_in_order([
-    '- `<current active worktree>` (`$WORKDIR`) — read+write worktree access',
-    '- `<current active worktree>/.zprofile` (`$WORKDIR/.zprofile`) — read-only, with explicit bypass through the upstream shell-config deny group',
-    '- `<current active worktree>/.zshrc` (`$WORKDIR/.zshrc`) — read-only, with explicit bypass through the upstream shell-config deny group',
-    '- `<current active worktree>/../.bare` (`$WORKDIR/../.bare`) — read+write, for shared bare-repo operations when the active checkout is a default branch directory (for example `main`)',
-    '- `<current active worktree>/../../.bare` (`$WORKDIR/../../.bare`) — read+write, for shared bare-repo operations when the active checkout is a nested worktree directory (for example `work/<branch>`)',
-], 'worktree-grants')
+    '- `/workspaces/dotfiles` — read+write for managed top-level checkout(s), worktrees, shared bare repo metadata, and child repo trees',
+    '- `/workspaces/dotfiles/**/.zprofile` — read-only, with explicit bypass through the upstream shell-config deny group',
+    '- `/workspaces/dotfiles/**/.zshrc` — read-only, with explicit bypass through the upstream shell-config deny group',
+], 'workspace-scoped-grants')
 PY
 
 check_fixed "$bare_hub" '[nono Policy](nono-policy.md)' 'bare-hub cross-link to nono policy'

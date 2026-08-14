@@ -14,8 +14,8 @@
   },
   "filesystem": {
     "read": [
-      "$WORKDIR/.zshrc",
-      "$WORKDIR/.zprofile",
+      "/workspaces/dotfiles/**/.zshrc",
+      "/workspaces/dotfiles/**/.zprofile",
       "$HOME/.gitconfig",
       "/etc/gitconfig"
     ],
@@ -29,15 +29,13 @@
       "$XDG_DATA_HOME/opencode",
       "$XDG_DATA_HOME/opentui",
       "$HOME/.local/state/opencode",
-      "$WORKDIR/../.bare",
-      "$WORKDIR/../../.bare",
       "/workspaces/dotfiles",
       "$HOME/.local/share/direnv",
       "/tmp"
     ],
     "bypass_protection": [
-      "$WORKDIR/.zshrc",
-      "$WORKDIR/.zprofile"
+      "/workspaces/dotfiles/**/.zshrc",
+      "/workspaces/dotfiles/**/.zprofile"
     ]
   },
   "environment": {
@@ -126,16 +124,10 @@
           "session": {
             "sandbox": {
               "fs_read": [
-                "$WORKDIR",
-                "$WORKDIR/../.bare",
-                "$WORKDIR/../../.bare",
                 "/workspaces/dotfiles",
                 "/usr/local/libexec/git-core"
               ],
               "fs_write": [
-                "$WORKDIR",
-                "$WORKDIR/../.bare",
-                "$WORKDIR/../../.bare",
                 "/workspaces/dotfiles"
               ],
               "fs_read_file": [
