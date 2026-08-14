@@ -22,3 +22,5 @@ bash tests/context/run.sh pod-inside-nono
 - Host-only bootstrap tests fail fast with a clear message if run inside nono.
 - `tests/devspace/test_nono_blocking_matrix_contract.sh` fails fast when run inside nono by design.
 - Wrapper-specific behavior remains covered in dedicated wrapper tests (`test_opencode_secure_wrapper_contract.sh`, `test_nono_identity_integration_contract.sh`).
+
+- `tests/devspace/test_resolve_git_identity.sh` remains host-context because it validates interactive global git identity prompts using pseudo-TTY flows and isolated HOME state.

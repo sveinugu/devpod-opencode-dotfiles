@@ -49,11 +49,6 @@ case "$context" in
       tests/devspace/test_devspace_destroy.sh
       tests/devspace/test_devspace_dev_preflight.sh
       tests/devspace/test_devspace_doctor.sh
-      tests/devspace/test_create_hub_repo.sh
-      tests/devspace/test_new_worktree.sh
-      tests/devspace/test_retire_worktree.sh
-      tests/devspace/test_managed_lane_registry.sh
-      tests/devspace/test_public_repo_clone_behavior.sh
       tests/devspace/test_resolve_git_identity.sh
     )
     run_test_list "${tests[@]}"
@@ -77,6 +72,11 @@ case "$context" in
       tests/devspace/test_workspace_manifest_contract.sh
       tests/devspace/test_workspace_preinstalled_tools_contract.sh
       tests/devspace/test_devspace_command_surface.sh
+      tests/devspace/test_create_hub_repo.sh
+      tests/devspace/test_new_worktree.sh
+      tests/devspace/test_retire_worktree.sh
+      tests/devspace/test_managed_lane_registry.sh
+      tests/devspace/test_public_repo_clone_behavior.sh
     )
     run_test_list "${tests[@]}"
     ;;

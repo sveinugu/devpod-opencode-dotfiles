@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_workspace_pod 'test_public_repo_clone_behavior' 'bash tests/context/run.sh pod-inside-nono'
+require_inside_nono_sandbox 'test_public_repo_clone_behavior' 'bash tests/context/run.sh pod-inside-nono'
+
 fail() {
   printf 'FAIL test_public_repo_clone_behavior: %s\n' "$1" >&2
   exit 1
 }
 
-repo_root="$(git rev-parse --show-toplevel)"
 clone_script="$repo_root/bin/clone-repo"
 provision_script="$repo_root/scripts/provision-workspace.sh"
 
