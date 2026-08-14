@@ -104,7 +104,7 @@
       // "model": "gpt-uio-yellow/gpt-5-mini"
     },
     "summary": {
-      "model": "gpt-uio-yellow/MiniMax/MiniMax-M3",
+      "model": "gpt-uio-yellow/MiniMaxAI/MiniMax-M3-MXFP8",
       // #2 switch when: MiniMax is unavailable.
       // "model": "gpt-uio-yellow/google/gemma-4-31B-it",
       // #3 switch when: you want tighter summarization consistency.
