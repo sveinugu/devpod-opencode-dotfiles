@@ -129,12 +129,14 @@
                 "$WORKDIR",
                 "$WORKDIR/../.bare",
                 "$WORKDIR/../../.bare",
+                "/workspaces/dotfiles",
                 "/usr/local/libexec/git-core"
               ],
               "fs_write": [
                 "$WORKDIR",
                 "$WORKDIR/../.bare",
-                "$WORKDIR/../../.bare"
+                "$WORKDIR/../../.bare",
+                "/workspaces/dotfiles"
               ],
               "fs_read_file": [
                 "$HOME/.gitconfig",

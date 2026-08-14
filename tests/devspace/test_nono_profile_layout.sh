@@ -113,11 +113,11 @@ fs_write = sandbox.get('fs_write', [])
 fs_read_file = sandbox.get('fs_read_file', [])
 exec_paths = sandbox.get('exec_paths', [])
 
-for required_read in ('$WORKDIR', '$WORKDIR/../.bare', '$WORKDIR/../../.bare', '/usr/local/libexec/git-core'):
+for required_read in ('$WORKDIR', '$WORKDIR/../.bare', '$WORKDIR/../../.bare', '/workspaces/dotfiles', '/usr/local/libexec/git-core'):
     if required_read not in fs_read:
         raise SystemExit(1)
 
-for required_write in ('$WORKDIR', '$WORKDIR/../.bare', '$WORKDIR/../../.bare'):
+for required_write in ('$WORKDIR', '$WORKDIR/../.bare', '$WORKDIR/../../.bare', '/workspaces/dotfiles'):
     if required_write not in fs_write:
         raise SystemExit(1)
 
