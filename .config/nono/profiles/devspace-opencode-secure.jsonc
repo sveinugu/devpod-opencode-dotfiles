@@ -124,7 +124,8 @@
           "fs_read": [
             "/workspaces/dotfiles",
             "/usr/local/libexec/git-core",
-            "/usr/local/bin"
+            "/usr/local/bin",
+            "/tmp"
           ],
           "fs_write": [
             "/workspaces/dotfiles"
