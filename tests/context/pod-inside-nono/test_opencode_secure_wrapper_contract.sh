@@ -44,6 +44,7 @@ grep -F '/usr/local/libexec/dotfiles-launch-opencode-nono' "$wrapper" >/dev/null
 grep -F '/etc/nono/profiles/runtime' "$wrapper" >/dev/null || fail "wrapper must default generated profile output directory to root-owned runtime profile path"
 grep -F '/usr/local/bin/nono' "$wrapper" >/dev/null || fail "wrapper must default nono binary path to /usr/local/bin/nono"
 grep -F '/usr/local/bin/opencode-raw' "$wrapper" >/dev/null || fail "wrapper must default raw opencode binary path to root-owned /usr/local/bin/opencode-raw"
+grep -F 'unset NONO_CAP_FILE NONO_TOOL_SANDBOX_SOCKET NONO_TOOL_SANDBOX_SHIM_DIR NONO_PROXY_TOKEN NONO_NO_PROXY' "$wrapper" >/dev/null || fail "wrapper must scrub inherited nono runtime session environment before nested launch"
 grep -F 'sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-binary "$nono_binary" --profile "$profile_path" --agent-uid "$agent_uid" --agent-gid "$agent_gid" --runtime-home "$runtime_home" --runtime-xdg-config-home "$runtime_xdg_config_home" --runtime-xdg-cache-home "$runtime_xdg_cache_home" --runtime-xdg-data-home "$runtime_xdg_data_home" --runtime-xdg-state-home "$runtime_xdg_state_home" --opencode-xdg-state-home "$opencode_xdg_state_home" --runtime-path "$runtime_path" --opencode-config-content "$opencode_provider_runtime_json" --raw-opencode-binary "$raw_opencode_binary" -- "$@"' "$wrapper" >/dev/null || fail "wrapper must launch nono through constrained launch helper chain"
 grep -F 'exec sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-binary "$nono_binary" --profile "$profile_path" --agent-uid "$agent_uid" --agent-gid "$agent_gid" --runtime-home "$runtime_home" --runtime-xdg-config-home "$runtime_xdg_config_home" --runtime-xdg-cache-home "$runtime_xdg_cache_home" --runtime-xdg-data-home "$runtime_xdg_data_home" --runtime-xdg-state-home "$runtime_xdg_state_home" --opencode-xdg-state-home "$opencode_xdg_state_home" --runtime-path "$runtime_path" --opencode-config-content "$opencode_provider_runtime_json" --raw-opencode-binary "$raw_opencode_binary" -- "$@"' "$wrapper" >/dev/null || fail "wrapper must always append end-of-options marker and argv passthrough"
 grep -F 'HUB_NONO_RUNTIME_PATH' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime PATH contract"
@@ -112,6 +113,40 @@ cat >"$mock_bin/nono" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 printf '%s\n' "$*" >"${MOCK_NONO_ARG_LOG:?MOCK_NONO_ARG_LOG must be set}"
+
+if [ "${MOCK_NONO_FAIL_ON_STALE_CAP:-0}" = "1" ] && [ -n "${NONO_CAP_FILE:-}" ]; then
+  serialized_stdin_path="$({
+    python3 - "$NONO_CAP_FILE" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], 'r', encoding='utf-8') as fh:
+    cap = json.load(fh)
+
+for entry in cap.get('fs', []):
+    if entry.get('original') == '/dev/stdin':
+        path = entry.get('path', '')
+        if isinstance(path, str):
+            print(path)
+        break
+PY
+  } || true)"
+  current_stdin_path="$({
+    python3 - <<'PY'
+from pathlib import Path
+
+try:
+    print(Path('/proc/self/fd/0').readlink())
+except OSError:
+    print('/dev/null')
+PY
+  } || true)"
+  if [ -n "$serialized_stdin_path" ] && [ "$serialized_stdin_path" != "$current_stdin_path" ]; then
+    printf "nono: Configuration parse error: sandbox state path drifted at reload: serialized resolved=%s, actual resolved=%s\n" "$serialized_stdin_path" "$current_stdin_path" >&2
+    exit 1
+  fi
+fi
+
 if [ -n "${MOCK_NONO_INTERCEPT_CA_PATH:-}" ]; then
   export SSL_CERT_FILE="$MOCK_NONO_INTERCEPT_CA_PATH"
   export REQUESTS_CA_BUNDLE="$MOCK_NONO_INTERCEPT_CA_PATH"
@@ -144,6 +179,11 @@ printf 'REQUESTS_CA_BUNDLE=%s\n' "${REQUESTS_CA_BUNDLE:-}" >>"$MOCK_NONO_ENV_LOG
 printf 'NODE_EXTRA_CA_CERTS=%s\n' "${NODE_EXTRA_CA_CERTS:-}" >>"$MOCK_NONO_ENV_LOG"
 printf 'CURL_CA_BUNDLE=%s\n' "${CURL_CA_BUNDLE:-}" >>"$MOCK_NONO_ENV_LOG"
 printf 'GIT_SSL_CAINFO=%s\n' "${GIT_SSL_CAINFO:-}" >>"$MOCK_NONO_ENV_LOG"
+printf 'NONO_CAP_FILE=%s\n' "${NONO_CAP_FILE:-}" >>"$MOCK_NONO_ENV_LOG"
+printf 'NONO_TOOL_SANDBOX_SOCKET=%s\n' "${NONO_TOOL_SANDBOX_SOCKET:-}" >>"$MOCK_NONO_ENV_LOG"
+printf 'NONO_TOOL_SANDBOX_SHIM_DIR=%s\n' "${NONO_TOOL_SANDBOX_SHIM_DIR:-}" >>"$MOCK_NONO_ENV_LOG"
+printf 'NONO_PROXY_TOKEN=%s\n' "${NONO_PROXY_TOKEN:-}" >>"$MOCK_NONO_ENV_LOG"
+printf 'NONO_NO_PROXY=%s\n' "${NONO_NO_PROXY:-}" >>"$MOCK_NONO_ENV_LOG"
 exit 0
 EOF
 chmod +x "$mock_bin/nono"
@@ -472,6 +512,44 @@ fi
 
 grep -F 'GPT_UIO_YELLOW_API_KEY=gpt_uio_yellow_api_key-value' "$env_log" >/dev/null || fail "wrapper should export yellow key from mounted secret when gpt-uio-yellow is enabled"
 grep -F 'GPT_UIO_RED_API_KEY=' "$env_log" >/dev/null || fail "wrapper should not require red key when gpt-uio-red provider is disabled"
+
+cat >"$tmp_root/stale-nono-cap.json" <<'JSON'
+{
+  "fs": [
+    {
+      "original": "/dev/stdin",
+      "path": "/dev/pts/2"
+    }
+  ]
+}
+JSON
+
+PATH="$mock_bin:$PATH" \
+HUB_INSTALL_BRANCH_DIR="$install_root" \
+HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" \
+HUB_NONO_SECRET_HELPER_SUDO='sudo -n' \
+HUB_NONO_AGENT_USER='agent' \
+HUB_NONO_BINARY="$mock_bin/nono" \
+HUB_NONO_SET_PRIV_BINARY="$setpriv_binary" \
+HUB_NONO_PROFILE_TEMPLATE_PATH="$profile_root/devspace-opencode-secure.jsonc" \
+OPENCODE_PROVIDER_RUNTIME_PATH="$tmp_root/provider-runtime-yellow-only.json" \
+OPENCODE_RAW_BINARY="$raw_binary" \
+MOCK_NONO_ARG_LOG="$arg_log" \
+MOCK_NONO_ENV_LOG="$env_log" \
+MOCK_SUDO_LOG="$sudo_log" \
+MOCK_NONO_FAIL_ON_STALE_CAP='1' \
+NONO_CAP_FILE="$tmp_root/stale-nono-cap.json" \
+NONO_TOOL_SANDBOX_SOCKET='/tmp/stale-supervisor.sock' \
+NONO_TOOL_SANDBOX_SHIM_DIR='/tmp/stale-shims' \
+NONO_PROXY_TOKEN='stale-token' \
+NONO_NO_PROXY='stale-no-proxy' \
+bash "$wrapper" --version >/dev/null 2>&1 || fail "wrapper should scrub inherited nono session env to avoid stale --self state drift failures"
+
+grep -F 'NONO_CAP_FILE=' "$env_log" >/dev/null || fail "wrapper should clear NONO_CAP_FILE before nested nono launch"
+grep -F 'NONO_TOOL_SANDBOX_SOCKET=' "$env_log" >/dev/null || fail "wrapper should clear NONO_TOOL_SANDBOX_SOCKET before nested nono launch"
+grep -F 'NONO_TOOL_SANDBOX_SHIM_DIR=' "$env_log" >/dev/null || fail "wrapper should clear NONO_TOOL_SANDBOX_SHIM_DIR before nested nono launch"
+grep -F 'NONO_PROXY_TOKEN=' "$env_log" >/dev/null || fail "wrapper should clear NONO_PROXY_TOKEN before nested nono launch"
+grep -F 'NONO_NO_PROXY=' "$env_log" >/dev/null || fail "wrapper should clear NONO_NO_PROXY before nested nono launch"
 
 rm -f "$secret_root/gpt_uio_red_api_key"
 

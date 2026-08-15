@@ -153,6 +153,11 @@ if [ ! -x "$launch_helper" ]; then
   exit 1
 fi
 
+# Clear inherited nested-sandbox/session markers before launching a new nono runtime.
+# If these leak into a fresh launch, diagnostics like `nono why --self` can reload
+# stale session state (e.g. tty/fd paths) and fail with path-drift parse errors.
+unset NONO_CAP_FILE NONO_TOOL_SANDBOX_SOCKET NONO_TOOL_SANDBOX_SHIM_DIR NONO_PROXY_TOKEN NONO_NO_PROXY
+
 profile_path="$(sudo -n -- "$generated_profile_writer" --template "$profile_template_path" --runtime "$provider_runtime_path" --output-dir "$generated_profile_dir")"
 
 if [ ! -r "$profile_path" ]; then
