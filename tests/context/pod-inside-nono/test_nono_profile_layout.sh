@@ -86,7 +86,7 @@ if '/etc/gitconfig' in allow_paths:
     raise SystemExit(1)
 PY
 
-python3 - "$profile" <<'PY' || fail "profile should grant git helper exec path through command_policies.from.session sandbox"
+python3 - "$profile" <<'PY' || fail "profile should grant git helper exec paths through command_policies.from.session sandbox"
 import json
 import sys
 
@@ -96,40 +96,45 @@ with open(profile_path, 'r', encoding='utf-8') as fh:
 
 command_policies = profile.get('command_policies', {})
 commands = command_policies.get('commands', {})
-git = commands.get('git', {})
 
-if git.get('executable') != '/usr/local/bin/git':
-    raise SystemExit(1)
+required_commands = {
+    'git': '/usr/local/bin/git',
+    'git-upload-pack': '/usr/local/bin/git-upload-pack',
+    'git-receive-pack': '/usr/local/bin/git-receive-pack',
+    'git-upload-archive': '/usr/local/bin/git-upload-archive',
+}
 
-from_edges = git.get('from', {})
-session_edge = from_edges.get('session', {})
-sandbox = session_edge.get('sandbox', {})
-
-if not sandbox:
-    raise SystemExit(1)
-
-fs_read = sandbox.get('fs_read', [])
-fs_write = sandbox.get('fs_write', [])
-fs_read_file = sandbox.get('fs_read_file', [])
-exec_paths = sandbox.get('exec_paths', [])
-
-for required_read in ('/workspaces/dotfiles', '/usr/local/libexec/git-core'):
-    if required_read not in fs_read:
+for command_name, executable in required_commands.items():
+    command_policy = commands.get(command_name, {})
+    if command_policy.get('executable') != executable:
         raise SystemExit(1)
 
-for required_write in ('/workspaces/dotfiles',):
-    if required_write not in fs_write:
+    from_edges = command_policy.get('from', {})
+    session_edge = from_edges.get('session', {})
+    sandbox = session_edge.get('sandbox', {})
+
+    if not sandbox:
         raise SystemExit(1)
 
-for required_read_file in ('$HOME/.gitconfig', '/etc/gitconfig'):
-    if required_read_file not in fs_read_file:
+    fs_read = sandbox.get('fs_read', [])
+    fs_write = sandbox.get('fs_write', [])
+    fs_read_file = sandbox.get('fs_read_file', [])
+    exec_paths = sandbox.get('exec_paths', [])
+
+    for required_read in ('/workspaces/dotfiles', '/usr/local/libexec/git-core'):
+        if required_read not in fs_read:
+            raise SystemExit(1)
+
+    for required_write in ('/workspaces/dotfiles',):
+        if required_write not in fs_write:
+            raise SystemExit(1)
+
+    for required_read_file in ('$HOME/.gitconfig', '/etc/gitconfig'):
+        if required_read_file not in fs_read_file:
+            raise SystemExit(1)
+
+    if '/usr/local/libexec/git-core' not in exec_paths:
         raise SystemExit(1)
-
-if '/usr/local/libexec/git-core' not in fs_read:
-    raise SystemExit(1)
-
-if '/usr/local/libexec/git-core' not in exec_paths:
-    raise SystemExit(1)
 PY
 
 grep -F '"upstream": "https://gpt.uio.no/api/v1"' "$profile" >/dev/null || fail "profile should route UiO providers to gpt.uio.no/api/v1"

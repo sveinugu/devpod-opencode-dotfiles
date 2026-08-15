@@ -129,6 +129,7 @@ Fixed-path grants for the sandboxed agent are exactly:
 - `/home/agent/.opencode` (`$HOME/.opencode`) — read+write
 - `/home/agent/.gitconfig` (`$HOME/.gitconfig`) — read-only, so git `safe.directory` trust config is visible without granting write to home-level git config
 - `/etc/gitconfig` — read-only, so system-level git `safe.directory` trust config remains readable to sandboxed git processes
+- `/usr/local/bin/git`, `/usr/local/bin/git-upload-pack`, `/usr/local/bin/git-receive-pack`, and `/usr/local/bin/git-upload-archive` are allowed by explicit command policy with sandbox constraints matching the git helper contract
 - `/tmp` — read+write temporary workspace
 - `/workspaces/dotfiles` — read+write, for broader hub filesystem access by the sandboxed agent
 - `/usr/local/bin/opencode-raw` (`allow_file`) — single-file read/execute target, not directory access
