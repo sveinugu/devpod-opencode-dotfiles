@@ -128,7 +128,7 @@ fi
 # Skip known nono runtime flags appended by the launch helper
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    --allow-cwd|--no-rollback-prompt|--silent) shift ;;
+    --allow-cwd|--no-rollback-prompt) shift ;;
     --) shift; break ;;
     *) break ;;
   esac
@@ -338,6 +338,9 @@ grep -F -- '--reuid=' "$setpriv_log" >/dev/null || fail "launch helper should se
 grep -F -- '--regid=' "$setpriv_log" >/dev/null || fail "launch helper should set setpriv regid before nono launch"
 grep -F -- '--clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp' "$setpriv_log" >/dev/null || fail "launch helper should apply kernel-level setpriv drop flags before nono launch"
 grep -F -- ' run --profile ' "$setpriv_log" >/dev/null || fail "launch helper should include nono launch in setpriv command chain"
+if grep -F -- '--silent' "$setpriv_log" >/dev/null; then
+  fail "launch helper should not pass --silent to nono"
+fi
 grep -F -- '-- /usr/bin/env HOME=/home/agent XDG_CONFIG_HOME=/home/agent/.config XDG_CACHE_HOME=/home/agent/.cache XDG_DATA_HOME=/home/agent/.local/share XDG_STATE_HOME=/home/agent/.local/state OPENCODE_CONFIG_CONTENT=' "$arg_log" >/dev/null || fail "wrapper should inject pinned runtime HOME/XDG and provider config into opencode process"
 grep -F -- "$raw_binary --version" "$arg_log" >/dev/null || fail "wrapper should launch configured raw opencode binary through nono"
 grep -F 'sudo-user=root' "$sudo_log" >/dev/null || fail "wrapper should run sudo as root only for setpriv handoff"
