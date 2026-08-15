@@ -14,8 +14,7 @@ set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
 # shellcheck source=tests/context/lib/context-guards.sh
 source "$repo_root/tests/context/lib/context-guards.sh"
-require_workspace_pod 'test_install_local_source_contract' 'bash tests/context/run.sh pod-outside-nono'
-require_outside_nono_sandbox 'test_install_local_source_contract' 'bash tests/context/run.sh pod-outside-nono'
+require_pod_outside_nono_test 'test_install_local_source_contract'
 
 temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_install_local_source_contract')"
 tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_install_local_source_contract')"

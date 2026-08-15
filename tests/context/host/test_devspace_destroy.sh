@@ -9,7 +9,7 @@ fail() {
 repo_root="$(git rev-parse --show-toplevel)"
 # shellcheck source=tests/context/lib/context-guards.sh
 source "$repo_root/tests/context/lib/context-guards.sh"
-require_host_shell 'test_devspace_destroy' 'bash tests/context/run.sh host'
+require_host_test 'test_devspace_destroy'
 
 script="$repo_root/ops/destroy-workspace.sh"
 cfg="$repo_root/devspace.yaml"

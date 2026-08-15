@@ -18,8 +18,7 @@ fail() {
 repo_root="$(git rev-parse --show-toplevel)"
 # shellcheck source=tests/context/lib/context-guards.sh
 source "$repo_root/tests/context/lib/context-guards.sh"
-require_workspace_pod 'test_openai_compatible_fix_plugin_contract' 'bash tests/context/run.sh pod-inside-nono'
-require_inside_nono_sandbox 'test_openai_compatible_fix_plugin_contract' 'bash tests/context/run.sh pod-inside-nono'
+require_pod_inside_nono_test 'test_openai_compatible_fix_plugin_contract'
 
 plugins_dir="$repo_root/.config/opencode/plugins"
 plugin_file="$plugins_dir/openai-compatible-fix.ts"

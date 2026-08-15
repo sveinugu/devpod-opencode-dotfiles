@@ -4,8 +4,7 @@ set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
 # shellcheck source=tests/context/lib/context-guards.sh
 source "$repo_root/tests/context/lib/context-guards.sh"
-require_workspace_pod 'test_p1_docs_orientation' 'bash tests/context/run.sh pod-inside-nono'
-require_inside_nono_sandbox 'test_p1_docs_orientation' 'bash tests/context/run.sh pod-inside-nono'
+require_pod_inside_nono_test 'test_p1_docs_orientation'
 
 readme="$repo_root/README.md"
 devspace="$repo_root/devspace.yaml"

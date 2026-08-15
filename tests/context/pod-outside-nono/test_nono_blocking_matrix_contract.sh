@@ -6,12 +6,6 @@ fail() {
   exit 1
 }
 
-require_outside_nono_sandbox() {
-  if [ -n "${NONO_CAP_FILE:-}" ] || [ -n "${NONO_TOOL_SANDBOX_SOCKET:-}" ] || [ -n "${NONO_TOOL_SANDBOX_SHIM_DIR:-}" ]; then
-    fail "this contract test must run outside a nono sandbox; launch from a host/plain shell (detected NONO_* sandbox env)"
-  fi
-}
-
 # Matrix rows in this file validate nono behavior directly. They intentionally run
 # the raw OpenCode binary under nono, not the wrapper path that launches nono via
 # sudo+setpriv. Wrapper-specific behavior is covered by dedicated wrapper tests.
@@ -29,8 +23,7 @@ run_secure_profile_raw_opencode() {
 repo_root="$(git rev-parse --show-toplevel)"
 # shellcheck source=tests/context/lib/context-guards.sh
 source "$repo_root/tests/context/lib/context-guards.sh"
-require_workspace_pod 'test_nono_blocking_matrix_contract' 'bash tests/context/run.sh pod-outside-nono'
-require_outside_nono_sandbox 'test_nono_blocking_matrix_contract' 'bash tests/context/run.sh pod-outside-nono'
+require_pod_outside_nono_test 'test_nono_blocking_matrix_contract'
 
 secure_profile_default="$repo_root/.config/nono/profiles/devspace-opencode-secure.jsonc"
 secure_profile_path="${HUB_NONO_SECURE_PROFILE_PATH:-$secure_profile_default}"
@@ -469,7 +462,6 @@ advisory_failures=0
 advisory_pending=0
 
 resolve_nono_bin
-require_outside_nono_sandbox
 
 for row in "${blocking_rows[@]}"; do
   IFS='|' read -r row_id row_label <<<"$row"

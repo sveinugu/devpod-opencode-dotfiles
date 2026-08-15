@@ -9,8 +9,7 @@ fail() {
 repo_root="$(git rev-parse --show-toplevel)"
 # shellcheck source=tests/context/lib/context-guards.sh
 source "$repo_root/tests/context/lib/context-guards.sh"
-require_workspace_pod 'test_managed_lane_registry_layout' 'bash tests/context/run.sh pod-inside-nono'
-require_inside_nono_sandbox 'test_managed_lane_registry_layout' 'bash tests/context/run.sh pod-inside-nono'
+require_pod_inside_nono_test 'test_managed_lane_registry_layout'
 
 entrypoint="$repo_root/scripts/lib/managed-lane-registry.sh"
 common_helper="$repo_root/scripts/lib/managed-lane-registry-common.sh"

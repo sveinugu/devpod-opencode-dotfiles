@@ -50,6 +50,23 @@ require_host_shell() {
   fi
 }
 
+require_host_test() {
+  local test_name="$1"
+  require_host_shell "$test_name" 'bash tests/context/run.sh host'
+}
+
+require_pod_outside_nono_test() {
+  local test_name="$1"
+  require_workspace_pod "$test_name" 'bash tests/context/run.sh pod-outside-nono'
+  require_outside_nono_sandbox "$test_name" 'bash tests/context/run.sh pod-outside-nono'
+}
+
+require_pod_inside_nono_test() {
+  local test_name="$1"
+  require_workspace_pod "$test_name" 'bash tests/context/run.sh pod-inside-nono'
+  require_inside_nono_sandbox "$test_name" 'bash tests/context/run.sh pod-inside-nono'
+}
+
 skip_if_wrong_context() {
   local expected_context="$1"
   local test_name="$2"

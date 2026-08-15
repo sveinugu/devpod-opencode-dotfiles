@@ -9,8 +9,7 @@ fail() {
 repo_root="$(git rev-parse --show-toplevel)"
 # shellcheck source=tests/context/lib/context-guards.sh
 source "$repo_root/tests/context/lib/context-guards.sh"
-require_workspace_pod 'test_workspace_navigation_shell' 'bash tests/context/run.sh pod-outside-nono'
-require_outside_nono_sandbox 'test_workspace_navigation_shell' 'bash tests/context/run.sh pod-outside-nono'
+require_pod_outside_nono_test 'test_workspace_navigation_shell'
 
 nav_script="$repo_root/.config/shell/workspace-navigation.zsh"
 

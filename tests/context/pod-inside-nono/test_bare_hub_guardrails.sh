@@ -4,8 +4,7 @@ set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
 # shellcheck source=tests/context/lib/context-guards.sh
 source "$repo_root/tests/context/lib/context-guards.sh"
-require_workspace_pod 'test_bare_hub_guardrails' 'bash tests/context/run.sh pod-inside-nono'
-require_inside_nono_sandbox 'test_bare_hub_guardrails' 'bash tests/context/run.sh pod-inside-nono'
+require_pod_inside_nono_test 'test_bare_hub_guardrails'
 
 grep -F '`/workspaces/dotfiles` is a manager hub, not a normal checkout.' .config/opencode/AGENTS.md >/dev/null
 grep -F 'Agents MUST treat `/workspaces/dotfiles/main` or another explicit worktree path as the editable repository root.' .config/opencode/AGENTS.md >/dev/null

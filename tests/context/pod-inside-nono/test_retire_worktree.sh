@@ -4,8 +4,7 @@ set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
 # shellcheck source=tests/context/lib/context-guards.sh
 source "$repo_root/tests/context/lib/context-guards.sh"
-require_workspace_pod 'test_retire_worktree' 'bash tests/context/run.sh pod-inside-nono'
-require_inside_nono_sandbox 'test_retire_worktree' 'bash tests/context/run.sh pod-inside-nono'
+require_pod_inside_nono_test 'test_retire_worktree'
 
 fail() {
   printf 'FAIL test_retire_worktree: %s\n' "$1" >&2

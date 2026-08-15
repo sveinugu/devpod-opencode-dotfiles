@@ -9,7 +9,7 @@ fail() {
 repo_root="$(git rev-parse --show-toplevel)"
 # shellcheck source=tests/context/lib/context-guards.sh
 source "$repo_root/tests/context/lib/context-guards.sh"
-require_host_shell 'test_devspace_provision_branch_default' 'bash tests/context/run.sh host'
+require_host_test 'test_devspace_provision_branch_default'
 
 cfg="$repo_root/devspace.yaml"
 runbook_bare_hub="$repo_root/docs/superpowers/runbooks/devspace-bare-hub-usage.md"

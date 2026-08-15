@@ -9,8 +9,7 @@ fail() {
 repo_root="$(git rev-parse --show-toplevel)"
 # shellcheck source=tests/context/lib/context-guards.sh
 source "$repo_root/tests/context/lib/context-guards.sh"
-require_workspace_pod 'test_devspace_full_plan_consistency' 'bash tests/context/run.sh pod-inside-nono'
-require_inside_nono_sandbox 'test_devspace_full_plan_consistency' 'bash tests/context/run.sh pod-inside-nono'
+require_pod_inside_nono_test 'test_devspace_full_plan_consistency'
 
 plan='docs/superpowers/plans/2026-05-24-full-plan-devspace-bare-hub.md'
 [ -f "$plan" ] || fail "full plan not found"

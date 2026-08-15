@@ -9,8 +9,7 @@ fail() {
 repo_root="$(git rev-parse --show-toplevel)"
 # shellcheck source=tests/context/lib/context-guards.sh
 source "$repo_root/tests/context/lib/context-guards.sh"
-require_workspace_pod 'test_install_oh_my_zsh_failure_surface' 'bash tests/context/run.sh pod-outside-nono'
-require_outside_nono_sandbox 'test_install_oh_my_zsh_failure_surface' 'bash tests/context/run.sh pod-outside-nono'
+require_pod_outside_nono_test 'test_install_oh_my_zsh_failure_surface'
 
 install_script="$repo_root/install.sh"
 validator_script="$repo_root/scripts/lib/validate_install_source_tree.sh"

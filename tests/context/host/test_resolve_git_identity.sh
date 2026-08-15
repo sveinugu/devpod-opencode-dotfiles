@@ -9,7 +9,7 @@ fail() {
 repo_root="$(git rev-parse --show-toplevel)"
 # shellcheck source=tests/context/lib/context-guards.sh
 source "$repo_root/tests/context/lib/context-guards.sh"
-require_host_shell 'test_resolve_git_identity' 'bash tests/context/run.sh host'
+require_host_test 'test_resolve_git_identity'
 
 script_path="$repo_root/scripts/resolve-git-identity.sh"
 

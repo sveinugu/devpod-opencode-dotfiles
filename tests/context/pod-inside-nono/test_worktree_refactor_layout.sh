@@ -9,8 +9,7 @@ fail() {
 repo_root="$(git rev-parse --show-toplevel)"
 # shellcheck source=tests/context/lib/context-guards.sh
 source "$repo_root/tests/context/lib/context-guards.sh"
-require_workspace_pod 'test_worktree_refactor_layout' 'bash tests/context/run.sh pod-inside-nono'
-require_inside_nono_sandbox 'test_worktree_refactor_layout' 'bash tests/context/run.sh pod-inside-nono'
+require_pod_inside_nono_test 'test_worktree_refactor_layout'
 
 new_worktree_script="$repo_root/bin/new-worktree"
 retire_script="$repo_root/bin/retire-worktree"

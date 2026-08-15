@@ -4,7 +4,7 @@ set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
 # shellcheck source=tests/context/lib/context-guards.sh
 source "$repo_root/tests/context/lib/context-guards.sh"
-require_host_shell 'test_verify_host_bare_hub' 'bash tests/context/run.sh host'
+require_host_test 'test_verify_host_bare_hub'
 
 temp_root="$(context_resolve_temp_root_host)"
 tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_verify_host_bare_hub')"
