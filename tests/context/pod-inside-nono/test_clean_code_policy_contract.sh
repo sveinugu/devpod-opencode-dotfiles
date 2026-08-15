@@ -3,6 +3,11 @@
 set -euo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_workspace_pod 'test_clean_code_policy_contract' 'bash tests/context/run.sh pod-inside-nono'
+require_inside_nono_sandbox 'test_clean_code_policy_contract' 'bash tests/context/run.sh pod-inside-nono'
+
 agents="$repo_root/.config/opencode/AGENTS.md"
 pr_template="$repo_root/.config/opencode/PULL_REQUEST_TEMPLATE.md"
 fail=0

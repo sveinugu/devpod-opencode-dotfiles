@@ -9,11 +9,32 @@
 set -euo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_workspace_pod 'test_delegation_packet_policy_contract' 'bash tests/context/run.sh pod-inside-nono'
+require_inside_nono_sandbox 'test_delegation_packet_policy_contract' 'bash tests/context/run.sh pod-inside-nono'
+
 agents="$repo_root/.config/opencode/AGENTS.md"
 maestro="$repo_root/.config/opencode/agents/maestro.md"
 templates="$repo_root/docs/superpowers/templates/subagent-handoff-templates.md"
 spec="$repo_root/docs/superpowers/specs/2026-05-26-delegation-packet-annex-and-verbatim-contract-design.md"
-tmpdir="$(mktemp -d)"
+
+temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
+if [ -z "$temp_root" ]; then
+    printf 'FAIL test_delegation_packet_policy_contract: TEMP/TMP/TMPDIR must be set (expected from .envrc)\n' >&2
+    exit 1
+fi
+case "$temp_root" in
+    /*) ;;
+    *)
+        printf 'FAIL test_delegation_packet_policy_contract: TEMP/TMP/TMPDIR must be an absolute path: %s\n' "$temp_root" >&2
+        exit 1
+        ;;
+esac
+test_tmp_root="$temp_root/tests"
+mkdir -p "$test_tmp_root"
+
+tmpdir="$(mktemp -d "$test_tmp_root/test_delegation_packet_policy_contract-XXXXXX")"
 
 cleanup() {
     rm -rf "$tmpdir"

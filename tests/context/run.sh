@@ -71,6 +71,16 @@ case "$context" in
       tests/devspace/test_nono_secret_boundary_contract.sh
       tests/devspace/test_opencode_secure_wrapper_contract.sh
       tests/docs/test_nono_policy_runbook_contract.sh
+      tests/context/pod-inside-nono/test_devspace_enablement_manifest_contract.sh
+      tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh
+      tests/context/pod-inside-nono/test_p1_docs_orientation.sh
+      tests/context/pod-inside-nono/test_clean_code_policy_contract.sh
+      tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh
+      tests/context/pod-inside-nono/test_devspace_credential_phasing_security_contract.sh
+      tests/context/pod-inside-nono/test_devspace_full_plan_consistency.sh
+      tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh
+      tests/context/pod-inside-nono/test_repo_documentation_refactor_audit.sh
+      tests/context/pod-inside-nono/test_p2_runbook_consolidation.sh
       tests/devspace/test_workspace_manifest_contract.sh
       tests/devspace/test_workspace_preinstalled_tools_contract.sh
       tests/devspace/test_devspace_command_surface.sh

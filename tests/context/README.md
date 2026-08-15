@@ -32,6 +32,16 @@ bash tests/context/run.sh pod-inside-nono
   - `tests/context/pod-inside-nono/test_retire_worktree.sh`
   - `tests/context/pod-inside-nono/test_managed_lane_registry.sh`
   - `tests/context/pod-inside-nono/test_public_repo_clone_behavior_core.sh`
+  - `tests/context/pod-inside-nono/test_devspace_enablement_manifest_contract.sh`
+  - `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
+  - `tests/context/pod-inside-nono/test_p1_docs_orientation.sh`
+  - `tests/context/pod-inside-nono/test_clean_code_policy_contract.sh`
+  - `tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh`
+  - `tests/context/pod-inside-nono/test_devspace_credential_phasing_security_contract.sh`
+  - `tests/context/pod-inside-nono/test_devspace_full_plan_consistency.sh`
+  - `tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+  - `tests/context/pod-inside-nono/test_repo_documentation_refactor_audit.sh`
+  - `tests/context/pod-inside-nono/test_p2_runbook_consolidation.sh`
 - `pod-outside-nono`
   - `tests/context/pod-outside-nono/test_create_hub_repo.sh`
   - `tests/context/pod-outside-nono/test_public_repo_clone_behavior_ux.sh`

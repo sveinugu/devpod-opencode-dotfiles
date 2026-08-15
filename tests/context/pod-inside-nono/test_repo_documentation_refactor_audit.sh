@@ -3,6 +3,11 @@
 set -euo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_workspace_pod 'test_repo_documentation_refactor_audit' 'bash tests/context/run.sh pod-inside-nono'
+require_inside_nono_sandbox 'test_repo_documentation_refactor_audit' 'bash tests/context/run.sh pod-inside-nono'
+
 artifact="$repo_root/docs/superpowers/review-records/2026-06-20-repo-documentation-and-refactor-audit.md"
 fail=0
 
