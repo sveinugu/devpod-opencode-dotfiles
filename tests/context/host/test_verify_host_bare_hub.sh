@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ -n "${NONO_CAP_FILE:-}" ] || [ -n "${NONO_TOOL_SANDBOX_SOCKET:-}" ] || [ -n "${NONO_TOOL_SANDBOX_SHIM_DIR:-}" ]; then
-  printf 'FAIL test_verify_host_bare_hub: host-only test must run outside nono sandbox (hint: bash tests/context/run.sh host)\n' >&2
-  exit 1
-fi
+repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_host_shell 'test_verify_host_bare_hub' 'bash tests/context/run.sh host'
 
-tmpdir="$(mktemp -d)"
+temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
+if [ -n "$temp_root" ] && [[ "$temp_root" = /* ]]; then
+  test_tmp_root="$temp_root/tests"
+  mkdir -p "$test_tmp_root"
+  tmpdir="$(mktemp -d "$test_tmp_root/test_verify_host_bare_hub-XXXXXX")"
+else
+  tmpdir="$(mktemp -d)"
+fi
 trap 'rm -rf "$tmpdir"' EXIT
 
 checkout="$tmpdir/dotfiles-checkout"

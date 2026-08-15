@@ -7,11 +7,25 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_workspace_pod 'test_workspace_navigation_shell' 'bash tests/context/run.sh pod-outside-nono'
+require_outside_nono_sandbox 'test_workspace_navigation_shell' 'bash tests/context/run.sh pod-outside-nono'
+
 nav_script="$repo_root/.config/shell/workspace-navigation.zsh"
 
 [ -f "$nav_script" ] || fail "workspace-navigation.zsh not found"
 
-tmpdir="$(mktemp -d)"
+temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
+[ -n "$temp_root" ] || fail 'TEMP/TMP/TMPDIR must be set (expected from .envrc)'
+case "$temp_root" in
+  /*) ;;
+  *) fail "TEMP/TMP/TMPDIR must be an absolute path: $temp_root" ;;
+esac
+test_tmp_root="$temp_root/tests"
+mkdir -p "$test_tmp_root"
+
+tmpdir="$(mktemp -d "$test_tmp_root/test_workspace_navigation_shell-XXXXXX")"
 trap 'rm -rf "$tmpdir"' EXIT
 
 workspace_root="$tmpdir/workspace"
@@ -190,7 +204,7 @@ zsh_dre_ok="$(
     source "$WORKSPACE_NAV_SCRIPT"
     mkdir -p "$PWD"
     cd "'$workspace_root/main'"
-    dre alpha >/tmp/ignore.out
+    dre alpha >"'$tmpdir'/ignore.out"
     printf "%s\n" "$PWD"
   '
 )"
@@ -226,7 +240,7 @@ zsh_dwt_ok="$(
   zsh -fc '
     source "$WORKSPACE_NAV_SCRIPT"
     cd "'$workspace_root/repos/alpha/master'"
-    dwt feature-child >/tmp/ignore2.out
+    dwt feature-child >"'$tmpdir'/ignore2.out"
     printf "%s\n" "$PWD"
   '
 )"
@@ -238,7 +252,7 @@ zsh_dwt_default_noarg="$(
   zsh -fc '
     source "$WORKSPACE_NAV_SCRIPT"
     cd "'$workspace_root/repos/alpha/work/feature-child'"
-    dwt >/tmp/ignore2-default.out
+    dwt >"'$tmpdir'/ignore2-default.out"
     printf "%s\n" "$PWD"
   '
 )"
@@ -250,7 +264,7 @@ zsh_dwt_default_alias="$(
   zsh -fc '
     source "$WORKSPACE_NAV_SCRIPT"
     cd "'$workspace_root/repos/alpha/work/feature-child'"
-    dwt master >/tmp/ignore2-default-alias.out
+    dwt master >"'$tmpdir'/ignore2-default-alias.out"
     printf "%s\n" "$PWD"
   '
 )"

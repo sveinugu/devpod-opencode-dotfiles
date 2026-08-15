@@ -7,6 +7,11 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_workspace_pod 'test_nono_proxy_toy_contract' 'bash tests/context/run.sh pod-outside-nono'
+require_outside_nono_sandbox 'test_nono_proxy_toy_contract' 'bash tests/context/run.sh pod-outside-nono'
+
 nono_bin="${HUB_NONO_BIN:-nono}"
 
 if ! command -v "$nono_bin" >/dev/null 2>&1; then
@@ -17,7 +22,16 @@ if ! command -v "$nono_bin" >/dev/null 2>&1; then
   fi
 fi
 
-tmp_root="$(mktemp -d "$repo_root/.tmp-nono-proxy-toy-XXXXXX")"
+temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
+[ -n "$temp_root" ] || fail 'TEMP/TMP/TMPDIR must be set (expected from .envrc)'
+case "$temp_root" in
+  /*) ;;
+  *) fail "TEMP/TMP/TMPDIR must be an absolute path: $temp_root" ;;
+esac
+test_tmp_root="$temp_root/tests"
+mkdir -p "$test_tmp_root"
+
+tmp_root="$(mktemp -d "$test_tmp_root/test_nono_proxy_toy_contract-XXXXXX")"
 
 cleanup_tmp_root() {
   if [ "${HUB_NONO_KEEP_TMP:-0}" = "1" ]; then

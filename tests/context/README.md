@@ -20,7 +20,7 @@ bash tests/context/run.sh pod-inside-nono
 ## Notes
 
 - Host-only bootstrap tests fail fast with a clear message if run inside nono.
-- `tests/devspace/test_nono_blocking_matrix_contract.sh` fails fast when run inside nono by design.
+- `tests/context/pod-outside-nono/test_nono_blocking_matrix_contract.sh` fails fast when run inside nono by design.
 - Wrapper-specific behavior remains covered in dedicated wrapper tests (`test_opencode_secure_wrapper_contract.sh`, `test_nono_identity_integration_contract.sh`).
 
 - `tests/devspace/test_resolve_git_identity.sh` remains host-context because it validates interactive global git identity prompts using pseudo-TTY flows and isolated HOME state.
@@ -62,7 +62,14 @@ bash tests/context/run.sh pod-inside-nono
   - `tests/context/pod-inside-nono/test_opencode_secure_wrapper_contract.sh`
   - `tests/context/pod-inside-nono/test_provider_enablement_sync_contract.sh`
 - `pod-outside-nono`
+  - `tests/context/pod-outside-nono/test_nono_blocking_matrix_contract.sh`
+  - `tests/context/pod-outside-nono/test_nono_proxy_toy_contract.sh`
+  - `tests/context/pod-outside-nono/test_nono_secret_helper_contract.sh`
+  - `tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
   - `tests/context/pod-outside-nono/test_create_hub_repo.sh`
   - `tests/context/pod-outside-nono/test_public_repo_clone_behavior_ux.sh`
+- `host`
+  - `tests/context/host/test_setup_host_bare_hub.sh`
+  - `tests/context/host/test_verify_host_bare_hub.sh`
 
 Current canonical paths are the context files above; callers should invoke those paths (or `tests/context/run.sh`) directly.

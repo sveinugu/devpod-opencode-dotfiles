@@ -41,8 +41,8 @@ run_test_list() {
 case "$context" in
   host)
     tests=(
-      tests/bootstrap/test_setup_host_bare_hub.sh
-      tests/bootstrap/test_verify_host_bare_hub.sh
+      tests/context/host/test_setup_host_bare_hub.sh
+      tests/context/host/test_verify_host_bare_hub.sh
       tests/devspace/test_workspace_provision.sh
       tests/devspace/test_workspace_repair.sh
       tests/devspace/test_devspace_provision_branch_default.sh
@@ -55,10 +55,10 @@ case "$context" in
     ;;
   pod-outside-nono)
     tests=(
-      tests/devspace/test_nono_blocking_matrix_contract.sh
-      tests/devspace/test_nono_proxy_toy_contract.sh
-      tests/devspace/test_nono_secret_helper_contract.sh
-      tests/install/test_workspace_navigation_shell.sh
+      tests/context/pod-outside-nono/test_nono_blocking_matrix_contract.sh
+      tests/context/pod-outside-nono/test_nono_proxy_toy_contract.sh
+      tests/context/pod-outside-nono/test_nono_secret_helper_contract.sh
+      tests/context/pod-outside-nono/test_workspace_navigation_shell.sh
       tests/context/pod-outside-nono/test_create_hub_repo.sh
       tests/context/pod-outside-nono/test_public_repo_clone_behavior_ux.sh
     )

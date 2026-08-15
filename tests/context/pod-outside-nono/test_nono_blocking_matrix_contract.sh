@@ -27,6 +27,11 @@ run_secure_profile_raw_opencode() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_workspace_pod 'test_nono_blocking_matrix_contract' 'bash tests/context/run.sh pod-outside-nono'
+require_outside_nono_sandbox 'test_nono_blocking_matrix_contract' 'bash tests/context/run.sh pod-outside-nono'
+
 secure_profile_default="$repo_root/.config/nono/profiles/devspace-opencode-secure.jsonc"
 secure_profile_path="${HUB_NONO_SECURE_PROFILE_PATH:-$secure_profile_default}"
 test_timeout_seconds="${HUB_NONO_TEST_TIMEOUT_SECONDS:-45}"
