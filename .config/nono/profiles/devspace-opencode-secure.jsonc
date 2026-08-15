@@ -120,24 +120,28 @@
     "commands": {
       "git": {
         "executable": "/usr/local/bin/git",
-        "sandbox": {
-          "fs_read": [
-            "/workspaces/dotfiles",
-            "/usr/local/libexec/git-core",
-            "/usr/local/bin",
-            "/tmp"
-          ],
-          "fs_write": [
-            "/workspaces/dotfiles"
-          ],
-          "fs_read_file": [
-            "$HOME/.gitconfig",
-            "/etc/gitconfig"
-          ],
-          "exec_paths": [
-            "/usr/local/libexec/git-core",
-            "/usr/local/bin"
-          ]
+        "from": {
+          "opencode-raw": {
+            "sandbox": {
+              "fs_read": [
+                "/workspaces/dotfiles",
+                "/usr/local/libexec/git-core",
+                "/usr/local/bin",
+                "/tmp"
+              ],
+              "fs_write": [
+                "/workspaces/dotfiles"
+              ],
+              "fs_read_file": [
+                "$HOME/.gitconfig",
+                "/etc/gitconfig"
+              ],
+              "exec_paths": [
+                "/usr/local/libexec/git-core",
+                "/usr/local/bin"
+              ]
+            }
+          }
         }
       }
     }
