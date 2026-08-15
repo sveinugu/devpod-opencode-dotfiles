@@ -148,6 +148,29 @@
                 "/usr/local/bin"
               ]
             }
+          },
+          "git": {
+            "sandbox": {
+              "fs_read": [
+                "/workspaces/dotfiles",
+                "/tmp/nono-tool-sandbox-*/shims",
+                "/tmp/nono-tool-sandbox-*/shims/git-upload-pack",
+                "/usr/local/libexec/git-core"
+              ],
+              "fs_write": [
+                "/workspaces/dotfiles"
+              ],
+              "fs_read_file": [
+                "$HOME/.gitconfig",
+                "/etc/gitconfig"
+              ],
+              "exec_paths": [
+                "/usr/local/libexec/git-core",
+                "/tmp/nono-tool-sandbox-*/shims",
+                "/tmp/nono-tool-sandbox-*/shims/git-upload-pack",
+                "/usr/local/bin"
+              ]
+            }
           }
         }
       },
@@ -173,6 +196,29 @@
                 "/usr/local/libexec/git-core",
                 "/tmp/nono-tool-sandbox-*/shims",
                 "/tmp/nono-tool-sandbox-*/shims/git-upload-pack",
+                "/usr/local/bin"
+              ]
+            }
+          },
+          "git": {
+            "sandbox": {
+              "fs_read": [
+                "/workspaces/dotfiles",
+                "/tmp/nono-tool-sandbox-*/shims",
+                "/tmp/nono-tool-sandbox-*/shims/git-receive-pack",
+                "/usr/local/libexec/git-core"
+              ],
+              "fs_write": [
+                "/workspaces/dotfiles"
+              ],
+              "fs_read_file": [
+                "$HOME/.gitconfig",
+                "/etc/gitconfig"
+              ],
+              "exec_paths": [
+                "/usr/local/libexec/git-core",
+                "/tmp/nono-tool-sandbox-*/shims",
+                "/tmp/nono-tool-sandbox-*/shims/git-receive-pack",
                 "/usr/local/bin"
               ]
             }
@@ -211,6 +257,29 @@
         "executable": "/usr/local/bin/git-upload-archive",
         "from": {
           "session": {
+            "sandbox": {
+              "fs_read": [
+                "/workspaces/dotfiles",
+                "/tmp/nono-tool-sandbox-*/shims",
+                "/tmp/nono-tool-sandbox-*/shims/git-upload-archive",
+                "/usr/local/libexec/git-core"
+              ],
+              "fs_write": [
+                "/workspaces/dotfiles"
+              ],
+              "fs_read_file": [
+                "$HOME/.gitconfig",
+                "/etc/gitconfig"
+              ],
+              "exec_paths": [
+                "/usr/local/libexec/git-core",
+                "/tmp/nono-tool-sandbox-*/shims",
+                "/tmp/nono-tool-sandbox-*/shims/git-upload-archive",
+                "/usr/local/bin"
+              ]
+            }
+          },
+          "git": {
             "sandbox": {
               "fs_read": [
                 "/workspaces/dotfiles",
