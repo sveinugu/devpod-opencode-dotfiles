@@ -143,6 +143,84 @@
             }
           }
         }
+      },
+      "git-receive-pack": {
+        "executable": "/usr/local/bin/git-receive-pack",
+        "from": {
+          "session": {
+            "sandbox": {
+              "fs_read": [
+                "/workspaces/dotfiles",
+                "/usr/local/libexec/git-core",
+                "/usr/local/bin",
+                "/tmp"
+              ],
+              "fs_write": [
+                "/workspaces/dotfiles"
+              ],
+              "fs_read_file": [
+                "$HOME/.gitconfig",
+                "/etc/gitconfig"
+              ],
+              "exec_paths": [
+                "/usr/local/libexec/git-core",
+                "/usr/local/bin"
+              ]
+            }
+          }
+        }
+      },
+      "git-upload-pack": {
+        "executable": "/usr/local/bin/git-upload-pack",
+        "from": {
+          "session": {
+            "sandbox": {
+              "fs_read": [
+                "/workspaces/dotfiles",
+                "/usr/local/libexec/git-core",
+                "/usr/local/bin",
+                "/tmp"
+              ],
+              "fs_write": [
+                "/workspaces/dotfiles"
+              ],
+              "fs_read_file": [
+                "$HOME/.gitconfig",
+                "/etc/gitconfig"
+              ],
+              "exec_paths": [
+                "/usr/local/libexec/git-core",
+                "/usr/local/bin"
+              ]
+            }
+          }
+        }
+      },
+      "git-upload-archive": {
+        "executable": "/usr/local/bin/git-upload-archive",
+        "from": {
+          "session": {
+            "sandbox": {
+              "fs_read": [
+                "/workspaces/dotfiles",
+                "/usr/local/libexec/git-core",
+                "/usr/local/bin",
+                "/tmp"
+              ],
+              "fs_write": [
+                "/workspaces/dotfiles"
+              ],
+              "fs_read_file": [
+                "$HOME/.gitconfig",
+                "/etc/gitconfig"
+              ],
+              "exec_paths": [
+                "/usr/local/libexec/git-core",
+                "/usr/local/bin"
+              ]
+            }
+          }
+        }
       }
     }
   }
