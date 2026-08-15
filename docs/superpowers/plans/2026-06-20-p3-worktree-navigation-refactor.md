@@ -23,14 +23,14 @@
   - `scripts/lib/managed-worktree-cleanup.sh` (`HC-3`)
   - `scripts/lib/hub-repo-core.sh` (`HC-4`)
 - Safety rails that must pass before and after the slice:
-  - `tests/devspace/test_new_worktree.sh`
-  - `tests/devspace/test_retire_worktree.sh`
-  - `tests/devspace/test_managed_lane_registry.sh`
-  - `tests/devspace/test_workspace_navigation_commands.sh`
-  - `tests/devspace/test_workspace_navigation_path_contract.sh`
-  - `tests/devspace/test_create_hub_repo.sh`
-  - `tests/devspace/test_workspace_repair.sh`
-  - `tests/install/test_workspace_navigation_shell.sh`
+  - `tests/context/pod-inside-nono/test_new_worktree.sh`
+  - `tests/context/pod-inside-nono/test_retire_worktree.sh`
+  - `tests/context/pod-inside-nono/test_managed_lane_registry.sh`
+  - `tests/context/pod-outside-nono/test_workspace_navigation_commands.sh`
+  - `tests/context/pod-outside-nono/test_workspace_navigation_path_contract.sh`
+  - `tests/context/pod-outside-nono/test_create_hub_repo.sh`
+  - `tests/context/host/test_workspace_repair.sh`
+  - `tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
 - Audit caveat to resolve before refactoring: `HC-7` notes earlier noisy baseline failures in `test_workspace_repair.sh` and `test_workspace_navigation_commands.sh`; this slice must start by proving those are green on the current branch or pause for re-scoping.
 - Audit scope guard: audit lines `173-177` define this P3 slice as `HC-2`, `HC-3`, and `HC-4` only; `HC-5` (`managed-lane-registry.sh`) and `HC-6` (`dre`/`dwt`) are intentionally left for later and must remain untouched in this plan.
 
@@ -59,7 +59,7 @@
 
 ## Proposed file map
 
-- Create: `tests/devspace/test_worktree_refactor_layout.sh` — structural contract for the new helper layout and thin-entrypoint call order.
+- Create: `tests/context/pod-inside-nono/test_worktree_refactor_layout.sh` — structural contract for the new helper layout and thin-entrypoint call order.
 - Create: `scripts/lib/new-worktree-flow.sh` — phase helpers extracted from `bin/new-worktree`.
 - Create: `scripts/lib/retire-worktree-flow.sh` — phase helpers extracted from `bin/retire-worktree`.
 - Create: `scripts/lib/hub-repo-core-source.sh` — source access + default-branch resolution helpers extracted from `hub-repo-core.sh`.
@@ -70,21 +70,21 @@
 - Modify: `scripts/lib/managed-worktree-cleanup.sh` — grouped into target-resolution, risk-evidence, and execution primitives.
 - Modify: `scripts/lib/hub-repo-core.sh` — becomes a compatibility entrypoint sourcing the partition files.
 - Verify only:
-  - `tests/devspace/test_new_worktree.sh`
-  - `tests/devspace/test_retire_worktree.sh`
-  - `tests/devspace/test_managed_lane_registry.sh`
-  - `tests/devspace/test_workspace_navigation_commands.sh`
-  - `tests/devspace/test_workspace_navigation_path_contract.sh`
-  - `tests/devspace/test_create_hub_repo.sh`
-  - `tests/devspace/test_workspace_repair.sh`
-  - `tests/install/test_workspace_navigation_shell.sh`
+  - `tests/context/pod-inside-nono/test_new_worktree.sh`
+  - `tests/context/pod-inside-nono/test_retire_worktree.sh`
+  - `tests/context/pod-inside-nono/test_managed_lane_registry.sh`
+  - `tests/context/pod-outside-nono/test_workspace_navigation_commands.sh`
+  - `tests/context/pod-outside-nono/test_workspace_navigation_path_contract.sh`
+  - `tests/context/pod-outside-nono/test_create_hub_repo.sh`
+  - `tests/context/host/test_workspace_repair.sh`
+  - `tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
 
 ---
 
 ## Task 1: Establish a green characterization baseline, then add a failing structural contract
 
 **Files:**
-- Create: `tests/devspace/test_worktree_refactor_layout.sh`
+- Create: `tests/context/pod-inside-nono/test_worktree_refactor_layout.sh`
 - Verify only: the eight existing safety-rail tests listed above
 
 - [ ] **Step 1: Prove the current branch is green before adding structural expectations**
@@ -92,21 +92,21 @@
 Run:
 
 ```bash
-bash tests/devspace/test_new_worktree.sh
-bash tests/devspace/test_retire_worktree.sh
-bash tests/devspace/test_managed_lane_registry.sh
-bash tests/devspace/test_workspace_navigation_commands.sh
-bash tests/devspace/test_workspace_navigation_path_contract.sh
-bash tests/devspace/test_create_hub_repo.sh
-bash tests/devspace/test_workspace_repair.sh
-bash tests/install/test_workspace_navigation_shell.sh
+bash tests/context/pod-inside-nono/test_new_worktree.sh
+bash tests/context/pod-inside-nono/test_retire_worktree.sh
+bash tests/context/pod-inside-nono/test_managed_lane_registry.sh
+bash tests/context/pod-outside-nono/test_workspace_navigation_commands.sh
+bash tests/context/pod-outside-nono/test_workspace_navigation_path_contract.sh
+bash tests/context/pod-outside-nono/test_create_hub_repo.sh
+bash tests/context/host/test_workspace_repair.sh
+bash tests/context/pod-outside-nono/test_workspace_navigation_shell.sh
 ```
 
 Expected: PASS for all eight commands. If either `test_workspace_navigation_commands.sh` or `test_workspace_repair.sh` still fails before the refactor starts, stop and ask the user whether that baseline repair is now part of scope; do not begin the refactor on a known-red baseline.
 
 - [ ] **Step 2: Add a failing structural contract for the helper layout**
 
-Create `tests/devspace/test_worktree_refactor_layout.sh` with this exact content:
+Create `tests/context/pod-inside-nono/test_worktree_refactor_layout.sh` with this exact content:
 
 ```bash
 #!/usr/bin/env bash
@@ -162,7 +162,7 @@ printf 'PASS test_worktree_refactor_layout\n'
 Run:
 
 ```bash
-bash tests/devspace/test_worktree_refactor_layout.sh
+bash tests/context/pod-inside-nono/test_worktree_refactor_layout.sh
 ```
 
 Expected: FAIL because none of the new helper files or thin-entrypoint source lines exist yet.
@@ -170,7 +170,7 @@ Expected: FAIL because none of the new helper files or thin-entrypoint source li
 - [ ] **Step 4: Commit the red structural test**
 
 ```bash
-git add tests/devspace/test_worktree_refactor_layout.sh
+git add tests/context/pod-inside-nono/test_worktree_refactor_layout.sh
 git commit -m "test(devspace): lock p3 worktree refactor layout"
 ```
 
@@ -181,9 +181,9 @@ git commit -m "test(devspace): lock p3 worktree refactor layout"
 **Files:**
 - Create: `scripts/lib/new-worktree-flow.sh`
 - Modify: `bin/new-worktree`
-- Test: `tests/devspace/test_worktree_refactor_layout.sh`
-- Test: `tests/devspace/test_new_worktree.sh`
-- Test: `tests/devspace/test_managed_lane_registry.sh`
+- Test: `tests/context/pod-inside-nono/test_worktree_refactor_layout.sh`
+- Test: `tests/context/pod-inside-nono/test_new_worktree.sh`
+- Test: `tests/context/pod-inside-nono/test_managed_lane_registry.sh`
 
 - [ ] **Step 1: Create `scripts/lib/new-worktree-flow.sh` with a phase-oriented public shape**
 
@@ -250,9 +250,9 @@ Important preservation rules for this step:
 Run:
 
 ```bash
-bash tests/devspace/test_worktree_refactor_layout.sh
-bash tests/devspace/test_new_worktree.sh
-bash tests/devspace/test_managed_lane_registry.sh
+bash tests/context/pod-inside-nono/test_worktree_refactor_layout.sh
+bash tests/context/pod-inside-nono/test_new_worktree.sh
+bash tests/context/pod-inside-nono/test_managed_lane_registry.sh
 ```
 
 Expected: PASS for all three commands.
@@ -272,9 +272,9 @@ git commit -m "refactor(worktree): phase new-worktree flow"
 - Create: `scripts/lib/retire-worktree-flow.sh`
 - Modify: `bin/retire-worktree`
 - Modify: `scripts/lib/managed-worktree-cleanup.sh`
-- Test: `tests/devspace/test_worktree_refactor_layout.sh`
-- Test: `tests/devspace/test_retire_worktree.sh`
-- Test: `tests/devspace/test_managed_lane_registry.sh`
+- Test: `tests/context/pod-inside-nono/test_worktree_refactor_layout.sh`
+- Test: `tests/context/pod-inside-nono/test_retire_worktree.sh`
+- Test: `tests/context/pod-inside-nono/test_managed_lane_registry.sh`
 
 - [ ] **Step 1: Create `scripts/lib/retire-worktree-flow.sh` and move command-level phases into it**
 
@@ -348,9 +348,9 @@ retire_worktree_execute
 Run:
 
 ```bash
-bash tests/devspace/test_worktree_refactor_layout.sh
-bash tests/devspace/test_retire_worktree.sh
-bash tests/devspace/test_managed_lane_registry.sh
+bash tests/context/pod-inside-nono/test_worktree_refactor_layout.sh
+bash tests/context/pod-inside-nono/test_retire_worktree.sh
+bash tests/context/pod-inside-nono/test_managed_lane_registry.sh
 ```
 
 Expected: PASS for all three commands.
@@ -371,10 +371,10 @@ git commit -m "refactor(retire): split managed cleanup flow"
 - Create: `scripts/lib/hub-repo-core-bootstrap.sh`
 - Create: `scripts/lib/hub-repo-core-upstream.sh`
 - Modify: `scripts/lib/hub-repo-core.sh`
-- Test: `tests/devspace/test_worktree_refactor_layout.sh`
-- Test: `tests/devspace/test_create_hub_repo.sh`
-- Test: `tests/devspace/test_new_worktree.sh`
-- Test: `tests/devspace/test_managed_lane_registry.sh`
+- Test: `tests/context/pod-inside-nono/test_worktree_refactor_layout.sh`
+- Test: `tests/context/pod-outside-nono/test_create_hub_repo.sh`
+- Test: `tests/context/pod-inside-nono/test_new_worktree.sh`
+- Test: `tests/context/pod-inside-nono/test_managed_lane_registry.sh`
 
 - [ ] **Step 1: Split `hub-repo-core.sh` into three cohesive helper files**
 
@@ -431,10 +431,10 @@ Do not change any callers such as `bin/clone-repo`; they should continue to sour
 Run:
 
 ```bash
-bash tests/devspace/test_worktree_refactor_layout.sh
-bash tests/devspace/test_create_hub_repo.sh
-bash tests/devspace/test_new_worktree.sh
-bash tests/devspace/test_managed_lane_registry.sh
+bash tests/context/pod-inside-nono/test_worktree_refactor_layout.sh
+bash tests/context/pod-outside-nono/test_create_hub_repo.sh
+bash tests/context/pod-inside-nono/test_new_worktree.sh
+bash tests/context/pod-inside-nono/test_managed_lane_registry.sh
 ```
 
 Expected: PASS for all four commands.
@@ -478,15 +478,15 @@ Ask whether the command-family split is clear enough before moving on to later h
 Run:
 
 ```bash
-bash tests/devspace/test_worktree_refactor_layout.sh
-bash tests/devspace/test_new_worktree.sh
-bash tests/devspace/test_retire_worktree.sh
-bash tests/devspace/test_managed_lane_registry.sh
-bash tests/devspace/test_workspace_navigation_commands.sh
-bash tests/devspace/test_workspace_navigation_path_contract.sh
-bash tests/devspace/test_create_hub_repo.sh
-bash tests/devspace/test_workspace_repair.sh
-bash tests/install/test_workspace_navigation_shell.sh
+bash tests/context/pod-inside-nono/test_worktree_refactor_layout.sh
+bash tests/context/pod-inside-nono/test_new_worktree.sh
+bash tests/context/pod-inside-nono/test_retire_worktree.sh
+bash tests/context/pod-inside-nono/test_managed_lane_registry.sh
+bash tests/context/pod-outside-nono/test_workspace_navigation_commands.sh
+bash tests/context/pod-outside-nono/test_workspace_navigation_path_contract.sh
+bash tests/context/pod-outside-nono/test_create_hub_repo.sh
+bash tests/context/host/test_workspace_repair.sh
+bash tests/context/pod-outside-nono/test_workspace_navigation_shell.sh
 ```
 
 Expected: PASS for all nine commands.
@@ -540,15 +540,15 @@ Report:
 
 ## Final verification checklist
 
-- [ ] `bash tests/devspace/test_worktree_refactor_layout.sh`
-- [ ] `bash tests/devspace/test_new_worktree.sh`
-- [ ] `bash tests/devspace/test_retire_worktree.sh`
-- [ ] `bash tests/devspace/test_managed_lane_registry.sh`
-- [ ] `bash tests/devspace/test_workspace_navigation_commands.sh`
-- [ ] `bash tests/devspace/test_workspace_navigation_path_contract.sh`
-- [ ] `bash tests/devspace/test_create_hub_repo.sh`
-- [ ] `bash tests/devspace/test_workspace_repair.sh`
-- [ ] `bash tests/install/test_workspace_navigation_shell.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_worktree_refactor_layout.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_new_worktree.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_retire_worktree.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_managed_lane_registry.sh`
+- [ ] `bash tests/context/pod-outside-nono/test_workspace_navigation_commands.sh`
+- [ ] `bash tests/context/pod-outside-nono/test_workspace_navigation_path_contract.sh`
+- [ ] `bash tests/context/pod-outside-nono/test_create_hub_repo.sh`
+- [ ] `bash tests/context/host/test_workspace_repair.sh`
+- [ ] `bash tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
 - [ ] Re-read `HC-2` through `HC-4` in `docs/superpowers/review-records/2026-06-20-repo-documentation-and-refactor-audit.md` and confirm each hotspot now maps to a smaller, clearer phase/helper boundary.
 - [ ] Confirm `bin/new-worktree`, `bin/retire-worktree`, `bin/dre`, and `bin/dwt` still accept the exact same CLI syntax as before.
 - [ ] Confirm every existing refusal message and retry command text remained byte-for-byte unchanged.

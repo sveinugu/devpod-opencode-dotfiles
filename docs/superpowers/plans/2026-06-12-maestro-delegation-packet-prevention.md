@@ -55,8 +55,8 @@
 - Modify: `.config/opencode/agents/maestro.md`
 
 **Verification / drift guardrails**
-- Modify: `tests/docs/test_delegation_packet_policy_contract.sh`
-- Modify or delete: `tests/docs/test_maestro_intent_preservation_policy.sh`
+- Modify: `tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+- Modify or delete: `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
 **Conditional only if direct drift is found during implementation**
 - Modify: `docs/superpowers/templates/subagent-handoff-templates.md`
@@ -96,8 +96,8 @@
 ## Task 1: Refresh docs-only verification and resolve stale drift checks
 
 **Files:**
-- Modify: `tests/docs/test_delegation_packet_policy_contract.sh`
-- Modify or delete: `tests/docs/test_maestro_intent_preservation_policy.sh`
+- Modify: `tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+- Modify or delete: `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 - Modify only if needed: `docs/superpowers/templates/subagent-handoff-templates.md`
 
 - [ ] Start from failing docs-only verification for the new prevention anchors.
@@ -138,11 +138,11 @@
 **Files:**
 - Review only: `.config/opencode/AGENTS.md`
 - Review only: `.config/opencode/agents/maestro.md`
-- Review only: `tests/docs/test_delegation_packet_policy_contract.sh`
-- Review only: `tests/docs/test_maestro_intent_preservation_policy.sh`
+- Review only: `tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+- Review only: `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
-- [ ] Run `bash tests/docs/test_delegation_packet_policy_contract.sh`.
-- [ ] If `tests/docs/test_maestro_intent_preservation_policy.sh` survives Task 1, run `bash tests/docs/test_maestro_intent_preservation_policy.sh`.
+- [ ] Run `bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`.
+- [ ] If `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh` survives Task 1, run `bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`.
 - [ ] Run any other remaining docs tests touched by this slice.
 - [ ] Re-read the binding spec and confirm each acceptance criterion maps to evidence in AGENTS, `maestro.md`, or the doc-contract tests.
 - [ ] Review the final diff for policy drift, duplicate schema wording, and accidental scope expansion.
@@ -151,8 +151,8 @@
 
 ## Final verification checklist
 
-- [ ] `bash tests/docs/test_delegation_packet_policy_contract.sh`
-- [ ] `git diff -- .config/opencode/AGENTS.md .config/opencode/agents/maestro.md tests/docs/test_delegation_packet_policy_contract.sh tests/docs/test_maestro_intent_preservation_policy.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+- [ ] `git diff -- .config/opencode/AGENTS.md .config/opencode/agents/maestro.md tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 - [ ] Confirm the wording still preserves the current subagent stop-rule unchanged.
 - [ ] Confirm the policy still defers runtime/plugin enforcement explicitly.
 

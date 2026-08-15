@@ -6,7 +6,7 @@
 
 **Architecture:** Treat the runbooks as one documentation system with three distinct owners: `devspace-workspace-lifecycle.md` owns host-side DevSpace lifecycle commands, `devspace-bare-hub-usage.md` owns in-pod install/navigation/worktree usage, and `host-bare-hub-bootstrap.md` owns first-time host bootstrap plus explicit manual fallback. Start by writing one failing doc-contract test that locks the new routing and canonical section anchors, then rewrite each runbook in turn until the test passes.
 
-**Tech Stack:** Markdown runbooks, one Bash doc-contract test under `tests/docs/`, and `rg`-based anchor checks modeled after `tests/docs/test_p1_docs_orientation.sh`.
+**Tech Stack:** Markdown runbooks, one Bash doc-contract test under `tests/docs/`, and `rg`-based anchor checks modeled after `tests/context/pod-inside-nono/test_p1_docs_orientation.sh`.
 
 ---
 
@@ -20,7 +20,7 @@
   - `DG-5` — `host-bare-hub-bootstrap.md` manual flows drift from `bin/clone-repo` / `bin/new-worktree`
   - `DG-6` — no consistent HOST/POD audience routing
 - Reference plan format: `docs/superpowers/plans/2026-06-20-p1-docs-orientation.md`
-- Existing docs-contract pattern: `tests/docs/test_p1_docs_orientation.sh`
+- Existing docs-contract pattern: `tests/context/pod-inside-nono/test_p1_docs_orientation.sh`
 - Primary surfaces:
   - `docs/superpowers/runbooks/devspace-bare-hub-usage.md`
   - `docs/superpowers/runbooks/devspace-workspace-lifecycle.md`
@@ -47,12 +47,12 @@
 
 ## Proposed file map
 
-- Create: `tests/docs/test_p2_runbook_consolidation.sh` — locks HOST/POD routing anchors, canonical section ownership, wrapper-first guidance, and the absence of the worst duplicate sections.
+- Create: `tests/context/pod-inside-nono/test_p2_runbook_consolidation.sh` — locks HOST/POD routing anchors, canonical section ownership, wrapper-first guidance, and the absence of the worst duplicate sections.
 - Modify: `docs/superpowers/runbooks/devspace-workspace-lifecycle.md` — canonical host-side lifecycle runbook with explicit routing to bootstrap and in-pod usage docs.
 - Modify: `docs/superpowers/runbooks/devspace-bare-hub-usage.md` — canonical in-pod install, navigation, child-repo onboarding, and managed worktree runbook.
 - Modify: `docs/superpowers/runbooks/host-bare-hub-bootstrap.md` — canonical first-time host bootstrap runbook with wrapper-first day-2 flow and explicit manual fallback.
 - Verify only:
-  - `tests/docs/test_p2_runbook_consolidation.sh`
+  - `tests/context/pod-inside-nono/test_p2_runbook_consolidation.sh`
   - `git diff --name-only`
 
 ---
@@ -60,7 +60,7 @@
 ## Task 1: Lock the consolidated structure with one failing docs contract
 
 **Files:**
-- Create: `tests/docs/test_p2_runbook_consolidation.sh`
+- Create: `tests/context/pod-inside-nono/test_p2_runbook_consolidation.sh`
 
 - [ ] **Step 1: Write the failing docs contract first**
 
@@ -142,7 +142,7 @@ fi
 Run:
 
 ```bash
-bash tests/docs/test_p2_runbook_consolidation.sh
+bash tests/context/pod-inside-nono/test_p2_runbook_consolidation.sh
 ```
 
 Expected: FAIL because the current runbooks do not yet have consistent `## Choose your environment` routing blocks, the lifecycle runbook still owns an in-pod worktree section, the bare-hub runbook still owns host lifecycle sections, and the bootstrap runbook still presents manual in-pod worktree creation as the primary flow.
@@ -150,7 +150,7 @@ Expected: FAIL because the current runbooks do not yet have consistent `## Choos
 - [ ] **Step 3: Commit the red test slice**
 
 ```bash
-git add tests/docs/test_p2_runbook_consolidation.sh
+git add tests/context/pod-inside-nono/test_p2_runbook_consolidation.sh
 git commit -m "test(docs): lock p2 runbook consolidation contract"
 ```
 
@@ -160,7 +160,7 @@ git commit -m "test(docs): lock p2 runbook consolidation contract"
 
 **Files:**
 - Modify: `docs/superpowers/runbooks/devspace-workspace-lifecycle.md`
-- Test: `tests/docs/test_p2_runbook_consolidation.sh`
+- Test: `tests/context/pod-inside-nono/test_p2_runbook_consolidation.sh`
 
 - [ ] **Step 1: Replace `docs/superpowers/runbooks/devspace-workspace-lifecycle.md` with this exact content**
 
@@ -297,7 +297,7 @@ For those in-pod commands, use [DevSpace Bare Hub Usage](devspace-bare-hub-usage
 Run:
 
 ```bash
-bash tests/docs/test_p2_runbook_consolidation.sh
+bash tests/context/pod-inside-nono/test_p2_runbook_consolidation.sh
 ```
 
 Expected: FAIL only on the still-missing bare-hub and bootstrap anchors.
@@ -315,7 +315,7 @@ git commit -m "docs: make lifecycle runbook host-canonical"
 
 **Files:**
 - Modify: `docs/superpowers/runbooks/devspace-bare-hub-usage.md`
-- Test: `tests/docs/test_p2_runbook_consolidation.sh`
+- Test: `tests/context/pod-inside-nono/test_p2_runbook_consolidation.sh`
 
 - [ ] **Step 1: Replace `docs/superpowers/runbooks/devspace-bare-hub-usage.md` with this exact content**
 
@@ -448,7 +448,7 @@ Child onboarding does not change `/home/vscode` symlink authority; top-level dot
 Run:
 
 ```bash
-bash tests/docs/test_p2_runbook_consolidation.sh
+bash tests/context/pod-inside-nono/test_p2_runbook_consolidation.sh
 ```
 
 Expected: FAIL only on the still-missing bootstrap anchors.
@@ -466,7 +466,7 @@ git commit -m "docs: make bare-hub runbook pod-canonical"
 
 **Files:**
 - Modify: `docs/superpowers/runbooks/host-bare-hub-bootstrap.md`
-- Test: `tests/docs/test_p2_runbook_consolidation.sh`
+- Test: `tests/context/pod-inside-nono/test_p2_runbook_consolidation.sh`
 
 - [ ] **Step 1: Replace `docs/superpowers/runbooks/host-bare-hub-bootstrap.md` with this exact content**
 
@@ -631,7 +631,7 @@ After using the manual fallback, return to the wrapper-based flow documented in 
 Run:
 
 ```bash
-bash tests/docs/test_p2_runbook_consolidation.sh
+bash tests/context/pod-inside-nono/test_p2_runbook_consolidation.sh
 ```
 
 Expected: PASS.
@@ -651,14 +651,14 @@ git commit -m "docs: align bootstrap runbook with wrapper flow"
 - Review only: `docs/superpowers/runbooks/devspace-workspace-lifecycle.md`
 - Review only: `docs/superpowers/runbooks/devspace-bare-hub-usage.md`
 - Review only: `docs/superpowers/runbooks/host-bare-hub-bootstrap.md`
-- Review only: `tests/docs/test_p2_runbook_consolidation.sh`
+- Review only: `tests/context/pod-inside-nono/test_p2_runbook_consolidation.sh`
 
 - [ ] **Step 1: Re-run the docs contract from a clean working state**
 
 Run:
 
 ```bash
-bash tests/docs/test_p2_runbook_consolidation.sh
+bash tests/context/pod-inside-nono/test_p2_runbook_consolidation.sh
 ```
 
 Expected: PASS.
@@ -676,7 +676,7 @@ Expected: only these paths appear in the diff for this slice:
 - `docs/superpowers/runbooks/devspace-workspace-lifecycle.md`
 - `docs/superpowers/runbooks/devspace-bare-hub-usage.md`
 - `docs/superpowers/runbooks/host-bare-hub-bootstrap.md`
-- `tests/docs/test_p2_runbook_consolidation.sh`
+- `tests/context/pod-inside-nono/test_p2_runbook_consolidation.sh`
 
 - [ ] **Step 3: Mandatory refactor checkpoint for the documentation slice**
 
@@ -690,7 +690,7 @@ Review the changed files for readability only:
 If wording is adjusted during this checkpoint, rerun:
 
 ```bash
-bash tests/docs/test_p2_runbook_consolidation.sh
+bash tests/context/pod-inside-nono/test_p2_runbook_consolidation.sh
 git diff --name-only
 ```
 
@@ -702,7 +702,7 @@ Show the top `## Choose your environment` section from all three runbooks plus t
 
 Report:
 
-- changed files: the three runbooks plus `tests/docs/test_p2_runbook_consolidation.sh`
+- changed files: the three runbooks plus `tests/context/pod-inside-nono/test_p2_runbook_consolidation.sh`
 - fresh verification commands run
 - confirmation that the slice remained doc-only
 - which runbook now canonically owns host lifecycle, in-pod usage, and host bootstrap/manual fallback guidance
@@ -711,7 +711,7 @@ Report:
 
 ## Final verification checklist
 
-- [ ] `bash tests/docs/test_p2_runbook_consolidation.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_p2_runbook_consolidation.sh`
 - [ ] `git diff --name-only`
 - [ ] Re-read DG-4, DG-5, and DG-6 in `docs/superpowers/review-records/2026-06-20-repo-documentation-and-refactor-audit.md` and confirm each gap maps to an explicit section in the updated runbooks.
 - [ ] Confirm all three runbooks start with `## Choose your environment` and route readers to the correct HOST/POD surface.

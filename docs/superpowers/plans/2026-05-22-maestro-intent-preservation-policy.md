@@ -43,7 +43,7 @@ The practical problem is that a weaker Maestro can unintentionally compress away
 - Modify: `docs/superpowers/templates/subagent-handoff-templates.md`
 
 ### Verification
-- Create: `tests/docs/test_maestro_intent_preservation_policy.sh`
+- Create: `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
 ## Out of scope
 
@@ -80,7 +80,7 @@ The practical problem is that a weaker Maestro can unintentionally compress away
 
 **Files:**
 - Modify: `.config/opencode/AGENTS.md`
-- Create: `tests/docs/test_maestro_intent_preservation_policy.sh`
+- Create: `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
 - [ ] **Step 1: Write the failing contract test**
 
@@ -106,7 +106,7 @@ printf 'PASS test_maestro_intent_preservation_policy\n'
 
 - [ ] **Step 2: Run the test and verify it fails**
 
-Run: `bash tests/docs/test_maestro_intent_preservation_policy.sh`
+Run: `bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
 Expected: `rg` exits non-zero because `## Intent-preserving delegation packet` and the packet fields do not exist yet.
 
@@ -131,14 +131,14 @@ Insert a section like this near the delegation rules:
 
 - [ ] **Step 4: Run the test and verify it passes**
 
-Run: `bash tests/docs/test_maestro_intent_preservation_policy.sh`
+Run: `bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
 Expected: `PASS test_maestro_intent_preservation_policy`
 
 - [ ] **Step 5: Commit the P0 AGENTS packet change**
 
 ```bash
-git add .config/opencode/AGENTS.md tests/docs/test_maestro_intent_preservation_policy.sh
+git add .config/opencode/AGENTS.md tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh
 git commit -m "docs(policy): add intent-preserving delegation packet"
 ```
 
@@ -149,11 +149,11 @@ git commit -m "docs(policy): add intent-preserving delegation packet"
 **Files:**
 - Modify: `.config/opencode/AGENTS.md`
 - Modify: `docs/superpowers/templates/subagent-handoff-templates.md`
-- Modify: `tests/docs/test_maestro_intent_preservation_policy.sh`
+- Modify: `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
 - [ ] **Step 1: Extend the failing contract test for restatement and templates**
 
-Add these checks to `tests/docs/test_maestro_intent_preservation_policy.sh`:
+Add these checks to `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`:
 
 ```bash
 templates="$repo_root/docs/superpowers/templates/subagent-handoff-templates.md"
@@ -167,7 +167,7 @@ rg -n 'Non-deliverables:' "$templates" >/dev/null
 
 - [ ] **Step 2: Run the test and verify it fails**
 
-Run: `bash tests/docs/test_maestro_intent_preservation_policy.sh`
+Run: `bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
 Expected: failure because the template file does not yet contain the new packet fields or `Subagent restatement:`.
 
@@ -206,14 +206,14 @@ Subagent restatement: required before substantive work begins
 
 - [ ] **Step 4: Run the test and verify it passes**
 
-Run: `bash tests/docs/test_maestro_intent_preservation_policy.sh`
+Run: `bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
 Expected: `PASS test_maestro_intent_preservation_policy`
 
 - [ ] **Step 5: Commit the restatement/template change**
 
 ```bash
-git add .config/opencode/AGENTS.md docs/superpowers/templates/subagent-handoff-templates.md tests/docs/test_maestro_intent_preservation_policy.sh
+git add .config/opencode/AGENTS.md docs/superpowers/templates/subagent-handoff-templates.md tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh
 git commit -m "docs(policy): add subagent restatement contract"
 ```
 
@@ -223,7 +223,7 @@ git commit -m "docs(policy): add subagent restatement contract"
 
 **Files:**
 - Modify: `.config/opencode/agents/maestro.md`
-- Modify: `tests/docs/test_maestro_intent_preservation_policy.sh`
+- Modify: `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
 - [ ] **Step 1: Extend the failing contract test for Maestro wording**
 
@@ -241,7 +241,7 @@ rg -n 'Provenance:' "$maestro" >/dev/null
 
 - [ ] **Step 2: Run the test and verify it fails**
 
-Run: `bash tests/docs/test_maestro_intent_preservation_policy.sh`
+Run: `bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
 Expected: failure because Maestro does not yet define the packet fields or the stronger routing language.
 
@@ -260,14 +260,14 @@ Add a section like this to `.config/opencode/agents/maestro.md`:
 
 - [ ] **Step 4: Run the test and verify it passes**
 
-Run: `bash tests/docs/test_maestro_intent_preservation_policy.sh`
+Run: `bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
 Expected: `PASS test_maestro_intent_preservation_policy`
 
 - [ ] **Step 5: Commit the Maestro packet wording**
 
 ```bash
-git add .config/opencode/agents/maestro.md tests/docs/test_maestro_intent_preservation_policy.sh
+git add .config/opencode/agents/maestro.md tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh
 git commit -m "docs(maestro): prefer lossless delegation routing"
 ```
 
@@ -278,7 +278,7 @@ git commit -m "docs(maestro): prefer lossless delegation routing"
 **Files:**
 - Modify: `.config/opencode/AGENTS.md`
 - Modify: `.config/opencode/agents/maestro.md`
-- Modify: `tests/docs/test_maestro_intent_preservation_policy.sh`
+- Modify: `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
 - [ ] **Step 1: Extend the failing contract test for resume bias**
 
@@ -293,7 +293,7 @@ rg -n 'route the message to that session immediately and verbatim' "$agents" "$m
 
 - [ ] **Step 2: Run the test and verify it fails**
 
-Run: `bash tests/docs/test_maestro_intent_preservation_policy.sh`
+Run: `bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
 Expected: failure if the exact stronger wording does not yet exist in both policy sources.
 
@@ -309,14 +309,14 @@ Use wording along these lines in both files:
 
 - [ ] **Step 4: Run the test and verify it passes**
 
-Run: `bash tests/docs/test_maestro_intent_preservation_policy.sh`
+Run: `bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
 Expected: `PASS test_maestro_intent_preservation_policy`
 
 - [ ] **Step 5: Commit the resume-bias change**
 
 ```bash
-git add .config/opencode/AGENTS.md .config/opencode/agents/maestro.md tests/docs/test_maestro_intent_preservation_policy.sh
+git add .config/opencode/AGENTS.md .config/opencode/agents/maestro.md tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh
 git commit -m "docs(policy): prefer session resume over respawn"
 ```
 
@@ -328,7 +328,7 @@ git commit -m "docs(policy): prefer session resume over respawn"
 - Modify: `.config/opencode/AGENTS.md`
 - Modify: `.config/opencode/agents/maestro.md`
 - Modify: `docs/superpowers/templates/subagent-handoff-templates.md`
-- Modify: `tests/docs/test_maestro_intent_preservation_policy.sh`
+- Modify: `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
 - [ ] **Step 1: Extend the failing contract test for preview wording**
 
@@ -341,7 +341,7 @@ rg -n 'available on request before dispatch' "$maestro" "$templates" >/dev/null
 
 - [ ] **Step 2: Run the test and verify it fails**
 
-Run: `bash tests/docs/test_maestro_intent_preservation_policy.sh`
+Run: `bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
 Expected: failure until preview wording is added.
 
@@ -361,14 +361,14 @@ Preview: available on request before dispatch
 
 - [ ] **Step 4: Run the test and verify it passes**
 
-Run: `bash tests/docs/test_maestro_intent_preservation_policy.sh`
+Run: `bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
 Expected: `PASS test_maestro_intent_preservation_policy`
 
 - [ ] **Step 5: Commit the preview/rollout change**
 
 ```bash
-git add .config/opencode/AGENTS.md .config/opencode/agents/maestro.md docs/superpowers/templates/subagent-handoff-templates.md tests/docs/test_maestro_intent_preservation_policy.sh
+git add .config/opencode/AGENTS.md .config/opencode/agents/maestro.md docs/superpowers/templates/subagent-handoff-templates.md tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh
 git commit -m "docs(policy): add delegation preview guidance"
 ```
 
@@ -376,8 +376,8 @@ git commit -m "docs(policy): add delegation preview guidance"
 
 ## Final verification checklist
 
-- [ ] Run `bash tests/docs/test_maestro_intent_preservation_policy.sh`
-- [ ] Run `git diff -- .config/opencode/AGENTS.md .config/opencode/agents/maestro.md docs/superpowers/templates/subagent-handoff-templates.md tests/docs/test_maestro_intent_preservation_policy.sh`
+- [ ] Run `bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
+- [ ] Run `git diff -- .config/opencode/AGENTS.md .config/opencode/agents/maestro.md docs/superpowers/templates/subagent-handoff-templates.md tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 - [ ] Read the changed handoff example and confirm it names the exact artifact path, active slice, verbatim user context, deliverables, non-deliverables, provenance, and preview status.
 - [ ] Re-read AGENTS and Maestro and confirm they both prefer lossless routing over reinterpretation and existing-session resume over respawn.
 

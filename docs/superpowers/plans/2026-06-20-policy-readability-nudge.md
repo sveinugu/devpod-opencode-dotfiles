@@ -22,12 +22,12 @@
   - do not create new enforcement machinery, new anchors, or broad policy rewrites;
   - do not touch any file outside `.config/opencode/AGENTS.md`.
 - Existing AGENTS-related regression guards to use as baseline and post-edit checks:
-  - `tests/docs/test_delegation_packet_policy_contract.sh`
-  - `tests/docs/test_maestro_intent_preservation_policy.sh`
-  - `tests/docs/test_multi_question_interaction_policy.sh`
-  - `tests/docs/test_clean_code_policy_contract.sh`
-  - `tests/docs/test_managed_worktree_lane_safety_policy.sh`
-  - `tests/docs/test_bare_hub_guardrails.sh`
+  - `tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+  - `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
+  - `tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh`
+  - `tests/context/pod-inside-nono/test_clean_code_policy_contract.sh`
+  - `tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh`
+  - `tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
 
 ## Scope
 
@@ -51,12 +51,12 @@
 
 - Modify: `.config/opencode/AGENTS.md` — add one short readability/documentation expectations section.
 - Verify only:
-  - `tests/docs/test_delegation_packet_policy_contract.sh`
-  - `tests/docs/test_maestro_intent_preservation_policy.sh`
-  - `tests/docs/test_multi_question_interaction_policy.sh`
-  - `tests/docs/test_clean_code_policy_contract.sh`
-  - `tests/docs/test_managed_worktree_lane_safety_policy.sh`
-  - `tests/docs/test_bare_hub_guardrails.sh`
+  - `tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+  - `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
+  - `tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh`
+  - `tests/context/pod-inside-nono/test_clean_code_policy_contract.sh`
+  - `tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh`
+  - `tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
 
 ---
 
@@ -70,12 +70,12 @@
   Run:
 
   ```bash
-  bash tests/docs/test_delegation_packet_policy_contract.sh
-  bash tests/docs/test_maestro_intent_preservation_policy.sh
-  bash tests/docs/test_multi_question_interaction_policy.sh
-  bash tests/docs/test_clean_code_policy_contract.sh
-  bash tests/docs/test_managed_worktree_lane_safety_policy.sh
-  bash tests/docs/test_bare_hub_guardrails.sh
+  bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh
+  bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh
+  bash tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh
+  bash tests/context/pod-inside-nono/test_clean_code_policy_contract.sh
+  bash tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh
+  bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh
   ```
 
   Expected: PASS for all six commands.
@@ -94,12 +94,12 @@
 
 **Files:**
 - Modify: `.config/opencode/AGENTS.md`
-- Test: `tests/docs/test_delegation_packet_policy_contract.sh`
-- Test: `tests/docs/test_maestro_intent_preservation_policy.sh`
-- Test: `tests/docs/test_multi_question_interaction_policy.sh`
-- Test: `tests/docs/test_clean_code_policy_contract.sh`
-- Test: `tests/docs/test_managed_worktree_lane_safety_policy.sh`
-- Test: `tests/docs/test_bare_hub_guardrails.sh`
+- Test: `tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+- Test: `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
+- Test: `tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh`
+- Test: `tests/context/pod-inside-nono/test_clean_code_policy_contract.sh`
+- Test: `tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh`
+- Test: `tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
 
 - [ ] **Step 1: Add one short section with only the approved reminders**
 
@@ -123,12 +123,12 @@
   Run:
 
   ```bash
-  bash tests/docs/test_delegation_packet_policy_contract.sh
-  bash tests/docs/test_maestro_intent_preservation_policy.sh
-  bash tests/docs/test_multi_question_interaction_policy.sh
-  bash tests/docs/test_clean_code_policy_contract.sh
-  bash tests/docs/test_managed_worktree_lane_safety_policy.sh
-  bash tests/docs/test_bare_hub_guardrails.sh
+  bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh
+  bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh
+  bash tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh
+  bash tests/context/pod-inside-nono/test_clean_code_policy_contract.sh
+  bash tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh
+  bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh
   ```
 
   Expected: PASS for all six commands.
@@ -163,12 +163,12 @@
   Run:
 
   ```bash
-  bash tests/docs/test_delegation_packet_policy_contract.sh
-  bash tests/docs/test_maestro_intent_preservation_policy.sh
-  bash tests/docs/test_multi_question_interaction_policy.sh
-  bash tests/docs/test_clean_code_policy_contract.sh
-  bash tests/docs/test_managed_worktree_lane_safety_policy.sh
-  bash tests/docs/test_bare_hub_guardrails.sh
+  bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh
+  bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh
+  bash tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh
+  bash tests/context/pod-inside-nono/test_clean_code_policy_contract.sh
+  bash tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh
+  bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh
   ```
 
   Expected: PASS for all six commands.
@@ -194,12 +194,12 @@
 
 ## Final verification checklist
 
-- [ ] `bash tests/docs/test_delegation_packet_policy_contract.sh`
-- [ ] `bash tests/docs/test_maestro_intent_preservation_policy.sh`
-- [ ] `bash tests/docs/test_multi_question_interaction_policy.sh`
-- [ ] `bash tests/docs/test_clean_code_policy_contract.sh`
-- [ ] `bash tests/docs/test_managed_worktree_lane_safety_policy.sh`
-- [ ] `bash tests/docs/test_bare_hub_guardrails.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_clean_code_policy_contract.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
 - [ ] Re-read `docs/superpowers/review-records/2026-06-20-repo-documentation-and-refactor-audit.md` lines 185-191 and confirm the implementation remained a supporting policy nudge only.
 - [ ] Confirm the new `Policy readability and documentation expectations` section is 5-10 sentences, AGENTS-only, and contains only the three approved reminders.
 - [ ] Confirm the final handoff includes the opencode restart reminder plus the required pragmatic-programmer and clean-code review notes.

@@ -57,22 +57,22 @@
 - Existing tests expected to supply characterization evidence before any new test is considered:
   - `tests/bootstrap/test_setup_host_bare_hub.sh`
   - `tests/bootstrap/test_verify_host_bare_hub.sh`
-  - `tests/docs/test_bare_hub_guardrails.sh`
-  - `tests/docs/test_clean_code_policy_contract.sh`
-  - `tests/docs/test_delegation_packet_policy_contract.sh`
-  - `tests/docs/test_multi_question_interaction_policy.sh`
-  - `tests/devspace/test_devspace_command_surface.sh`
-  - `tests/devspace/test_devspace_doctor.sh`
-  - `tests/devspace/test_workspace_provision.sh`
-  - `tests/devspace/test_workspace_repair.sh`
-  - `tests/install/test_install_validate_source.sh`
-  - `tests/install/test_install_local_source_contract.sh`
-  - `tests/install/test_workspace_navigation_shell.sh`
-  - `tests/devspace/test_workspace_navigation_commands.sh`
+  - `tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
+  - `tests/context/pod-inside-nono/test_clean_code_policy_contract.sh`
+  - `tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+  - `tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh`
+  - `tests/context/pod-inside-nono/test_devspace_command_surface.sh`
+  - `tests/context/host/test_devspace_doctor.sh`
+  - `tests/context/host/test_workspace_provision.sh`
+  - `tests/context/host/test_workspace_repair.sh`
+  - `tests/context/pod-outside-nono/test_install_validate_source.sh`
+  - `tests/context/pod-outside-nono/test_install_local_source_contract.sh`
+  - `tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
+  - `tests/context/pod-outside-nono/test_workspace_navigation_commands.sh`
   - `tests/devspace/test_public_repo_clone_behavior.sh`
-  - `tests/devspace/test_new_worktree.sh`
-  - `tests/devspace/test_managed_lane_registry.sh`
-  - `tests/devspace/test_retire_worktree.sh`
+  - `tests/context/pod-inside-nono/test_new_worktree.sh`
+  - `tests/context/pod-inside-nono/test_managed_lane_registry.sh`
+  - `tests/context/pod-inside-nono/test_retire_worktree.sh`
 
 ## Scope
 
@@ -95,7 +95,7 @@
 ## Proposed file map
 
 - Create: `docs/superpowers/review-records/2026-06-20-repo-documentation-and-refactor-audit.md` — the persistent audit artifact containing all required outputs.
-- Create: `tests/docs/test_repo_documentation_refactor_audit.sh` — doc-contract test that locks the audit artifact structure and required headings.
+- Create: `tests/context/pod-inside-nono/test_repo_documentation_refactor_audit.sh` — doc-contract test that locks the audit artifact structure and required headings.
 - Review only:
   - `README.md`
   - `devspace.yaml`
@@ -131,7 +131,7 @@
 ## Task 1: Lock the audit artifact contract with a failing docs test
 
 **Files:**
-- Create: `tests/docs/test_repo_documentation_refactor_audit.sh`
+- Create: `tests/context/pod-inside-nono/test_repo_documentation_refactor_audit.sh`
 - Create: `docs/superpowers/review-records/2026-06-20-repo-documentation-and-refactor-audit.md`
 
 - [ ] **Step 1: Write the failing doc-contract test first**
@@ -164,7 +164,7 @@
   - Run:
 
     ```bash
-    bash tests/docs/test_repo_documentation_refactor_audit.sh
+    bash tests/context/pod-inside-nono/test_repo_documentation_refactor_audit.sh
     ```
 
   - Expected: FAIL because the audit artifact does not exist yet or lacks the required sections.
@@ -225,10 +225,10 @@
   - Run:
 
     ```bash
-    bash tests/devspace/test_devspace_command_surface.sh
-    bash tests/devspace/test_devspace_doctor.sh
-    bash tests/devspace/test_workspace_provision.sh
-    bash tests/devspace/test_workspace_repair.sh
+    bash tests/context/pod-inside-nono/test_devspace_command_surface.sh
+    bash tests/context/host/test_devspace_doctor.sh
+    bash tests/context/host/test_workspace_provision.sh
+    bash tests/context/host/test_workspace_repair.sh
     ```
 
   - Use the output as evidence for how much the repo already protects provision/repair/doctor workflows with contract tests.
@@ -296,42 +296,42 @@
   - Run:
 
     ```bash
-    bash tests/docs/test_bare_hub_guardrails.sh
-    bash tests/docs/test_clean_code_policy_contract.sh
+    bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh
+    bash tests/context/pod-inside-nono/test_clean_code_policy_contract.sh
     ```
 
 - [ ] **Step 9: Run the remaining docs/policy contract suites**
   - Run:
 
     ```bash
-    bash tests/docs/test_delegation_packet_policy_contract.sh
-    bash tests/docs/test_multi_question_interaction_policy.sh
+    bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh
+    bash tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh
     ```
 
 - [ ] **Step 10: Run the install/navigation characterization suites**
   - Run:
 
     ```bash
-    bash tests/install/test_install_validate_source.sh
-    bash tests/install/test_install_local_source_contract.sh
-    bash tests/install/test_workspace_navigation_shell.sh
+    bash tests/context/pod-outside-nono/test_install_validate_source.sh
+    bash tests/context/pod-outside-nono/test_install_local_source_contract.sh
+    bash tests/context/pod-outside-nono/test_workspace_navigation_shell.sh
     ```
 
 - [ ] **Step 11: Run the first workflow-command characterization group**
   - Run:
 
     ```bash
-    bash tests/devspace/test_workspace_navigation_commands.sh
+    bash tests/context/pod-outside-nono/test_workspace_navigation_commands.sh
     bash tests/devspace/test_public_repo_clone_behavior.sh
-    bash tests/devspace/test_new_worktree.sh
+    bash tests/context/pod-inside-nono/test_new_worktree.sh
     ```
 
 - [ ] **Step 12: Run the second workflow-command characterization group**
   - Run:
 
     ```bash
-    bash tests/devspace/test_managed_lane_registry.sh
-    bash tests/devspace/test_retire_worktree.sh
+    bash tests/context/pod-inside-nono/test_managed_lane_registry.sh
+    bash tests/context/pod-inside-nono/test_retire_worktree.sh
     ```
 
   - Use the test output as characterization evidence for install behavior, navigation behavior, and worktree workflow complexity.
@@ -368,7 +368,7 @@
   - Run:
 
     ```bash
-    bash tests/docs/test_repo_documentation_refactor_audit.sh
+    bash tests/context/pod-inside-nono/test_repo_documentation_refactor_audit.sh
     ```
 
   - Expected: PASS.
@@ -457,13 +457,13 @@
 
 **Files:**
 - Review only: `docs/superpowers/review-records/2026-06-20-repo-documentation-and-refactor-audit.md`
-- Review only: `tests/docs/test_repo_documentation_refactor_audit.sh`
+- Review only: `tests/context/pod-inside-nono/test_repo_documentation_refactor_audit.sh`
 
 - [ ] **Step 1: Re-run the audit contract after the fuller writeup**
   - Run:
 
     ```bash
-    bash tests/docs/test_repo_documentation_refactor_audit.sh
+    bash tests/context/pod-inside-nono/test_repo_documentation_refactor_audit.sh
     ```
 
   - Expected: PASS.
@@ -484,7 +484,7 @@
 
 - [ ] **Step 5: Mandatory refactor checkpoint for the artifact itself**
   - Simplify tables, headings, and phrasing if the audit became repetitive or harder to scan.
-  - Keep the meaning unchanged and rerun `bash tests/docs/test_repo_documentation_refactor_audit.sh` after cleanup.
+  - Keep the meaning unchanged and rerun `bash tests/context/pod-inside-nono/test_repo_documentation_refactor_audit.sh` after cleanup.
 
 - [ ] **Step 6: Commit the final green audit slice after refactoring**
   - Suggested commit: `docs(audit): add repo documentation and refactor inventory`
@@ -497,25 +497,25 @@
 
 ## Final verification checklist
 
-- [ ] `bash tests/docs/test_repo_documentation_refactor_audit.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_repo_documentation_refactor_audit.sh`
 - [ ] `bash tests/bootstrap/test_setup_host_bare_hub.sh`
 - [ ] `bash tests/bootstrap/test_verify_host_bare_hub.sh`
-- [ ] `bash tests/docs/test_bare_hub_guardrails.sh`
-- [ ] `bash tests/docs/test_clean_code_policy_contract.sh`
-- [ ] `bash tests/docs/test_delegation_packet_policy_contract.sh`
-- [ ] `bash tests/docs/test_multi_question_interaction_policy.sh`
-- [ ] `bash tests/devspace/test_devspace_command_surface.sh`
-- [ ] `bash tests/devspace/test_devspace_doctor.sh`
-- [ ] `bash tests/devspace/test_workspace_provision.sh`
-- [ ] `bash tests/devspace/test_workspace_repair.sh`
-- [ ] `bash tests/install/test_install_validate_source.sh`
-- [ ] `bash tests/install/test_install_local_source_contract.sh`
-- [ ] `bash tests/install/test_workspace_navigation_shell.sh`
-- [ ] `bash tests/devspace/test_workspace_navigation_commands.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_clean_code_policy_contract.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_devspace_command_surface.sh`
+- [ ] `bash tests/context/host/test_devspace_doctor.sh`
+- [ ] `bash tests/context/host/test_workspace_provision.sh`
+- [ ] `bash tests/context/host/test_workspace_repair.sh`
+- [ ] `bash tests/context/pod-outside-nono/test_install_validate_source.sh`
+- [ ] `bash tests/context/pod-outside-nono/test_install_local_source_contract.sh`
+- [ ] `bash tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
+- [ ] `bash tests/context/pod-outside-nono/test_workspace_navigation_commands.sh`
 - [ ] `bash tests/devspace/test_public_repo_clone_behavior.sh`
-- [ ] `bash tests/devspace/test_new_worktree.sh`
-- [ ] `bash tests/devspace/test_managed_lane_registry.sh`
-- [ ] `bash tests/devspace/test_retire_worktree.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_new_worktree.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_managed_lane_registry.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_retire_worktree.sh`
 - [ ] Re-read `docs/superpowers/specs/2026-06-20-repo-documentation-and-refactor-audit-design.md` and confirm all five required audit outputs are present in the final artifact.
 - [ ] Confirm every follow-on slice in the audit is evidence-backed and scoped as doc-only, refactor-only, combined, or a narrowly justified supporting policy nudge.
 - [ ] Confirm the audit artifact does not drift into follow-on implementation detail.

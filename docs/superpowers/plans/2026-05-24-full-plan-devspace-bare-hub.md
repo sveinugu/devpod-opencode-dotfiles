@@ -144,16 +144,16 @@ Those assumptions were superseded by the approved DevSpace design and must not r
 - Create: `devspace.yaml`
 - Create: `k8s/devspace-bare-hub/workspace-pvc.yaml`
 - Create: `k8s/devspace-bare-hub/workspace-deployment.yaml`
-- Create: `tests/devspace/test_devspace_command_surface.sh`
-- Create: `tests/devspace/test_workspace_manifest_contract.sh`
-- Create: `tests/devspace/test_ssh_contract.sh`
+- Create: `tests/context/pod-inside-nono/test_devspace_command_surface.sh`
+- Create: `tests/context/pod-inside-nono/test_workspace_manifest_contract.sh`
+- Create: `tests/context/host/test_ssh_contract.sh`
 
 #### Shared bare-hub core and provision flow
 - Create: `scripts/lib/hub-repo-core.sh`
 - Create: `scripts/provision-workspace.sh`
 - Create: `scripts/preflight-devspace-dev.sh`
-- Create: `tests/devspace/test_workspace_provision.sh`
-- Create: `tests/devspace/test_devspace_dev_preflight.sh`
+- Create: `tests/context/host/test_workspace_provision.sh`
+- Create: `tests/context/host/test_devspace_dev_preflight.sh`
 
 #### Install, policy, and docs carried forward from the older plan
 - Create: `scripts/lib/validate_install_source_tree.sh`
@@ -162,17 +162,17 @@ Those assumptions were superseded by the approved DevSpace design and must not r
 - Modify: `.config/opencode/agents/maestro.md`
 - Modify: `.config/opencode/agents/senior-implementer.md`
 - Create: `docs/superpowers/runbooks/devspace-bare-hub-usage.md`
-- Create: `tests/install/test_install_validate_source.sh`
-- Create: `tests/install/test_install_local_source_contract.sh`
-- Create: `tests/docs/test_bare_hub_guardrails.sh`
+- Create: `tests/context/pod-outside-nono/test_install_validate_source.sh`
+- Create: `tests/context/pod-outside-nono/test_install_local_source_contract.sh`
+- Create: `tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
 
 #### Doctor, repair, destroy
 - Create: `ops/check-workspace.sh`
 - Create: `bin/repair-workspace`
 - Create: `ops/destroy-workspace.sh`
-- Create: `tests/devspace/test_devspace_doctor.sh`
-- Create: `tests/devspace/test_workspace_repair.sh`
-- Create: `tests/devspace/test_devspace_destroy.sh`
+- Create: `tests/context/host/test_devspace_doctor.sh`
+- Create: `tests/context/host/test_workspace_repair.sh`
+- Create: `tests/context/host/test_devspace_destroy.sh`
 - Create: `docs/superpowers/runbooks/devspace-workspace-lifecycle.md`
 
 #### Child repo onboarding, navigation commands, and worktree environment support
@@ -186,12 +186,12 @@ Those assumptions were superseded by the approved DevSpace design and must not r
 - Modify: `scripts/lib/hub-repo-core.sh`
 - Modify: `Dockerfile`
 - Modify: `.config/shell/workspace-navigation.zsh`
-- Modify: `tests/devspace/test_create_hub_repo.sh`
-- Modify: `tests/devspace/test_new_worktree.sh`
-- Create: `tests/devspace/test_workspace_navigation_commands.sh`
-- Create: `tests/install/test_workspace_navigation_shell.sh`
-- Modify: `tests/devspace/test_workspace_preinstalled_tools_contract.sh`
-- Modify: `tests/docs/test_bare_hub_guardrails.sh`
+- Modify: `tests/context/pod-outside-nono/test_create_hub_repo.sh`
+- Modify: `tests/context/pod-inside-nono/test_new_worktree.sh`
+- Create: `tests/context/pod-outside-nono/test_workspace_navigation_commands.sh`
+- Create: `tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
+- Modify: `tests/context/pod-inside-nono/test_workspace_preinstalled_tools_contract.sh`
+- Modify: `tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
 - Modify: `docs/superpowers/runbooks/devspace-bare-hub-usage.md`
 - Modify: `docs/superpowers/runbooks/devspace-workspace-lifecycle.md`
 
@@ -337,9 +337,9 @@ git worktree add "/tmp/devspace-bare-hub-work" -b work/devspace-bare-hub HEAD
 Inside that worktree, prefer these local checks:
 
 ```bash
-bash tests/devspace/test_devspace_command_surface.sh
-bash tests/devspace/test_workspace_manifest_contract.sh
-bash tests/devspace/test_ssh_contract.sh
+bash tests/context/pod-inside-nono/test_devspace_command_surface.sh
+bash tests/context/pod-inside-nono/test_workspace_manifest_contract.sh
+bash tests/context/host/test_ssh_contract.sh
 kubectl apply --dry-run=client -f k8s/devspace-bare-hub
 devspace deploy --render > /tmp/devspace-rendered.yaml
 devspace dev --render > /tmp/devspace-dev-rendered.yaml
@@ -350,8 +350,8 @@ If `devspace` is not available in the current agent environment, the minimum req
 
 ```bash
 kubectl apply --dry-run=client -f k8s/devspace-bare-hub
-bash tests/devspace/test_workspace_provision.sh
-bash tests/devspace/test_devspace_doctor.sh
+bash tests/context/host/test_workspace_provision.sh
+bash tests/context/host/test_devspace_doctor.sh
 bash tests/opencode/test_prepare_state_backup_set.sh
 git diff --check
 ```
@@ -631,13 +631,13 @@ Working estimate: **~8.5 implementation days for phase 1** and **~4 implementati
 - Create: `devspace.yaml`
 - Create: `k8s/devspace-bare-hub/workspace-pvc.yaml`
 - Create: `k8s/devspace-bare-hub/workspace-deployment.yaml`
-- Test: `tests/devspace/test_devspace_command_surface.sh`
-- Test: `tests/devspace/test_workspace_manifest_contract.sh`
-- Test: `tests/devspace/test_ssh_contract.sh`
+- Test: `tests/context/pod-inside-nono/test_devspace_command_surface.sh`
+- Test: `tests/context/pod-inside-nono/test_workspace_manifest_contract.sh`
+- Test: `tests/context/host/test_ssh_contract.sh`
 
 - [ ] **Step 1: Write the failing command-surface test first**
 
-`tests/devspace/test_devspace_command_surface.sh` should fail until `devspace.yaml` exists and should assert all of the following exact contracts:
+`tests/context/pod-inside-nono/test_devspace_command_surface.sh` should fail until `devspace.yaml` exists and should assert all of the following exact contracts:
 
 - `devspace dev` is present as the normal entrypoint.
 - `devspace run-pipeline provision` exists.
@@ -648,7 +648,7 @@ Working estimate: **~8.5 implementation days for phase 1** and **~4 implementati
 
 - [ ] **Step 2: Write the failing manifest contract test**
 
-`tests/devspace/test_workspace_manifest_contract.sh` should parse the YAML and fail until the manifest files exist. It must assert:
+`tests/context/pod-inside-nono/test_workspace_manifest_contract.sh` should parse the YAML and fail until the manifest files exist. It must assert:
 
 - exactly one `Deployment` manifest;
 - exactly one PVC manifest;
@@ -659,7 +659,7 @@ Working estimate: **~8.5 implementation days for phase 1** and **~4 implementati
 
 - [ ] **Step 2A: Write the failing DevSpace-managed SSH acceptance placeholder**
 
-`tests/devspace/test_ssh_contract.sh` should start as a failing contract placeholder and must spell out these exact checks for the Task-1/Task-3 SSH path:
+`tests/context/host/test_ssh_contract.sh` should start as a failing contract placeholder and must spell out these exact checks for the Task-1/Task-3 SSH path:
 
 - `devspace.yaml` exposes `ssh.enabled: true`;
 - `ssh.useInclude: true` is enabled so DevSpace writes `~/.ssh/devspace_config` entries when supported;
@@ -683,9 +683,9 @@ Expected outcomes recorded in the placeholder: the key-handling path is document
 Run:
 
 ```bash
-bash tests/devspace/test_devspace_command_surface.sh
-bash tests/devspace/test_workspace_manifest_contract.sh
-bash tests/devspace/test_ssh_contract.sh
+bash tests/context/pod-inside-nono/test_devspace_command_surface.sh
+bash tests/context/pod-inside-nono/test_workspace_manifest_contract.sh
+bash tests/context/host/test_ssh_contract.sh
 ```
 
 Expected: all fail because the DevSpace and manifest files do not exist yet.
@@ -705,9 +705,9 @@ Implementation contract:
 Run the three tests again and then a manifest sanity pass:
 
 ```bash
-bash tests/devspace/test_devspace_command_surface.sh
-bash tests/devspace/test_workspace_manifest_contract.sh
-bash tests/devspace/test_ssh_contract.sh
+bash tests/context/pod-inside-nono/test_devspace_command_surface.sh
+bash tests/context/pod-inside-nono/test_workspace_manifest_contract.sh
+bash tests/context/host/test_ssh_contract.sh
 kubectl apply --dry-run=client -f k8s/devspace-bare-hub
 ```
 
@@ -734,7 +734,7 @@ ok
 - [ ] **Step 6: Commit**
 
 ```bash
-git add devspace.yaml k8s/devspace-bare-hub/workspace-pvc.yaml k8s/devspace-bare-hub/workspace-deployment.yaml tests/devspace/test_devspace_command_surface.sh tests/devspace/test_workspace_manifest_contract.sh tests/devspace/test_ssh_contract.sh
+git add devspace.yaml k8s/devspace-bare-hub/workspace-pvc.yaml k8s/devspace-bare-hub/workspace-deployment.yaml tests/context/pod-inside-nono/test_devspace_command_surface.sh tests/context/pod-inside-nono/test_workspace_manifest_contract.sh tests/context/host/test_ssh_contract.sh
 git commit -m "feat(devspace): add workspace command surface and manifests"
 ```
 
@@ -755,19 +755,19 @@ git commit -m "feat(devspace): add workspace command surface and manifests"
 - Modify: `.config/opencode/agents/maestro.md`
 - Modify: `.config/opencode/agents/senior-implementer.md`
 - Create: `docs/superpowers/runbooks/devspace-bare-hub-usage.md`
-- Test: `tests/install/test_install_validate_source.sh`
-- Test: `tests/install/test_install_local_source_contract.sh`
-- Test: `tests/docs/test_bare_hub_guardrails.sh`
+- Test: `tests/context/pod-outside-nono/test_install_validate_source.sh`
+- Test: `tests/context/pod-outside-nono/test_install_local_source_contract.sh`
+- Test: `tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
 
 - [ ] **Step 1: Reuse the older failing tests first**
 
 Carry over the older contract tests with only the naming/docs changes needed for DevSpace wording:
 
-- `tests/install/test_install_validate_source.sh`
-- `tests/install/test_install_local_source_contract.sh`
-- `tests/docs/test_bare_hub_guardrails.sh`
+- `tests/context/pod-outside-nono/test_install_validate_source.sh`
+- `tests/context/pod-outside-nono/test_install_local_source_contract.sh`
+- `tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
 
-Extend `tests/install/test_install_local_source_contract.sh` so it distinguishes between an explicit install-branch override mismatch supplied for the current run (still RED/fail) and stale `HUB_INSTALL_BRANCH` / `HUB_INSTALL_BRANCH_DIR` values inherited from prior `state/hub/etc/install.env` state through managed `.envrc` (must stay GREEN/succeed and rewrite state).
+Extend `tests/context/pod-outside-nono/test_install_local_source_contract.sh` so it distinguishes between an explicit install-branch override mismatch supplied for the current run (still RED/fail) and stale `HUB_INSTALL_BRANCH` / `HUB_INSTALL_BRANCH_DIR` values inherited from prior `state/hub/etc/install.env` state through managed `.envrc` (must stay GREEN/succeed and rewrite state).
 
 The behavioral contract must stay the same as the older plan for install source detection and hub-root refusal.
 
@@ -795,9 +795,9 @@ This same task must also update user-facing and agent-facing guidance:
 Run:
 
 ```bash
-bash tests/install/test_install_validate_source.sh
-bash tests/install/test_install_local_source_contract.sh
-bash tests/docs/test_bare_hub_guardrails.sh
+bash tests/context/pod-outside-nono/test_install_validate_source.sh
+bash tests/context/pod-outside-nono/test_install_local_source_contract.sh
+bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh
 ```
 
 Expected: fail because the current repo still uses the old fixed `~/dotfiles` install behavior and does not yet contain the repo-specific DevSpace guardrail wording.
@@ -820,9 +820,9 @@ Implementation contract:
 Run the three tests again plus one manual dry-run check:
 
 ```bash
-bash tests/install/test_install_validate_source.sh
-bash tests/install/test_install_local_source_contract.sh
-bash tests/docs/test_bare_hub_guardrails.sh
+bash tests/context/pod-outside-nono/test_install_validate_source.sh
+bash tests/context/pod-outside-nono/test_install_local_source_contract.sh
+bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh
 bash ./install.sh --dry-run -y
 ```
 
@@ -831,7 +831,7 @@ Expected: tests pass; the manual dry-run uses the script’s own checkout/worktr
 - [ ] **Step 5: Commit**
 
 ```bash
-git add scripts/lib/validate_install_source_tree install.sh .config/opencode/AGENTS.md .config/opencode/agents/maestro.md .config/opencode/agents/senior-implementer.md docs/superpowers/runbooks/devspace-bare-hub-usage.md tests/install/test_install_validate_source.sh tests/install/test_install_local_source_contract.sh tests/docs/test_bare_hub_guardrails.sh
+git add scripts/lib/validate_install_source_tree install.sh .config/opencode/AGENTS.md .config/opencode/agents/maestro.md .config/opencode/agents/senior-implementer.md docs/superpowers/runbooks/devspace-bare-hub-usage.md tests/context/pod-outside-nono/test_install_validate_source.sh tests/context/pod-outside-nono/test_install_local_source_contract.sh tests/context/pod-inside-nono/test_bare_hub_guardrails.sh
 git commit -m "feat(workspace): carry forward install and bare-hub guardrails"
 ```
 
@@ -848,13 +848,13 @@ git commit -m "feat(workspace): carry forward install and bare-hub guardrails"
 - Create: `scripts/provision-workspace.sh`
 - Create: `scripts/preflight-devspace-dev.sh`
 - Modify: `devspace.yaml`
-- Test: `tests/devspace/test_workspace_provision.sh`
-- Test: `tests/devspace/test_devspace_dev_preflight.sh`
-- Test: `tests/devspace/test_ssh_contract.sh`
+- Test: `tests/context/host/test_workspace_provision.sh`
+- Test: `tests/context/host/test_devspace_dev_preflight.sh`
+- Test: `tests/context/host/test_ssh_contract.sh`
 
 - [ ] **Step 1: Write the failing provision tests first**
 
-`tests/devspace/test_workspace_provision.sh` must cover at least these contracts:
+`tests/context/host/test_workspace_provision.sh` must cover at least these contracts:
 
 - first-time provision from an empty workspace root creates `.bare`, `.git`, top-level bootstrap checkout (`main/`), `work`, `repos`, `state`, and `tmp`;
 - top-level bootstrap checkout is attached from the bare repo using `origin/main`;
@@ -867,7 +867,7 @@ git commit -m "feat(workspace): carry forward install and bare-hub guardrails"
 - provision refuses if an existing top-level bootstrap checkout path is present in a broken or detached state;
 - provision refuses if the requested install branch cannot be materialized as a matching worktree.
 
-`tests/devspace/test_devspace_dev_preflight.sh` must cover these contracts:
+`tests/context/host/test_devspace_dev_preflight.sh` must cover these contracts:
 
 - when `.bare` or `main` is missing, the preflight exits non-zero and prints `run devspace run-pipeline provision`;
 - when the workspace is provisioned, the preflight exits 0.
@@ -877,8 +877,8 @@ git commit -m "feat(workspace): carry forward install and bare-hub guardrails"
 Run:
 
 ```bash
-bash tests/devspace/test_workspace_provision.sh
-bash tests/devspace/test_devspace_dev_preflight.sh
+bash tests/context/host/test_workspace_provision.sh
+bash tests/context/host/test_devspace_dev_preflight.sh
 ```
 
 Expected: fail because the provision and preflight scripts do not exist yet.
@@ -912,8 +912,8 @@ Implementation contract:
 Run:
 
 ```bash
-bash tests/devspace/test_workspace_provision.sh
-bash tests/devspace/test_devspace_dev_preflight.sh
+bash tests/context/host/test_workspace_provision.sh
+bash tests/context/host/test_devspace_dev_preflight.sh
 devspace run-pipeline provision
 devspace run-pipeline doctor || true
 ```
@@ -925,7 +925,7 @@ Expected: both tests pass; `provision` creates the workspace; `doctor` is now ab
 Run from the host after `devspace run-pipeline provision` and `devspace dev`:
 
 ```bash
-bash tests/devspace/test_ssh_contract.sh
+bash tests/context/host/test_ssh_contract.sh
 test -f "$HOME/.devspace/ssh/id_devspace_rsa"
 grep -F "Host workspace.dotfiles.devspace" "$HOME/.ssh/devspace_config" || grep -F "Host workspace.dotfiles.devspace" "$HOME/.ssh/config"
 ssh -o BatchMode=yes workspace.dotfiles.devspace 'pwd'
@@ -937,7 +937,7 @@ Expected: the SSH contract test passes, the DevSpace-managed key and alias exist
 - [ ] **Step 6: Commit**
 
 ```bash
-git add scripts/lib/hub-repo-core.sh scripts/provision-workspace.sh scripts/preflight-devspace-dev.sh devspace.yaml tests/devspace/test_workspace_provision.sh tests/devspace/test_devspace_dev_preflight.sh
+git add scripts/lib/hub-repo-core.sh scripts/provision-workspace.sh scripts/preflight-devspace-dev.sh devspace.yaml tests/context/host/test_workspace_provision.sh tests/context/host/test_devspace_dev_preflight.sh
 git commit -m "feat(workspace): provision top-level devspace bare hub"
 ```
 
@@ -959,13 +959,13 @@ The same manual gate must also confirm the Task-1/Task-3 SSH acceptance path wit
 - Create: `ops/destroy-workspace.sh`
 - Modify: `devspace.yaml`
 - Create: `docs/superpowers/runbooks/devspace-workspace-lifecycle.md`
-- Test: `tests/devspace/test_devspace_doctor.sh`
-- Test: `tests/devspace/test_workspace_repair.sh`
-- Test: `tests/devspace/test_devspace_destroy.sh`
+- Test: `tests/context/host/test_devspace_doctor.sh`
+- Test: `tests/context/host/test_workspace_repair.sh`
+- Test: `tests/context/host/test_devspace_destroy.sh`
 
 - [ ] **Step 1: Write the failing tests first**
 
-`tests/devspace/test_devspace_doctor.sh` must assert:
+`tests/context/host/test_devspace_doctor.sh` must assert:
 
 - human-readable output only;
 - exit code 0 when all checks pass;
@@ -973,7 +973,7 @@ The same manual gate must also confirm the Task-1/Task-3 SSH acceptance path wit
 - exit code 2 for invalid CLI usage;
 - required checks exactly match acceptance section F.
 
-`tests/devspace/test_workspace_repair.sh` must assert:
+`tests/context/host/test_workspace_repair.sh` must assert:
 
 - missing managed directories can be recreated;
 - missing canonical `state/` and `tmp/` paths can be recreated;
@@ -994,7 +994,7 @@ The lifecycle runbook created in this task must also explain:
 - how `repair` honors `HUB_INSTALL_BRANCH` without retargeting `main/`;
 - how humans can inspect current installed state before asking agents to repair.
 
-`tests/devspace/test_devspace_destroy.sh` must assert that the host-side pipeline deletes both the Deployment/pod and the PVC.
+`tests/context/host/test_devspace_destroy.sh` must assert that the host-side pipeline deletes both the Deployment/pod and the PVC.
 
 The same task must also retain the SSH acceptance path established by Task 1 at the operational level:
 
@@ -1006,9 +1006,9 @@ The same task must also retain the SSH acceptance path established by Task 1 at 
 Run:
 
 ```bash
-bash tests/devspace/test_devspace_doctor.sh
-bash tests/devspace/test_workspace_repair.sh
-bash tests/devspace/test_devspace_destroy.sh
+bash tests/context/host/test_devspace_doctor.sh
+bash tests/context/host/test_workspace_repair.sh
+bash tests/context/host/test_devspace_destroy.sh
 ```
 
 Expected: fail because the commands/scripts and lifecycle runbook do not exist yet.
@@ -1039,9 +1039,9 @@ Implementation contract:
 Run:
 
 ```bash
-bash tests/devspace/test_devspace_doctor.sh
-bash tests/devspace/test_workspace_repair.sh
-bash tests/devspace/test_devspace_destroy.sh
+bash tests/context/host/test_devspace_doctor.sh
+bash tests/context/host/test_workspace_repair.sh
+bash tests/context/host/test_devspace_destroy.sh
 devspace run-pipeline doctor
 ```
 
@@ -1050,7 +1050,7 @@ Expected: tests pass; `doctor` prints a readable pass/fail summary.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add ops/check-workspace.sh bin/repair-workspace ops/destroy-workspace.sh devspace.yaml docs/superpowers/runbooks/devspace-workspace-lifecycle.md tests/devspace/test_devspace_doctor.sh tests/devspace/test_workspace_repair.sh tests/devspace/test_devspace_destroy.sh
+git add ops/check-workspace.sh bin/repair-workspace ops/destroy-workspace.sh devspace.yaml docs/superpowers/runbooks/devspace-workspace-lifecycle.md tests/context/host/test_devspace_doctor.sh tests/context/host/test_workspace_repair.sh tests/context/host/test_devspace_destroy.sh
 git commit -m "feat(workspace): add doctor repair and destroy flows"
 ```
 
@@ -1072,14 +1072,14 @@ git commit -m "feat(workspace): add doctor repair and destroy flows"
 - Create: `scripts/lib/validate_hub_repo_root.sh`
 - Create: `scripts/lib/worktree-env.sh`
 - Modify: `Dockerfile`
-- Test: `tests/devspace/test_create_hub_repo.sh`
-- Test: `tests/devspace/test_new_worktree.sh`
-- Modify: `tests/devspace/test_workspace_preinstalled_tools_contract.sh`
+- Test: `tests/context/pod-outside-nono/test_create_hub_repo.sh`
+- Test: `tests/context/pod-inside-nono/test_new_worktree.sh`
+- Modify: `tests/context/pod-inside-nono/test_workspace_preinstalled_tools_contract.sh`
 - Modify: `docs/superpowers/runbooks/devspace-bare-hub-usage.md`
 
 - [ ] **Step 1: Write the failing onboarding and worktree-environment tests first**
 
-`tests/devspace/test_create_hub_repo.sh` must assert:
+`tests/context/pod-outside-nono/test_create_hub_repo.sh` must assert:
 
 - public repo only in v1;
 - repo-derived default name is used for `repos/<name>`;
@@ -1090,7 +1090,7 @@ git commit -m "feat(workspace): add doctor repair and destroy flows"
 - successful onboarding also creates managed `.envrc` and `.envrc.local` for the child repo `main/` checkout;
 - child onboarding does not change `/home/vscode` symlink authority.
 
-`tests/devspace/test_new_worktree.sh` must assert:
+`tests/context/pod-inside-nono/test_new_worktree.sh` must assert:
 
 - `bin/new-worktree` creates a managed worktree under the repo hub worktree area and the matching canonical `state/` / `tmp/` paths;
 - the generated `.envrc` exists for every managed checkout, including top-level `main/`, child-repo `main/`, and non-`main` worktrees;
@@ -1113,9 +1113,9 @@ The same retrofit also applies to documentation and agent workflow guidance: upd
 Run:
 
 ```bash
-bash tests/devspace/test_create_hub_repo.sh
-bash tests/devspace/test_new_worktree.sh
-bash tests/devspace/test_workspace_preinstalled_tools_contract.sh
+bash tests/context/pod-outside-nono/test_create_hub_repo.sh
+bash tests/context/pod-inside-nono/test_new_worktree.sh
+bash tests/context/pod-inside-nono/test_workspace_preinstalled_tools_contract.sh
 ```
 
 Expected: fail because the onboarding/worktree commands and helper wiring do not exist yet.
@@ -1148,9 +1148,9 @@ The usage runbook updated in this task must explicitly document:
 Run:
 
 ```bash
-bash tests/devspace/test_create_hub_repo.sh
-bash tests/devspace/test_new_worktree.sh
-bash tests/devspace/test_workspace_preinstalled_tools_contract.sh
+bash tests/context/pod-outside-nono/test_create_hub_repo.sh
+bash tests/context/pod-inside-nono/test_new_worktree.sh
+bash tests/context/pod-inside-nono/test_workspace_preinstalled_tools_contract.sh
 ```
 
 Expected: pass.
@@ -1158,7 +1158,7 @@ Expected: pass.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add bin/clone-repo bin/new-worktree scripts/lib/validate_hub_repo_root scripts/lib/worktree-env.sh Dockerfile docs/superpowers/runbooks/devspace-bare-hub-usage.md tests/devspace/test_create_hub_repo.sh tests/devspace/test_new_worktree.sh tests/devspace/test_workspace_preinstalled_tools_contract.sh
+git add bin/clone-repo bin/new-worktree scripts/lib/validate_hub_repo_root scripts/lib/worktree-env.sh Dockerfile docs/superpowers/runbooks/devspace-bare-hub-usage.md tests/context/pod-outside-nono/test_create_hub_repo.sh tests/context/pod-inside-nono/test_new_worktree.sh tests/context/pod-inside-nono/test_workspace_preinstalled_tools_contract.sh
 git commit -m "feat(workspace): add repo onboarding and worktree env commands"
 ```
 
@@ -1178,27 +1178,27 @@ git commit -m "feat(workspace): add repo onboarding and worktree env commands"
 - Modify: `bin/clone-repo`
 - Modify: `bin/new-worktree`
 - Modify: `scripts/lib/hub-repo-core.sh`
-- Test: `tests/devspace/test_workspace_navigation_commands.sh`
-- Modify: `tests/devspace/test_create_hub_repo.sh`
-- Modify: `tests/devspace/test_new_worktree.sh`
+- Test: `tests/context/pod-outside-nono/test_workspace_navigation_commands.sh`
+- Modify: `tests/context/pod-outside-nono/test_create_hub_repo.sh`
+- Modify: `tests/context/pod-inside-nono/test_new_worktree.sh`
 
 - [ ] **Step 1: Extend the failing child-repo and navigation tests first**
 
-`tests/devspace/test_create_hub_repo.sh` must now assert:
+`tests/context/pod-outside-nono/test_create_hub_repo.sh` must now assert:
 
 - child onboarding detects the remote default branch from the source repo and keeps the exact branch name;
 - child onboarding creates `repos/<name>/<default-branch>` and matching `state/repos/<name>/<default-branch>/` / `tmp/repos/<name>/<default-branch>/` paths;
 - child onboarding refuses if the child default branch cannot be determined or materialized;
 - no child onboarding path normalizes the branch name to `main`.
 
-`tests/devspace/test_new_worktree.sh` must now assert:
+`tests/context/pod-inside-nono/test_new_worktree.sh` must now assert:
 
 - non-default child worktrees still live under `repos/<name>/work/<branch>`;
 - any repo/worktree helper touched by this task preserves the exact branch name, including slashes, when mapping to the managed `work/` area;
 - `bin/new-worktree` refuses creation when the requested worktree name exactly matches the current managed repo's actual default branch name;
 - the `dwt` command contract resolves the current managed repo's default checkout for no-arg and exact-default-branch-name calls, resolves `work/<name>` for other names, and does not guess outside the current repo context.
 
-`tests/devspace/test_workspace_navigation_commands.sh` must assert:
+`tests/context/pod-outside-nono/test_workspace_navigation_commands.sh` must assert:
 
 - `bin/dre` and `bin/dwt` exist with no `.sh` suffix;
 - `dhub` resolves exactly `$HUB_INSTALL_BRANCH_DIR` (via `.config/shell/workspace-navigation.zsh` + `scripts/lib/resolve-install-target.sh`) and exits non-zero with a clear message when install state is missing, unreadable, or points to a non-directory;
@@ -1214,9 +1214,9 @@ git commit -m "feat(workspace): add repo onboarding and worktree env commands"
 Run:
 
 ```bash
-bash tests/devspace/test_create_hub_repo.sh
-bash tests/devspace/test_new_worktree.sh
-bash tests/devspace/test_workspace_navigation_commands.sh
+bash tests/context/pod-outside-nono/test_create_hub_repo.sh
+bash tests/context/pod-inside-nono/test_new_worktree.sh
+bash tests/context/pod-outside-nono/test_workspace_navigation_commands.sh
 ```
 
 Expected: fail because the child default-branch retrofit and the navigation resolvers do not exist yet.
@@ -1239,9 +1239,9 @@ Implementation contract:
 Run:
 
 ```bash
-bash tests/devspace/test_create_hub_repo.sh
-bash tests/devspace/test_new_worktree.sh
-bash tests/devspace/test_workspace_navigation_commands.sh
+bash tests/context/pod-outside-nono/test_create_hub_repo.sh
+bash tests/context/pod-inside-nono/test_new_worktree.sh
+bash tests/context/pod-outside-nono/test_workspace_navigation_commands.sh
 ```
 
 Expected: pass.
@@ -1249,7 +1249,7 @@ Expected: pass.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add bin/dre bin/dwt bin/clone-repo bin/new-worktree scripts/lib/hub-repo-core.sh tests/devspace/test_create_hub_repo.sh tests/devspace/test_new_worktree.sh tests/devspace/test_workspace_navigation_commands.sh
+git add bin/dre bin/dwt bin/clone-repo bin/new-worktree scripts/lib/hub-repo-core.sh tests/context/pod-outside-nono/test_create_hub_repo.sh tests/context/pod-inside-nono/test_new_worktree.sh tests/context/pod-outside-nono/test_workspace_navigation_commands.sh
 git commit -m "feat(workspace): add navigation resolvers and child branch fidelity"
 ```
 
@@ -1266,12 +1266,12 @@ git commit -m "feat(workspace): add navigation resolvers and child branch fideli
 - Modify: `.config/shell/workspace-navigation.zsh`
 - Modify: `docs/superpowers/runbooks/devspace-bare-hub-usage.md`
 - Modify: `docs/superpowers/runbooks/devspace-workspace-lifecycle.md`
-- Test: `tests/install/test_workspace_navigation_shell.sh`
-- Modify: `tests/docs/test_bare_hub_guardrails.sh`
+- Test: `tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
+- Modify: `tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
 
 - [ ] **Step 1: Write the failing shell and doc contract tests first**
 
-`tests/install/test_workspace_navigation_shell.sh` must assert:
+`tests/context/pod-outside-nono/test_workspace_navigation_shell.sh` must assert:
 
 - `.config/shell/workspace-navigation.zsh` defines `dhub`, `dre`, and `dwt` shell functions that call the matching `bin/` resolver and `cd` only when the resolver succeeds;
 - no compatibility alias is installed in v1;
@@ -1280,7 +1280,7 @@ git commit -m "feat(workspace): add navigation resolvers and child branch fideli
 - the documented/completed `dwt` behavior includes the no-arg default-checkout shortcut and exact-default-branch-name shortcut;
 - the install-time recommended helper snippet uses `dhub` only.
 
-`tests/docs/test_bare_hub_guardrails.sh` must now assert:
+`tests/context/pod-inside-nono/test_bare_hub_guardrails.sh` must now assert:
 
 - the usage and lifecycle runbooks document `dhub`, `dre`, `dwt`, their failure semantics, and the lack of a compatibility alias;
 - the navigation docs say `dwt` only works from an existing managed repo context, describe the default-checkout shortcut behavior, and say that `dre` excludes the top-level hub;
@@ -1291,8 +1291,8 @@ git commit -m "feat(workspace): add navigation resolvers and child branch fideli
 Run:
 
 ```bash
-bash tests/install/test_workspace_navigation_shell.sh
-bash tests/docs/test_bare_hub_guardrails.sh
+bash tests/context/pod-outside-nono/test_workspace_navigation_shell.sh
+bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh
 ```
 
 Expected: fail because the shell wrapper/completion contract and the retrofit docs are not updated yet.
@@ -1313,8 +1313,8 @@ Implementation contract:
 Run:
 
 ```bash
-bash tests/install/test_workspace_navigation_shell.sh
-bash tests/docs/test_bare_hub_guardrails.sh
+bash tests/context/pod-outside-nono/test_workspace_navigation_shell.sh
+bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh
 ```
 
 Expected: pass.
@@ -1322,7 +1322,7 @@ Expected: pass.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add install.sh .config/shell/workspace-navigation.zsh docs/superpowers/runbooks/devspace-bare-hub-usage.md docs/superpowers/runbooks/devspace-workspace-lifecycle.md tests/install/test_workspace_navigation_shell.sh tests/docs/test_bare_hub_guardrails.sh
+git add install.sh .config/shell/workspace-navigation.zsh docs/superpowers/runbooks/devspace-bare-hub-usage.md docs/superpowers/runbooks/devspace-workspace-lifecycle.md tests/context/pod-outside-nono/test_workspace_navigation_shell.sh tests/context/pod-inside-nono/test_bare_hub_guardrails.sh
 git commit -m "feat(shell): add repo navigation wrappers and docs"
 ```
 
@@ -1339,10 +1339,10 @@ git commit -m "feat(shell): add repo navigation wrappers and docs"
 - Modify: `ops/check-workspace.sh`
 - Modify: `bin/new-worktree`
 - Modify: `.config/shell/workspace-navigation.zsh`
-- Modify: `tests/devspace/test_workspace_provision.sh`
-- Modify: `tests/devspace/test_devspace_doctor.sh`
-- Modify: `tests/devspace/test_new_worktree.sh`
-- Modify: `tests/devspace/test_workspace_navigation_commands.sh`
+- Modify: `tests/context/host/test_workspace_provision.sh`
+- Modify: `tests/context/host/test_devspace_doctor.sh`
+- Modify: `tests/context/pod-inside-nono/test_new_worktree.sh`
+- Modify: `tests/context/pod-outside-nono/test_workspace_navigation_commands.sh`
 - Modify: `docs/superpowers/runbooks/devspace-bare-hub-usage.md`
 
 - [ ] **Step 1: Extend failing tests first**
@@ -1360,10 +1360,10 @@ Update the listed tests to assert:
 Run:
 
 ```bash
-bash tests/devspace/test_workspace_provision.sh
-bash tests/devspace/test_devspace_doctor.sh
-bash tests/devspace/test_new_worktree.sh
-bash tests/devspace/test_workspace_navigation_commands.sh
+bash tests/context/host/test_workspace_provision.sh
+bash tests/context/host/test_devspace_doctor.sh
+bash tests/context/pod-inside-nono/test_new_worktree.sh
+bash tests/context/pod-outside-nono/test_workspace_navigation_commands.sh
 ```
 
 Expected: fail until top-level `main` policy and `dhub`-anchored navigation behavior are implemented consistently.
@@ -1388,7 +1388,7 @@ Expected: pass.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add scripts/provision-workspace.sh ops/check-workspace.sh bin/new-worktree .config/shell/workspace-navigation.zsh tests/devspace/test_workspace_provision.sh tests/devspace/test_devspace_doctor.sh tests/devspace/test_new_worktree.sh tests/devspace/test_workspace_navigation_commands.sh docs/superpowers/runbooks/devspace-bare-hub-usage.md
+git add scripts/provision-workspace.sh ops/check-workspace.sh bin/new-worktree .config/shell/workspace-navigation.zsh tests/context/host/test_workspace_provision.sh tests/context/host/test_devspace_doctor.sh tests/context/pod-inside-nono/test_new_worktree.sh tests/context/pod-outside-nono/test_workspace_navigation_commands.sh docs/superpowers/runbooks/devspace-bare-hub-usage.md
 git commit -m "feat(workspace): enforce top-level main policy and dhub navigation"
 ```
 
@@ -1401,22 +1401,22 @@ git commit -m "feat(workspace): enforce top-level main policy and dhub navigatio
 Before claiming phase 1 complete, run:
 
 ```bash
-bash tests/devspace/test_devspace_command_surface.sh
-bash tests/devspace/test_workspace_manifest_contract.sh
-bash tests/devspace/test_ssh_contract.sh
-bash tests/install/test_install_validate_source.sh
-bash tests/install/test_install_local_source_contract.sh
-bash tests/docs/test_bare_hub_guardrails.sh
-bash tests/devspace/test_workspace_provision.sh
-bash tests/devspace/test_devspace_dev_preflight.sh
-bash tests/devspace/test_devspace_doctor.sh
-bash tests/devspace/test_workspace_repair.sh
-bash tests/devspace/test_devspace_destroy.sh
-bash tests/devspace/test_create_hub_repo.sh
-bash tests/devspace/test_new_worktree.sh
-bash tests/devspace/test_workspace_navigation_commands.sh
-bash tests/install/test_workspace_navigation_shell.sh
-bash tests/devspace/test_workspace_preinstalled_tools_contract.sh
+bash tests/context/pod-inside-nono/test_devspace_command_surface.sh
+bash tests/context/pod-inside-nono/test_workspace_manifest_contract.sh
+bash tests/context/host/test_ssh_contract.sh
+bash tests/context/pod-outside-nono/test_install_validate_source.sh
+bash tests/context/pod-outside-nono/test_install_local_source_contract.sh
+bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh
+bash tests/context/host/test_workspace_provision.sh
+bash tests/context/host/test_devspace_dev_preflight.sh
+bash tests/context/host/test_devspace_doctor.sh
+bash tests/context/host/test_workspace_repair.sh
+bash tests/context/host/test_devspace_destroy.sh
+bash tests/context/pod-outside-nono/test_create_hub_repo.sh
+bash tests/context/pod-inside-nono/test_new_worktree.sh
+bash tests/context/pod-outside-nono/test_workspace_navigation_commands.sh
+bash tests/context/pod-outside-nono/test_workspace_navigation_shell.sh
+bash tests/context/pod-inside-nono/test_workspace_preinstalled_tools_contract.sh
 devspace run-pipeline provision
 devspace run-pipeline doctor
 devspace dev

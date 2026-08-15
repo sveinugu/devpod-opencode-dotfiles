@@ -19,14 +19,14 @@
 - Existing implementation surface: `install.sh`
 - Existing validation dependency to reuse unchanged: `scripts/lib/validate_install_source_tree.sh`
 - Existing install safety rails that must still pass after the refactor:
-  - `tests/install/test_install_local_source_contract.sh`
-  - `tests/install/test_install_validate_source.sh`
-  - `tests/install/test_read_install_env.sh`
-  - `tests/install/test_install_oh_my_zsh_failure_surface.sh`
-  - `tests/install/test_workspace_navigation_shell.sh`
+  - `tests/context/pod-outside-nono/test_install_local_source_contract.sh`
+  - `tests/context/pod-outside-nono/test_install_validate_source.sh`
+  - `tests/context/pod-inside-nono/test_read_install_env.sh`
+  - `tests/context/pod-outside-nono/test_install_oh_my_zsh_failure_surface.sh`
+  - `tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
 - Related behavior/documentation guards to rerun:
-  - `tests/devspace/test_workspace_repair.sh`
-  - `tests/docs/test_p1_docs_orientation.sh`
+  - `tests/context/host/test_workspace_repair.sh`
+  - `tests/context/pod-inside-nono/test_p1_docs_orientation.sh`
 
 ## Scope
 
@@ -66,23 +66,23 @@
 - Create: `scripts/lib/install/resolve-source.sh` — owns workspace/home path resolution and install-branch detection.
 - Create: `scripts/lib/install/validate-source.sh` — owns hub-root refusal, validator execution, stale inherited env cleanup, branch/dir mismatch refusals, `install.env` persistence, and the `dhub()` helper note.
 - Create: `scripts/lib/install/materialize.sh` — owns oh-my-zsh install, symlink helpers, plugin installs, OpenCode bootstrap commands, and the final success message.
-- Create: `tests/install/test_install_helper_layout.sh` — locks the new helper-file layout and the thin-orchestrator call order.
+- Create: `tests/context/pod-inside-nono/test_install_helper_layout.sh` — locks the new helper-file layout and the thin-orchestrator call order.
 - Modify: `install.sh` — becomes the thin orchestrator while preserving the existing top comment block.
-- Modify: `tests/install/test_install_local_source_contract.sh` — copies the new helper files into synthetic workspaces before invoking the refactored installer.
-- Modify: `tests/install/test_install_oh_my_zsh_failure_surface.sh` — copies the new helper files into the synthetic checkout before invoking the refactored installer.
-- Modify: `tests/devspace/test_workspace_repair.sh` — moves the file-based oh-my-zsh guard assertion from top-level `install.sh` to `scripts/lib/install/materialize.sh`.
+- Modify: `tests/context/pod-outside-nono/test_install_local_source_contract.sh` — copies the new helper files into synthetic workspaces before invoking the refactored installer.
+- Modify: `tests/context/pod-outside-nono/test_install_oh_my_zsh_failure_surface.sh` — copies the new helper files into the synthetic checkout before invoking the refactored installer.
+- Modify: `tests/context/host/test_workspace_repair.sh` — moves the file-based oh-my-zsh guard assertion from top-level `install.sh` to `scripts/lib/install/materialize.sh`.
 - Verify only:
-  - `tests/install/test_install_validate_source.sh`
-  - `tests/install/test_read_install_env.sh`
-  - `tests/install/test_workspace_navigation_shell.sh`
-  - `tests/docs/test_p1_docs_orientation.sh`
+  - `tests/context/pod-outside-nono/test_install_validate_source.sh`
+  - `tests/context/pod-inside-nono/test_read_install_env.sh`
+  - `tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
+  - `tests/context/pod-inside-nono/test_p1_docs_orientation.sh`
 
 ---
 
 ## Task 1: Lock the helper-layout refactor with a failing structural contract
 
 **Files:**
-- Create: `tests/install/test_install_helper_layout.sh`
+- Create: `tests/context/pod-inside-nono/test_install_helper_layout.sh`
 
 - [ ] **Step 1: Write the failing helper-layout contract first**
 
@@ -128,7 +128,7 @@ printf 'PASS test_install_helper_layout\n'
 Run:
 
 ```bash
-bash tests/install/test_install_helper_layout.sh
+bash tests/context/pod-inside-nono/test_install_helper_layout.sh
 ```
 
 Expected: FAIL because `scripts/lib/install/*.sh` does not exist yet and `install.sh` does not yet source helper phases.
@@ -136,7 +136,7 @@ Expected: FAIL because `scripts/lib/install/*.sh` does not exist yet and `instal
 - [ ] **Step 3: Commit the red structural test**
 
 ```bash
-git add tests/install/test_install_helper_layout.sh
+git add tests/context/pod-inside-nono/test_install_helper_layout.sh
 git commit -m "test(install): lock helper layout contract"
 ```
 
@@ -150,17 +150,17 @@ git commit -m "test(install): lock helper layout contract"
 - Create: `scripts/lib/install/validate-source.sh`
 - Create: `scripts/lib/install/materialize.sh`
 - Modify: `install.sh`
-- Modify: `tests/install/test_install_local_source_contract.sh`
-- Modify: `tests/install/test_install_oh_my_zsh_failure_surface.sh`
-- Modify: `tests/devspace/test_workspace_repair.sh`
-- Test: `tests/install/test_install_helper_layout.sh`
-- Test: `tests/install/test_install_local_source_contract.sh`
-- Test: `tests/install/test_install_validate_source.sh`
-- Test: `tests/install/test_read_install_env.sh`
-- Test: `tests/install/test_install_oh_my_zsh_failure_surface.sh`
-- Test: `tests/install/test_workspace_navigation_shell.sh`
-- Test: `tests/devspace/test_workspace_repair.sh`
-- Test: `tests/docs/test_p1_docs_orientation.sh`
+- Modify: `tests/context/pod-outside-nono/test_install_local_source_contract.sh`
+- Modify: `tests/context/pod-outside-nono/test_install_oh_my_zsh_failure_surface.sh`
+- Modify: `tests/context/host/test_workspace_repair.sh`
+- Test: `tests/context/pod-inside-nono/test_install_helper_layout.sh`
+- Test: `tests/context/pod-outside-nono/test_install_local_source_contract.sh`
+- Test: `tests/context/pod-outside-nono/test_install_validate_source.sh`
+- Test: `tests/context/pod-inside-nono/test_read_install_env.sh`
+- Test: `tests/context/pod-outside-nono/test_install_oh_my_zsh_failure_surface.sh`
+- Test: `tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
+- Test: `tests/context/host/test_workspace_repair.sh`
+- Test: `tests/context/pod-inside-nono/test_p1_docs_orientation.sh`
 
 - [ ] **Step 1: Create the four helper files with these exact contents**
 
@@ -453,7 +453,7 @@ install_materialize
 
 - [ ] **Step 3: Update the synthetic-workspace tests so they copy the new helper directory too**
 
-In `tests/install/test_install_local_source_contract.sh`, insert this helper function immediately after `unset HUB_INSTALL_BRANCH HUB_INSTALL_BRANCH_DIR`:
+In `tests/context/pod-outside-nono/test_install_local_source_contract.sh`, insert this helper function immediately after `unset HUB_INSTALL_BRANCH HUB_INSTALL_BRANCH_DIR`:
 
 ```bash
 copy_install_support_tree() {
@@ -501,7 +501,7 @@ Replace the regression-workspace validator-copy block with this exact call:
 copy_install_support_tree "$workspace_reg/main"
 ```
 
-In `tests/install/test_install_oh_my_zsh_failure_surface.sh`, replace the existing two-line copy block under `mkdir -p "$source_root/.config/opencode" "$source_root/scripts/lib" "$home_dir" "$bin_dir"` with this exact block:
+In `tests/context/pod-outside-nono/test_install_oh_my_zsh_failure_surface.sh`, replace the existing two-line copy block under `mkdir -p "$source_root/.config/opencode" "$source_root/scripts/lib" "$home_dir" "$bin_dir"` with this exact block:
 
 ```bash
 mkdir -p "$source_root/.config/opencode" "$source_root/scripts/lib/install" "$home_dir" "$bin_dir"
@@ -521,7 +521,7 @@ chmod +x \
   "$source_root/scripts/lib/install/materialize.sh"
 ```
 
-In `tests/devspace/test_workspace_repair.sh`, replace the current top-of-file install guard setup with this exact block:
+In `tests/context/host/test_workspace_repair.sh`, replace the current top-of-file install guard setup with this exact block:
 
 ```bash
 repo_root="$(git rev-parse --show-toplevel)"
@@ -540,14 +540,14 @@ grep -F 'if [ ! -f "$oh_my_zsh_dir/oh-my-zsh.sh" ]; then' "$materialize_helper" 
 Run:
 
 ```bash
-bash tests/install/test_install_helper_layout.sh
-bash tests/install/test_install_local_source_contract.sh
-bash tests/install/test_install_validate_source.sh
-bash tests/install/test_read_install_env.sh
-bash tests/install/test_install_oh_my_zsh_failure_surface.sh
-bash tests/install/test_workspace_navigation_shell.sh
-bash tests/devspace/test_workspace_repair.sh
-bash tests/docs/test_p1_docs_orientation.sh
+bash tests/context/pod-inside-nono/test_install_helper_layout.sh
+bash tests/context/pod-outside-nono/test_install_local_source_contract.sh
+bash tests/context/pod-outside-nono/test_install_validate_source.sh
+bash tests/context/pod-inside-nono/test_read_install_env.sh
+bash tests/context/pod-outside-nono/test_install_oh_my_zsh_failure_surface.sh
+bash tests/context/pod-outside-nono/test_workspace_navigation_shell.sh
+bash tests/context/host/test_workspace_repair.sh
+bash tests/context/pod-inside-nono/test_p1_docs_orientation.sh
 ```
 
 Expected: PASS for all eight commands.
@@ -560,10 +560,10 @@ git add install.sh \
   scripts/lib/install/resolve-source.sh \
   scripts/lib/install/validate-source.sh \
   scripts/lib/install/materialize.sh \
-  tests/install/test_install_helper_layout.sh \
-  tests/install/test_install_local_source_contract.sh \
-  tests/install/test_install_oh_my_zsh_failure_surface.sh \
-  tests/devspace/test_workspace_repair.sh
+  tests/context/pod-inside-nono/test_install_helper_layout.sh \
+  tests/context/pod-outside-nono/test_install_local_source_contract.sh \
+  tests/context/pod-outside-nono/test_install_oh_my_zsh_failure_surface.sh \
+  tests/context/host/test_workspace_repair.sh
 git commit -m "refactor(install): split install flow into phases"
 ```
 
@@ -577,24 +577,24 @@ git commit -m "refactor(install): split install flow into phases"
 - Review only: `scripts/lib/install/resolve-source.sh`
 - Review only: `scripts/lib/install/validate-source.sh`
 - Review only: `scripts/lib/install/materialize.sh`
-- Review only: `tests/install/test_install_helper_layout.sh`
-- Review only: `tests/install/test_install_local_source_contract.sh`
-- Review only: `tests/install/test_install_oh_my_zsh_failure_surface.sh`
-- Review only: `tests/devspace/test_workspace_repair.sh`
+- Review only: `tests/context/pod-inside-nono/test_install_helper_layout.sh`
+- Review only: `tests/context/pod-outside-nono/test_install_local_source_contract.sh`
+- Review only: `tests/context/pod-outside-nono/test_install_oh_my_zsh_failure_surface.sh`
+- Review only: `tests/context/host/test_workspace_repair.sh`
 
 - [ ] **Step 1: Re-run the full focused verification set from a clean working state**
 
 Run:
 
 ```bash
-bash tests/install/test_install_helper_layout.sh
-bash tests/install/test_install_local_source_contract.sh
-bash tests/install/test_install_validate_source.sh
-bash tests/install/test_read_install_env.sh
-bash tests/install/test_install_oh_my_zsh_failure_surface.sh
-bash tests/install/test_workspace_navigation_shell.sh
-bash tests/devspace/test_workspace_repair.sh
-bash tests/docs/test_p1_docs_orientation.sh
+bash tests/context/pod-inside-nono/test_install_helper_layout.sh
+bash tests/context/pod-outside-nono/test_install_local_source_contract.sh
+bash tests/context/pod-outside-nono/test_install_validate_source.sh
+bash tests/context/pod-inside-nono/test_read_install_env.sh
+bash tests/context/pod-outside-nono/test_install_oh_my_zsh_failure_surface.sh
+bash tests/context/pod-outside-nono/test_workspace_navigation_shell.sh
+bash tests/context/host/test_workspace_repair.sh
+bash tests/context/pod-inside-nono/test_p1_docs_orientation.sh
 ```
 
 Expected: PASS for all commands.
@@ -614,10 +614,10 @@ Expected: only these paths appear in the refactor commit:
 - `scripts/lib/install/resolve-source.sh`
 - `scripts/lib/install/validate-source.sh`
 - `scripts/lib/install/materialize.sh`
-- `tests/install/test_install_helper_layout.sh`
-- `tests/install/test_install_local_source_contract.sh`
-- `tests/install/test_install_oh_my_zsh_failure_surface.sh`
-- `tests/devspace/test_workspace_repair.sh`
+- `tests/context/pod-inside-nono/test_install_helper_layout.sh`
+- `tests/context/pod-outside-nono/test_install_local_source_contract.sh`
+- `tests/context/pod-outside-nono/test_install_oh_my_zsh_failure_surface.sh`
+- `tests/context/host/test_workspace_repair.sh`
 
 - [ ] **Step 3: Mandatory refactor checkpoint**
 
@@ -633,14 +633,14 @@ Review the extracted structure before handing off:
 If any cleanup is needed during this checkpoint, rerun:
 
 ```bash
-bash tests/install/test_install_helper_layout.sh
-bash tests/install/test_install_local_source_contract.sh
-bash tests/install/test_install_validate_source.sh
-bash tests/install/test_read_install_env.sh
-bash tests/install/test_install_oh_my_zsh_failure_surface.sh
-bash tests/install/test_workspace_navigation_shell.sh
-bash tests/devspace/test_workspace_repair.sh
-bash tests/docs/test_p1_docs_orientation.sh
+bash tests/context/pod-inside-nono/test_install_helper_layout.sh
+bash tests/context/pod-outside-nono/test_install_local_source_contract.sh
+bash tests/context/pod-outside-nono/test_install_validate_source.sh
+bash tests/context/pod-inside-nono/test_read_install_env.sh
+bash tests/context/pod-outside-nono/test_install_oh_my_zsh_failure_surface.sh
+bash tests/context/pod-outside-nono/test_workspace_navigation_shell.sh
+bash tests/context/host/test_workspace_repair.sh
+bash tests/context/pod-inside-nono/test_p1_docs_orientation.sh
 ```
 
 - [ ] **Step 4: User Check-in**
@@ -651,7 +651,7 @@ Show the user the top-level `install.sh` orchestrator plus the four extracted he
 
 Report:
 
-- changed files: `install.sh`, `scripts/lib/install/*.sh`, `tests/install/test_install_helper_layout.sh`, `tests/install/test_install_local_source_contract.sh`, `tests/install/test_install_oh_my_zsh_failure_surface.sh`, `tests/devspace/test_workspace_repair.sh`
+- changed files: `install.sh`, `scripts/lib/install/*.sh`, `tests/context/pod-inside-nono/test_install_helper_layout.sh`, `tests/context/pod-outside-nono/test_install_local_source_contract.sh`, `tests/context/pod-outside-nono/test_install_oh_my_zsh_failure_surface.sh`, `tests/context/host/test_workspace_repair.sh`
 - fresh verification commands run
 - confirmation that the five pre-existing install tests still pass
 - confirmation that CLI, refusal text, install-env writes, oh-my-zsh behavior, symlink behavior, plugin installs, and OpenCode bootstrap behavior were preserved
@@ -660,14 +660,14 @@ Report:
 
 ## Final verification checklist
 
-- [ ] `bash tests/install/test_install_helper_layout.sh`
-- [ ] `bash tests/install/test_install_local_source_contract.sh`
-- [ ] `bash tests/install/test_install_validate_source.sh`
-- [ ] `bash tests/install/test_read_install_env.sh`
-- [ ] `bash tests/install/test_install_oh_my_zsh_failure_surface.sh`
-- [ ] `bash tests/install/test_workspace_navigation_shell.sh`
-- [ ] `bash tests/devspace/test_workspace_repair.sh`
-- [ ] `bash tests/docs/test_p1_docs_orientation.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_install_helper_layout.sh`
+- [ ] `bash tests/context/pod-outside-nono/test_install_local_source_contract.sh`
+- [ ] `bash tests/context/pod-outside-nono/test_install_validate_source.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_read_install_env.sh`
+- [ ] `bash tests/context/pod-outside-nono/test_install_oh_my_zsh_failure_surface.sh`
+- [ ] `bash tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
+- [ ] `bash tests/context/host/test_workspace_repair.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_p1_docs_orientation.sh`
 - [ ] Re-read `HC-1` in `docs/superpowers/review-records/2026-06-20-repo-documentation-and-refactor-audit.md` and confirm the final layout matches the approved parse → resolve → validate/persist → materialize split.
 - [ ] Confirm `install.sh` still accepts only `--dry-run` and `-y|--yes` and still prints `usage: install.sh [--dry-run] [-y|--yes]` for unknown args.
 - [ ] Confirm the hub-root refusal, validator-missing refusal, and `HUB_INSTALL_BRANCH*` mismatch refusals are unchanged.
@@ -680,6 +680,6 @@ Report:
 
 - Move logic verbatim where possible; this slice is about boundaries, not behavior.
 - Prefer extracting whole coherent blocks instead of rewriting them line-by-line.
-- Keep the top comment block in `install.sh` exactly as it is now so `tests/docs/test_p1_docs_orientation.sh` remains green.
+- Keep the top comment block in `install.sh` exactly as it is now so `tests/context/pod-inside-nono/test_p1_docs_orientation.sh` remains green.
 - Do not “improve” command output wording or the no-op `if [ "$assume_yes" = true ] && [ "$dry_run" = true ]; then : fi` block; preserving exact behavior matters more than style here.
 - If an unexpected test fails outside this slice, stop and surface it instead of broadening the refactor.

@@ -4,7 +4,7 @@
 
 **Goal:** Integrate `wondelai/clean-code` into the repo’s coding-task policy, add an explicit post-green refactor checkpoint, and protect the change with drift tests without broadening authority beyond the approved design.
 
-**Architecture:** Treat `.config/opencode/AGENTS.md` as the canonical policy surface, `tests/docs/test_clean_code_policy_contract.sh` as the behavioral drift guard, and `.config/opencode/skills-lock.json` as the required skill-registration surface. Keep this plan high-level to match the current AGENTS planning policy: the approved spec remains the binding source for clean-code requirements, while this plan sequences verification, canonical policy edits, and only the minimum supporting-surface changes warranted by direct drift.
+**Architecture:** Treat `.config/opencode/AGENTS.md` as the canonical policy surface, `tests/context/pod-inside-nono/test_clean_code_policy_contract.sh` as the behavioral drift guard, and `.config/opencode/skills-lock.json` as the required skill-registration surface. Keep this plan high-level to match the current AGENTS planning policy: the approved spec remains the binding source for clean-code requirements, while this plan sequences verification, canonical policy edits, and only the minimum supporting-surface changes warranted by direct drift.
 
 **Tech Stack:** Markdown policy docs, JSON config, bash + ripgrep (`rg`) doc-contract tests, git.
 
@@ -54,7 +54,7 @@
 - Modify: `.config/opencode/AGENTS.md`
 
 **Drift test**
-- Create: `tests/docs/test_clean_code_policy_contract.sh`
+- Create: `tests/context/pod-inside-nono/test_clean_code_policy_contract.sh`
 
 **Skill lock**
 - Create or modify: `.config/opencode/skills-lock.json`
@@ -81,7 +81,7 @@
 4. `.config/opencode/AGENTS.md` updates the short recipe to `red → verify red → green → verify green → refactor → verify green` semantics.
 5. Post-implementation/reporting policy mentions both the pragmatic-programmer diagnostic and the clean-code checklist/score review.
 6. `.config/opencode/skills-lock.json` contains a valid `clean-code` entry using the exact source/path from the design.
-7. `tests/docs/test_clean_code_policy_contract.sh` fails before the policy/config edits and passes afterward.
+7. `tests/context/pod-inside-nono/test_clean_code_policy_contract.sh` fails before the policy/config edits and passes afterward.
 8. Existing doc-contract tests touching `AGENTS.md` still pass after the update.
 9. If `.config/opencode/PULL_REQUEST_TEMPLATE.md` is updated in this slice, it stays subordinate to `AGENTS.md` and does not become a second policy source.
 
@@ -118,7 +118,7 @@
 ## Task 1: Add or refresh the clean-code policy contract test first
 
 **Files:**
-- Create: `tests/docs/test_clean_code_policy_contract.sh`
+- Create: `tests/context/pod-inside-nono/test_clean_code_policy_contract.sh`
 
 - [ ] Start from a failing docs-only contract that checks the approved clean-code outcomes rather than implementation details.
 - [ ] Make the test assert the clean-code-specific AGENTS anchors:
@@ -140,7 +140,7 @@
 - `test(docs): add clean-code policy contract`
 
 **Verification:**
-- `bash tests/docs/test_clean_code_policy_contract.sh`
+- `bash tests/context/pod-inside-nono/test_clean_code_policy_contract.sh`
 
 ---
 
@@ -162,10 +162,10 @@
 - `docs(policy): integrate clean-code refactor policy`
 
 **Verification:**
-- `bash tests/docs/test_clean_code_policy_contract.sh`
-- `bash tests/docs/test_bare_hub_guardrails.sh`
-- `bash tests/docs/test_delegation_packet_policy_contract.sh`
-- `bash tests/docs/test_maestro_intent_preservation_policy.sh`
+- `bash tests/context/pod-inside-nono/test_clean_code_policy_contract.sh`
+- `bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
+- `bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+- `bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
 ---
 
@@ -192,7 +192,7 @@
 
 **Verification:**
 - `python -m json.tool .config/opencode/skills-lock.json >/dev/null`
-- `bash tests/docs/test_clean_code_policy_contract.sh`
+- `bash tests/context/pod-inside-nono/test_clean_code_policy_contract.sh`
 
 ---
 
@@ -201,7 +201,7 @@
 **Files:**
 - Review only: `.config/opencode/AGENTS.md`
 - Review only: `.config/opencode/skills-lock.json`
-- Review only: `tests/docs/test_clean_code_policy_contract.sh`
+- Review only: `tests/context/pod-inside-nono/test_clean_code_policy_contract.sh`
 - Review only if changed: `.config/opencode/PULL_REQUEST_TEMPLATE.md`
 
 - [ ] Run the targeted clean-code policy contract test again from a clean shell.
@@ -211,18 +211,18 @@
 - [ ] Present the changed policy and template surfaces to the human for review before any merge/push step.
 
 **Verification:**
-- `bash tests/docs/test_clean_code_policy_contract.sh && bash tests/docs/test_bare_hub_guardrails.sh && bash tests/docs/test_delegation_packet_policy_contract.sh && bash tests/docs/test_maestro_intent_preservation_policy.sh`
-- `git diff -- .config/opencode/AGENTS.md .config/opencode/PULL_REQUEST_TEMPLATE.md .config/opencode/skills-lock.json tests/docs/test_clean_code_policy_contract.sh`
+- `bash tests/context/pod-inside-nono/test_clean_code_policy_contract.sh && bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh && bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh && bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
+- `git diff -- .config/opencode/AGENTS.md .config/opencode/PULL_REQUEST_TEMPLATE.md .config/opencode/skills-lock.json tests/context/pod-inside-nono/test_clean_code_policy_contract.sh`
 
 ---
 
 ## Final verification checklist
 
-- [ ] `bash tests/docs/test_clean_code_policy_contract.sh`
-- [ ] `bash tests/docs/test_bare_hub_guardrails.sh`
-- [ ] `bash tests/docs/test_delegation_packet_policy_contract.sh`
-- [ ] `bash tests/docs/test_maestro_intent_preservation_policy.sh`
-- [ ] `git diff -- .config/opencode/AGENTS.md .config/opencode/skills-lock.json tests/docs/test_clean_code_policy_contract.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_clean_code_policy_contract.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
+- [ ] `git diff -- .config/opencode/AGENTS.md .config/opencode/skills-lock.json tests/context/pod-inside-nono/test_clean_code_policy_contract.sh`
 - [ ] If the template changed, review `git diff -- .config/opencode/PULL_REQUEST_TEMPLATE.md` separately and confirm it still acts only as a reporting aid.
 
 ## Pragmatic Programmer diagnostic (target score ≥ 8/10)

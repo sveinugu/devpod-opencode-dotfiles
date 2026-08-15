@@ -21,9 +21,9 @@
   - `docs/superpowers/runbooks/devspace-workspace-lifecycle.md`
   - `docs/superpowers/runbooks/devspace-bare-hub-usage.md`
 - Existing verification surfaces to extend rather than bypass:
-  - `tests/devspace/test_workspace_manifest_contract.sh`
-  - `tests/devspace/test_devspace_command_surface.sh`
-  - `tests/docs/test_bare_hub_guardrails.sh`
+  - `tests/context/pod-inside-nono/test_workspace_manifest_contract.sh`
+  - `tests/context/pod-inside-nono/test_devspace_command_surface.sh`
+  - `tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
 
 ## Spec review cycle outcome
 
@@ -85,9 +85,9 @@ Phase 1 is complete when all of the following are true:
   - truthful Phase 1 security-boundary wording,
   - create/rotate/verify operator-flow anchors.
 - Extend existing tests only where the overlap is direct and keeps the slice smaller:
-  - `tests/devspace/test_workspace_manifest_contract.sh`
-  - `tests/devspace/test_devspace_command_surface.sh`
-  - `tests/docs/test_bare_hub_guardrails.sh`
+  - `tests/context/pod-inside-nono/test_workspace_manifest_contract.sh`
+  - `tests/context/pod-inside-nono/test_devspace_command_surface.sh`
+  - `tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
 
 ---
 
@@ -117,7 +117,7 @@ Phase 1 is complete when all of the following are true:
 
 **Files:**
 - Modify: `k8s/devspace-bare-hub/workspace-deployment.yaml`
-- Verify against: `tests/devspace/test_workspace_manifest_contract.sh` and the new Phase 1 contract test
+- Verify against: `tests/context/pod-inside-nono/test_workspace_manifest_contract.sh` and the new Phase 1 contract test
 
 - [ ] Add the approved provider secret naming and key contract to the manifest-level design in the narrowest form needed for Phase 1.
 - [ ] Wire configured providers into the workspace container environment using required `secretKeyRef` entries.
@@ -207,11 +207,11 @@ At minimum, the implementation should leave behind fresh evidence for:
 
 Suggested verification surfaces:
 
-- `bash tests/devspace/test_workspace_manifest_contract.sh`
+- `bash tests/context/pod-inside-nono/test_workspace_manifest_contract.sh`
 - `bash tests/devspace/test_model_credential_phase1_contract.sh` if the preferred focused contract file is added
 - the new or extended Phase 1 contract tests under `tests/devspace/` and/or `tests/docs/`
-- `bash tests/docs/test_bare_hub_guardrails.sh` if runbook wording is extended there
-- `bash tests/devspace/test_devspace_command_surface.sh` if `devspace.yaml` guidance changes
+- `bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh` if runbook wording is extended there
+- `bash tests/context/pod-inside-nono/test_devspace_command_surface.sh` if `devspace.yaml` guidance changes
 
 ## Risks and constraints
 

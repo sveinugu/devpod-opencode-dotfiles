@@ -56,7 +56,7 @@
 - Create: `docs/superpowers/review-records/2026-05-29-delegation-policy-packet-inventory.md`
 
 **Verification (doc-contract tests)**
-- Create: `tests/docs/test_delegation_packet_policy_contract.sh`
+- Create: `tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
 
 ---
 
@@ -295,7 +295,7 @@ git commit -m "docs(templates): align handoff template with packet+annex"
 ## Task 6: Doc-contract tests (policy drift guardrails)
 
 **Files:**
-- Create: `tests/docs/test_delegation_packet_policy_contract.sh`
+- Create: `tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
 
 - [x] **Step 1: Write the failing doc-contract test**
 
@@ -325,7 +325,7 @@ printf 'PASS test_delegation_packet_policy_contract\n'
 
 - [x] **Step 2: Run and verify it fails before migration completes**
 
-Run: `bash tests/docs/test_delegation_packet_policy_contract.sh`
+Run: `bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
 
 - [x] **Step 3: Iterate test strictness to match final policy**
 
@@ -334,7 +334,7 @@ If too brittle, relax to anchor-phrase checks rather than exact text.
 - [x] **Step 4: Commit**
 
 ```bash
-git add tests/docs/test_delegation_packet_policy_contract.sh
+git add tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh
 git commit -m "test(docs): add delegation policy drift contract"
 ```
 
@@ -350,7 +350,7 @@ Rules:
 
 - [x] **Step 2: Run doc-contract tests**
 
-Run: `bash tests/docs/test_delegation_packet_policy_contract.sh`
+Run: `bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
 
 - [x] **Step 3: Commit in small batches**
 
@@ -363,8 +363,8 @@ git commit -m "docs(policy): migrate legacy delegation packet formats (batch <id
 
 ## Final verification
 
-- [x] `bash tests/docs/test_delegation_packet_policy_contract.sh`
-- [x] `git diff -- .config/opencode/AGENTS.md .config/opencode/agents/maestro.md docs/superpowers/templates/subagent-handoff-templates.md docs/superpowers/specs/2026-05-26-delegation-packet-annex-and-verbatim-contract-design.md tests/docs/test_delegation_packet_policy_contract.sh`
+- [x] `bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+- [x] `git diff -- .config/opencode/AGENTS.md .config/opencode/agents/maestro.md docs/superpowers/templates/subagent-handoff-templates.md docs/superpowers/specs/2026-05-26-delegation-packet-annex-and-verbatim-contract-design.md tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
 
 ## Pragmatic Programmer diagnostic (target score ≥ 8/10)
 

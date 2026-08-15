@@ -25,11 +25,11 @@
   - `docs/superpowers/templates/subagent-handoff-templates.md`
   - `docs/superpowers/review-records/2026-05-29-delegation-policy-packet-inventory.md`
 - Existing regression guards that must stay green:
-  - `tests/docs/test_delegation_packet_policy_contract.sh`
-  - `tests/docs/test_maestro_intent_preservation_policy.sh`
-  - `tests/docs/test_multi_question_interaction_policy.sh`
-  - `tests/docs/test_managed_worktree_lane_safety_policy.sh`
-  - `tests/docs/test_clean_code_policy_contract.sh`
+  - `tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+  - `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
+  - `tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh`
+  - `tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh`
+  - `tests/context/pod-inside-nono/test_clean_code_policy_contract.sh`
 
 ## Scope
 
@@ -57,11 +57,11 @@
 
 - Modify: `.config/opencode/AGENTS.md` — add one additive role-based orientation overlay near the top of the file.
 - Verify only:
-  - `tests/docs/test_delegation_packet_policy_contract.sh`
-  - `tests/docs/test_maestro_intent_preservation_policy.sh`
-  - `tests/docs/test_multi_question_interaction_policy.sh`
-  - `tests/docs/test_managed_worktree_lane_safety_policy.sh`
-  - `tests/docs/test_clean_code_policy_contract.sh`
+  - `tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+  - `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
+  - `tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh`
+  - `tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh`
+  - `tests/context/pod-inside-nono/test_clean_code_policy_contract.sh`
 
 ---
 
@@ -75,11 +75,11 @@
 Run:
 
 ```bash
-bash tests/docs/test_delegation_packet_policy_contract.sh
-bash tests/docs/test_maestro_intent_preservation_policy.sh
-bash tests/docs/test_multi_question_interaction_policy.sh
-bash tests/docs/test_managed_worktree_lane_safety_policy.sh
-bash tests/docs/test_clean_code_policy_contract.sh
+bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh
+bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh
+bash tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh
+bash tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh
+bash tests/context/pod-inside-nono/test_clean_code_policy_contract.sh
 ```
 
 Expected: PASS for all five commands.
@@ -94,11 +94,11 @@ If any command fails before the orientation overlay is added, pause and ask the 
 
 **Files:**
 - Modify: `.config/opencode/AGENTS.md`
-- Test: `tests/docs/test_delegation_packet_policy_contract.sh`
-- Test: `tests/docs/test_maestro_intent_preservation_policy.sh`
-- Test: `tests/docs/test_multi_question_interaction_policy.sh`
-- Test: `tests/docs/test_managed_worktree_lane_safety_policy.sh`
-- Test: `tests/docs/test_clean_code_policy_contract.sh`
+- Test: `tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+- Test: `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
+- Test: `tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh`
+- Test: `tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh`
+- Test: `tests/context/pod-inside-nono/test_clean_code_policy_contract.sh`
 
 - [ ] **Step 1: Insert one new orientation section near the top of `AGENTS.md`**
 
@@ -134,11 +134,11 @@ Preservation rules for this step:
 Run:
 
 ```bash
-bash tests/docs/test_delegation_packet_policy_contract.sh
-bash tests/docs/test_maestro_intent_preservation_policy.sh
-bash tests/docs/test_multi_question_interaction_policy.sh
-bash tests/docs/test_managed_worktree_lane_safety_policy.sh
-bash tests/docs/test_clean_code_policy_contract.sh
+bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh
+bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh
+bash tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh
+bash tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh
+bash tests/context/pod-inside-nono/test_clean_code_policy_contract.sh
 ```
 
 Expected: PASS for all five commands.
@@ -169,11 +169,11 @@ Review the new section for readability only:
 If any wording changes are made during this checkpoint, rerun:
 
 ```bash
-bash tests/docs/test_delegation_packet_policy_contract.sh
-bash tests/docs/test_maestro_intent_preservation_policy.sh
-bash tests/docs/test_multi_question_interaction_policy.sh
-bash tests/docs/test_managed_worktree_lane_safety_policy.sh
-bash tests/docs/test_clean_code_policy_contract.sh
+bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh
+bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh
+bash tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh
+bash tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh
+bash tests/context/pod-inside-nono/test_clean_code_policy_contract.sh
 git diff -- .config/opencode/AGENTS.md
 ```
 
@@ -194,11 +194,11 @@ git commit -m "docs: add agent start-here overlay"
 
 **Files:**
 - Modify: `.config/opencode/AGENTS.md`
-- Test: `tests/docs/test_delegation_packet_policy_contract.sh`
-- Test: `tests/docs/test_maestro_intent_preservation_policy.sh`
-- Test: `tests/docs/test_multi_question_interaction_policy.sh`
-- Test: `tests/docs/test_managed_worktree_lane_safety_policy.sh`
-- Test: `tests/docs/test_clean_code_policy_contract.sh`
+- Test: `tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+- Test: `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
+- Test: `tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh`
+- Test: `tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh`
+- Test: `tests/context/pod-inside-nono/test_clean_code_policy_contract.sh`
 
 - [ ] **Step 1: Only start this task if DG-10 is already green and the user explicitly asks for DG-11**
 
@@ -225,11 +225,11 @@ Keep this bridge short. Do not expand it into a glossary appendix or restate the
 Run:
 
 ```bash
-bash tests/docs/test_delegation_packet_policy_contract.sh
-bash tests/docs/test_maestro_intent_preservation_policy.sh
-bash tests/docs/test_multi_question_interaction_policy.sh
-bash tests/docs/test_managed_worktree_lane_safety_policy.sh
-bash tests/docs/test_clean_code_policy_contract.sh
+bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh
+bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh
+bash tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh
+bash tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh
+bash tests/context/pod-inside-nono/test_clean_code_policy_contract.sh
 git diff -- .config/opencode/AGENTS.md
 ```
 
@@ -270,11 +270,11 @@ Explicitly confirm:
 
 ## Final verification checklist
 
-- [ ] `bash tests/docs/test_delegation_packet_policy_contract.sh`
-- [ ] `bash tests/docs/test_maestro_intent_preservation_policy.sh`
-- [ ] `bash tests/docs/test_multi_question_interaction_policy.sh`
-- [ ] `bash tests/docs/test_managed_worktree_lane_safety_policy.sh`
-- [ ] `bash tests/docs/test_clean_code_policy_contract.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh`
+- [ ] `bash tests/context/pod-inside-nono/test_clean_code_policy_contract.sh`
 - [ ] `git diff -- .config/opencode/AGENTS.md`
 - [ ] Confirm the new overlay is near the top of `AGENTS.md` and reads as navigation, not policy replacement.
 - [ ] Confirm all existing referenced headings remain spelled exactly as before.
