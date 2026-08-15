@@ -147,7 +147,7 @@
       "git-receive-pack": {
         "executable": "/usr/local/bin/git-receive-pack",
         "from": {
-          "session": {
+          "git": {
             "sandbox": {
               "fs_read": [
                 "/workspaces/dotfiles",
@@ -173,7 +173,7 @@
       "git-upload-pack": {
         "executable": "/usr/local/bin/git-upload-pack",
         "from": {
-          "session": {
+          "git": {
             "sandbox": {
               "fs_read": [
                 "/workspaces/dotfiles",
@@ -199,7 +199,7 @@
       "git-upload-archive": {
         "executable": "/usr/local/bin/git-upload-archive",
         "from": {
-          "session": {
+          "git": {
             "sandbox": {
               "fs_read": [
                 "/workspaces/dotfiles",
