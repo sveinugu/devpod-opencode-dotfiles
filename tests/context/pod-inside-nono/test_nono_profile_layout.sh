@@ -104,6 +104,11 @@ required_commands = {
     'git-upload-archive': '/usr/local/bin/git-upload-archive',
 }
 
+def assert_no_shim_paths(paths):
+    for path in paths:
+        if '/tmp/nono-tool-sandbox-' in path or '/shims' in path:
+            raise SystemExit(1)
+
 for command_name, executable in required_commands.items():
     command_policy = commands.get(command_name, {})
     if command_policy.get('executable') != executable:
@@ -121,9 +126,21 @@ for command_name, executable in required_commands.items():
     fs_read_file = sandbox.get('fs_read_file', [])
     exec_paths = sandbox.get('exec_paths', [])
 
+    assert_no_shim_paths(fs_read)
+    assert_no_shim_paths(exec_paths)
+
     for required_read in ('/workspaces/dotfiles', '/usr/local/libexec/git-core'):
         if required_read not in fs_read:
             raise SystemExit(1)
+
+    if command_name == 'git':
+        for required_read in (
+            '/usr/local/bin/git-upload-pack',
+            '/usr/local/bin/git-receive-pack',
+            '/usr/local/bin/git-upload-archive',
+        ):
+            if required_read not in fs_read:
+                raise SystemExit(1)
 
     for required_write in ('/workspaces/dotfiles',):
         if required_write not in fs_write:
@@ -134,6 +151,17 @@ for command_name, executable in required_commands.items():
             raise SystemExit(1)
 
     if '/usr/local/libexec/git-core' not in exec_paths:
+        raise SystemExit(1)
+
+    if command_name == 'git':
+        for required_exec in (
+            '/usr/local/bin/git-upload-pack',
+            '/usr/local/bin/git-receive-pack',
+            '/usr/local/bin/git-upload-archive',
+        ):
+            if required_exec not in exec_paths:
+                raise SystemExit(1)
+    elif executable not in exec_paths:
         raise SystemExit(1)
 PY
 

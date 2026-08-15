@@ -79,7 +79,7 @@ check_fixed "$policy" '- `/home/agent/.local/state/opencode` (the app-specific s
 check_fixed "$policy" '- `/home/agent/.opencode` (`$HOME/.opencode`) — read+write' 'policy home opencode grant'
 check_fixed "$policy" '- `/home/agent/.gitconfig` (`$HOME/.gitconfig`) — read-only, so git `safe.directory` trust config is visible without granting write to home-level git config' 'policy home gitconfig read grant'
 check_fixed "$policy" '- `/etc/gitconfig` — read-only, so system-level git `safe.directory` trust config remains readable to sandboxed git processes' 'policy system gitconfig read grant'
-check_fixed "$policy" '- `/usr/local/bin/git`, `/usr/local/bin/git-upload-pack`, `/usr/local/bin/git-receive-pack`, and `/usr/local/bin/git-upload-archive` are allowed by explicit command policy with sandbox constraints matching the git helper contract' 'policy git helper command policy grant'
+check_fixed "$policy" '- `/usr/local/bin/git`, `/usr/local/bin/git-upload-pack`, `/usr/local/bin/git-receive-pack`, and `/usr/local/bin/git-upload-archive` are allowed by explicit command policy with sandbox constraints pinned to stable absolute executable paths (not ephemeral `/tmp/nono-tool-sandbox-*` shim globs)' 'policy git helper command policy grant'
 check_fixed "$policy" '- `/tmp` — read+write temporary workspace' 'policy tmp grant'
 check_fixed "$policy" '- `/usr/local/bin/opencode-raw` (`allow_file`) — single-file read/execute target, not directory access' 'policy raw binary allow-file grant'
 check_fixed "$policy" 'Workspace-scoped grants are:' 'policy workspace-scoped grant intro'
