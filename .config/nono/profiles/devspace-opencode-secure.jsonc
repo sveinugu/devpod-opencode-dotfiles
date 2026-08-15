@@ -126,10 +126,7 @@
               "fs_read": [
                 "/workspaces/dotfiles",
                 "/usr/local/libexec/git-core",
-                "/usr/local/bin",
-                "/usr/local/bin/git-upload-pack",
-                "/usr/local/bin/git-receive-pack",
-                "/usr/local/bin/git-upload-archive"
+                "/usr/local/bin"
               ],
               "fs_write": [
                 "/workspaces/dotfiles"
@@ -140,10 +137,7 @@
               ],
               "exec_paths": [
                 "/usr/local/libexec/git-core",
-                "/usr/local/bin",
-                "/usr/local/bin/git-upload-pack",
-                "/usr/local/bin/git-receive-pack",
-                "/usr/local/bin/git-upload-archive"
+                "/usr/local/bin"
               ]
             }
           },
@@ -152,10 +146,7 @@
               "fs_read": [
                 "/workspaces/dotfiles",
                 "/usr/local/libexec/git-core",
-                "/usr/local/bin",
-                "/usr/local/bin/git-upload-pack",
-                "/usr/local/bin/git-receive-pack",
-                "/usr/local/bin/git-upload-archive"
+                "/usr/local/bin"
               ],
               "fs_write": [
                 "/workspaces/dotfiles"
@@ -166,10 +157,7 @@
               ],
               "exec_paths": [
                 "/usr/local/libexec/git-core",
-                "/usr/local/bin",
-                "/usr/local/bin/git-upload-pack",
-                "/usr/local/bin/git-receive-pack",
-                "/usr/local/bin/git-upload-archive"
+                "/usr/local/bin"
               ]
             }
           }
@@ -183,8 +171,7 @@
               "fs_read": [
                 "/workspaces/dotfiles",
                 "/usr/local/libexec/git-core",
-                "/usr/local/bin",
-                "/usr/local/bin/git-upload-pack"
+                "/usr/local/bin"
               ],
               "fs_write": [
                 "/workspaces/dotfiles"
@@ -195,8 +182,7 @@
               ],
               "exec_paths": [
                 "/usr/local/libexec/git-core",
-                "/usr/local/bin",
-                "/usr/local/bin/git-upload-pack"
+                "/usr/local/bin"
               ]
             }
           },
@@ -205,8 +191,7 @@
               "fs_read": [
                 "/workspaces/dotfiles",
                 "/usr/local/libexec/git-core",
-                "/usr/local/bin",
-                "/usr/local/bin/git-upload-pack"
+                "/usr/local/bin"
               ],
               "fs_write": [
                 "/workspaces/dotfiles"
@@ -217,8 +202,7 @@
               ],
               "exec_paths": [
                 "/usr/local/libexec/git-core",
-                "/usr/local/bin",
-                "/usr/local/bin/git-upload-pack"
+                "/usr/local/bin"
               ]
             }
           }
@@ -232,8 +216,7 @@
               "fs_read": [
                 "/workspaces/dotfiles",
                 "/usr/local/libexec/git-core",
-                "/usr/local/bin",
-                "/usr/local/bin/git-receive-pack"
+                "/usr/local/bin"
               ],
               "fs_write": [
                 "/workspaces/dotfiles"
@@ -244,8 +227,7 @@
               ],
               "exec_paths": [
                 "/usr/local/libexec/git-core",
-                "/usr/local/bin",
-                "/usr/local/bin/git-receive-pack"
+                "/usr/local/bin"
               ]
             }
           },
@@ -254,8 +236,7 @@
               "fs_read": [
                 "/workspaces/dotfiles",
                 "/usr/local/libexec/git-core",
-                "/usr/local/bin",
-                "/usr/local/bin/git-receive-pack"
+                "/usr/local/bin"
               ],
               "fs_write": [
                 "/workspaces/dotfiles"
@@ -266,8 +247,7 @@
               ],
               "exec_paths": [
                 "/usr/local/libexec/git-core",
-                "/usr/local/bin",
-                "/usr/local/bin/git-receive-pack"
+                "/usr/local/bin"
               ]
             }
           }
@@ -281,8 +261,7 @@
               "fs_read": [
                 "/workspaces/dotfiles",
                 "/usr/local/libexec/git-core",
-                "/usr/local/bin",
-                "/usr/local/bin/git-upload-archive"
+                "/usr/local/bin"
               ],
               "fs_write": [
                 "/workspaces/dotfiles"
@@ -293,8 +272,7 @@
               ],
               "exec_paths": [
                 "/usr/local/libexec/git-core",
-                "/usr/local/bin",
-                "/usr/local/bin/git-upload-archive"
+                "/usr/local/bin"
               ]
             }
           },
@@ -303,8 +281,7 @@
               "fs_read": [
                 "/workspaces/dotfiles",
                 "/usr/local/libexec/git-core",
-                "/usr/local/bin",
-                "/usr/local/bin/git-upload-archive"
+                "/usr/local/bin"
               ],
               "fs_write": [
                 "/workspaces/dotfiles"
@@ -315,8 +292,7 @@
               ],
               "exec_paths": [
                 "/usr/local/libexec/git-core",
-                "/usr/local/bin",
-                "/usr/local/bin/git-upload-archive"
+                "/usr/local/bin"
               ]
             }
           }

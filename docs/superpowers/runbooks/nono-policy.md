@@ -266,6 +266,13 @@ Expected shape:
 
 For broader secure-path validation, also use the design-spec verification matrix in `docs/superpowers/specs/2026-07-14-devspace-model-credential-phasing-design.md`.
 
+## `nono why --self` workaround (Linux pod / OpenCode)
+
+- Use `nono-why --self ...` instead of `nono why --self ...` when diagnostics run from Linux pod OpenCode sessions that hit stdin/PTY drift.
+- The wrapper lives at `~/.config/opencode/bin/nono-why` and rebases volatile `NONO_CAP_FILE` entries (`/dev/stdin`, `/proc/self`, `/dev/fd`, and stdio aliases) before invoking `nono why`.
+- This is a temporary operator workaround for `nono why --self` session-state path drift in this environment.
+- Track upstream status at `https://github.com/nolabs-ai/nono/issues/1647`; remove this workaround once `nono why --self` is robust in this Linux pod context.
+
 ## More information
 
 Upstream `nono` documentation:

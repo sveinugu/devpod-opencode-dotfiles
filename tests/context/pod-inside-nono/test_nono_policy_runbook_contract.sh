@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="$(git rev-parse --show-toplevel)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 # shellcheck source=tests/context/lib/context-guards.sh
 source "$repo_root/tests/context/lib/context-guards.sh"
 require_pod_inside_nono_test 'test_nono_policy_runbook_contract'
@@ -116,6 +116,10 @@ check_fixed "$policy" 'type -a opencode' 'policy verification type-a check'
 check_fixed "$policy" 'bash tests/context/pod-inside-nono/test_nono_profile_layout.sh' 'policy verification profile-layout test'
 check_fixed "$policy" 'bash tests/context/pod-inside-nono/test_opencode_secure_wrapper_contract.sh' 'policy verification wrapper-contract test'
 check_fixed "$policy" 'bash tests/context/pod-inside-nono/test_nono_identity_integration_contract.sh' 'policy verification identity-contract test'
+check_fixed "$policy" '## `nono why --self` workaround (Linux pod / OpenCode)' 'policy self-why workaround section'
+check_fixed "$policy" '- Use `nono-why --self ...` instead of `nono why --self ...` when diagnostics run from Linux pod OpenCode sessions that hit stdin/PTY drift.' 'policy self-why workaround command'
+check_fixed "$policy" '- The wrapper lives at `~/.config/opencode/bin/nono-why` and rebases volatile `NONO_CAP_FILE` entries (`/dev/stdin`, `/proc/self`, `/dev/fd`, and stdio aliases) before invoking `nono why`.' 'policy self-why wrapper behavior'
+check_fixed "$policy" '- Track upstream status at `https://github.com/nolabs-ai/nono/issues/1647`; remove this workaround once `nono why --self` is robust in this Linux pod context.' 'policy self-why upstream issue link'
 check_fixed "$policy" '.config/nono/profiles/devspace-opencode-secure.jsonc' 'policy profile artifact link'
 check_fixed "$policy" 'docs/superpowers/specs/2026-07-14-devspace-model-credential-phasing-design.md' 'policy spec artifact link'
 check_fixed "$policy" 'https://nono.sh/docs/introduction' 'policy upstream intro link'

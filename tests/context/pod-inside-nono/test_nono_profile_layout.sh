@@ -6,7 +6,7 @@ fail() {
   exit 1
 }
 
-repo_root="$(git rev-parse --show-toplevel)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 # shellcheck source=tests/context/lib/context-guards.sh
 source "$repo_root/tests/context/lib/context-guards.sh"
 require_pod_inside_nono_test 'test_nono_profile_layout'
@@ -134,13 +134,8 @@ for command_name, executable in required_commands.items():
             raise SystemExit(1)
 
     if command_name == 'git':
-        for required_read in (
-            '/usr/local/bin/git-upload-pack',
-            '/usr/local/bin/git-receive-pack',
-            '/usr/local/bin/git-upload-archive',
-        ):
-            if required_read not in fs_read:
-                raise SystemExit(1)
+        if '/usr/local/bin' not in fs_read:
+            raise SystemExit(1)
 
     for required_write in ('/workspaces/dotfiles',):
         if required_write not in fs_write:
@@ -153,15 +148,7 @@ for command_name, executable in required_commands.items():
     if '/usr/local/libexec/git-core' not in exec_paths:
         raise SystemExit(1)
 
-    if command_name == 'git':
-        for required_exec in (
-            '/usr/local/bin/git-upload-pack',
-            '/usr/local/bin/git-receive-pack',
-            '/usr/local/bin/git-upload-archive',
-        ):
-            if required_exec not in exec_paths:
-                raise SystemExit(1)
-    elif executable not in exec_paths:
+    if '/usr/local/bin' not in exec_paths:
         raise SystemExit(1)
 PY
 

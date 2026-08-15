@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+nono_binary="${HUB_NONO_BINARY:-/usr/local/bin/nono}"
+
+if [ ! -x "$nono_binary" ]; then
+  printf 'refused: nono binary not executable at %s\n' "$nono_binary" >&2
+  exit 1
+fi
+
+has_self='no'
+for arg in "$@"; do
+  if [ "$arg" = '--self' ]; then
+    has_self='yes'
+    break
+  fi
+done
+
+if [ "$has_self" != 'yes' ] || [ -z "${NONO_CAP_FILE:-}" ] || [ ! -r "$NONO_CAP_FILE" ]; then
+  exec "$nono_binary" why "$@"
+fi
+
+cap_dir="$(dirname "$NONO_CAP_FILE")"
+tmp_cap=''
+
+cleanup() {
+  if [ -n "$tmp_cap" ] && [ -f "$tmp_cap" ]; then
+    rm -f "$tmp_cap"
+  fi
+}
+trap cleanup EXIT
+
+if ! tmp_cap="$(mktemp "$cap_dir/.nono-self-rebound-XXXXXX.json" 2>/dev/null)"; then
+  exec "$nono_binary" why "$@"
+fi
+
+stdin_path="$(readlink /proc/self/fd/0 2>/dev/null || printf '/dev/null')"
+
+python3 - "$NONO_CAP_FILE" "$tmp_cap" "$$" "$stdin_path" <<'PY' || exec "$nono_binary" why "$@"
+import json
+import sys
+
+src, dst, pid, stdin_path = sys.argv[1:5]
+
+with open(src, 'r', encoding='utf-8') as fh:
+    cap = json.load(fh)
+
+rewrite = {
+    '/dev/stdin': stdin_path,
+    '/dev/stdout': f'/proc/{pid}/fd/1',
+    '/dev/stderr': f'/proc/{pid}/fd/2',
+    '/proc/self': f'/proc/{pid}',
+    '/dev/fd': f'/proc/{pid}/fd',
+}
+
+for entry in cap.get('fs', []):
+    original = entry.get('original')
+    if isinstance(original, str) and original in rewrite:
+        entry['path'] = rewrite[original]
+
+with open(dst, 'w', encoding='utf-8') as fh:
+    json.dump(cap, fh)
+PY
+
+NONO_CAP_FILE="$tmp_cap" exec "$nono_binary" why "$@"

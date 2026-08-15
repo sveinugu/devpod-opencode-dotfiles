@@ -6,7 +6,7 @@ fail() {
   exit 1
 }
 
-repo_root="$(git rev-parse --show-toplevel)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 # shellcheck source=tests/context/lib/context-guards.sh
 source "$repo_root/tests/context/lib/context-guards.sh"
 require_pod_inside_nono_test 'test_opencode_path_resolution_contract'
@@ -30,6 +30,12 @@ printf 'wrapped-opencode\n'
 EOF
 chmod +x "$home_dir/.config/opencode/bin/opencode"
 
+cat >"$home_dir/.config/opencode/bin/nono-why" <<'EOF'
+#!/usr/bin/env bash
+printf 'wrapped-nono-why\n'
+EOF
+chmod +x "$home_dir/.config/opencode/bin/nono-why"
+
 cat >"$tmp_root/usr-local-bin/opencode-raw" <<'EOF'
 #!/usr/bin/env bash
 printf 'raw-opencode\n'
@@ -45,6 +51,14 @@ first_line="$(sed -n '1p' "$shell_out")"
 [ "$first_line" = "$home_dir/.config/opencode/bin/opencode" ] || fail "command -v opencode should resolve to wrapped executable first"
 
 grep -F "$home_dir/.config/opencode/bin/opencode" "$shell_out" >/dev/null || fail "type -a should list wrapped executable"
+
+HOME="$home_dir" PATH="$home_dir/.config/opencode/bin:$tmp_root/usr-local-bin:/usr/bin:/bin" \
+  zsh -fc 'command -v nono-why; type -a nono-why' >"$tmp_root/shell-nono-why.out" 2>&1 || fail "zsh nono-why command-v/type-a probe should succeed"
+
+first_nono_why_line="$(sed -n '1p' "$tmp_root/shell-nono-why.out")"
+[ "$first_nono_why_line" = "$home_dir/.config/opencode/bin/nono-why" ] || fail "command -v nono-why should resolve to wrapped executable first"
+
+grep -F "$home_dir/.config/opencode/bin/nono-why" "$tmp_root/shell-nono-why.out" >/dev/null || fail "type -a should list wrapped nono-why executable"
 
 raw_out="$tmp_root/raw.out"
 "$tmp_root/usr-local-bin/opencode-raw" >"$raw_out" 2>&1 || fail "raw absolute-path opencode should remain runnable"
