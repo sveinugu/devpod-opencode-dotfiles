@@ -6,7 +6,7 @@ Primary enforcing artifacts:
 
 - Spec: `docs/superpowers/specs/2026-07-14-devspace-model-credential-phasing-design.md`
 - Profile: `.config/nono/profiles/devspace-opencode-secure.jsonc`
-- Contracts: `tests/devspace/test_nono_profile_layout.sh`, `tests/devspace/test_opencode_secure_wrapper_contract.sh`, `tests/devspace/test_nono_identity_integration_contract.sh`
+- Contracts: `tests/context/pod-inside-nono/test_nono_profile_layout.sh`, `tests/context/pod-inside-nono/test_opencode_secure_wrapper_contract.sh`, `tests/context/pod-inside-nono/test_nono_identity_integration_contract.sh`
 
 ## Quick orientation
 
@@ -148,7 +148,7 @@ Repo anchors for this contract:
 
 - `.config/nono/profiles/devspace-opencode-secure.jsonc`
 - `k8s/devspace-bare-hub/workspace-deployment.yaml`
-- `tests/devspace/test_nono_profile_layout.sh`
+- `tests/context/pod-inside-nono/test_nono_profile_layout.sh`
 
 ## Execution chain policy
 
@@ -173,8 +173,8 @@ Instead, the security boundary is the documented wrapped launcher, constrained `
 Repo anchors for this contract:
 
 - `.config/opencode/bin/opencode`
-- `tests/devspace/test_opencode_secure_wrapper_contract.sh`
-- `tests/devspace/test_nono_identity_integration_contract.sh`
+- `tests/context/pod-inside-nono/test_opencode_secure_wrapper_contract.sh`
+- `tests/context/pod-inside-nono/test_nono_identity_integration_contract.sh`
 
 ## Credential policy
 
@@ -227,7 +227,7 @@ Repo anchors for this contract:
 - `scripts/lib/nono-secret-env.sh`
 - `.config/opencode/provider-runtime.json`
 - `.config/nono/profiles/devspace-opencode-secure.jsonc`
-- `tests/devspace/test_opencode_secure_wrapper_contract.sh`
+- `tests/context/pod-inside-nono/test_opencode_secure_wrapper_contract.sh`
 
 ## Change policy
 
@@ -251,10 +251,7 @@ Minimal checks after policy-affecting changes:
 ```bash
 command -v opencode
 type -a opencode
-bash tests/devspace/test_nono_profile_layout.sh
-bash tests/devspace/test_opencode_secure_wrapper_contract.sh
-bash tests/devspace/test_nono_identity_integration_contract.sh
-bash tests/docs/test_nono_policy_runbook_contract.sh
+bash tests/context/run.sh pod-inside-nono
 ```
 
 Expected shape:
