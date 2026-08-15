@@ -18,16 +18,8 @@ nav_script="$repo_root/.config/shell/workspace-navigation.zsh"
 grep -F 'local hub_dir="${HUB_INSTALL_BRANCH_DIR:-/workspaces/dotfiles/main}"' "$nav_script" >/dev/null || fail "dhub should derive default helper path from HUB_INSTALL_BRANCH_DIR"
 grep -F 'local libexec_dir="${WORKSPACE_NAV_LIBEXEC_DIR:-$hub_dir/scripts/lib}"' "$nav_script" >/dev/null || fail "dhub default resolver path should follow resolved hub dir"
 
-temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
-[ -n "$temp_root" ] || fail 'TEMP/TMP/TMPDIR must be set (expected from .envrc)'
-case "$temp_root" in
-  /*) ;;
-  *) fail "TEMP/TMP/TMPDIR must be an absolute path: $temp_root" ;;
-esac
-test_tmp_root="$temp_root/tests"
-mkdir -p "$test_tmp_root"
-
-tmpdir="$(mktemp -d "$test_tmp_root/test_workspace_navigation_path_contract-XXXXXX")"
+temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_workspace_navigation_path_contract')"
+tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_workspace_navigation_path_contract')"
 trap 'rm -rf "$tmpdir"' EXIT
 
 branch_dir="$tmpdir/work/feature-path"

@@ -19,22 +19,8 @@ maestro="$repo_root/.config/opencode/agents/maestro.md"
 templates="$repo_root/docs/superpowers/templates/subagent-handoff-templates.md"
 spec="$repo_root/docs/superpowers/specs/2026-05-26-delegation-packet-annex-and-verbatim-contract-design.md"
 
-temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
-if [ -z "$temp_root" ]; then
-    printf 'FAIL test_delegation_packet_policy_contract: TEMP/TMP/TMPDIR must be set (expected from .envrc)\n' >&2
-    exit 1
-fi
-case "$temp_root" in
-    /*) ;;
-    *)
-        printf 'FAIL test_delegation_packet_policy_contract: TEMP/TMP/TMPDIR must be an absolute path: %s\n' "$temp_root" >&2
-        exit 1
-        ;;
-esac
-test_tmp_root="$temp_root/tests"
-mkdir -p "$test_tmp_root"
-
-tmpdir="$(mktemp -d "$test_tmp_root/test_delegation_packet_policy_contract-XXXXXX")"
+temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_delegation_packet_policy_contract')"
+tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_delegation_packet_policy_contract')"
 
 cleanup() {
     rm -rf "$tmpdir"

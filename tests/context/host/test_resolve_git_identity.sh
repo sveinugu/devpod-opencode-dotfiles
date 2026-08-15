@@ -15,13 +15,8 @@ script_path="$repo_root/scripts/resolve-git-identity.sh"
 
 [ -f "$script_path" ] || fail "scripts/resolve-git-identity.sh not found"
 
-temp_root="${TEMP:-${TMP:-${TMPDIR:-/tmp}}}"
-if [[ "$temp_root" != /* ]]; then
-  temp_root='/tmp'
-fi
-test_tmp_root="$temp_root/tests"
-mkdir -p "$test_tmp_root"
-tmpdir="$(mktemp -d "$test_tmp_root/test_resolve_git_identity-XXXXXX")"
+temp_root="$(context_resolve_temp_root_host)"
+tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_resolve_git_identity')"
 trap 'rm -rf "$tmpdir"' EXIT
 
 run_interactive() {

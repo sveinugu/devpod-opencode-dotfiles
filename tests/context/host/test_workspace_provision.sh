@@ -23,14 +23,8 @@ if grep -F -- '--no-prompts' "$script" >/dev/null; then
   fail "provision-workspace.sh should not expose unused --no-prompts option"
 fi
 
-temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
-if [ -n "$temp_root" ] && [[ "$temp_root" = /* ]]; then
-  test_tmp_root="$temp_root/tests"
-  mkdir -p "$test_tmp_root"
-  tmpdir="$(mktemp -d "$test_tmp_root/test_workspace_provision-XXXXXX")"
-else
-  tmpdir="$(mktemp -d)"
-fi
+temp_root="$(context_resolve_temp_root_host)"
+tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_workspace_provision')"
 trap 'rm -rf "$tmpdir"' EXIT
 
 make_source_repo_with_main() {

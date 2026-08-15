@@ -16,16 +16,8 @@ script="$repo_root/scripts/lib/read-install-env.sh"
 
 [ -f "$script" ] || fail "scripts/lib/read-install-env.sh not found"
 
-temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
-[ -n "$temp_root" ] || fail 'TEMP/TMP/TMPDIR must be set (expected from .envrc)'
-case "$temp_root" in
-  /*) ;;
-  *) fail "TEMP/TMP/TMPDIR must be an absolute path: $temp_root" ;;
-esac
-test_tmp_root="$temp_root/tests"
-mkdir -p "$test_tmp_root"
-
-tmpdir="$(mktemp -d "$test_tmp_root/test_read_install_env-XXXXXX")"
+temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_read_install_env')"
+tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_read_install_env')"
 trap 'rm -rf "$tmpdir"' EXIT
 
 plain_env="$tmpdir/plain.env"

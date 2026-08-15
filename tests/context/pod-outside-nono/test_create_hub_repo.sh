@@ -12,22 +12,8 @@ fail() {
   exit 1
 }
 
-temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
-[ -n "$temp_root" ] || fail 'TEMP/TMP/TMPDIR must be set (expected from .envrc)'
-case "$temp_root" in
-  /*) ;;
-  *) fail "TEMP/TMP/TMPDIR must be an absolute path: $temp_root" ;;
-esac
-test_tmp_root="$temp_root/tests"
-mkdir -p "$test_tmp_root"
-
-script="$repo_root/bin/clone-repo"
-runbook="$repo_root/docs/superpowers/runbooks/devspace-bare-hub-usage.md"
-
-[ -f "$script" ] || fail "bin/clone-repo not found"
-[ -f "$runbook" ] || fail "runbook not found"
-
-tmpdir="$(mktemp -d "$test_tmp_root/test_create_hub_repo-XXXXXX")"
+temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_create_hub_repo')"
+tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_create_hub_repo')"
 trap 'rm -rf "$tmpdir"' EXIT
 
 workspace_root="$tmpdir/workspace"

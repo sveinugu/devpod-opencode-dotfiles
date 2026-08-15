@@ -13,14 +13,8 @@ require_host_shell 'test_setup_host_bare_hub' 'bash tests/context/run.sh host'
 # It must derive the source checkout from its own location and therefore must NOT require
 # a --source-checkout parameter.
 
-temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
-if [ -n "$temp_root" ] && [[ "$temp_root" = /* ]]; then
-  test_tmp_root="$temp_root/tests"
-  mkdir -p "$test_tmp_root"
-  tmpdir="$(mktemp -d "$test_tmp_root/test_setup_host_bare_hub-XXXXXX")"
-else
-  tmpdir="$(mktemp -d)"
-fi
+temp_root="$(context_resolve_temp_root_host)"
+tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_setup_host_bare_hub')"
 trap 'rm -rf "$tmpdir"' EXIT
 
 checkout="$tmpdir/dotfiles-checkout"

@@ -80,3 +80,42 @@ skip_if_wrong_context() {
       ;;
   esac
 }
+
+context_resolve_temp_root_host() {
+  local temp_root="${TEMP:-${TMP:-${TMPDIR:-/tmp}}}"
+
+  if [[ "$temp_root" != /* ]]; then
+    temp_root='/tmp'
+  fi
+
+  printf '%s\n' "$temp_root"
+}
+
+context_resolve_temp_root_workspace_or_fail() {
+  local test_name="${1:-$(basename "${BASH_SOURCE[1]:-context-test}" .sh)}"
+  local temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
+
+  if [ -z "$temp_root" ]; then
+    printf 'FAIL %s: TEMP/TMP/TMPDIR must be set (expected from .envrc)\n' "$test_name" >&2
+    exit 1
+  fi
+
+  case "$temp_root" in
+    /*) ;;
+    *)
+      printf 'FAIL %s: TEMP/TMP/TMPDIR must be an absolute path: %s\n' "$test_name" "$temp_root" >&2
+      exit 1
+      ;;
+  esac
+
+  printf '%s\n' "$temp_root"
+}
+
+context_make_test_tmpdir() {
+  local temp_root="$1"
+  local test_slug="$2"
+  local test_tmp_root="$temp_root/tests"
+
+  mkdir -p "$test_tmp_root"
+  mktemp -d "$test_tmp_root/${test_slug}-XXXXXX"
+}

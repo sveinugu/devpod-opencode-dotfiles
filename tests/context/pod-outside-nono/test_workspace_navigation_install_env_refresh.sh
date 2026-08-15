@@ -16,16 +16,8 @@ nav_script="$repo_root/.config/shell/workspace-navigation.zsh"
 
 [ -f "$nav_script" ] || fail "workspace-navigation.zsh not found"
 
-temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
-[ -n "$temp_root" ] || fail 'TEMP/TMP/TMPDIR must be set (expected from .envrc)'
-case "$temp_root" in
-  /*) ;;
-  *) fail "TEMP/TMP/TMPDIR must be an absolute path: $temp_root" ;;
-esac
-test_tmp_root="$temp_root/tests"
-mkdir -p "$test_tmp_root"
-
-tmpdir="$(mktemp -d "$test_tmp_root/test_workspace_navigation_install_env_refresh-XXXXXX")"
+temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_workspace_navigation_install_env_refresh')"
+tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_workspace_navigation_install_env_refresh')"
 trap 'rm -rf "$tmpdir"' EXIT
 
 workspace_root="$tmpdir/workspace"

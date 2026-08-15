@@ -20,14 +20,8 @@ materialize_helper="$repo_root/scripts/lib/install/materialize.sh"
 [ -f "$materialize_helper" ] || fail "scripts/lib/install/materialize.sh not found"
 grep -F 'if [ ! -f "$oh_my_zsh_dir/oh-my-zsh.sh" ]; then' "$materialize_helper" >/dev/null || fail "install materialize helper should use file-based oh-my-zsh guard"
 
-temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
-if [ -n "$temp_root" ] && [[ "$temp_root" = /* ]]; then
-  test_tmp_root="$temp_root/tests"
-  mkdir -p "$test_tmp_root"
-  tmpdir="$(mktemp -d "$test_tmp_root/test_workspace_repair-XXXXXX")"
-else
-  tmpdir="$(mktemp -d)"
-fi
+temp_root="$(context_resolve_temp_root_host)"
+tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_workspace_repair')"
 trap 'rm -rf "$tmpdir"' EXIT
 
 make_workspace() {

@@ -15,13 +15,8 @@ script="$repo_root/ops/check-workspace.sh"
 
 [ -f "$script" ] || fail "ops/check-workspace.sh not found"
 
-temp_root="${TEMP:-${TMP:-${TMPDIR:-/tmp}}}"
-if [[ "$temp_root" != /* ]]; then
-  temp_root='/tmp'
-fi
-test_tmp_root="$temp_root/tests"
-mkdir -p "$test_tmp_root"
-tmpdir="$(mktemp -d "$test_tmp_root/test_devspace_doctor-XXXXXX")"
+temp_root="$(context_resolve_temp_root_host)"
+tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_devspace_doctor')"
 trap 'rm -rf "$tmpdir"' EXIT
 
 mock_bin_ok="$tmpdir/mock-bin-ok"

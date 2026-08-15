@@ -17,14 +17,8 @@ cfg="$repo_root/devspace.yaml"
 [ -f "$script" ] || fail "ops/destroy-workspace.sh not found"
 [ -f "$cfg" ] || fail "devspace.yaml not found"
 
-temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
-if [ -n "$temp_root" ] && [[ "$temp_root" = /* ]]; then
-  test_tmp_root="$temp_root/tests"
-  mkdir -p "$test_tmp_root"
-  tmpdir="$(mktemp -d "$test_tmp_root/test_devspace_destroy-XXXXXX")"
-else
-  tmpdir="$(mktemp -d)"
-fi
+temp_root="$(context_resolve_temp_root_host)"
+tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_devspace_destroy')"
 trap 'rm -rf "$tmpdir"' EXIT
 
 mock_bin="$tmpdir/bin"

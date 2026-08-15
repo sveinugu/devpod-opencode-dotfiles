@@ -49,16 +49,8 @@ grep -F 'sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-b
 grep -F 'exec sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-binary "$nono_binary" --profile "$profile_path" --agent-uid "$agent_uid" --agent-gid "$agent_gid" --runtime-home "$runtime_home" --runtime-xdg-config-home "$runtime_xdg_config_home" --runtime-xdg-cache-home "$runtime_xdg_cache_home" --runtime-xdg-data-home "$runtime_xdg_data_home" --runtime-xdg-state-home "$runtime_xdg_state_home" --opencode-xdg-state-home "$opencode_xdg_state_home" --runtime-path "$runtime_path" --opencode-config-content "$opencode_provider_runtime_json" --raw-opencode-binary "$raw_opencode_binary" -- "$@"' "$wrapper" >/dev/null || fail "wrapper must always append end-of-options marker and argv passthrough"
 grep -F 'HUB_NONO_RUNTIME_PATH' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime PATH contract"
 
-temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
-[ -n "$temp_root" ] || fail 'TEMP/TMP/TMPDIR must be set (expected from .envrc)'
-case "$temp_root" in
-  /*) ;;
-  *) fail "TEMP/TMP/TMPDIR must be an absolute path: $temp_root" ;;
-esac
-test_tmp_root="$temp_root/tests"
-mkdir -p "$test_tmp_root"
-
-tmp_root="$(mktemp -d "$test_tmp_root/test_opencode_secure_wrapper_contract-XXXXXX")"
+temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_opencode_secure_wrapper_contract')"
+tmp_root="$(context_make_test_tmpdir "$temp_root" 'test_opencode_secure_wrapper_contract')"
 trap 'rm -rf "$tmp_root"' EXIT
 
 install_root="$tmp_root/install-root"

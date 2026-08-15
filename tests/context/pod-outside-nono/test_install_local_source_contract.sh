@@ -17,22 +17,8 @@ source "$repo_root/tests/context/lib/context-guards.sh"
 require_workspace_pod 'test_install_local_source_contract' 'bash tests/context/run.sh pod-outside-nono'
 require_outside_nono_sandbox 'test_install_local_source_contract' 'bash tests/context/run.sh pod-outside-nono'
 
-temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
-[ -n "$temp_root" ] || {
-  printf 'FAIL test_install_local_source_contract: TEMP/TMP/TMPDIR must be set (expected from .envrc)\n' >&2
-  exit 1
-}
-case "$temp_root" in
-  /*) ;;
-  *)
-    printf 'FAIL test_install_local_source_contract: TEMP/TMP/TMPDIR must be an absolute path: %s\n' "$temp_root" >&2
-    exit 1
-    ;;
-esac
-test_tmp_root="$temp_root/tests"
-mkdir -p "$test_tmp_root"
-
-tmpdir="$(mktemp -d "$test_tmp_root/test_install_local_source_contract-XXXXXX")"
+temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_install_local_source_contract')"
+tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_install_local_source_contract')"
 trap 'rm -rf "$tmpdir"' EXIT
 
 workspace_root="$tmpdir/ws-root"

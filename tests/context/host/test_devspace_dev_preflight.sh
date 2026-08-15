@@ -15,14 +15,8 @@ script="$repo_root/scripts/preflight-devspace-dev.sh"
 
 [ -f "$script" ] || fail "scripts/preflight-devspace-dev.sh not found"
 
-temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
-if [ -n "$temp_root" ] && [[ "$temp_root" = /* ]]; then
-  test_tmp_root="$temp_root/tests"
-  mkdir -p "$test_tmp_root"
-  tmpdir="$(mktemp -d "$test_tmp_root/test_devspace_dev_preflight-XXXXXX")"
-else
-  tmpdir="$(mktemp -d)"
-fi
+temp_root="$(context_resolve_temp_root_host)"
+tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_devspace_dev_preflight')"
 trap 'rm -rf "$tmpdir"' EXIT
 
 workspace_missing="$tmpdir/missing"

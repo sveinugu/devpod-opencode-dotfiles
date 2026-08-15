@@ -25,14 +25,8 @@ if grep -F 'HUB_INSTALL_BRANCH=work/devspace-bare-hub' "$cfg" >/dev/null; then
   fail "provision pipeline must not hardcode work/devspace-bare-hub"
 fi
 
-temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
-if [ -n "$temp_root" ] && [[ "$temp_root" = /* ]]; then
-  test_tmp_root="$temp_root/tests"
-  mkdir -p "$test_tmp_root"
-  tmpdir="$(mktemp -d "$test_tmp_root/test_devspace_provision_branch_default-XXXXXX")"
-else
-  tmpdir="$(mktemp -d)"
-fi
+temp_root="$(context_resolve_temp_root_host)"
+tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_devspace_provision_branch_default')"
 trap 'rm -rf "$tmpdir"' EXIT
 
 source_repo="$tmpdir/source"

@@ -16,16 +16,8 @@ entrypoint="$repo_root/scripts/lib/managed-lane-registry.sh"
 
 [ -f "$entrypoint" ] || fail 'scripts/lib/managed-lane-registry.sh not found'
 
-temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
-[ -n "$temp_root" ] || fail 'TEMP/TMP/TMPDIR must be set (expected from .envrc)'
-case "$temp_root" in
-  /*) ;;
-  *) fail "TEMP/TMP/TMPDIR must be an absolute path: $temp_root" ;;
-esac
-test_tmp_root="$temp_root/tests"
-mkdir -p "$test_tmp_root"
-
-tmpdir="$(mktemp -d "$test_tmp_root/test_managed_lane_registry_contracts-XXXXXX")"
+temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_managed_lane_registry_contracts')"
+tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_managed_lane_registry_contracts')"
 trap 'rm -rf "$tmpdir"' EXIT
 
 caller_dir="$tmpdir/caller"

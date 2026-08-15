@@ -17,16 +17,8 @@ helper="$repo_root/scripts/lib/nono-secret-env.sh"
 [ -f "$helper" ] || fail "nono secret helper not found"
 grep -F '/bin/cat' "$helper" >/dev/null || fail "helper must perform privileged reads via constrained sudo cat path"
 
-temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
-[ -n "$temp_root" ] || fail 'TEMP/TMP/TMPDIR must be set (expected from .envrc)'
-case "$temp_root" in
-  /*) ;;
-  *) fail "TEMP/TMP/TMPDIR must be an absolute path: $temp_root" ;;
-esac
-test_tmp_root="$temp_root/tests"
-mkdir -p "$test_tmp_root"
-
-tmp_root="$(mktemp -d "$test_tmp_root/test_nono_secret_helper_contract-XXXXXX")"
+temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_nono_secret_helper_contract')"
+tmp_root="$(context_make_test_tmpdir "$temp_root" 'test_nono_secret_helper_contract')"
 trap 'sudo rm -rf "$tmp_root" >/dev/null 2>&1 || rm -rf "$tmp_root"' EXIT
 
 secret_dir="$tmp_root/secrets"

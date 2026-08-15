@@ -54,16 +54,8 @@ for provider in enabled:
         raise SystemExit(f'seed manifest provider is not supported: {provider}')
 PY
 
-temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
-[ -n "$temp_root" ] || fail 'TEMP/TMP/TMPDIR must be set (expected from .envrc)'
-case "$temp_root" in
-  /*) ;;
-  *) fail "TEMP/TMP/TMPDIR must be an absolute path: $temp_root" ;;
-esac
-test_tmp_root="$temp_root/tests"
-mkdir -p "$test_tmp_root"
-
-tmp_root="$(mktemp -d "$test_tmp_root/test_provider_enablement_sync_contract-XXXXXX")"
+temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_provider_enablement_sync_contract')"
+tmp_root="$(context_make_test_tmpdir "$temp_root" 'test_provider_enablement_sync_contract')"
 trap 'rm -rf "$tmp_root"' EXIT
 
 manifest="$tmp_root/provider-enablement.json"
