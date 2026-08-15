@@ -7,6 +7,11 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_workspace_pod 'test_workspace_manifest_contract' 'bash tests/context/run.sh pod-inside-nono'
+require_inside_nono_sandbox 'test_workspace_manifest_contract' 'bash tests/context/run.sh pod-inside-nono'
+
 manifest_dir="$repo_root/k8s/devspace-bare-hub"
 deployment="$manifest_dir/workspace-deployment.yaml"
 pvc="$manifest_dir/workspace-pvc.yaml"

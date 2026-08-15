@@ -6,6 +6,12 @@ fail() {
   exit 1
 }
 
+repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_workspace_pod 'test_devspace_credential_phasing_identity_separation_contract' 'bash tests/context/run.sh pod-inside-nono'
+require_inside_nono_sandbox 'test_devspace_credential_phasing_identity_separation_contract' 'bash tests/context/run.sh pod-inside-nono'
+
 spec='docs/superpowers/specs/2026-07-14-devspace-model-credential-phasing-design.md'
 plan='docs/superpowers/plans/2026-07-14-devspace-model-credential-phasing.md'
 

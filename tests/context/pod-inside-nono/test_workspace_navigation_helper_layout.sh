@@ -7,6 +7,11 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_workspace_pod 'test_workspace_navigation_helper_layout' 'bash tests/context/run.sh pod-inside-nono'
+require_inside_nono_sandbox 'test_workspace_navigation_helper_layout' 'bash tests/context/run.sh pod-inside-nono'
+
 dre_script="$repo_root/bin/dre"
 dwt_script="$repo_root/bin/dwt"
 did_you_mean_helper="$repo_root/scripts/lib/did-you-mean.sh"

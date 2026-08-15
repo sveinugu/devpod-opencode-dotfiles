@@ -70,7 +70,6 @@ case "$context" in
       tests/devspace/test_nono_identity_integration_contract.sh
       tests/devspace/test_nono_secret_boundary_contract.sh
       tests/devspace/test_opencode_secure_wrapper_contract.sh
-      tests/docs/test_nono_policy_runbook_contract.sh
       tests/context/pod-inside-nono/test_devspace_enablement_manifest_contract.sh
       tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh
       tests/context/pod-inside-nono/test_p1_docs_orientation.sh
@@ -81,9 +80,14 @@ case "$context" in
       tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh
       tests/context/pod-inside-nono/test_repo_documentation_refactor_audit.sh
       tests/context/pod-inside-nono/test_p2_runbook_consolidation.sh
-      tests/devspace/test_workspace_manifest_contract.sh
-      tests/devspace/test_workspace_preinstalled_tools_contract.sh
-      tests/devspace/test_devspace_command_surface.sh
+      tests/context/pod-inside-nono/test_nono_policy_runbook_contract.sh
+      tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh
+      tests/context/pod-inside-nono/test_devspace_credential_phasing_identity_separation_contract.sh
+      tests/context/pod-inside-nono/test_workspace_manifest_contract.sh
+      tests/context/pod-inside-nono/test_workspace_preinstalled_tools_contract.sh
+      tests/context/pod-inside-nono/test_devspace_command_surface.sh
+      tests/context/pod-inside-nono/test_opencode_provider_policy_contract.sh
+      tests/context/pod-inside-nono/test_workspace_navigation_helper_layout.sh
       tests/context/pod-inside-nono/test_new_worktree.sh
       tests/context/pod-inside-nono/test_retire_worktree.sh
       tests/context/pod-inside-nono/test_managed_lane_registry.sh
