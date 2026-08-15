@@ -12,6 +12,15 @@ fail() {
   exit 1
 }
 
+temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
+[ -n "$temp_root" ] || fail 'TEMP/TMP/TMPDIR must be set (expected from .envrc)'
+case "$temp_root" in
+  /*) ;;
+  *) fail "TEMP/TMP/TMPDIR must be an absolute path: $temp_root" ;;
+esac
+test_tmp_root="$temp_root/tests"
+mkdir -p "$test_tmp_root"
+
 retire_script="$repo_root/bin/retire-worktree"
 new_worktree_script="$repo_root/bin/new-worktree"
 clone_repo_script="$repo_root/bin/clone-repo"
@@ -20,7 +29,7 @@ clone_repo_script="$repo_root/bin/clone-repo"
 [ -f "$clone_repo_script" ] || fail 'bin/clone-repo not found'
 [ -f "$retire_script" ] || fail 'bin/retire-worktree not found'
 
-tmpdir="$(mktemp -d)"
+tmpdir="$(mktemp -d "$test_tmp_root/test_retire_worktree-XXXXXX")"
 trap 'rm -rf "$tmpdir"' EXIT
 
 workspace_root="$tmpdir/workspace"

@@ -59,6 +59,8 @@ case "$context" in
       tests/devspace/test_nono_proxy_toy_contract.sh
       tests/devspace/test_nono_secret_helper_contract.sh
       tests/install/test_workspace_navigation_shell.sh
+      tests/context/pod-outside-nono/test_create_hub_repo.sh
+      tests/context/pod-outside-nono/test_public_repo_clone_behavior_ux.sh
     )
     run_test_list "${tests[@]}"
     ;;
@@ -72,11 +74,10 @@ case "$context" in
       tests/devspace/test_workspace_manifest_contract.sh
       tests/devspace/test_workspace_preinstalled_tools_contract.sh
       tests/devspace/test_devspace_command_surface.sh
-      tests/devspace/test_create_hub_repo.sh
-      tests/devspace/test_new_worktree.sh
-      tests/devspace/test_retire_worktree.sh
-      tests/devspace/test_managed_lane_registry.sh
-      tests/devspace/test_public_repo_clone_behavior.sh
+      tests/context/pod-inside-nono/test_new_worktree.sh
+      tests/context/pod-inside-nono/test_retire_worktree.sh
+      tests/context/pod-inside-nono/test_managed_lane_registry.sh
+      tests/context/pod-inside-nono/test_public_repo_clone_behavior_core.sh
     )
     run_test_list "${tests[@]}"
     ;;

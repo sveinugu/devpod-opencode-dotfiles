@@ -24,3 +24,16 @@ bash tests/context/run.sh pod-inside-nono
 - Wrapper-specific behavior remains covered in dedicated wrapper tests (`test_opencode_secure_wrapper_contract.sh`, `test_nono_identity_integration_contract.sh`).
 
 - `tests/devspace/test_resolve_git_identity.sh` remains host-context because it validates interactive global git identity prompts using pseudo-TTY flows and isolated HOME state.
+
+## Moved tests in phase-2 context split
+
+- `pod-inside-nono`
+  - `tests/context/pod-inside-nono/test_new_worktree.sh`
+  - `tests/context/pod-inside-nono/test_retire_worktree.sh`
+  - `tests/context/pod-inside-nono/test_managed_lane_registry.sh`
+  - `tests/context/pod-inside-nono/test_public_repo_clone_behavior_core.sh`
+- `pod-outside-nono`
+  - `tests/context/pod-outside-nono/test_create_hub_repo.sh`
+  - `tests/context/pod-outside-nono/test_public_repo_clone_behavior_ux.sh`
+
+Current canonical paths are the context files above; callers should invoke those paths (or `tests/context/run.sh`) directly.

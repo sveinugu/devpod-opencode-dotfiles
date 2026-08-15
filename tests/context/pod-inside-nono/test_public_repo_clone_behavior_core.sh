@@ -12,13 +12,22 @@ fail() {
   exit 1
 }
 
+temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
+[ -n "$temp_root" ] || fail 'TEMP/TMP/TMPDIR must be set (expected from .envrc)'
+case "$temp_root" in
+  /*) ;;
+  *) fail "TEMP/TMP/TMPDIR must be an absolute path: $temp_root" ;;
+esac
+test_tmp_root="$temp_root/tests"
+mkdir -p "$test_tmp_root"
+
 clone_script="$repo_root/bin/clone-repo"
 provision_script="$repo_root/scripts/provision-workspace.sh"
 
 [ -f "$clone_script" ] || fail "bin/clone-repo not found"
 [ -f "$provision_script" ] || fail "scripts/provision-workspace.sh not found"
 
-tmpdir="$(mktemp -d)"
+tmpdir="$(mktemp -d "$test_tmp_root/test_public_repo_clone_behavior-XXXXXX")"
 trap 'rm -rf "$tmpdir"' EXIT
 
 real_git="$(command -v git)"
