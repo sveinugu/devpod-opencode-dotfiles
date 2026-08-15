@@ -88,6 +88,12 @@ case "$context" in
       tests/context/pod-inside-nono/test_devspace_command_surface.sh
       tests/context/pod-inside-nono/test_opencode_provider_policy_contract.sh
       tests/context/pod-inside-nono/test_workspace_navigation_helper_layout.sh
+      tests/context/pod-inside-nono/test_managed_lane_registry_contracts.sh
+      tests/context/pod-inside-nono/test_managed_lane_registry_layout.sh
+      tests/context/pod-inside-nono/test_opencode_runtime_contract_alignment.sh
+      tests/context/pod-inside-nono/test_opencode_path_resolution_contract.sh
+      tests/context/pod-inside-nono/test_openai_compatible_fix_plugin_contract.sh
+      tests/context/pod-inside-nono/test_openai_compatible_fix_plugin_runtime_guard.sh
       tests/context/pod-inside-nono/test_new_worktree.sh
       tests/context/pod-inside-nono/test_retire_worktree.sh
       tests/context/pod-inside-nono/test_managed_lane_registry.sh

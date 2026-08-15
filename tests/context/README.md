@@ -50,6 +50,12 @@ bash tests/context/run.sh pod-inside-nono
   - `tests/context/pod-inside-nono/test_devspace_command_surface.sh`
   - `tests/context/pod-inside-nono/test_opencode_provider_policy_contract.sh`
   - `tests/context/pod-inside-nono/test_workspace_navigation_helper_layout.sh`
+  - `tests/context/pod-inside-nono/test_managed_lane_registry_contracts.sh`
+  - `tests/context/pod-inside-nono/test_managed_lane_registry_layout.sh`
+  - `tests/context/pod-inside-nono/test_opencode_runtime_contract_alignment.sh`
+  - `tests/context/pod-inside-nono/test_opencode_path_resolution_contract.sh`
+  - `tests/context/pod-inside-nono/test_openai_compatible_fix_plugin_contract.sh`
+  - `tests/context/pod-inside-nono/test_openai_compatible_fix_plugin_runtime_guard.sh`
 - `pod-outside-nono`
   - `tests/context/pod-outside-nono/test_create_hub_repo.sh`
   - `tests/context/pod-outside-nono/test_public_repo_clone_behavior_ux.sh`

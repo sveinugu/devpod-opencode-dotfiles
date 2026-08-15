@@ -7,6 +7,11 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_workspace_pod 'test_opencode_runtime_contract_alignment' 'bash tests/context/run.sh pod-inside-nono'
+require_inside_nono_sandbox 'test_opencode_runtime_contract_alignment' 'bash tests/context/run.sh pod-inside-nono'
+
 policy="$repo_root/.config/opencode/provider-policy.jsonc"
 profile="$repo_root/.config/nono/profiles/devspace-opencode-secure.jsonc"
 opencode_cfg="$repo_root/.config/opencode/opencode.jsonc"

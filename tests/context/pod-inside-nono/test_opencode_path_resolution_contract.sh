@@ -7,13 +7,27 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_workspace_pod 'test_opencode_path_resolution_contract' 'bash tests/context/run.sh pod-inside-nono'
+require_inside_nono_sandbox 'test_opencode_path_resolution_contract' 'bash tests/context/run.sh pod-inside-nono'
+
 zshrc="$repo_root/.zshrc"
 
 [ -f "$zshrc" ] || fail ".zshrc not found"
 
 grep -F 'export PATH=$HOME/.config/opencode/bin:/usr/local/bin:$PATH' "$zshrc" >/dev/null || fail "zshrc must prepend wrapped opencode bin before /usr/local/bin"
 
-tmp_root="$(mktemp -d "$repo_root/.tmp-opencode-path-contract-XXXXXX")"
+temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
+[ -n "$temp_root" ] || fail 'TEMP/TMP/TMPDIR must be set (expected from .envrc)'
+case "$temp_root" in
+  /*) ;;
+  *) fail "TEMP/TMP/TMPDIR must be an absolute path: $temp_root" ;;
+esac
+test_tmp_root="$temp_root/tests"
+mkdir -p "$test_tmp_root"
+
+tmp_root="$(mktemp -d "$test_tmp_root/test_opencode_path_resolution_contract-XXXXXX")"
 trap 'rm -rf "$tmp_root"' EXIT
 
 home_dir="$tmp_root/home"
