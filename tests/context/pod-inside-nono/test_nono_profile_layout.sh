@@ -104,6 +104,12 @@ required_commands = {
     'git-upload-archive': '/usr/local/bin/git-upload-archive',
 }
 
+required_git_helpers = {
+    'git-upload-pack',
+    'git-receive-pack',
+    'git-upload-archive',
+}
+
 def assert_no_shim_paths(paths):
     for path in paths:
         if '/tmp/nono-tool-sandbox-' in path or '/shims' in path:
@@ -115,8 +121,22 @@ for command_name, executable in required_commands.items():
         raise SystemExit(1)
 
     from_edges = command_policy.get('from', {})
+    if command_name == 'git':
+        can_use = command_policy.get('can_use', [])
+        if not isinstance(can_use, list):
+            raise SystemExit(1)
+        for helper_name in required_git_helpers:
+            if helper_name not in can_use:
+                raise SystemExit(1)
+
     session_edge = from_edges.get('session', {})
     sandbox = session_edge.get('sandbox', {})
+
+    if command_name in required_git_helpers:
+        if 'session' in from_edges:
+            raise SystemExit(1)
+        git_edge = from_edges.get('git', {})
+        sandbox = git_edge.get('sandbox', {})
 
     if not sandbox:
         raise SystemExit(1)

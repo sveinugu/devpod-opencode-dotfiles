@@ -120,6 +120,11 @@
     "commands": {
       "git": {
         "executable": "/usr/local/bin/git",
+        "can_use": [
+          "git-upload-pack",
+          "git-receive-pack",
+          "git-upload-archive"
+        ],
         "from": {
           "session": {
             "sandbox": {
@@ -166,26 +171,6 @@
       "git-upload-pack": {
         "executable": "/usr/local/bin/git-upload-pack",
         "from": {
-          "session": {
-            "sandbox": {
-              "fs_read": [
-                "/workspaces/dotfiles",
-                "/usr/local/libexec/git-core",
-                "/usr/local/bin"
-              ],
-              "fs_write": [
-                "/workspaces/dotfiles"
-              ],
-              "fs_read_file": [
-                "$HOME/.gitconfig",
-                "/etc/gitconfig"
-              ],
-              "exec_paths": [
-                "/usr/local/libexec/git-core",
-                "/usr/local/bin"
-              ]
-            }
-          },
           "git": {
             "sandbox": {
               "fs_read": [
@@ -211,26 +196,6 @@
       "git-receive-pack": {
         "executable": "/usr/local/bin/git-receive-pack",
         "from": {
-          "session": {
-            "sandbox": {
-              "fs_read": [
-                "/workspaces/dotfiles",
-                "/usr/local/libexec/git-core",
-                "/usr/local/bin"
-              ],
-              "fs_write": [
-                "/workspaces/dotfiles"
-              ],
-              "fs_read_file": [
-                "$HOME/.gitconfig",
-                "/etc/gitconfig"
-              ],
-              "exec_paths": [
-                "/usr/local/libexec/git-core",
-                "/usr/local/bin"
-              ]
-            }
-          },
           "git": {
             "sandbox": {
               "fs_read": [
@@ -256,26 +221,6 @@
       "git-upload-archive": {
         "executable": "/usr/local/bin/git-upload-archive",
         "from": {
-          "session": {
-            "sandbox": {
-              "fs_read": [
-                "/workspaces/dotfiles",
-                "/usr/local/libexec/git-core",
-                "/usr/local/bin"
-              ],
-              "fs_write": [
-                "/workspaces/dotfiles"
-              ],
-              "fs_read_file": [
-                "$HOME/.gitconfig",
-                "/etc/gitconfig"
-              ],
-              "exec_paths": [
-                "/usr/local/libexec/git-core",
-                "/usr/local/bin"
-              ]
-            }
-          },
           "git": {
             "sandbox": {
               "fs_read": [
