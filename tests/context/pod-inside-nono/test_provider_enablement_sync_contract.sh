@@ -7,6 +7,11 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_workspace_pod 'test_provider_enablement_sync_contract' 'bash tests/context/run.sh pod-inside-nono'
+require_inside_nono_sandbox 'test_provider_enablement_sync_contract' 'bash tests/context/run.sh pod-inside-nono'
+
 sync_cmd="$repo_root/bin/sync-provider-enablement"
 policy="$repo_root/.config/opencode/provider-policy.jsonc"
 wrapper="$repo_root/.config/opencode/bin/opencode"
@@ -49,7 +54,16 @@ for provider in enabled:
         raise SystemExit(f'seed manifest provider is not supported: {provider}')
 PY
 
-tmp_root="$(mktemp -d "$repo_root/.tmp-provider-enablement-sync-XXXXXX")"
+temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
+[ -n "$temp_root" ] || fail 'TEMP/TMP/TMPDIR must be set (expected from .envrc)'
+case "$temp_root" in
+  /*) ;;
+  *) fail "TEMP/TMP/TMPDIR must be an absolute path: $temp_root" ;;
+esac
+test_tmp_root="$temp_root/tests"
+mkdir -p "$test_tmp_root"
+
+tmp_root="$(mktemp -d "$test_tmp_root/test_provider_enablement_sync_contract-XXXXXX")"
 trap 'rm -rf "$tmp_root"' EXIT
 
 manifest="$tmp_root/provider-enablement.json"

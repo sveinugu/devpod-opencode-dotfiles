@@ -56,6 +56,11 @@ bash tests/context/run.sh pod-inside-nono
   - `tests/context/pod-inside-nono/test_opencode_path_resolution_contract.sh`
   - `tests/context/pod-inside-nono/test_openai_compatible_fix_plugin_contract.sh`
   - `tests/context/pod-inside-nono/test_openai_compatible_fix_plugin_runtime_guard.sh`
+  - `tests/context/pod-inside-nono/test_nono_profile_layout.sh`
+  - `tests/context/pod-inside-nono/test_nono_identity_integration_contract.sh`
+  - `tests/context/pod-inside-nono/test_nono_secret_boundary_contract.sh`
+  - `tests/context/pod-inside-nono/test_opencode_secure_wrapper_contract.sh`
+  - `tests/context/pod-inside-nono/test_provider_enablement_sync_contract.sh`
 - `pod-outside-nono`
   - `tests/context/pod-outside-nono/test_create_hub_repo.sh`
   - `tests/context/pod-outside-nono/test_public_repo_clone_behavior_ux.sh`

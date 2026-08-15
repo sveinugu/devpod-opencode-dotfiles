@@ -7,6 +7,11 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_workspace_pod 'test_nono_profile_layout' 'bash tests/context/run.sh pod-inside-nono'
+require_inside_nono_sandbox 'test_nono_profile_layout' 'bash tests/context/run.sh pod-inside-nono'
+
 profile="$repo_root/.config/nono/profiles/devspace-opencode-secure.jsonc"
 
 [ -f "$profile" ] || fail "devspace nono secure profile missing"
