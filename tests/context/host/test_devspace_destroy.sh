@@ -7,13 +7,24 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_host_shell 'test_devspace_destroy' 'bash tests/context/run.sh host'
+
 script="$repo_root/ops/destroy-workspace.sh"
 cfg="$repo_root/devspace.yaml"
 
 [ -f "$script" ] || fail "ops/destroy-workspace.sh not found"
 [ -f "$cfg" ] || fail "devspace.yaml not found"
 
-tmpdir="$(mktemp -d)"
+temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
+if [ -n "$temp_root" ] && [[ "$temp_root" = /* ]]; then
+  test_tmp_root="$temp_root/tests"
+  mkdir -p "$test_tmp_root"
+  tmpdir="$(mktemp -d "$test_tmp_root/test_devspace_destroy-XXXXXX")"
+else
+  tmpdir="$(mktemp -d)"
+fi
 trap 'rm -rf "$tmpdir"' EXIT
 
 mock_bin="$tmpdir/bin"

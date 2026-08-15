@@ -43,11 +43,11 @@ case "$context" in
     tests=(
       tests/context/host/test_setup_host_bare_hub.sh
       tests/context/host/test_verify_host_bare_hub.sh
-      tests/devspace/test_workspace_provision.sh
-      tests/devspace/test_workspace_repair.sh
-      tests/devspace/test_devspace_provision_branch_default.sh
-      tests/devspace/test_devspace_destroy.sh
-      tests/devspace/test_devspace_dev_preflight.sh
+      tests/context/host/test_workspace_provision.sh
+      tests/context/host/test_workspace_repair.sh
+      tests/context/host/test_devspace_provision_branch_default.sh
+      tests/context/host/test_devspace_destroy.sh
+      tests/context/host/test_devspace_dev_preflight.sh
       tests/devspace/test_devspace_doctor.sh
       tests/devspace/test_resolve_git_identity.sh
     )

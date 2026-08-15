@@ -7,6 +7,10 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_host_shell 'test_workspace_repair' 'bash tests/context/run.sh host'
+
 script="$repo_root/bin/repair-workspace"
 install_script="$repo_root/install.sh"
 materialize_helper="$repo_root/scripts/lib/install/materialize.sh"
@@ -16,7 +20,14 @@ materialize_helper="$repo_root/scripts/lib/install/materialize.sh"
 [ -f "$materialize_helper" ] || fail "scripts/lib/install/materialize.sh not found"
 grep -F 'if [ ! -f "$oh_my_zsh_dir/oh-my-zsh.sh" ]; then' "$materialize_helper" >/dev/null || fail "install materialize helper should use file-based oh-my-zsh guard"
 
-tmpdir="$(mktemp -d)"
+temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
+if [ -n "$temp_root" ] && [[ "$temp_root" = /* ]]; then
+  test_tmp_root="$temp_root/tests"
+  mkdir -p "$test_tmp_root"
+  tmpdir="$(mktemp -d "$test_tmp_root/test_workspace_repair-XXXXXX")"
+else
+  tmpdir="$(mktemp -d)"
+fi
 trap 'rm -rf "$tmpdir"' EXIT
 
 make_workspace() {

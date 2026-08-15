@@ -71,5 +71,10 @@ bash tests/context/run.sh pod-inside-nono
 - `host`
   - `tests/context/host/test_setup_host_bare_hub.sh`
   - `tests/context/host/test_verify_host_bare_hub.sh`
+  - `tests/context/host/test_workspace_provision.sh`
+  - `tests/context/host/test_workspace_repair.sh`
+  - `tests/context/host/test_devspace_provision_branch_default.sh`
+  - `tests/context/host/test_devspace_destroy.sh`
+  - `tests/context/host/test_devspace_dev_preflight.sh`
 
 Current canonical paths are the context files above; callers should invoke those paths (or `tests/context/run.sh`) directly.

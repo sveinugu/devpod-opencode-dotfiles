@@ -7,6 +7,10 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_host_shell 'test_devspace_provision_branch_default' 'bash tests/context/run.sh host'
+
 cfg="$repo_root/devspace.yaml"
 runbook_bare_hub="$repo_root/docs/superpowers/runbooks/devspace-bare-hub-usage.md"
 runbook_lifecycle="$repo_root/docs/superpowers/runbooks/devspace-workspace-lifecycle.md"
@@ -21,7 +25,14 @@ if grep -F 'HUB_INSTALL_BRANCH=work/devspace-bare-hub' "$cfg" >/dev/null; then
   fail "provision pipeline must not hardcode work/devspace-bare-hub"
 fi
 
-tmpdir="$(mktemp -d)"
+temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
+if [ -n "$temp_root" ] && [[ "$temp_root" = /* ]]; then
+  test_tmp_root="$temp_root/tests"
+  mkdir -p "$test_tmp_root"
+  tmpdir="$(mktemp -d "$test_tmp_root/test_devspace_provision_branch_default-XXXXXX")"
+else
+  tmpdir="$(mktemp -d)"
+fi
 trap 'rm -rf "$tmpdir"' EXIT
 
 source_repo="$tmpdir/source"

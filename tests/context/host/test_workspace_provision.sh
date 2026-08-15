@@ -7,6 +7,10 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_host_shell 'test_workspace_provision' 'bash tests/context/run.sh host'
+
 script="$repo_root/scripts/provision-workspace.sh"
 
 [ -f "$script" ] || fail "scripts/provision-workspace.sh not found"
@@ -19,7 +23,14 @@ if grep -F -- '--no-prompts' "$script" >/dev/null; then
   fail "provision-workspace.sh should not expose unused --no-prompts option"
 fi
 
-tmpdir="$(mktemp -d)"
+temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
+if [ -n "$temp_root" ] && [[ "$temp_root" = /* ]]; then
+  test_tmp_root="$temp_root/tests"
+  mkdir -p "$test_tmp_root"
+  tmpdir="$(mktemp -d "$test_tmp_root/test_workspace_provision-XXXXXX")"
+else
+  tmpdir="$(mktemp -d)"
+fi
 trap 'rm -rf "$tmpdir"' EXIT
 
 make_source_repo_with_main() {
