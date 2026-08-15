@@ -7,11 +7,21 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_host_shell 'test_resolve_git_identity' 'bash tests/context/run.sh host'
+
 script_path="$repo_root/scripts/resolve-git-identity.sh"
 
 [ -f "$script_path" ] || fail "scripts/resolve-git-identity.sh not found"
 
-tmpdir="$(mktemp -d)"
+temp_root="${TEMP:-${TMP:-${TMPDIR:-/tmp}}}"
+if [[ "$temp_root" != /* ]]; then
+  temp_root='/tmp'
+fi
+test_tmp_root="$temp_root/tests"
+mkdir -p "$test_tmp_root"
+tmpdir="$(mktemp -d "$test_tmp_root/test_resolve_git_identity-XXXXXX")"
 trap 'rm -rf "$tmpdir"' EXIT
 
 run_interactive() {

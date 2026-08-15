@@ -7,6 +7,11 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_workspace_pod 'test_workspace_navigation_helper_contracts' 'bash tests/context/run.sh pod-outside-nono'
+require_outside_nono_sandbox 'test_workspace_navigation_helper_contracts' 'bash tests/context/run.sh pod-outside-nono'
+
 dre_script="$repo_root/bin/dre"
 dwt_script="$repo_root/bin/dwt"
 did_you_mean_helper="$repo_root/scripts/lib/did-you-mean.sh"
@@ -39,7 +44,16 @@ suggestion_output="$(bash -c 'set -euo pipefail; source "$1"; did_you_mean alpa 
 no_match_output="$(bash -c 'set -euo pipefail; source "$1"; did_you_mean zzz alpha beta' _ "$did_you_mean_helper" 2>&1)"
 [ -z "$no_match_output" ] || fail 'did_you_mean should stay silent when no suggestion exists'
 
-tmp_root="$(mktemp -d)"
+temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
+[ -n "$temp_root" ] || fail 'TEMP/TMP/TMPDIR must be set (expected from .envrc)'
+case "$temp_root" in
+  /*) ;;
+  *) fail "TEMP/TMP/TMPDIR must be an absolute path: $temp_root" ;;
+esac
+test_tmp_root="$temp_root/tests"
+mkdir -p "$test_tmp_root"
+
+tmp_root="$(mktemp -d "$test_tmp_root/test_workspace_navigation_helper_contracts-XXXXXX")"
 trap 'rm -rf "$tmp_root"' EXIT
 
 workspace_root_main="$tmp_root/workspace-main"

@@ -7,6 +7,11 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_workspace_pod 'test_install_oh_my_zsh_failure_surface' 'bash tests/context/run.sh pod-outside-nono'
+require_outside_nono_sandbox 'test_install_oh_my_zsh_failure_surface' 'bash tests/context/run.sh pod-outside-nono'
+
 install_script="$repo_root/install.sh"
 validator_script="$repo_root/scripts/lib/validate_install_source_tree.sh"
 
@@ -17,7 +22,16 @@ if grep -F '2>/dev/null || true' "$install_script" >/dev/null; then
   fail "oh-my-zsh install path must not swallow errors"
 fi
 
-tmpdir="$(mktemp -d)"
+temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
+[ -n "$temp_root" ] || fail 'TEMP/TMP/TMPDIR must be set (expected from .envrc)'
+case "$temp_root" in
+  /*) ;;
+  *) fail "TEMP/TMP/TMPDIR must be an absolute path: $temp_root" ;;
+esac
+test_tmp_root="$temp_root/tests"
+mkdir -p "$test_tmp_root"
+
+tmpdir="$(mktemp -d "$test_tmp_root/test_install_oh_my_zsh_failure_surface-XXXXXX")"
 trap 'rm -rf "$tmpdir"' EXIT
 
 workspace_root="$tmpdir/workspaces/dotfiles"

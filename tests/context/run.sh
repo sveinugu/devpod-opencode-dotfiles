@@ -48,8 +48,9 @@ case "$context" in
       tests/context/host/test_devspace_provision_branch_default.sh
       tests/context/host/test_devspace_destroy.sh
       tests/context/host/test_devspace_dev_preflight.sh
-      tests/devspace/test_devspace_doctor.sh
-      tests/devspace/test_resolve_git_identity.sh
+      tests/context/host/test_devspace_doctor.sh
+      tests/context/host/test_resolve_git_identity.sh
+      tests/context/host/test_ssh_contract.sh
     )
     run_test_list "${tests[@]}"
     ;;
@@ -61,15 +62,18 @@ case "$context" in
       tests/context/pod-outside-nono/test_workspace_navigation_shell.sh
       tests/context/pod-outside-nono/test_create_hub_repo.sh
       tests/context/pod-outside-nono/test_public_repo_clone_behavior_ux.sh
+      tests/context/pod-outside-nono/test_workspace_navigation_commands.sh
+      tests/context/pod-outside-nono/test_workspace_navigation_helper_contracts.sh
+      tests/context/pod-outside-nono/test_workspace_navigation_path_contract.sh
+      tests/context/pod-outside-nono/test_install_local_source_contract.sh
+      tests/context/pod-outside-nono/test_install_oh_my_zsh_failure_surface.sh
+      tests/context/pod-outside-nono/test_install_validate_source.sh
+      tests/context/pod-outside-nono/test_workspace_navigation_install_env_refresh.sh
     )
     run_test_list "${tests[@]}"
     ;;
   pod-inside-nono)
     tests=(
-      tests/devspace/test_nono_profile_layout.sh
-      tests/devspace/test_nono_identity_integration_contract.sh
-      tests/devspace/test_nono_secret_boundary_contract.sh
-      tests/devspace/test_opencode_secure_wrapper_contract.sh
       tests/context/pod-inside-nono/test_devspace_enablement_manifest_contract.sh
       tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh
       tests/context/pod-inside-nono/test_p1_docs_orientation.sh
@@ -103,6 +107,13 @@ case "$context" in
       tests/context/pod-inside-nono/test_retire_worktree.sh
       tests/context/pod-inside-nono/test_managed_lane_registry.sh
       tests/context/pod-inside-nono/test_public_repo_clone_behavior_core.sh
+      tests/context/pod-inside-nono/test_bare_hub_guardrails.sh
+      tests/context/pod-inside-nono/test_cleanup_round_contracts.sh
+      tests/context/pod-inside-nono/test_provision_hub_repo_core_tar_contract.sh
+      tests/context/pod-inside-nono/test_resolve_install_target.sh
+      tests/context/pod-inside-nono/test_worktree_refactor_layout.sh
+      tests/context/pod-inside-nono/test_install_helper_layout.sh
+      tests/context/pod-inside-nono/test_read_install_env.sh
     )
     run_test_list "${tests[@]}"
     ;;

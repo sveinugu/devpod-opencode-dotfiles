@@ -7,13 +7,27 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_workspace_pod 'test_workspace_navigation_path_contract' 'bash tests/context/run.sh pod-outside-nono'
+require_outside_nono_sandbox 'test_workspace_navigation_path_contract' 'bash tests/context/run.sh pod-outside-nono'
+
 nav_script="$repo_root/.config/shell/workspace-navigation.zsh"
 
 [ -f "$nav_script" ] || fail "workspace-navigation.zsh not found"
 grep -F 'local hub_dir="${HUB_INSTALL_BRANCH_DIR:-/workspaces/dotfiles/main}"' "$nav_script" >/dev/null || fail "dhub should derive default helper path from HUB_INSTALL_BRANCH_DIR"
 grep -F 'local libexec_dir="${WORKSPACE_NAV_LIBEXEC_DIR:-$hub_dir/scripts/lib}"' "$nav_script" >/dev/null || fail "dhub default resolver path should follow resolved hub dir"
 
-tmpdir="$(mktemp -d)"
+temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
+[ -n "$temp_root" ] || fail 'TEMP/TMP/TMPDIR must be set (expected from .envrc)'
+case "$temp_root" in
+  /*) ;;
+  *) fail "TEMP/TMP/TMPDIR must be an absolute path: $temp_root" ;;
+esac
+test_tmp_root="$temp_root/tests"
+mkdir -p "$test_tmp_root"
+
+tmpdir="$(mktemp -d "$test_tmp_root/test_workspace_navigation_path_contract-XXXXXX")"
 trap 'rm -rf "$tmpdir"' EXIT
 
 branch_dir="$tmpdir/work/feature-path"
@@ -144,7 +158,7 @@ feature_pwd="$(
   HUB_INSTALL_ENV_FILE="$install_env" \
   WORKSPACE_NAV_SCRIPT="$nav_script" \
   WORKSPACE_NAV_LIBEXEC_DIR="$repo_root/scripts/lib" \
-  zsh -fc '. "$WORKSPACE_NAV_SCRIPT"; dhub >/tmp/ignore-dhub-feature.out; printf "%s\n" "$PWD"'
+  zsh -fc '. "$WORKSPACE_NAV_SCRIPT"; dhub >/dev/null; printf "%s\n" "$PWD"'
 )"
 [ "$feature_pwd" = "$feature_target" ] || fail "dhub should navigate to non-main HUB_INSTALL_BRANCH_DIR"
 

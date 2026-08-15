@@ -7,6 +7,10 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_host_shell 'test_ssh_contract' 'bash tests/context/run.sh host'
+
 cfg="$repo_root/devspace.yaml"
 
 [ -f "$cfg" ] || fail "devspace.yaml not found"

@@ -11,7 +11,28 @@ set -euo pipefail
 # For isolated execution outside a real DevSpace pod, WORKSPACE_ROOT may be overridden.
 # The contract path remains /workspaces/dotfiles.
 
-tmpdir="$(mktemp -d)"
+repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_workspace_pod 'test_install_local_source_contract' 'bash tests/context/run.sh pod-outside-nono'
+require_outside_nono_sandbox 'test_install_local_source_contract' 'bash tests/context/run.sh pod-outside-nono'
+
+temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
+[ -n "$temp_root" ] || {
+  printf 'FAIL test_install_local_source_contract: TEMP/TMP/TMPDIR must be set (expected from .envrc)\n' >&2
+  exit 1
+}
+case "$temp_root" in
+  /*) ;;
+  *)
+    printf 'FAIL test_install_local_source_contract: TEMP/TMP/TMPDIR must be an absolute path: %s\n' "$temp_root" >&2
+    exit 1
+    ;;
+esac
+test_tmp_root="$temp_root/tests"
+mkdir -p "$test_tmp_root"
+
+tmpdir="$(mktemp -d "$test_tmp_root/test_install_local_source_contract-XXXXXX")"
 trap 'rm -rf "$tmpdir"' EXIT
 
 workspace_root="$tmpdir/ws-root"
@@ -25,17 +46,17 @@ copy_install_support_tree() {
 
   mkdir -p "$target_root/scripts/lib"
 
-  if [ -f "scripts/lib/validate_install_source_tree.sh" ]; then
-    cp "scripts/lib/validate_install_source_tree.sh" "$target_root/scripts/lib/validate_install_source_tree.sh"
+  if [ -f "$repo_root/scripts/lib/validate_install_source_tree.sh" ]; then
+    cp "$repo_root/scripts/lib/validate_install_source_tree.sh" "$target_root/scripts/lib/validate_install_source_tree.sh"
     chmod +x "$target_root/scripts/lib/validate_install_source_tree.sh"
   fi
 
-  if [ -d "scripts/lib/install" ]; then
+  if [ -d "$repo_root/scripts/lib/install" ]; then
     mkdir -p "$target_root/scripts/lib/install"
-    cp "scripts/lib/install/parse-args.sh" "$target_root/scripts/lib/install/parse-args.sh"
-    cp "scripts/lib/install/resolve-source.sh" "$target_root/scripts/lib/install/resolve-source.sh"
-    cp "scripts/lib/install/validate-source.sh" "$target_root/scripts/lib/install/validate-source.sh"
-    cp "scripts/lib/install/materialize.sh" "$target_root/scripts/lib/install/materialize.sh"
+    cp "$repo_root/scripts/lib/install/parse-args.sh" "$target_root/scripts/lib/install/parse-args.sh"
+    cp "$repo_root/scripts/lib/install/resolve-source.sh" "$target_root/scripts/lib/install/resolve-source.sh"
+    cp "$repo_root/scripts/lib/install/validate-source.sh" "$target_root/scripts/lib/install/validate-source.sh"
+    cp "$repo_root/scripts/lib/install/materialize.sh" "$target_root/scripts/lib/install/materialize.sh"
     chmod +x \
       "$target_root/scripts/lib/install/parse-args.sh" \
       "$target_root/scripts/lib/install/resolve-source.sh" \
@@ -63,10 +84,10 @@ printf 'export FEATURE_ZSHRC=1\n' > "$workspace_root/work/feature-x/.zshrc"
 printf '{"name":"feature-x"}\n' > "$workspace_root/work/feature-x/.config/opencode/opencode.jsonc"
 printf '{"meta":{"name":"feature-x"}}\n' > "$workspace_root/work/feature-x/.config/nono/profiles/devspace-opencode-secure.jsonc"
 
-if [ -f "install.sh" ]; then
-  cp "install.sh" "$workspace_root/main/install.sh"
-  cp "install.sh" "$workspace_root/work/feature-x/install.sh"
-  cp "install.sh" "$workspace_root/install.sh"
+if [ -f "$repo_root/install.sh" ]; then
+  cp "$repo_root/install.sh" "$workspace_root/main/install.sh"
+  cp "$repo_root/install.sh" "$workspace_root/work/feature-x/install.sh"
+  cp "$repo_root/install.sh" "$workspace_root/install.sh"
   chmod +x "$workspace_root/main/install.sh" "$workspace_root/work/feature-x/install.sh" "$workspace_root/install.sh"
 fi
 
@@ -103,8 +124,10 @@ else
   printf 'expected install.sh dry-run to link .config/nono from source worktree\n' >&2
   exit 1
 fi
-grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/pragmatic-programmer -y)" "$tmpdir/main.out" >/dev/null
-grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/clean-code -y)" "$tmpdir/main.out" >/dev/null
+grep -F "DRY-RUN (cd $target_home && npx -y skills add wondelai/skills/pragmatic-programmer -y)" "$tmpdir/main.out" >/dev/null
+grep -F "DRY-RUN (cd $target_home && npx -y skills add wondelai/skills/clean-code -y)" "$tmpdir/main.out" >/dev/null
+grep -F "DRY-RUN (cd $tmpdir/agent-home && sudo -n -u agent env HOME=$tmpdir/agent-home npx -y skills add wondelai/skills/pragmatic-programmer -y)" "$tmpdir/main.out" >/dev/null
+grep -F "DRY-RUN (cd $tmpdir/agent-home && sudo -n -u agent env HOME=$tmpdir/agent-home npx -y skills add wondelai/skills/clean-code -y)" "$tmpdir/main.out" >/dev/null
 if grep -F 'skills add wondelai/skills/pragmatic-programmer -g -y' "$tmpdir/main.out" >/dev/null; then
   printf 'did not expect global skill install flag (-g) for pragmatic-programmer\n' >&2
   exit 1
@@ -152,8 +175,8 @@ mkdir -p \
 printf 'export QUOTED=1\n' > "$workspace_quoted/work/feature branch/.zshrc"
 printf '{"name":"quoted"}\n' > "$workspace_quoted/work/feature branch/.config/opencode/opencode.jsonc"
 
-if [ -f "install.sh" ]; then
-  cp "install.sh" "$workspace_quoted/work/feature branch/install.sh"
+if [ -f "$repo_root/install.sh" ]; then
+  cp "$repo_root/install.sh" "$workspace_quoted/work/feature branch/install.sh"
   chmod +x "$workspace_quoted/work/feature branch/install.sh"
 fi
 
@@ -185,6 +208,8 @@ quoted_dir="$(printf '%s' "$quoted_vars_out" | sed -n '2p')"
 grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.zshrc $target_home/.zshrc" "$tmpdir/feature.out" >/dev/null
 grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.config/opencode $target_home/.config/opencode" "$tmpdir/feature.out" >/dev/null
 grep -F "DRY-RUN sudo -n -u agent ln -sfn $workspace_root/work/feature-x/.config/opencode $tmpdir/agent-home/.config/opencode" "$tmpdir/feature.out" >/dev/null
+grep -F "DRY-RUN (cd $tmpdir/agent-home && sudo -n -u agent env HOME=$tmpdir/agent-home npx -y skills add wondelai/skills/pragmatic-programmer -y)" "$tmpdir/feature.out" >/dev/null
+grep -F "DRY-RUN (cd $tmpdir/agent-home && sudo -n -u agent env HOME=$tmpdir/agent-home npx -y skills add wondelai/skills/clean-code -y)" "$tmpdir/feature.out" >/dev/null
 if grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.config/nono $target_home/.config/nono" "$tmpdir/feature.out" >/dev/null; then
   :
 else
@@ -265,7 +290,7 @@ printf '{"meta":{"name":"reg"}}\n' > "$workspace_reg/main/.config/nono/profiles/
 printf 'stale\n' > "$home_reg/.config/opencode/stale.txt"
 printf 'stale\n' > "$home_reg/.config/nono/stale.txt"
 
-cp "install.sh" "$workspace_reg/main/install.sh"
+cp "$repo_root/install.sh" "$workspace_reg/main/install.sh"
 copy_install_support_tree "$workspace_reg/main"
 chmod +x "$workspace_reg/main/install.sh"
 

@@ -23,7 +23,8 @@ bash tests/context/run.sh pod-inside-nono
 - `tests/context/pod-outside-nono/test_nono_blocking_matrix_contract.sh` fails fast when run inside nono by design.
 - Wrapper-specific behavior remains covered in dedicated wrapper tests (`test_opencode_secure_wrapper_contract.sh`, `test_nono_identity_integration_contract.sh`).
 
-- `tests/devspace/test_resolve_git_identity.sh` remains host-context because it validates interactive global git identity prompts using pseudo-TTY flows and isolated HOME state.
+- `tests/context/host/test_resolve_git_identity.sh` remains host-context because it validates interactive global git identity prompts using pseudo-TTY flows and isolated HOME state.
+- Host context falls back to `/tmp` when `TEMP`, `TMP`, and `TMPDIR` are all unset.
 
 ## Moved tests in phase-2 context split
 
@@ -61,6 +62,13 @@ bash tests/context/run.sh pod-inside-nono
   - `tests/context/pod-inside-nono/test_nono_secret_boundary_contract.sh`
   - `tests/context/pod-inside-nono/test_opencode_secure_wrapper_contract.sh`
   - `tests/context/pod-inside-nono/test_provider_enablement_sync_contract.sh`
+  - `tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
+  - `tests/context/pod-inside-nono/test_cleanup_round_contracts.sh`
+  - `tests/context/pod-inside-nono/test_provision_hub_repo_core_tar_contract.sh`
+  - `tests/context/pod-inside-nono/test_resolve_install_target.sh`
+  - `tests/context/pod-inside-nono/test_worktree_refactor_layout.sh`
+  - `tests/context/pod-inside-nono/test_install_helper_layout.sh`
+  - `tests/context/pod-inside-nono/test_read_install_env.sh`
 - `pod-outside-nono`
   - `tests/context/pod-outside-nono/test_nono_blocking_matrix_contract.sh`
   - `tests/context/pod-outside-nono/test_nono_proxy_toy_contract.sh`
@@ -68,6 +76,13 @@ bash tests/context/run.sh pod-inside-nono
   - `tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
   - `tests/context/pod-outside-nono/test_create_hub_repo.sh`
   - `tests/context/pod-outside-nono/test_public_repo_clone_behavior_ux.sh`
+  - `tests/context/pod-outside-nono/test_workspace_navigation_commands.sh`
+  - `tests/context/pod-outside-nono/test_workspace_navigation_helper_contracts.sh`
+  - `tests/context/pod-outside-nono/test_workspace_navigation_path_contract.sh`
+  - `tests/context/pod-outside-nono/test_install_local_source_contract.sh`
+  - `tests/context/pod-outside-nono/test_install_oh_my_zsh_failure_surface.sh`
+  - `tests/context/pod-outside-nono/test_install_validate_source.sh`
+  - `tests/context/pod-outside-nono/test_workspace_navigation_install_env_refresh.sh`
 - `host`
   - `tests/context/host/test_setup_host_bare_hub.sh`
   - `tests/context/host/test_verify_host_bare_hub.sh`
@@ -76,5 +91,8 @@ bash tests/context/run.sh pod-inside-nono
   - `tests/context/host/test_devspace_provision_branch_default.sh`
   - `tests/context/host/test_devspace_destroy.sh`
   - `tests/context/host/test_devspace_dev_preflight.sh`
+  - `tests/context/host/test_devspace_doctor.sh`
+  - `tests/context/host/test_resolve_git_identity.sh`
+  - `tests/context/host/test_ssh_contract.sh`
 
 Current canonical paths are the context files above; callers should invoke those paths (or `tests/context/run.sh`) directly.

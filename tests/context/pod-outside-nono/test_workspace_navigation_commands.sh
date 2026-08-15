@@ -7,6 +7,11 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_workspace_pod 'test_workspace_navigation_commands' 'bash tests/context/run.sh pod-outside-nono'
+require_outside_nono_sandbox 'test_workspace_navigation_commands' 'bash tests/context/run.sh pod-outside-nono'
+
 dre_script="$repo_root/bin/dre"
 dwt_script="$repo_root/bin/dwt"
 resolver_script="$repo_root/scripts/lib/resolve-install-target.sh"
@@ -15,7 +20,16 @@ resolver_script="$repo_root/scripts/lib/resolve-install-target.sh"
 [ -f "$dwt_script" ] || fail "bin/dwt not found"
 [ -x "$resolver_script" ] || fail "scripts/lib/resolve-install-target.sh must exist and be executable"
 
-tmpdir="$(mktemp -d)"
+temp_root="${TEMP:-${TMP:-${TMPDIR:-}}}"
+[ -n "$temp_root" ] || fail 'TEMP/TMP/TMPDIR must be set (expected from .envrc)'
+case "$temp_root" in
+  /*) ;;
+  *) fail "TEMP/TMP/TMPDIR must be an absolute path: $temp_root" ;;
+esac
+test_tmp_root="$temp_root/tests"
+mkdir -p "$test_tmp_root"
+
+tmpdir="$(mktemp -d "$test_tmp_root/test_workspace_navigation_commands-XXXXXX")"
 trap 'rm -rf "$tmpdir"' EXIT
 
 workspace_root="$tmpdir/workspace"

@@ -7,6 +7,11 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_workspace_pod 'test_provision_hub_repo_core_tar_contract' 'bash tests/context/run.sh pod-inside-nono'
+require_inside_nono_sandbox 'test_provision_hub_repo_core_tar_contract' 'bash tests/context/run.sh pod-inside-nono'
+
 cfg="$repo_root/devspace.yaml"
 hub_core="$repo_root/scripts/lib/hub-repo-core.sh"
 bare_exclude_helper="$repo_root/scripts/lib/ensure-bare-excludes.sh"

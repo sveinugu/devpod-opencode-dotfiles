@@ -7,11 +7,21 @@ fail() {
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_host_shell 'test_devspace_doctor' 'bash tests/context/run.sh host'
+
 script="$repo_root/ops/check-workspace.sh"
 
 [ -f "$script" ] || fail "ops/check-workspace.sh not found"
 
-tmpdir="$(mktemp -d)"
+temp_root="${TEMP:-${TMP:-${TMPDIR:-/tmp}}}"
+if [[ "$temp_root" != /* ]]; then
+  temp_root='/tmp'
+fi
+test_tmp_root="$temp_root/tests"
+mkdir -p "$test_tmp_root"
+tmpdir="$(mktemp -d "$test_tmp_root/test_devspace_doctor-XXXXXX")"
 trap 'rm -rf "$tmpdir"' EXIT
 
 mock_bin_ok="$tmpdir/mock-bin-ok"

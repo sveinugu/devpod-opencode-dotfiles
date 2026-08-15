@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/context/lib/context-guards.sh
+source "$repo_root/tests/context/lib/context-guards.sh"
+require_workspace_pod 'test_cleanup_round_contracts' 'bash tests/context/run.sh pod-inside-nono'
+require_inside_nono_sandbox 'test_cleanup_round_contracts' 'bash tests/context/run.sh pod-inside-nono'
+
 fail() {
   printf 'FAIL test_cleanup_round_contracts: %s\n' "$1" >&2
   exit 1
 }
-
-repo_root="$(git rev-parse --show-toplevel)"
 
 require_helper="$repo_root/scripts/lib/require-non-empty.sh"
 new_worktree_flow="$repo_root/scripts/lib/new-worktree-flow.sh"
