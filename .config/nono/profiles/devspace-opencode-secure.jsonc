@@ -121,7 +121,7 @@
       "git": {
         "executable": "/usr/local/bin/git",
         "from": {
-          "opencode-raw": {
+          "session": {
             "sandbox": {
               "fs_read": [
                 "/workspaces/dotfiles",
