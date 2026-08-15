@@ -251,7 +251,10 @@ Minimal checks after policy-affecting changes:
 ```bash
 command -v opencode
 type -a opencode
-bash tests/context/run.sh pod-inside-nono
+bash tests/context/pod-inside-nono/test_nono_profile_layout.sh
+bash tests/context/pod-inside-nono/test_opencode_secure_wrapper_contract.sh
+bash tests/context/pod-inside-nono/test_nono_identity_integration_contract.sh
+bash tests/context/pod-inside-nono/test_nono_policy_runbook_contract.sh
 ```
 
 Expected shape:
