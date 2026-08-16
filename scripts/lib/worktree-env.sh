@@ -4,6 +4,8 @@ set -euo pipefail
 checkout_dir="${1:?usage: worktree-env.sh CHECKOUT_DIR HUB_KIND [REPO_NAME]}"
 hub_kind="${2:?usage: worktree-env.sh CHECKOUT_DIR HUB_KIND [REPO_NAME]}"
 repo_name="${3:-hub}"
+worktree_env_generated_path="${WORKTREE_ENV_GENERATED_PATH:-}"
+worktree_env_generate_only="${WORKTREE_ENV_GENERATE_ONLY:-0}"
 
 workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
 
@@ -95,8 +97,15 @@ elif [ "$hub_kind" = "child" ]; then
   esac
 fi
 
-mkdir -p "$dyn_worktree_state_dir" "$dyn_worktree_tmp_dir"
-generated_envrc="$checkout_dir/.envrc.generated.$$"
+if [ "$worktree_env_generate_only" != '1' ]; then
+  mkdir -p "$dyn_worktree_state_dir" "$dyn_worktree_tmp_dir"
+fi
+
+if [ -n "$worktree_env_generated_path" ]; then
+  generated_envrc="$worktree_env_generated_path"
+else
+  generated_envrc="$checkout_dir/.envrc.generated.$$"
+fi
 
 cat > "$generated_envrc" <<EOF
 export HUB_DIR="$hub_dir"
@@ -119,6 +128,10 @@ if [ -f "$workspace_root/state/hub/etc/install.env" ]; then
 fi
 source ./.envrc.local
 EOF
+
+if [ "$worktree_env_generate_only" = '1' ]; then
+  exit 0
+fi
 
 write_new_envrc=false
 if [ ! -e "$checkout_dir/.envrc" ]; then

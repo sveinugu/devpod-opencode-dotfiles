@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+# shellcheck source=scripts/lib/allow-direnv-managed-worktrees.sh
+source "$script_dir/../scripts/lib/allow-direnv-managed-worktrees.sh"
+
+allow_direnv_managed_worktrees_main "$@"

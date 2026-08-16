@@ -73,6 +73,19 @@ Create managed worktrees (top-level hub and child repos):
 /workspaces/dotfiles/main/bin/new-worktree --repo <child-repo-name> feature/example
 ```
 
+Refresh managed direnv trust across canonical checkouts:
+
+```bash
+/workspaces/dotfiles/main/bin/allow-direnv-managed-worktrees
+/workspaces/dotfiles/main/bin/allow-direnv-managed-worktrees --allow
+/workspaces/dotfiles/main/bin/allow-direnv-managed-worktrees --allow --force
+```
+
+- default mode is dry-run only
+- missing managed `.envrc` / `.envrc.local` files are repaired through the managed helper before allow
+- divergent/manual `.envrc` requires `--allow --force`
+- hub-root execution is refused
+
 Interactive `new-worktree` and `clone-repo` wrappers auto-jump to the created checkout by default.
 Use `HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1` to keep your current directory for both commands.
 Raw script usage remains valid for automation and still does not change the parent shell directory.
