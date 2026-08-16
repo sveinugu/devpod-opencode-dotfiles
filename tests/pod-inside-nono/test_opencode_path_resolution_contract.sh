@@ -6,7 +6,7 @@ fail() {
   exit 1
 }
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
+repo_root="$(git rev-parse --show-toplevel)"
 # shellcheck source=tests/lib/context-guards.sh
 source "$repo_root/tests/lib/context-guards.sh"
 require_pod_inside_nono_test 'test_opencode_path_resolution_contract'
