@@ -4,6 +4,18 @@
     "description": "DevSpace secure OpenCode profile with explicit provider credential routes"
   },
   "groups": {
+    "include": [
+      "node_runtime",
+      "rust_runtime",
+      "python_runtime",
+      { "name": "user_caches_macos", "when": "macos" },
+      { "name": "user_caches_linux", "when": "linux" },
+      { "name": "linux_sysfs_read", "when": "linux" },
+      "nix_runtime",
+      "git_config",
+      "unlink_protection",
+      { "name": "opencode_linux", "when": "linux" }
+    ],
     "exclude": [
       "dangerous_commands",
       "dangerous_commands_linux"
