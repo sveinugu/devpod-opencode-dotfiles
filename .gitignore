@@ -11,3 +11,6 @@
 **/*.env
 **/*.envrc
 **/*.envrc.local
+
+# Devspace
+.devspace
