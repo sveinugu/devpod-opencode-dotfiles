@@ -40,6 +40,10 @@ script_dir = Path(os.environ.get("VERIFY_SCRIPT_DIR", "")).resolve()
 exclude_list_file = script_dir / "lib" / "bare-excludes.list"
 
 
+def canonical_path(path: str) -> str:
+    return os.path.realpath(os.path.abspath(path))
+
+
 def add_check(check_id: str, ok: bool, message: str) -> None:
     checks.append({"id": check_id, "ok": ok, "message": message})
 
@@ -104,7 +108,16 @@ if os.path.isdir(bare_dir):
             stderr=subprocess.STDOUT,
             text=True,
         )
-        worktree_ok = any(line.strip() == f"worktree {main_wt}" for line in out.splitlines())
+        canonical_main_wt = canonical_path(main_wt)
+        for raw_line in out.splitlines():
+            line = raw_line.strip()
+            if not line.startswith("worktree "):
+                continue
+
+            listed_path = line[len("worktree ") :]
+            if canonical_path(listed_path) == canonical_main_wt:
+                worktree_ok = True
+                break
     except subprocess.CalledProcessError as exc:
         warnings.append(f"git worktree check failed: {exc.output.strip()}")
 

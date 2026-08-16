@@ -62,6 +62,9 @@ payload = json.load(open(sys.argv[1], 'r', encoding='utf-8'))
 if not payload.get('ok'):
     print('expected verifier to pass for valid hub', file=sys.stderr)
     sys.exit(1)
+if not any(c.get('id') == 'main.worktree' and c.get('ok') is True for c in payload.get('checks', [])):
+    print('expected main.worktree check to pass', file=sys.stderr)
+    sys.exit(1)
 if not any(c.get('id') == 'bare.exclude' and c.get('ok') is True for c in payload.get('checks', [])):
     print('expected bare.exclude check to pass', file=sys.stderr)
     sys.exit(1)
