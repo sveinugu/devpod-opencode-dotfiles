@@ -170,21 +170,113 @@ context_run_interactive_script() {
   local input="$1"
   local output_path="$2"
   local command="$3"
+  local pty_runner=''
+  local rc=0
 
+  # Prefer python PTY runner for deterministic cross-platform behavior.
+  if command -v python3 >/dev/null 2>&1; then
+    pty_runner="$(mktemp "${TMPDIR:-/tmp}/context-pty-runner-XXXXXX.py")"
+    cat >"$pty_runner" <<'PY'
+import fcntl
+import os
+import pty
+import select
+import shutil
+import subprocess
+import sys
+import termios
+import time
+
+output_path = sys.argv[1]
+command = os.environ.get("INTERACTIVE_COMMAND", "")
+input_data = sys.stdin.buffer.read()
+
+shell = shutil.which("bash") or shutil.which("sh") or "/bin/sh"
+master_fd, slave_fd = pty.openpty()
+
+def preexec() -> None:
+    os.setsid()
+    fcntl.ioctl(slave_fd, termios.TIOCSCTTY, 0)
+
+proc = subprocess.Popen(
+    [shell, "-c", command],
+    stdin=slave_fd,
+    stdout=slave_fd,
+    stderr=slave_fd,
+    close_fds=True,
+    preexec_fn=preexec,
+)
+os.close(slave_fd)
+
+captured = bytearray()
+offset = 0
+deadline = time.time() + 20.0
+timed_out = False
+
+while True:
+    readable, _, _ = select.select([master_fd], [], [], 0.05)
+    if readable:
+        try:
+            chunk = os.read(master_fd, 4096)
+        except OSError:
+            chunk = b""
+        if chunk:
+            captured.extend(chunk)
+
+    if offset < len(input_data):
+        try:
+            written = os.write(master_fd, input_data[offset:])
+        except OSError:
+            written = 0
+        offset += written
+
+    if proc.poll() is not None:
+        while True:
+            try:
+                chunk = os.read(master_fd, 4096)
+            except OSError:
+                chunk = b""
+            if not chunk:
+                break
+            captured.extend(chunk)
+        break
+
+    if time.time() > deadline:
+        timed_out = True
+        try:
+            proc.kill()
+        except OSError:
+            pass
+        captured.extend(b"\n[context_run_interactive_script timeout]\n")
+        break
+
+os.close(master_fd)
+
+with open(output_path, "wb") as fh:
+    fh.write(captured)
+
+sys.stdout.buffer.write(captured)
+if timed_out:
+    sys.exit(124)
+
+sys.exit(proc.returncode if proc.returncode is not None else 1)
+PY
+
+    if ! printf '%b' "$input" | INTERACTIVE_COMMAND="$command" python3 "$pty_runner" "$output_path"; then
+      rc=$?
+    fi
+    rm -f "$pty_runner"
+    return "$rc"
+  fi
+
+  # Fallback: GNU/util-linux script(1) with -c.
   if context_has_script_dash_c; then
     printf '%b' "$input" | script -q -e -c "$command" /dev/null >"$output_path"
     return
   fi
 
-  # BSD/macOS script(1): no -c support; pass command argv directly.
-  local shell_path=''
-  shell_path="$(command -v bash || command -v sh || true)"
-  [ -n "$shell_path" ] || {
-    printf 'FAIL context_run_interactive_script: cannot find shell for script fallback\n' >&2
-    exit 1
-  }
-
-  printf '%b' "$input" | script -q -e /dev/null "$shell_path" -c "$command" >"$output_path"
+  printf 'FAIL context_run_interactive_script: no compatible pseudo-tty runner (python3 missing and script -c unavailable)\n' >&2
+  exit 1
 }
 
 context_canonical_dir() {
