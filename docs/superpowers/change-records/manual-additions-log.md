@@ -204,7 +204,7 @@ Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current
 
 - scope: `.config/nono/profiles/devspace-opencode-secure.jsonc`, `k8s/devspace-bare-hub/workspace-deployment.yaml`, `tests/devspace/test_workspace_manifest_contract.sh`
 - change:
-  - nono profile `network.allow_net` set to `true` to restore open outbound network access while keeping credential proxy for model API providers
+  - nono profile open outbound access enabled (current schema form: `network.allow_domain: ["*"]`) while keeping credential proxy for model API providers
   - deployment init container now runs `git remote set-url origin` on the workspace root before ACL bootstrap, so `origin` is not lost on re-provision/redeploy
   - deployment manifest image references now use `${images.workspace}` instead of `devspace-bare-hub:${HUB_WORKSPACE_IMAGE_TAG}` so devspace handles variable interpolation correctly during deploy
   - contract test image-reference regex fixed to match devspace's `${images.workspace}` syntax (backslash escape corrected)
@@ -225,9 +225,72 @@ Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current
 - scope: `.config/nono/profiles/devspace-opencode-secure.jsonc`, `scripts/lib/launch-opencode-nono.sh`, tests, runbooks
 - change:
   - add `/workspaces/dotfiles` and `$XDG_DATA_HOME/direnv` to nono profile `filesystem.allow`
-  - add `--allow-cwd --no-rollback-prompt --silent` to nono launch helper invocation
+  - add `--allow-cwd --no-rollback-prompt` to nono launch helper invocation
   - update runbook and contract tests to reflect the new grants and launch flags
 - rationale: allow `direnv allow` to write its allow-list inside the sandbox, grant broader hub filesystem access, and eliminate interactive pre-launch cwd prompts and post-exit rollback prompts.
+
+### 2026-07-28 · `d3afdb9`, `c432e66` — nono network contract key migrated to `allow_domain` (+ docs sync)
+
+- scope: `.config/nono/profiles/devspace-opencode-secure.jsonc`, profile contract expectations
+- change: replace legacy `network.allow_net` usage with `network.allow_domain: ["*"]` while keeping open outbound access behavior.
+- note: `c432e66` is docs-only backfill for the same nono-policy thread (no extra runtime behavior change).
+- rationale: align with current nono profile schema and avoid deploy/runtime drift from deprecated key usage.
+
+### 2026-08-14 · `bccbcb2`, `d622c37`, `7d82a4f`, `db230cd`, `6811239` — OpenAI-compatible reasoning-model patch plugin (+ debug visibility)
+
+- scope: `.config/opencode/plugins/openai-compatible-fix.ts`, OpenCode config/tests/docs
+- change:
+  - add `openai-compatible-fix` plugin to patch reasoning-model payloads (`max_tokens` → `max_completion_tokens`, remove `reasoningSummary`)
+  - harden model detection and prevent adapter regressions that could reintroduce `max_tokens`
+  - add opt-in plugin debug logging (`OPENCODE_PLUGIN_DEBUG`) and document usage
+- rationale: stabilize OpenAI-compatible provider behavior for reasoning models until upstream behavior converges.
+
+### 2026-08-14 · `b8f3f39`, `d42940d`, `394fd62` — Model-routing refresh and fallback routing guide
+
+- scope: `.config/opencode/opencode.jsonc`, `.config/opencode/provider-policy.jsonc`, routing docs
+- change: refresh active/default model selections and provider model lists around current `gpt-uio-yellow` strategy; add explicit fallback routing cheat sheet.
+- rationale: keep model selection policy explicit and easier to operate when quotas/model availability shift.
+
+### 2026-08-14 · `e8150cb`, `504b555` — Provision origin override + runtime state-path unification
+
+- scope: `scripts/provision-workspace.sh`, wrapped OpenCode runtime env defaults
+- change:
+  - add `HUB_PROVISION_ORIGIN_URL` so provision can bootstrap from one source URL but persist a different `origin` URL
+  - unify wrapped runtime state handling at base `XDG_STATE_HOME` contracts
+- rationale: preserve SSH-friendly remotes after bootstrap and reduce runtime state-path drift.
+
+### 2026-08-14 → 2026-08-16 · commit set `f730000`, `7f8e850`, `033c507`, `1d6e4f0`, `0d7ed98`, `c51ebb6`, `7437825`, `ee3be2c`, `9fa2769`, `1f52b02`, `eac68e6`, `3eab468`, `6edbfa8`, `daa129b`, `a64a11c`, `db09db3`, `396ab5a`, `f7eb87c`, `223244c`, `8abdc99`, `3be932c`, `ecc5f04`, `19dac17`, `b2d7278`, `afbc3fc`, `2a5dbd6`, `800e0fb` — nono/git helper policy stabilization (debug-heavy)
+
+- scope: nono profile command/filesystem policy + in-sandbox git contract tests
+- change (end state):
+  - sandbox explicitly grants required git helper binaries/paths plus helper command coverage for receive/upload-pack/archive flows
+  - workspace-root access and helper-path contracts simplified to stable, test-backed grants
+  - direnv allow-list write path behavior stays explicitly permitted in sandbox runtime
+  - add a dedicated `nono-why` wrapper path for safer self-diagnostic rebinding when session cap paths drift
+  - wrapped launch now scrubs inherited nono session env markers to avoid stale nested-session behavior
+- debug route summary: several iterations flipped edge modeling (`from.session`/`from.git`) and per-helper shim wiring; final result intentionally favors simpler explicit grants over fragile edge-specific tuning.
+- rationale: restore deterministic git behavior inside sandboxed sessions with lower policy drift risk.
+
+### 2026-08-14 → 2026-08-16 · commit set `0de5934`, `dd6aba9`, `00b8eed`, `8c28a7c`, `dc104f1`, `0e332d2`, `c8c51b1`, `4be50a5`, `7cc3bbf`, `9068fbb`, `0d87aac`, `44f1085`, `b9812be`, `fe550ec`, `33219e2`, `7ccb879`, `8e21cf0`, `4913079`, `e31811f`, `45182df` — Context-based test execution model standardized
+
+- scope: `tests/` layout, `tests/run.sh`, `tests/README.md`, runbook/path contracts
+- change:
+  - make nono blocking-matrix coverage deterministic across host/wrapper contexts before the broader migration
+  - add canonical context runner (`host`, `pod-outside-nono`, `pod-inside-nono`) with guards
+  - complete migration to context-qualified test paths and update docs/contracts to match
+  - finalize flattened context directories at `tests/{host,pod-outside-nono,pod-inside-nono}`
+- debug route summary: an intermediate nested `tests/context/` layout caused path churn; follow-up commits flattened layout while preserving context semantics.
+- rationale: make test invocation deterministic by execution environment and reduce accidental wrong-context runs.
+
+### 2026-08-16 · `07d5422`, `1cfa26b`, `3745a86`, `8035596`, `a8c1aab`, `fbb5ab6`, `ca1225f`, `eae25b3`, `0718a87` — Host/provision verification portability hardening
+
+- scope: host/provision scripts, host + pod contract tests, repo hygiene
+- change:
+  - harden ownership/worktree coherence checks with canonical path handling and GNU/BSD portability coverage
+  - stabilize host identity prompt verification via Python PTY fallback and sandbox tests via git top-level root resolution
+  - add `.devspace` ignore entry for local workspace tooling noise
+- debug route summary: main failure paths were false negatives from path canonicalization differences and PTY behavior variance across host environments.
+- rationale: keep host and sandbox verification reliable across mixed developer environments.
 
 ## Operator reminder
 
