@@ -20,16 +20,19 @@ installer_script="$repo_root/scripts/lib/install/install-project-skills.sh"
 [ -d "$skills_root" ] || fail 'missing top-level .agents/skills directory'
 [ -f "$maintenance_skill" ] || fail 'missing maintenance skill under top-level .agents/skills'
 [ -f "$installer_script" ] || fail 'missing install-project-skills helper'
-[ -f "$skills_root/clean-code/SKILL.md" ] || fail 'missing top-level .agents/skills/clean-code/SKILL.md'
-[ -f "$skills_root/pragmatic-programmer/SKILL.md" ] || fail 'missing top-level .agents/skills/pragmatic-programmer/SKILL.md'
 
 grep -F '"clean-code"' "$lock_file" >/dev/null || fail 'skills-lock.json must include clean-code authority'
 grep -F '"pragmatic-programmer"' "$lock_file" >/dev/null || fail 'skills-lock.json must include pragmatic-programmer authority'
 grep -F 'npx -y skills experimental_install' "$installer_script" >/dev/null || fail 'install-project-skills helper must run experimental_install'
 grep -F 'skills-lock.json' "$installer_script" >/dev/null || fail 'install-project-skills helper must validate top-level skills-lock authority'
 
-grep -F 'name: clean-code' "$skills_root/clean-code/SKILL.md" >/dev/null || fail 'clean-code local skill must remain available under .agents/skills'
-grep -F 'name: pragmatic-programmer' "$skills_root/pragmatic-programmer/SKILL.md" >/dev/null || fail 'pragmatic-programmer local skill must remain available under .agents/skills'
+if [ -e "$skills_root/clean-code/SKILL.md" ]; then
+  fail 'external clean-code skill materialization should be generated, not committed'
+fi
+
+if [ -e "$skills_root/pragmatic-programmer/SKILL.md" ]; then
+  fail 'external pragmatic-programmer skill materialization should be generated, not committed'
+fi
 
 if grep -F 'skills add wondelai/skills/pragmatic-programmer' "$repo_root/scripts/lib/install/materialize.sh" >/dev/null; then
   fail 'materialize install flow must not use .config/opencode-scoped skills add commands'
