@@ -42,18 +42,32 @@ copy_install_support_tree() {
     cp "$repo_root/scripts/lib/install/resolve-source.sh" "$target_root/scripts/lib/install/resolve-source.sh"
     cp "$repo_root/scripts/lib/install/validate-source.sh" "$target_root/scripts/lib/install/validate-source.sh"
     cp "$repo_root/scripts/lib/install/materialize.sh" "$target_root/scripts/lib/install/materialize.sh"
+    cp "$repo_root/scripts/lib/install/install-project-skills.sh" "$target_root/scripts/lib/install/install-project-skills.sh"
+    cp "$repo_root/scripts/lib/install/run-harness-installs.sh" "$target_root/scripts/lib/install/run-harness-installs.sh"
     chmod +x \
       "$target_root/scripts/lib/install/parse-args.sh" \
       "$target_root/scripts/lib/install/resolve-source.sh" \
       "$target_root/scripts/lib/install/validate-source.sh" \
-      "$target_root/scripts/lib/install/materialize.sh"
+      "$target_root/scripts/lib/install/materialize.sh" \
+      "$target_root/scripts/lib/install/install-project-skills.sh" \
+      "$target_root/scripts/lib/install/run-harness-installs.sh"
+  fi
+
+  if [ -f "$repo_root/harness-installs.jsonc" ]; then
+    cp "$repo_root/harness-installs.jsonc" "$target_root/harness-installs.jsonc"
+  fi
+
+  if [ -f "$repo_root/skills-lock.json" ]; then
+    cp "$repo_root/skills-lock.json" "$target_root/skills-lock.json"
   fi
 }
 
 mkdir -p \
   "$workspace_root/.bare" \
+  "$workspace_root/main/.agents/skills" \
   "$workspace_root/main/.config/opencode" \
   "$workspace_root/main/.config/nono/profiles" \
+  "$workspace_root/work/feature-x/.agents/skills" \
   "$workspace_root/work/feature-x/.config/opencode" \
   "$workspace_root/work/feature-x/.config/nono/profiles" \
   "$tmpdir/agent-home" \
@@ -62,12 +76,58 @@ mkdir -p \
   "$offcwd"
 
 printf 'export MAIN_ZSHRC=1\n' > "$workspace_root/main/.zshrc"
+printf '{"version":1,"skills":{}}\n' > "$workspace_root/main/skills-lock.json"
 printf '{"name":"main"}\n' > "$workspace_root/main/.config/opencode/opencode.jsonc"
 printf '{"meta":{"name":"main"}}\n' > "$workspace_root/main/.config/nono/profiles/devspace-opencode-secure.jsonc"
+cat > "$workspace_root/main/harness-installs.jsonc" <<'JSON'
+{
+  "installs": [
+    {
+      "name": "opencode-loop",
+      "workingDirectory": ".config/opencode",
+      "install": ["npx", "-y", "@bybrawe/opencode-loop"],
+      "uninstall": ["npx", "-y", "@bybrawe/opencode-loop", "--uninstall"],
+      "outputs": [
+        ".config/opencode/plugins/opencode-loop.js",
+        ".config/opencode/commands/loop-help.md",
+        ".config/opencode/commands/loop.md"
+      ]
+    }
+  ]
+}
+JSON
+
+mkdir -p "$workspace_root/main/.config/opencode/plugins" "$workspace_root/main/.config/opencode/commands"
+printf 'generated\n' > "$workspace_root/main/.config/opencode/plugins/opencode-loop.js"
+printf 'generated\n' > "$workspace_root/main/.config/opencode/commands/loop-help.md"
+printf 'generated\n' > "$workspace_root/main/.config/opencode/commands/loop.md"
 
 printf 'export FEATURE_ZSHRC=1\n' > "$workspace_root/work/feature-x/.zshrc"
+printf '{"version":1,"skills":{}}\n' > "$workspace_root/work/feature-x/skills-lock.json"
 printf '{"name":"feature-x"}\n' > "$workspace_root/work/feature-x/.config/opencode/opencode.jsonc"
 printf '{"meta":{"name":"feature-x"}}\n' > "$workspace_root/work/feature-x/.config/nono/profiles/devspace-opencode-secure.jsonc"
+cat > "$workspace_root/work/feature-x/harness-installs.jsonc" <<'JSON'
+{
+  "installs": [
+    {
+      "name": "opencode-loop",
+      "workingDirectory": ".config/opencode",
+      "install": ["npx", "-y", "@bybrawe/opencode-loop"],
+      "uninstall": ["npx", "-y", "@bybrawe/opencode-loop", "--uninstall"],
+      "outputs": [
+        ".config/opencode/plugins/opencode-loop.js",
+        ".config/opencode/commands/loop-help.md",
+        ".config/opencode/commands/loop.md"
+      ]
+    }
+  ]
+}
+JSON
+
+mkdir -p "$workspace_root/work/feature-x/.config/opencode/plugins" "$workspace_root/work/feature-x/.config/opencode/commands"
+printf 'generated\n' > "$workspace_root/work/feature-x/.config/opencode/plugins/opencode-loop.js"
+printf 'generated\n' > "$workspace_root/work/feature-x/.config/opencode/commands/loop-help.md"
+printf 'generated\n' > "$workspace_root/work/feature-x/.config/opencode/commands/loop.md"
 
 if [ -f "$repo_root/install.sh" ]; then
   cp "$repo_root/install.sh" "$workspace_root/main/install.sh"
@@ -109,8 +169,22 @@ else
   printf 'expected install.sh dry-run to link .config/nono from source worktree\n' >&2
   exit 1
 fi
-grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/pragmatic-programmer -y)" "$tmpdir/main.out" >/dev/null
-grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/clean-code -y)" "$tmpdir/main.out" >/dev/null
+grep -F "DRY-RUN (cd $workspace_root/main && npx -y skills experimental_install \"$workspace_root/main/skills-lock.json\")" "$tmpdir/main.out" >/dev/null || {
+  printf 'expected dry-run project skill reconstruction from repo-root skills-lock.json\n' >&2
+  exit 1
+}
+grep -F "DRY-RUN (cd $workspace_root/main && $workspace_root/main/scripts/lib/install/run-harness-installs.sh)" "$tmpdir/main.out" >/dev/null || {
+  printf 'expected dry-run manifest-driven harness install invocation\n' >&2
+  exit 1
+}
+if grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/pragmatic-programmer -y)" "$tmpdir/main.out" >/dev/null; then
+  printf 'did not expect .config/opencode-scoped skills add for pragmatic-programmer\n' >&2
+  exit 1
+fi
+if grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/clean-code -y)" "$tmpdir/main.out" >/dev/null; then
+  printf 'did not expect .config/opencode-scoped skills add for clean-code\n' >&2
+  exit 1
+fi
 if grep -F "DRY-RUN (cd $tmpdir/agent-home" "$tmpdir/main.out" >/dev/null; then
   printf 'did not expect dry-run opencode commands to execute from agent runtime home\n' >&2
   exit 1
@@ -195,8 +269,22 @@ quoted_dir="$(printf '%s' "$quoted_vars_out" | sed -n '2p')"
 grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.zshrc $target_home/.zshrc" "$tmpdir/feature.out" >/dev/null
 grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.config/opencode $target_home/.config/opencode" "$tmpdir/feature.out" >/dev/null
 grep -F "DRY-RUN sudo -n -u agent ln -sfn $workspace_root/work/feature-x/.config/opencode $tmpdir/agent-home/.config/opencode" "$tmpdir/feature.out" >/dev/null
-grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/pragmatic-programmer -y)" "$tmpdir/feature.out" >/dev/null
-grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/clean-code -y)" "$tmpdir/feature.out" >/dev/null
+grep -F "DRY-RUN (cd $workspace_root/work/feature-x && npx -y skills experimental_install \"$workspace_root/work/feature-x/skills-lock.json\")" "$tmpdir/feature.out" >/dev/null || {
+  printf 'expected feature dry-run project skill reconstruction from feature repo-root skills-lock.json\n' >&2
+  exit 1
+}
+grep -F "DRY-RUN (cd $workspace_root/work/feature-x && $workspace_root/work/feature-x/scripts/lib/install/run-harness-installs.sh)" "$tmpdir/feature.out" >/dev/null || {
+  printf 'expected feature dry-run manifest-driven harness install invocation\n' >&2
+  exit 1
+}
+if grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/pragmatic-programmer -y)" "$tmpdir/feature.out" >/dev/null; then
+  printf 'did not expect feature dry-run .config/opencode-scoped skills add for pragmatic-programmer\n' >&2
+  exit 1
+fi
+if grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/clean-code -y)" "$tmpdir/feature.out" >/dev/null; then
+  printf 'did not expect feature dry-run .config/opencode-scoped skills add for clean-code\n' >&2
+  exit 1
+fi
 if grep -F "DRY-RUN (cd $tmpdir/agent-home" "$tmpdir/feature.out" >/dev/null; then
   printf 'did not expect feature dry-run opencode commands to execute from agent runtime home\n' >&2
   exit 1
@@ -273,11 +361,33 @@ mkdir -p "$workspace_reg/main/.config/opencode" "$workspace_reg/main/scripts" "$
 mkdir -p "$workspace_reg/main/.config/nono/profiles" "$home_reg/.config/nono"
 mkdir -p "$agent_home_reg"
 touch "$home_reg/.oh-my-zsh/oh-my-zsh.sh"
+mkdir -p "$workspace_reg/main/.config/opencode/plugins" "$workspace_reg/main/.config/opencode/commands"
 
 printf 'export REG_ZSHRC=1\n' > "$workspace_reg/main/.zshrc"
 printf 'source "$HOME/.zshrc"\n' > "$workspace_reg/main/.zprofile"
 printf '{"name":"reg"}\n' > "$workspace_reg/main/.config/opencode/opencode.jsonc"
 printf '{"meta":{"name":"reg"}}\n' > "$workspace_reg/main/.config/nono/profiles/devspace-opencode-secure.jsonc"
+cat > "$workspace_reg/main/harness-installs.jsonc" <<'JSON'
+{
+  "installs": [
+    {
+      "name": "opencode-loop",
+      "workingDirectory": ".config/opencode",
+      "install": ["npx", "-y", "@bybrawe/opencode-loop"],
+      "uninstall": ["npx", "-y", "@bybrawe/opencode-loop", "--uninstall"],
+      "outputs": [
+        ".config/opencode/plugins/opencode-loop.js",
+        ".config/opencode/commands/loop-help.md",
+        ".config/opencode/commands/loop.md"
+      ]
+    }
+  ]
+}
+JSON
+printf '{"version":1,"skills":{}}\n' > "$workspace_reg/main/skills-lock.json"
+printf 'generated\n' > "$workspace_reg/main/.config/opencode/plugins/opencode-loop.js"
+printf 'generated\n' > "$workspace_reg/main/.config/opencode/commands/loop-help.md"
+printf 'generated\n' > "$workspace_reg/main/.config/opencode/commands/loop.md"
 printf 'stale\n' > "$home_reg/.config/opencode/stale.txt"
 printf 'stale\n' > "$home_reg/.config/nono/stale.txt"
 

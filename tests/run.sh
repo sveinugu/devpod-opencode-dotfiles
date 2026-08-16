@@ -51,6 +51,7 @@ case "$context" in
       tests/host/test_devspace_doctor.sh
       tests/host/test_resolve_git_identity.sh
       tests/host/test_ssh_contract.sh
+      tests/host/test_dockerfile_opencode_helper_contract.sh
     )
     run_test_list "${tests[@]}"
     ;;
@@ -66,6 +67,10 @@ case "$context" in
       tests/pod-outside-nono/test_workspace_navigation_helper_contracts.sh
       tests/pod-outside-nono/test_workspace_navigation_path_contract.sh
       tests/pod-outside-nono/test_install_local_source_contract.sh
+      tests/pod-outside-nono/test_project_local_skills_contract.sh
+      tests/pod-outside-nono/test_harness_installs_contract.sh
+      tests/pod-outside-nono/test_generated_output_ignore_contract.sh
+      tests/pod-outside-nono/test_cleanup_conformance_contract.sh
       tests/pod-outside-nono/test_install_oh_my_zsh_failure_surface.sh
       tests/pod-outside-nono/test_install_validate_source.sh
       tests/pod-outside-nono/test_workspace_navigation_install_env_refresh.sh
