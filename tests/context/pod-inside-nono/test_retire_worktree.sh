@@ -4,12 +4,22 @@ set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
 # shellcheck source=tests/context/lib/context-guards.sh
 source "$repo_root/tests/context/lib/context-guards.sh"
+# shellcheck source=tests/context/lib/git-fixtures.sh
+source "$repo_root/tests/context/lib/git-fixtures.sh"
 require_pod_inside_nono_test 'test_retire_worktree'
+
+clone_repo_script="$repo_root/bin/clone-repo"
+new_worktree_script="$repo_root/bin/new-worktree"
+retire_script="$repo_root/bin/retire-worktree"
 
 fail() {
   printf 'FAIL test_retire_worktree: %s\n' "$1" >&2
   exit 1
 }
+
+[ -f "$clone_repo_script" ] || fail 'bin/clone-repo not found'
+[ -f "$new_worktree_script" ] || fail 'bin/new-worktree not found'
+[ -f "$retire_script" ] || fail 'bin/retire-worktree not found'
 
 temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_retire_worktree')"
 tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_retire_worktree')"
@@ -35,7 +45,7 @@ git init "$top_source" >/dev/null 2>&1
   git commit -m 'top fixture' >/dev/null 2>&1
 )
 
-git clone --bare "$top_source" "$workspace_root/.bare" >/dev/null 2>&1
+context_materialize_bare_repo_from_local "$top_source" "$workspace_root/.bare"
 git --git-dir="$workspace_root/.bare" worktree add "$workspace_root/main" main >/dev/null 2>&1
 
 mkdir -p "$workspace_root/state/hub/etc"
@@ -100,6 +110,8 @@ printf 'untracked stale v1\n' > "$hub_untracked_stale_worktree/UNTRACKED-STABLE.
 child_retire_worktree="$workspace_root/repos/child-source/work/feature/child-retire"
 (
   cd "$child_retire_worktree"
+  git config user.name 'Test User'
+  git config user.email 'test@example.com'
   printf 'child local only commit\n' >> README.md
   git add README.md
   git commit -m 'child local only commit for cleanup evidence' >/dev/null 2>&1

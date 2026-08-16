@@ -4,12 +4,20 @@ set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
 # shellcheck source=tests/context/lib/context-guards.sh
 source "$repo_root/tests/context/lib/context-guards.sh"
+# shellcheck source=tests/context/lib/git-fixtures.sh
+source "$repo_root/tests/context/lib/git-fixtures.sh"
 require_pod_inside_nono_test 'test_managed_lane_registry'
+
+clone_repo_script="$repo_root/bin/clone-repo"
+new_worktree_script="$repo_root/bin/new-worktree"
 
 fail() {
   printf 'FAIL test_managed_lane_registry: %s\n' "$1" >&2
   exit 1
 }
+
+[ -f "$clone_repo_script" ] || fail 'bin/clone-repo not found'
+[ -f "$new_worktree_script" ] || fail 'bin/new-worktree not found'
 
 temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_managed_lane_registry')"
 tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_managed_lane_registry')"
@@ -35,7 +43,7 @@ git init "$top_source" >/dev/null 2>&1
   git commit -m 'top fixture' >/dev/null 2>&1
 )
 
-git clone --bare "$top_source" "$workspace_root/.bare" >/dev/null 2>&1
+context_materialize_bare_repo_from_local "$top_source" "$workspace_root/.bare"
 git --git-dir="$workspace_root/.bare" worktree add "$workspace_root/main" main >/dev/null 2>&1
 
 mkdir -p "$workspace_root/state/hub/etc"

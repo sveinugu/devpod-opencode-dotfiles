@@ -4,12 +4,20 @@ set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
 # shellcheck source=tests/context/lib/context-guards.sh
 source "$repo_root/tests/context/lib/context-guards.sh"
+# shellcheck source=tests/context/lib/git-fixtures.sh
+source "$repo_root/tests/context/lib/git-fixtures.sh"
 require_pod_inside_nono_test 'test_public_repo_clone_behavior'
+
+clone_script="$repo_root/bin/clone-repo"
+provision_script="$repo_root/scripts/provision-workspace.sh"
 
 fail() {
   printf 'FAIL test_public_repo_clone_behavior: %s\n' "$1" >&2
   exit 1
 }
+
+[ -f "$clone_script" ] || fail 'bin/clone-repo not found'
+[ -f "$provision_script" ] || fail 'scripts/provision-workspace.sh not found'
 
 temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_public_repo_clone_behavior_core')"
 tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_public_repo_clone_behavior')"
@@ -190,9 +198,32 @@ fi
 
 if [ "$cmd" = "fetch" ]; then
   remote_name="${args[1]:-origin}"
+  source="${args[1]:-origin}"
   remote_url=""
   if [ -n "$git_dir" ]; then
     remote_url="$($real_git --git-dir="$git_dir" remote get-url "$remote_name" 2>/dev/null || true)"
+  fi
+
+  if [ "$source" = "$public_url" ]; then
+    require_non_interactive "$public_url"
+    if [ -n "$git_dir" ]; then
+      exec "$real_git" --git-dir="$git_dir" fetch "$public_source" "${args[2]:-}"
+    fi
+    exec "$real_git" fetch "$public_source" "${args[2]:-}"
+  fi
+
+  if [ "$source" = "$public_url_default" ]; then
+    require_non_interactive "$public_url_default"
+    if [ -n "$git_dir" ]; then
+      exec "$real_git" --git-dir="$git_dir" fetch "$public_source_default" "${args[2]:-}"
+    fi
+    exec "$real_git" fetch "$public_source_default" "${args[2]:-}"
+  fi
+
+  if [ "$source" = "$private_url" ]; then
+    require_non_interactive "$private_url"
+    printf 'fatal: could not read Username for %s: terminal prompts disabled\n' "$private_url" >&2
+    exit 128
   fi
 
   if [ "$remote_url" = "$public_url" ]; then
@@ -232,7 +263,7 @@ git init "$top_source" >/dev/null 2>&1
   git add README.md
   git commit -m 'top fixture' >/dev/null 2>&1
 )
-git clone --bare "$top_source" "$workspace_root/.bare" >/dev/null 2>&1
+context_materialize_bare_repo_from_local "$top_source" "$workspace_root/.bare"
 git --git-dir="$workspace_root/.bare" worktree add "$workspace_root/main" main >/dev/null 2>&1
 
 ln -s "$workspace_root/main/.zshrc" "$home_dir/.zshrc"
@@ -349,6 +380,7 @@ bash "$provision_script" >"$tmpdir/public-provision-feature.out" 2>&1 || fail "p
 [ -f "$workspace_provision/work/feature/public-fetch/FETCH_MARKER" ] || fail "public provision fetch should attach requested branch"
 
 start_private_provision="$(date +%s)"
+mkdir -p "$tmpdir/home-private-provision"
 set +e
 PATH="$mock_bin:$PATH" \
 REAL_GIT="$real_git" \

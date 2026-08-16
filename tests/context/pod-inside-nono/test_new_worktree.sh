@@ -4,12 +4,22 @@ set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
 # shellcheck source=tests/context/lib/context-guards.sh
 source "$repo_root/tests/context/lib/context-guards.sh"
+# shellcheck source=tests/context/lib/git-fixtures.sh
+source "$repo_root/tests/context/lib/git-fixtures.sh"
 require_pod_inside_nono_test 'test_new_worktree'
+
+clone_repo_script="$repo_root/bin/clone-repo"
+new_worktree_script="$repo_root/bin/new-worktree"
+env_helper="$repo_root/scripts/lib/worktree-env.sh"
 
 fail() {
   printf 'FAIL test_new_worktree: %s\n' "$1" >&2
   exit 1
 }
+
+[ -f "$clone_repo_script" ] || fail 'bin/clone-repo not found'
+[ -f "$new_worktree_script" ] || fail 'bin/new-worktree not found'
+[ -f "$env_helper" ] || fail 'scripts/lib/worktree-env.sh not found'
 
 temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_new_worktree')"
 tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_new_worktree')"
@@ -50,7 +60,7 @@ git init "$top_source" >/dev/null 2>&1
   git commit -m 'top fixture' >/dev/null 2>&1
 )
 
-git clone --bare "$top_source" "$workspace_root/.bare" >/dev/null 2>&1
+context_materialize_bare_repo_from_local "$top_source" "$workspace_root/.bare"
 git --git-dir="$workspace_root/.bare" worktree add "$workspace_root/main" main >/dev/null 2>&1
 
 mkdir -p "$workspace_root/state/hub/etc"
@@ -166,7 +176,9 @@ set -euo pipefail
 printf 'validator-invoked\n' >&2
 exit 1
 EOF
-chmod +x "$validator_path"
+if ! chmod +x "$validator_path" >/dev/null 2>&1; then
+  [ -x "$validator_path" ] || fail "new-worktree validator fixture must remain executable"
+fi
 
 set +e
 HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script" --repo hub feature/validator-check >"$tmpdir/validator-invocation.out" 2>&1
