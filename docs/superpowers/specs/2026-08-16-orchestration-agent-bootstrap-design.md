@@ -103,7 +103,23 @@ Required behavior:
 
 The design does **not** require `~/.agents` to be the primary discovery path.
 
-### 3. Ordinary npm OpenCode plugins
+### 3. New subagent skill-path orientation
+
+If this slice introduces any new subagent prompt files (for example under `.config/opencode/agents/`), each new subagent must include explicit path pointers to the relevant skill roots so the bootstrap/install model remains discoverable during direct subagent interaction.
+
+Required prompt-path pointers:
+
+- canonical project-local skill root: `/workspaces/dotfiles/work/devspace-model-credential-phasing/.agents/skills/`
+- repo-backed OpenCode-config view for `agent`: `/home/agent/.config/opencode/.agents/skills/`
+- repo-backed OpenCode-config view for `vscode`: `/home/vscode/.config/opencode/.agents/skills/`
+
+Clarification:
+
+- these prompt pointers are orientation aids for humans/agents and review, not a claim that repo-backed `.config/opencode/.agents/...` remains the canonical install target,
+- the canonical install target in this design remains top-level `.agents/skills/`,
+- the home-scoped `.config/opencode/.agents/skills/` paths remain relevant as runtime-visible views during bootstrap, install verification, and migration cleanup.
+
+### 4. Ordinary npm OpenCode plugins
 
 For ordinary npm OpenCode plugins, `.config/opencode/opencode.jsonc` remains the authoritative runtime plugin manifest.
 
@@ -124,7 +140,7 @@ Important constraint:
 - They may remain committed when needed for repo-local OpenCode plugin dependencies, local plugin authoring dependencies, or other repo-local config-dir JavaScript dependencies, but they must not become a second manually maintained source of truth for which ordinary runtime plugins are enabled.
 - The implementation should make that secondary role explicit so future maintainers understand why `.config/opencode/package.json` exists even when `opencode.jsonc` remains the runtime authority.
 
-### 4. Installer-managed harness installs
+### 5. Installer-managed harness installs
 
 Some packages require more than ordinary OpenCode plugin declaration. `@bybrawe/opencode-loop` is the motivating example.
 
@@ -180,7 +196,7 @@ The manifest itself is committed repo state. The listed outputs are generated in
 
 Generated outputs for installer-managed installs are intentionally git-ignored and refreshed on each install run.
 
-### 5. Privilege boundary
+### 6. Privilege boundary
 
 Chosen privilege model:
 
@@ -197,7 +213,7 @@ This inherits the broader two-user and constrained-helper security direction fro
 
 The design keeps a reusable general sudo+nono helper in scope because it remains useful for future harness support even though the chosen skill/plugin materialization path no longer depends on it.
 
-### 6. General reusable sudo+nono helper
+### 7. General reusable sudo+nono helper
 
 Retain a generalized reusable helper in the design at:
 
@@ -222,7 +238,7 @@ Required helper interface contract:
 
 This helper is preparatory infrastructure in the chosen approach, not the primary mechanism for project-local skill installation or installer-plugin regeneration.
 
-### 7. Helper + local skill for future maintenance
+### 8. Helper + local skill for future maintenance
 
 The design should include both:
 
@@ -235,7 +251,7 @@ Intent:
 - the skill preserves the reasoning and expected maintenance flow when details are forgotten later,
 - the maintenance skill should point future readers back to `.config/opencode/AGENTS.md` for design-approval and contract-test expectations.
 
-### 8. Cleanup and conformance task
+### 9. Cleanup and conformance task
 
 The implementation plan must include a separate cleanup/conformance task after the new layout is introduced.
 
@@ -274,6 +290,7 @@ This cleanup task is separate from the core install-flow refactor so the resulti
 - `/workspaces/dotfiles/work/devspace-model-credential-phasing/scripts/lib/launch-opencode-nono.sh`
 - `/workspaces/dotfiles/work/devspace-model-credential-phasing/scripts/provision-workspace.sh`
 - `/workspaces/dotfiles/work/devspace-model-credential-phasing/.config/opencode/opencode.jsonc`
+- `/workspaces/dotfiles/work/devspace-model-credential-phasing/.config/opencode/agents/*.md` for any new subagent introduced by this slice, so each new subagent includes the required skill-path pointers
 - `/workspaces/dotfiles/work/devspace-model-credential-phasing/.config/opencode/package.json`
 - `/workspaces/dotfiles/work/devspace-model-credential-phasing/.config/opencode/package-lock.json`
 - `/workspaces/dotfiles/work/devspace-model-credential-phasing/.config/opencode/.gitignore`
@@ -315,6 +332,7 @@ Verification expectations:
 7. Privileged operations remain limited to cross-user branch/home wiring plus reusable secure-launch infrastructure, not skill/plugin regeneration.
 8. Dockerfile installs the reusable generic helper at `/usr/local/libexec/dotfiles-run-helper`, and the OpenCode wrapper/launch path is refactored to use it.
 9. A distinct cleanup/conformance task removes stale generated content and aligns `.gitignore` with the new contract.
+10. If the slice introduces new subagent prompt files, each new subagent includes explicit pointers to `/workspaces/dotfiles/work/devspace-model-credential-phasing/.agents/skills/`, `/home/agent/.config/opencode/.agents/skills/`, and `/home/vscode/.config/opencode/.agents/skills/`.
 
 ## Acceptance tests
 
@@ -344,4 +362,5 @@ Verification expectations:
 - `.config/opencode/opencode.jsonc` for ordinary npm OpenCode plugins,
 - top-level `harness-installs.jsonc` for installer-managed packages refreshed on each install,
 - installer-managed outputs git-ignored and regenerated without sudo,
-- generic sudo+nono helper retained as reusable future-facing infrastructure.
+- generic sudo+nono helper retained as reusable future-facing infrastructure,
+- and any new subagent introduced in this slice explicitly points to `/workspaces/dotfiles/work/devspace-model-credential-phasing/.agents/skills/`, `/home/agent/.config/opencode/.agents/skills/`, and `/home/vscode/.config/opencode/.agents/skills/`.
