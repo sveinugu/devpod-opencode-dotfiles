@@ -292,6 +292,14 @@ Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current
 - debug route summary: main failure paths were false negatives from path canonicalization differences and PTY behavior variance across host environments.
 - rationale: keep host and sandbox verification reliable across mixed developer environments.
 
+### 2026-08-16 · `6839285`, `20033d4`, `86c7650` — Agent OpenCode skill/runtime path access + npm bootstrap alignment
+
+- scope: `.config/nono/profiles/devspace-opencode-secure.jsonc`, `k8s/devspace-bare-hub/workspace-deployment.yaml`, manifest contract tests
+- change:
+  - extend nono profile runtime grants to cover agent OpenCode skill/runtime path requirements and npm/cache usage paths
+  - add explicit `.npm` bootstrap in the root init-home-agent setup so `/home/agent` runtime state is ready with correct ownership before sandboxed runs
+- rationale: fix agent OpenCode sessions missing skill/runtime surfaces by aligning sandbox file-access policy with agent-home bootstrap state.
+
 ## Operator reminder
 
 After updates affecting `Dockerfile` or deployment manifests:
