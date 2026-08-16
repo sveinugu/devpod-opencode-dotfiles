@@ -132,6 +132,7 @@ install_mode_after_repair="$(context_stat_mode "$hub_root/main/install.sh")"
 [ "$install_mode_after_repair" = "700" ]
 
 chmod 755 "$hub_root/work"
+chmod 600 "$hub_root/work/.devpodignore"
 if (
   cd "$checkout"
   bash "./scripts/verify-host-bare-hub.sh" --hub-root "$hub_root" --format json >"$tmpdir/verify-perms.json"

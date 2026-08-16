@@ -176,14 +176,14 @@ context_run_interactive_script() {
     return
   fi
 
+  # BSD/macOS script(1): no -c support; pass command argv directly.
   local shell_path=''
   shell_path="$(command -v bash || command -v sh || true)"
   [ -n "$shell_path" ] || {
-    printf 'FAIL context_run_interactive_script: cannot find shell for script(1) fallback\n' >&2
+    printf 'FAIL context_run_interactive_script: cannot find shell for script fallback\n' >&2
     exit 1
   }
 
-  # BSD/macOS script(1): no -c support; command must follow output file.
   printf '%b' "$input" | script -q -e /dev/null "$shell_path" -c "$command" >"$output_path"
 }
 

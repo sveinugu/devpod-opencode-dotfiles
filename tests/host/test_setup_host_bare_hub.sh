@@ -153,6 +153,7 @@ git init "$checkout_no_main" >/dev/null 2>&1
   cd "$checkout_no_main"
   git add . >/dev/null 2>&1
   git -c user.name='Test User' -c user.email='test@example.com' commit -m 'fixture' >/dev/null 2>&1
+  git branch -M trunk >/dev/null 2>&1
 )
 cp "$checkout/scripts/setup-host-bare-hub.sh" "$checkout_no_main/scripts/setup-host-bare-hub.sh"
 chmod +x "$checkout_no_main/scripts/setup-host-bare-hub.sh"
