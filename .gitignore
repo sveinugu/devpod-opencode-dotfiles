@@ -14,3 +14,8 @@
 
 # Devspace
 .devspace
+
+# Installer-generated harness outputs
+.config/opencode/plugins/opencode-loop.js
+.config/opencode/commands/loop-help.md
+.config/opencode/commands/loop.md

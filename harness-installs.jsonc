@@ -1,0 +1,15 @@
+{
+  "installs": [
+    {
+      "name": "opencode-loop",
+      "workingDirectory": ".config/opencode",
+      "install": ["npx", "-y", "@bybrawe/opencode-loop"],
+      "uninstall": ["npx", "-y", "@bybrawe/opencode-loop", "--uninstall"],
+      "outputs": [
+        ".config/opencode/plugins/opencode-loop.js",
+        ".config/opencode/commands/loop-help.md",
+        ".config/opencode/commands/loop.md"
+      ]
+    }
+  ]
+}

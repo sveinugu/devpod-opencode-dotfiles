@@ -1,4 +1,7 @@
 {
+  "name": "repo-local-opencode-config-deps",
+  "private": true,
+  "description": "Secondary repo-local dependency surface for config-dir tooling; runtime plugin authority remains in opencode.jsonc.",
   "dependencies": {
     "@bybrawe/opencode-loop": "^0.5.1",
     "@opencode-ai/plugin": "1.17.8"

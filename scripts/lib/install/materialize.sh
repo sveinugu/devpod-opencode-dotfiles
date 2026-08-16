@@ -54,16 +54,37 @@ install_plugin() {
   fi
 }
 
-install_run_opencode_command() {
+install_rebuild_project_skills() {
+  local helper="$source_root/scripts/lib/install/install-project-skills.sh"
+
+  if [ ! -x "$helper" ]; then
+    printf 'missing project skill installer helper: %s\n' "$helper" >&2
+    exit 1
+  fi
+
   if [ "$dry_run" = true ]; then
-    printf 'DRY-RUN (cd %s && %s)\n' "$home_dir/.config/opencode" "$*"
+    DRY_RUN=true bash "$helper" "$source_root"
     return 0
   fi
 
-  (
-    cd "$home_dir/.config/opencode"
-    "$@"
-  )
+  bash "$helper" "$source_root"
+}
+
+install_refresh_harness_installs() {
+  local helper="$source_root/scripts/lib/install/run-harness-installs.sh"
+
+  if [ ! -x "$helper" ]; then
+    printf 'missing harness install runner helper: %s\n' "$helper" >&2
+    exit 1
+  fi
+
+  if [ "$dry_run" = true ]; then
+    printf 'DRY-RUN (cd %s && %s)\n' "$source_root" "$helper"
+    DRY_RUN=true bash "$helper" "$source_root"
+    return 0
+  fi
+
+  bash "$helper" "$source_root"
 }
 
 install_ensure_oh_my_zsh() {
@@ -112,9 +133,8 @@ install_materialize() {
   fi
   install_link_path "$source_root/.config/nono" "$home_dir/.config/nono"
 
-  install_run_opencode_command npx -y skills add wondelai/skills/pragmatic-programmer -y
-  install_run_opencode_command npx -y skills add wondelai/skills/clean-code -y
-  install_run_opencode_command npx -y @bybrawe/opencode-loop
+  install_rebuild_project_skills
+  install_refresh_harness_installs
 
   printf 'ok: dotfiles applied from %s\n' "$source_root"
 }

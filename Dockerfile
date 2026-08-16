@@ -35,6 +35,10 @@ RUN git config --system --add safe.directory /workspaces/dotfiles/*
 # Install 'uv' globally
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
+# Stage preparatory reusable helper surface for future privileged harness operations.
+COPY scripts/lib/run-with-sudo-nono.sh /usr/local/libexec/dotfiles-run-helper
+RUN chmod 0755 /usr/local/libexec/dotfiles-run-helper
+
 ENV SHELL="/usr/bin/zsh"
 
 # Create dedicated non-sudo runtime identity for sandboxed agent/OpenCode workloads

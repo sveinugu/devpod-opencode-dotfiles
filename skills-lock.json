@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "clean-code": {
+      "source": "wondelai/skills",
+      "sourceType": "github",
+      "skillPath": "clean-code/SKILL.md",
+      "computedHash": "917f01d5f5800f1f575c6701a4a34939647e74c423bd3108e894191abb0593f6"
+    },
+    "pragmatic-programmer": {
+      "source": "wondelai/skills",
+      "sourceType": "github",
+      "skillPath": "pragmatic-programmer/SKILL.md",
+      "computedHash": "68d312ec11edf118ceb557457ed34caf25b35783aea9ba6d06ce087d8e0229c7"
+    }
+  }
+}
