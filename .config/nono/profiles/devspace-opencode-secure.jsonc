@@ -29,7 +29,8 @@
       "/workspaces/dotfiles/**/.zshrc",
       "/workspaces/dotfiles/**/.zprofile",
       "$HOME/.gitconfig",
-      "/etc/gitconfig"
+      "/etc/gitconfig",
+      "/etc/mime.types"
     ],
     "allow_file": [
       "/usr/local/bin/opencode-raw",
