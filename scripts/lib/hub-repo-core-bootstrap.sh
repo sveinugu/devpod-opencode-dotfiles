@@ -8,7 +8,30 @@ hub_is_valid_worktree() {
   branch_name="$(git -C "$workspace_root/main" symbolic-ref --short -q HEAD 2>/dev/null || true)"
   [ "$branch_name" = "$branch" ] || return 1
 
-  git --git-dir="$workspace_root/.bare" worktree list --porcelain | grep -F "worktree $workspace_root/main" >/dev/null 2>&1
+  hub_worktree_attached_to_bare "$workspace_root/main" "$workspace_root/.bare"
+}
+
+hub_worktree_attached_to_bare() {
+  local worktree_path="$1"
+  local bare_dir="$2"
+  local common_dir=''
+  local common_abs=''
+  local bare_abs=''
+
+  [ -d "$worktree_path" ] || return 1
+
+  common_dir="$(git -C "$worktree_path" rev-parse --git-common-dir 2>/dev/null || true)"
+  [ -n "$common_dir" ] || return 1
+
+  if ! common_abs="$(cd "$worktree_path" && cd "$common_dir" 2>/dev/null && pwd -P)"; then
+    return 1
+  fi
+
+  if ! bare_abs="$(cd "$bare_dir" 2>/dev/null && pwd -P)"; then
+    return 1
+  fi
+
+  [ "$common_abs" = "$bare_abs" ]
 }
 
 hub_remove_empty_non_git_main_dir() {
@@ -116,7 +139,7 @@ create_bare_hub() {
     "$workspace_root/state" \
     "$workspace_root/tmp"
 
-  if git --git-dir="$workspace_root/.bare" worktree list --porcelain | grep -F "worktree $workspace_root/main" >/dev/null 2>&1; then
+  if hub_worktree_attached_to_bare "$workspace_root/main" "$workspace_root/.bare"; then
     if ! hub_is_valid_worktree "$workspace_root" "$branch"; then
       hub_fail 'refused: existing main path is detached or invalid'
       return

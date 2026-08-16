@@ -69,6 +69,29 @@ is_workspace_pod_context() {
   return 1
 }
 
+worktree_attached_to_bare() {
+  local worktree_path="$1"
+  local bare_dir="$2"
+  local common_dir=''
+  local common_abs=''
+  local bare_abs=''
+
+  [ -d "$worktree_path" ] || return 1
+
+  common_dir="$(git -C "$worktree_path" rev-parse --git-common-dir 2>/dev/null || true)"
+  [ -n "$common_dir" ] || return 1
+
+  if ! common_abs="$(cd "$worktree_path" && cd "$common_dir" 2>/dev/null && pwd -P)"; then
+    return 1
+  fi
+
+  if ! bare_abs="$(cd "$bare_dir" 2>/dev/null && pwd -P)"; then
+    return 1
+  fi
+
+  [ "$common_abs" = "$bare_abs" ]
+}
+
 configure_git_identity() {
   local bare_dir="$1"
   local github_user_name="${HUB_GITHUB_USER_NAME:-}"
@@ -141,7 +164,7 @@ else
     printf 'refused: origin/%s is required for bootstrap\n' "$install_branch" >&2
     exit 1
   fi
-  if git --git-dir="$workspace_root/.bare" worktree list --porcelain | grep -F "worktree $install_dir" >/dev/null 2>&1; then
+  if worktree_attached_to_bare "$install_dir" "$workspace_root/.bare"; then
     :
   else
     mkdir -p "$(dirname "$install_dir")"

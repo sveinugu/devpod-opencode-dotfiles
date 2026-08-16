@@ -26,6 +26,29 @@ run_step() {
   fi
 }
 
+worktree_attached_to_bare() {
+  local worktree_path="$1"
+  local bare_dir="$2"
+  local common_dir=''
+  local common_abs=''
+  local bare_abs=''
+
+  [ -d "$worktree_path" ] || return 1
+
+  common_dir="$(git -C "$worktree_path" rev-parse --git-common-dir 2>/dev/null || true)"
+  [ -n "$common_dir" ] || return 1
+
+  if ! common_abs="$(cd "$worktree_path" && cd "$common_dir" 2>/dev/null && pwd -P)"; then
+    return 1
+  fi
+
+  if ! bare_abs="$(cd "$bare_dir" 2>/dev/null && pwd -P)"; then
+    return 1
+  fi
+
+  [ "$common_abs" = "$bare_abs" ]
+}
+
 worktree_is_clean_for_ff() {
   local worktree_path="$1"
 
@@ -52,7 +75,7 @@ run_step 'ensure managed directory tmp/' ensure_dir_path "$workspace_root/tmp"
 run_step 'ensure canonical state path state/hub/main' ensure_dir_path "$workspace_root/state/hub/main"
 run_step 'ensure canonical tmp path tmp/hub/main' ensure_dir_path "$workspace_root/tmp/hub/main"
 
-if git --git-dir="$workspace_root/.bare" worktree list --porcelain | grep -F "worktree $workspace_root/main" >/dev/null 2>&1; then
+if worktree_attached_to_bare "$workspace_root/main" "$workspace_root/.bare"; then
   main_branch="$(git -C "$workspace_root/main" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
   fetched_origin_main=false
   if git --git-dir="$workspace_root/.bare" fetch origin refs/heads/main:refs/remotes/origin/main >/dev/null 2>&1; then
@@ -115,7 +138,7 @@ else
   run_step "ensure canonical state path state/hub/work/$install_branch" ensure_dir_path "$workspace_root/state/hub/work/$install_branch"
   run_step "ensure canonical tmp path tmp/hub/work/$install_branch" ensure_dir_path "$workspace_root/tmp/hub/work/$install_branch"
 
-  if git --git-dir="$workspace_root/.bare" worktree list --porcelain | grep -F "worktree $install_dir" >/dev/null 2>&1; then
+  if worktree_attached_to_bare "$install_dir" "$workspace_root/.bare"; then
     :
   else
     mkdir -p "$(dirname "$install_dir")"

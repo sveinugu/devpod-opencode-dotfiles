@@ -88,8 +88,7 @@ done
 
 grep -F 'gitdir: ./.bare' "$workspace_root/.git" >/dev/null || fail ".git did not point to ./.bare"
 
-wt_entry="$(git --git-dir="$workspace_root/.bare" worktree list --porcelain)"
-printf '%s\n' "$wt_entry" | grep -F "worktree $workspace_root/main" >/dev/null || fail "top-level main not attached from bare repo"
+[ "$(context_git_common_dir_abs "$workspace_root/main")" = "$(context_canonical_dir "$workspace_root/.bare")" ] || fail "top-level main not attached from bare repo"
 
 main_branch="$(git -C "$workspace_root/main" rev-parse --abbrev-ref HEAD)"
 [ "$main_branch" = "main" ] || fail "top-level main is not on main branch"
@@ -365,8 +364,7 @@ bash "$script" >"$tmpdir/empty-main.out"
 empty_main_branch="$(git -C "$workspace_empty_main/main" rev-parse --abbrev-ref HEAD)"
 [ "$empty_main_branch" = "main" ] || fail "pre-created empty main directory was not converted into tracked main worktree"
 
-empty_main_wt_entry="$(git --git-dir="$workspace_empty_main/.bare" worktree list --porcelain)"
-printf '%s\n' "$empty_main_wt_entry" | grep -F "worktree $workspace_empty_main/main" >/dev/null || fail "empty main directory was not attached as .bare worktree"
+[ "$(context_git_common_dir_abs "$workspace_empty_main/main")" = "$(context_canonical_dir "$workspace_empty_main/.bare")" ] || fail "empty main directory was not attached as .bare worktree"
 
 workspace_empty_main_cwd="$tmpdir/workspace-empty-main-cwd"
 mkdir -p "$workspace_empty_main_cwd/main" "$tmpdir/home-empty-main-cwd"

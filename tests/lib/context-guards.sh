@@ -161,3 +161,57 @@ context_stat_mode() {
 
   return 1
 }
+
+context_has_script_dash_c() {
+  script -q -e -c 'true' /dev/null >/dev/null 2>&1
+}
+
+context_run_interactive_script() {
+  local input="$1"
+  local output_path="$2"
+  local command="$3"
+
+  if context_has_script_dash_c; then
+    printf '%b' "$input" | script -q -e -c "$command" /dev/null >"$output_path"
+    return
+  fi
+
+  local shell_path=''
+  shell_path="$(command -v bash || command -v sh || true)"
+  [ -n "$shell_path" ] || {
+    printf 'FAIL context_run_interactive_script: cannot find shell for script(1) fallback\n' >&2
+    exit 1
+  }
+
+  # BSD/macOS script(1): no -c support; command must follow output file.
+  printf '%b' "$input" | script -q -e /dev/null "$shell_path" -c "$command" >"$output_path"
+}
+
+context_canonical_dir() {
+  local path="$1"
+  (
+    cd "$path"
+    pwd -P
+  )
+}
+
+context_git_common_dir_abs() {
+  local repo_dir="$1"
+  local common_dir=''
+
+  common_dir="$(git -C "$repo_dir" rev-parse --git-common-dir 2>/dev/null || true)"
+  [ -n "$common_dir" ] || return 1
+
+  case "$common_dir" in
+    /*)
+      context_canonical_dir "$common_dir"
+      ;;
+    *)
+      (
+        cd "$repo_dir"
+        cd "$common_dir"
+        pwd -P
+      )
+      ;;
+  esac
+}

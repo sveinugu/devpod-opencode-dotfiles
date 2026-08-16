@@ -24,12 +24,7 @@ run_interactive() {
   local output_path="$2"
   local command="$3"
 
-  if script -q -e -c 'true' /dev/null >/dev/null 2>&1; then
-    printf '%b' "$input" | script -q -e -c "$command" /dev/null >"$output_path"
-  else
-    # BSD/macOS script(1) does not support -c; pass command argv directly.
-    printf '%b' "$input" | script -q -e /dev/null sh -c "$command" >"$output_path"
-  fi
+  context_run_interactive_script "$input" "$output_path" "$command"
 }
 
 extract_identity_assignments() {

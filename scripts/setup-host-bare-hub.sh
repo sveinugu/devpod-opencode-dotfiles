@@ -85,6 +85,29 @@ resolve_mode() {
   printf 'host\n'
 }
 
+worktree_attached_to_bare() {
+  local worktree_path="$1"
+  local bare_dir="$2"
+  local common_dir=''
+  local common_abs=''
+  local bare_abs=''
+
+  [ -d "$worktree_path" ] || return 1
+
+  common_dir="$(git -C "$worktree_path" rev-parse --git-common-dir 2>/dev/null || true)"
+  [ -n "$common_dir" ] || return 1
+
+  if ! common_abs="$(cd "$worktree_path" && cd "$common_dir" 2>/dev/null && pwd -P)"; then
+    return 1
+  fi
+
+  if ! bare_abs="$(cd "$bare_dir" 2>/dev/null && pwd -P)"; then
+    return 1
+  fi
+
+  [ "$common_abs" = "$bare_abs" ]
+}
+
 effective_mode="$(resolve_mode)"
 
 configure_identity() {
@@ -182,10 +205,7 @@ write_devpodignore "$hub_root/work"
 write_devpodignore "$hub_root/repos"
 write_devpodignore "$hub_root/tmp"
 
-if ! (
-  cd "$hub_root"
-  git worktree list | grep -F "$hub_root/main" >/dev/null 2>&1
-); then
+if ! worktree_attached_to_bare "$hub_root/main" "$hub_root/.bare"; then
   rm -rf "$hub_root/main"
   (
     cd "$hub_root"

@@ -24,12 +24,35 @@ check() {
   fi
 }
 
+worktree_attached_to_bare() {
+  local worktree_path="$1"
+  local bare_dir="$2"
+  local common_dir=''
+  local common_abs=''
+  local bare_abs=''
+
+  [ -d "$worktree_path" ] || return 1
+
+  common_dir="$(git -C "$worktree_path" rev-parse --git-common-dir 2>/dev/null || true)"
+  [ -n "$common_dir" ] || return 1
+
+  if ! common_abs="$(cd "$worktree_path" && cd "$common_dir" 2>/dev/null && pwd -P)"; then
+    return 1
+  fi
+
+  if ! bare_abs="$(cd "$bare_dir" 2>/dev/null && pwd -P)"; then
+    return 1
+  fi
+
+  [ "$common_abs" = "$bare_abs" ]
+}
+
 check "workspace Deployment exists" test "${HUB_CHECK_DEPLOYMENT:-no}" = "yes"
 check "workspace PVC exists" test "${HUB_CHECK_PVC:-no}" = "yes"
 check "workspace pod is reachable" test -n "${HUB_CHECK_POD:-}"
 
 check "top-level .bare is a valid bare Git directory" git --git-dir="$workspace_root/.bare" rev-parse --is-bare-repository
-check "top-level main exists and is attached" sh -c "[ -d '$workspace_root/main' ] && git --git-dir='$workspace_root/.bare' worktree list --porcelain | grep -F 'worktree $workspace_root/main' >/dev/null"
+check "top-level main exists and is attached" worktree_attached_to_bare "$workspace_root/main" "$workspace_root/.bare"
 
 check "managed directory work/ exists" test -d "$workspace_root/work"
 check "managed directory repos/ exists" test -d "$workspace_root/repos"

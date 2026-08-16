@@ -6,7 +6,22 @@ hub_kind="${2:?usage: worktree-env.sh CHECKOUT_DIR HUB_KIND [REPO_NAME]}"
 repo_name="${3:-hub}"
 
 workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
-checkout_dir="$(readlink -f "$checkout_dir")"
+
+resolve_existing_dir() {
+  local path="$1"
+  if [ -d "$path" ]; then
+    (
+      cd "$path"
+      pwd -P
+    )
+    return 0
+  fi
+
+  printf '%s\n' "$path"
+}
+
+workspace_root="$(resolve_existing_dir "$workspace_root")"
+checkout_dir="$(resolve_existing_dir "$checkout_dir")"
 
 refuse() {
   printf '%s\n' "$1" >&2

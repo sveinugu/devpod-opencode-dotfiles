@@ -160,6 +160,8 @@ mkdir -p "$checkout_no_main/scripts/lib"
 cp "$checkout/scripts/lib/ensure-bare-excludes.sh" "$checkout_no_main/scripts/lib/ensure-bare-excludes.sh"
 chmod +x "$checkout_no_main/scripts/lib/ensure-bare-excludes.sh"
 cp "$checkout/scripts/lib/bare-excludes.list" "$checkout_no_main/scripts/lib/bare-excludes.list"
+cp "$checkout/scripts/verify-host-bare-hub.sh" "$checkout_no_main/scripts/verify-host-bare-hub.sh"
+chmod +x "$checkout_no_main/scripts/verify-host-bare-hub.sh"
 
 if (
   cd "$checkout_no_main"
