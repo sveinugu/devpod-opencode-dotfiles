@@ -106,10 +106,10 @@ Implementation should prefer command-local completion tuning (function behavior 
 
 ### Automated
 
-- Extend `tests/devspace/test_workspace_navigation_commands.sh`:
+- Extend `tests/context/pod-outside-nono/test_workspace_navigation_commands.sh`:
   - verify `dre` resolves to default checkout directory from metadata,
   - verify metadata-missing/invalid failure message includes repair hint.
-- Extend `tests/install/test_workspace_navigation_shell.sh`:
+- Extend `tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`:
   - verify `dwt` completion surfaces slash-containing worktree names directly,
   - verify completion helper behavior preserves intended candidate insertion semantics.
 
