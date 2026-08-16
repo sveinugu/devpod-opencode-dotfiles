@@ -24,10 +24,10 @@
   - `scripts/lib/install/materialize.sh`
   - `.config/opencode/opencode.jsonc`
 - Existing verification surfaces to extend instead of bypassing:
-  - `tests/context/pod-inside-nono/test_workspace_manifest_contract.sh`
-  - `tests/context/pod-inside-nono/test_devspace_command_surface.sh`
-  - `tests/context/pod-inside-nono/test_workspace_preinstalled_tools_contract.sh`
-  - `tests/context/pod-inside-nono/test_p2_runbook_consolidation.sh` when runbook anchors move
+  - `tests/pod-inside-nono/test_workspace_manifest_contract.sh`
+  - `tests/pod-inside-nono/test_devspace_command_surface.sh`
+  - `tests/pod-inside-nono/test_workspace_preinstalled_tools_contract.sh`
+  - `tests/pod-inside-nono/test_p2_runbook_consolidation.sh` when runbook anchors move
 
 ## Spec review cycle outcome
 
@@ -124,9 +124,9 @@ Direction lock for this slice:
 - Prefer create: one focused contract test for the secure `opencode` launch wrapper and PATH precedence.
 - Prefer create: one focused contract test for the provider/runtime configuration rules.
 - Extend existing tests only where overlap is direct:
-  - `tests/context/pod-inside-nono/test_workspace_manifest_contract.sh`
-  - `tests/context/pod-inside-nono/test_devspace_command_surface.sh`
-  - `tests/context/pod-inside-nono/test_workspace_preinstalled_tools_contract.sh`
+  - `../../../tests/pod-inside-nono/test_workspace_manifest_contract.sh`
+  - `../../../tests/pod-inside-nono/test_devspace_command_surface.sh`
+  - `../../../tests/pod-inside-nono/test_workspace_preinstalled_tools_contract.sh`
   - relevant `tests/docs/` runbook-anchor tests if documentation anchors move
 
 ---

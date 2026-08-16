@@ -183,9 +183,9 @@ This repo-specific policy overrides the generic assumption that a repo root can 
 
 ### Install safety and install behavior
 - Create: `scripts/install-validate-source.sh`
-- Create: `tests/context/pod-outside-nono/test_install_validate_source.sh`
+- Create: `../../../tests/pod-outside-nono/test_install_validate_source.sh`
 - Modify: `install.sh`
-- Create: `tests/context/pod-outside-nono/test_install_local_source_contract.sh`
+- Create: `../../../tests/pod-outside-nono/test_install_local_source_contract.sh`
 
 ### Agent policy and docs
 - Modify: `.config/opencode/AGENTS.md`
@@ -193,7 +193,7 @@ This repo-specific policy overrides the generic assumption that a repo root can 
 - Modify: `.config/opencode/agents/senior-implementer.md`
 - Create: `docs/superpowers/runbooks/bare-hub-manager-usage.md`
 - Create: `docs/superpowers/runbooks/devpod-persistence-verification.md`
-- Create: `tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
+- Create: `../../../tests/pod-inside-nono/test_bare_hub_guardrails.sh`
 
 ### Durable OpenCode export and backup
 - Create: `scripts/opencode-export-all-sessions.sh`
@@ -819,11 +819,11 @@ These defaults are now part of the implementation contract for this slice; there
 
 **Files:**
 - Create: `scripts/install-validate-source.sh`
-- Test: `tests/context/pod-outside-nono/test_install_validate_source.sh`
+- Test: `../../../tests/pod-outside-nono/test_install_validate_source.sh`
 
 - [ ] **Step 1: Write the failing integration test**
 
-Create `tests/context/pod-outside-nono/test_install_validate_source.sh` with this exact content:
+Create `../../../tests/pod-outside-nono/test_install_validate_source.sh` with this exact content:
 
 ```bash
 #!/usr/bin/env bash
@@ -861,7 +861,7 @@ printf 'PASS test_install_validate_source\n'
 Run:
 
 ```bash
-bash tests/context/pod-outside-nono/test_install_validate_source.sh
+bash tests/pod-outside-nono/test_install_validate_source.sh
 ```
 
 Expected: FAIL with `./scripts/install-validate-source.sh: No such file or directory`.
@@ -917,7 +917,7 @@ printf 'ok: validated source path %s\n' "$candidate_abs"
 Run:
 
 ```bash
-bash tests/context/pod-outside-nono/test_install_validate_source.sh
+bash tests/pod-outside-nono/test_install_validate_source.sh
 ```
 
 Expected:
@@ -929,7 +929,7 @@ PASS test_install_validate_source
 - [ ] **Step 5: Commit**
 
 ```bash
-git add scripts/install-validate-source.sh tests/context/pod-outside-nono/test_install_validate_source.sh
+git add scripts/install-validate-source.sh tests/pod-outside-nono/test_install_validate_source.sh
 git commit -m "feat(install): validate source roots before linking"
 ```
 
@@ -1047,11 +1047,11 @@ git commit -m "feat(devpod): open main worktree in managed bare-hub layout"
 
 **Files:**
 - Modify: `install.sh`
-- Test: `tests/context/pod-outside-nono/test_install_local_source_contract.sh`
+- Test: `../../../tests/pod-outside-nono/test_install_local_source_contract.sh`
 
 - [ ] **Step 1: Write the failing contract test**
 
-Create `tests/context/pod-outside-nono/test_install_local_source_contract.sh` with this exact content:
+Create `../../../tests/pod-outside-nono/test_install_local_source_contract.sh` with this exact content:
 
 ```bash
 #!/usr/bin/env bash
@@ -1142,7 +1142,7 @@ printf 'PASS test_install_local_source_contract\n'
 Run:
 
 ```bash
-bash tests/context/pod-outside-nono/test_install_local_source_contract.sh
+bash tests/pod-outside-nono/test_install_local_source_contract.sh
 ```
 
 Expected: FAIL because the current `install.sh` still uses fixed `~/dotfiles` assumptions and does not enforce the new local-source contract.
@@ -1270,7 +1270,7 @@ printf 'ok: dotfiles applied from %s\n' "$source_root"
 Run:
 
 ```bash
-bash tests/context/pod-outside-nono/test_install_local_source_contract.sh
+bash tests/pod-outside-nono/test_install_local_source_contract.sh
 ```
 
 Expected:
@@ -1294,7 +1294,7 @@ Expected: each run uses the files from the checkout/worktree where that `install
 - [ ] **Step 6: Commit**
 
 ```bash
-git add install.sh tests/context/pod-outside-nono/test_install_local_source_contract.sh
+git add install.sh tests/pod-outside-nono/test_install_local_source_contract.sh
 git commit -m "feat(install): use local worktree sources with fixed targets"
 ```
 
@@ -1306,11 +1306,11 @@ git commit -m "feat(install): use local worktree sources with fixed targets"
 - Modify: `.config/opencode/agents/senior-implementer.md`
 - Create: `docs/superpowers/runbooks/bare-hub-manager-usage.md`
 - Create: `docs/superpowers/runbooks/devpod-persistence-verification.md`
-- Test: `tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
+- Test: `../../../tests/pod-inside-nono/test_bare_hub_guardrails.sh`
 
 - [ ] **Step 1: Write the failing grep-level doc test**
 
-Create `tests/context/pod-inside-nono/test_bare_hub_guardrails.sh` with this exact content:
+Create `../../../tests/pod-inside-nono/test_bare_hub_guardrails.sh` with this exact content:
 
 ```bash
 #!/usr/bin/env bash
@@ -1337,7 +1337,7 @@ printf 'PASS test_bare_hub_guardrails\n'
 Run:
 
 ```bash
-bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh
+bash tests/pod-inside-nono/test_bare_hub_guardrails.sh
 ```
 
 Expected: FAIL because the repo-specific bare-hub text and runbooks are not yet present with the required exact wording.
@@ -1477,7 +1477,7 @@ kubectl exec -n "$namespace" "$pod" -- tar -C /tmp/backup_staging/current -cf - 
 Run:
 
 ```bash
-bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh
+bash tests/pod-inside-nono/test_bare_hub_guardrails.sh
 ```
 
 Expected:
@@ -1489,7 +1489,7 @@ PASS test_bare_hub_guardrails
 - [ ] **Step 5: Commit**
 
 ```bash
-git add .config/opencode/AGENTS.md .config/opencode/agents/maestro.md .config/opencode/agents/senior-implementer.md docs/superpowers/runbooks/bare-hub-manager-usage.md docs/superpowers/runbooks/devpod-persistence-verification.md tests/context/pod-inside-nono/test_bare_hub_guardrails.sh
+git add .config/opencode/AGENTS.md .config/opencode/agents/maestro.md .config/opencode/agents/senior-implementer.md docs/superpowers/runbooks/bare-hub-manager-usage.md docs/superpowers/runbooks/devpod-persistence-verification.md tests/pod-inside-nono/test_bare_hub_guardrails.sh
 git commit -m "docs(agents): define bare-hub manager worktree policy"
 ```
 
@@ -2337,9 +2337,9 @@ Before claiming this work complete, run:
 bash tests/bootstrap/test_setup_host_bare_hub.sh
 bash tests/bootstrap/test_verify_host_bare_hub.sh
 bash tests/devpod/test_devpod_ensure_layout.sh
-bash tests/context/pod-outside-nono/test_install_validate_source.sh
-bash tests/context/pod-outside-nono/test_install_local_source_contract.sh
-bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh
+bash tests/pod-outside-nono/test_install_validate_source.sh
+bash tests/pod-outside-nono/test_install_local_source_contract.sh
+bash tests/pod-inside-nono/test_bare_hub_guardrails.sh
 bash tests/docs/test_persistence_doc_reconciliation.sh
 bash tests/opencode/test_export_all_sessions.sh
 bash tests/opencode/test_prepare_state_backup_set.sh

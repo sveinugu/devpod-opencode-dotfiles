@@ -49,28 +49,28 @@ bin/clone-repo <github-repo>
 
 **Run a single test:**
 ```bash
-bash tests/context/pod-inside-nono/test_nono_profile_layout.sh
-bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh
+bash tests/pod-inside-nono/test_nono_profile_layout.sh
+bash tests/pod-inside-nono/test_delegation_packet_policy_contract.sh
 ```
 
 **Run by execution context (preferred):**
 ```bash
-bash tests/context/run.sh host
-bash tests/context/run.sh pod-outside-nono
-bash tests/context/run.sh pod-inside-nono
+bash tests/run.sh host
+bash tests/run.sh pod-outside-nono
+bash tests/run.sh pod-inside-nono
 ```
 
 There is no global test runner — run individual files directly with `bash`.
 
 ## Tests
 
-Tests live in `tests/` and are primarily organized by execution context under `tests/context/`:
+Tests live in `tests/` and are primarily organized by execution context under `tests/`:
 
-- `tests/context/host/` — host-shell tests outside workspace/nono
-- `tests/context/pod-outside-nono/` — workspace pod tests outside nono sandbox
-- `tests/context/pod-inside-nono/` — workspace pod tests inside nono sandbox
+- `tests/host/` — host-shell tests outside workspace/nono
+- `tests/pod-outside-nono/` — workspace pod tests outside nono sandbox
+- `tests/pod-inside-nono/` — workspace pod tests inside nono sandbox
 
-Legacy domain folders still exist (`tests/devspace/`, `tests/install/`, `tests/bootstrap/`, `tests/docs/`) but active contract suites are context-routed via `tests/context/run.sh`.
+Legacy domain folders still exist (`tests/devspace/`, `tests/install/`, `tests/bootstrap/`, `tests/docs/`) but active contract suites are context-routed via `tests/run.sh`.
 
 Doc-contract tests use `rg` (ripgrep) to assert that required text patterns exist in canonical files. When updating policy, run these tests to confirm the anchors are still present.
 

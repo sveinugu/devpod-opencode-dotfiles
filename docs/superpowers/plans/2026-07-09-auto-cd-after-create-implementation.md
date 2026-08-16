@@ -19,10 +19,10 @@
   - `bin/clone-repo`
   - `.config/shell/workspace-navigation.zsh`
 - Existing tests to extend rather than replace:
-  - `tests/context/pod-inside-nono/test_new_worktree.sh`
+  - `tests/pod-inside-nono/test_new_worktree.sh`
   - `tests/devspace/test_public_repo_clone_behavior.sh`
-  - `tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
-  - `tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
+  - `tests/pod-outside-nono/test_workspace_navigation_shell.sh`
+  - `tests/pod-inside-nono/test_bare_hub_guardrails.sh`
 
 ## Scope
 
@@ -48,12 +48,12 @@
 - Modify: `scripts/lib/new-worktree-flow.sh` — emit the created worktree path through the shared handoff helper while preserving current success output.
 - Modify: `bin/clone-repo` — emit the created default-checkout path through the shared handoff helper while preserving current success output.
 - Modify: `.config/shell/workspace-navigation.zsh` — add one shared wrapper runner plus thin `new-worktree` and `clone-repo` interactive wrappers.
-- Modify: `tests/context/pod-inside-nono/test_new_worktree.sh` — script-level contract coverage for `new-worktree` handoff behavior.
+- Modify: `tests/pod-inside-nono/test_new_worktree.sh` — script-level contract coverage for `new-worktree` handoff behavior.
 - Modify: `tests/devspace/test_public_repo_clone_behavior.sh` — script-level contract coverage for `clone-repo` handoff behavior.
-- Modify: `tests/context/pod-outside-nono/test_workspace_navigation_shell.sh` — shell-wrapper behavior coverage for auto-`cd`, opt-out, degraded handoff, and failure preservation.
+- Modify: `tests/pod-outside-nono/test_workspace_navigation_shell.sh` — shell-wrapper behavior coverage for auto-`cd`, opt-out, degraded handoff, and failure preservation.
 - Modify: `docs/superpowers/runbooks/devspace-bare-hub-usage.md` — document interactive wrapper behavior and the shared opt-out variable.
 - Modify: `docs/superpowers/runbooks/devspace-workspace-lifecycle.md` — point host-side readers at the updated in-pod wrapper behavior.
-- Modify: `tests/context/pod-inside-nono/test_bare_hub_guardrails.sh` — pin the live-doc wording for the new wrapper behavior and opt-out variable.
+- Modify: `tests/pod-inside-nono/test_bare_hub_guardrails.sh` — pin the live-doc wording for the new wrapper behavior and opt-out variable.
 
 ---
 
@@ -63,11 +63,11 @@
 - Create: `scripts/lib/write-workspace-nav-target.sh`
 - Modify: `scripts/lib/new-worktree-flow.sh`
 - Modify: `bin/clone-repo`
-- Modify: `tests/context/pod-inside-nono/test_new_worktree.sh`
+- Modify: `tests/pod-inside-nono/test_new_worktree.sh`
 - Modify: `tests/devspace/test_public_repo_clone_behavior.sh`
 
 - [ ] **Step 1: Write the failing script-level contract tests first**
-  - Extend `tests/context/pod-inside-nono/test_new_worktree.sh` so a run with `HUB_WORKSPACE_NAV_TARGET_FILE=<temp-file>` must write the created worktree path to that file.
+  - Extend `tests/pod-inside-nono/test_new_worktree.sh` so a run with `HUB_WORKSPACE_NAV_TARGET_FILE=<temp-file>` must write the created worktree path to that file.
   - Keep the existing success line assertion shape intact: the new handoff is additive and must not replace the current human-readable success output.
   - Extend `tests/devspace/test_public_repo_clone_behavior.sh` so a run with `HUB_WORKSPACE_NAV_TARGET_FILE=<temp-file>` must write the created default checkout path for the managed child repo.
   - Pin that the existing clone progress / success behavior still remains visible.
@@ -76,7 +76,7 @@
   - Run:
 
     ```bash
-    bash tests/context/pod-inside-nono/test_new_worktree.sh
+    bash tests/pod-inside-nono/test_new_worktree.sh
     bash tests/devspace/test_public_repo_clone_behavior.sh
     ```
 
@@ -92,7 +92,7 @@
   - Re-run:
 
     ```bash
-    bash tests/context/pod-inside-nono/test_new_worktree.sh
+    bash tests/pod-inside-nono/test_new_worktree.sh
     bash tests/devspace/test_public_repo_clone_behavior.sh
     ```
 
@@ -109,10 +109,10 @@
 
 **Files:**
 - Modify: `.config/shell/workspace-navigation.zsh`
-- Modify: `tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
+- Modify: `../../../tests/pod-outside-nono/test_workspace_navigation_shell.sh`
 
 - [ ] **Step 1: Write the failing shell-wrapper tests first**
-  - Extend `tests/context/pod-outside-nono/test_workspace_navigation_shell.sh` with wrapper-backed scenarios for both `new-worktree` and `clone-repo`.
+  - Extend `../../../tests/pod-outside-nono/test_workspace_navigation_shell.sh` with wrapper-backed scenarios for both `new-worktree` and `clone-repo`.
   - Pin these user-visible behaviors:
     - on success with opt-out unset, the wrapper forwards normal command output, prints the shared opt-out hint, prints `cd -> <target>`, and changes the current shell directory;
     - on success with `HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1`, the wrapper forwards normal command output, prints the same hint, and stays in the original directory;
@@ -123,7 +123,7 @@
   - Run:
 
     ```bash
-    bash tests/context/pod-outside-nono/test_workspace_navigation_shell.sh
+    bash tests/pod-outside-nono/test_workspace_navigation_shell.sh
     ```
 
   - Expected: FAIL on the new wrapper-behavior assertions.
@@ -143,7 +143,7 @@
   - Run:
 
     ```bash
-    bash tests/context/pod-outside-nono/test_workspace_navigation_shell.sh
+    bash tests/pod-outside-nono/test_workspace_navigation_shell.sh
     ```
 
   - Expected: PASS.
@@ -157,7 +157,7 @@
 
 - [ ] **Step 6: Mandatory refactor checkpoint**
   - Keep hint text, temp-file handling, and handoff validation centralized in the shared shell helper.
-  - Re-run `bash tests/context/pod-outside-nono/test_workspace_navigation_shell.sh` after cleanup.
+  - Re-run `bash tests/pod-outside-nono/test_workspace_navigation_shell.sh` after cleanup.
 
 **User Check-in:** after Task 2 reaches green, pause for human confirmation that the interactive hint text and auto-`cd` feel are acceptable before updating docs.
 
@@ -168,17 +168,17 @@
 **Files:**
 - Modify: `docs/superpowers/runbooks/devspace-bare-hub-usage.md`
 - Modify: `docs/superpowers/runbooks/devspace-workspace-lifecycle.md`
-- Modify: `tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
+- Modify: `../../../tests/pod-inside-nono/test_bare_hub_guardrails.sh`
 
 - [ ] **Step 1: Write or tighten the failing doc-contract checks first**
-  - Extend `tests/context/pod-inside-nono/test_bare_hub_guardrails.sh` so the live runbooks are required to mention the interactive wrapper behavior and the shared opt-out variable `HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1`.
+  - Extend `../../../tests/pod-inside-nono/test_bare_hub_guardrails.sh` so the live runbooks are required to mention the interactive wrapper behavior and the shared opt-out variable `HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1`.
   - Keep the checks focused on current live runbooks only.
 
 - [ ] **Step 2: Verify RED**
   - Run:
 
     ```bash
-    bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh
+    bash tests/pod-inside-nono/test_bare_hub_guardrails.sh
     ```
 
   - Expected: FAIL until the runbooks describe the new wrapper behavior.
@@ -191,24 +191,24 @@
   - Run:
 
     ```bash
-    bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh
+    bash tests/pod-inside-nono/test_bare_hub_guardrails.sh
     ```
 
   - Expected: PASS.
 
 - [ ] **Step 5: Mandatory refactor checkpoint**
   - Keep the runbook wording pointer-based and non-duplicative.
-  - Re-run `bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh` after cleanup.
+  - Re-run `bash tests/pod-inside-nono/test_bare_hub_guardrails.sh` after cleanup.
 
 ---
 
 ## Final verification checklist
 
 - [ ] Run the focused regression suite:
-  - `bash tests/context/pod-inside-nono/test_new_worktree.sh`
+  - `bash tests/pod-inside-nono/test_new_worktree.sh`
   - `bash tests/devspace/test_public_repo_clone_behavior.sh`
-  - `bash tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
-  - `bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
+  - `bash tests/pod-outside-nono/test_workspace_navigation_shell.sh`
+  - `bash tests/pod-inside-nono/test_bare_hub_guardrails.sh`
 - [ ] Re-read `docs/superpowers/specs/2026-07-09-auto-cd-after-create-design.md` and confirm each acceptance check is covered:
   - script-level target-file handoff for both commands;
   - wrapper auto-jump by default;

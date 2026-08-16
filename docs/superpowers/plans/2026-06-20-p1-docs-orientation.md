@@ -47,20 +47,20 @@
 
 ## Proposed file map
 
-- Create: `tests/context/pod-inside-nono/test_p1_docs_orientation.sh` — locks the required README sections, runbook links, agent-doc links, and entry-point comment anchors.
+- Create: `tests/pod-inside-nono/test_p1_docs_orientation.sh` — locks the required README sections, runbook links, agent-doc links, and entry-point comment anchors.
 - Modify: `README.md` — becomes the first-contact orientation page for users, developers, and agents.
 - Modify: `devspace.yaml` — add a short top-of-file routing comment to README + runbooks.
 - Modify: `install.sh` — add a short top-of-file high-level flow comment block plus runbook links.
 - Verify only:
-  - `tests/context/pod-inside-nono/test_devspace_command_surface.sh`
-  - `tests/context/pod-outside-nono/test_install_local_source_contract.sh`
+  - `tests/pod-inside-nono/test_devspace_command_surface.sh`
+  - `tests/pod-outside-nono/test_install_local_source_contract.sh`
 
 ---
 
 ## Task 1: Lock the orientation slice with one failing docs contract
 
 **Files:**
-- Create: `tests/context/pod-inside-nono/test_p1_docs_orientation.sh`
+- Create: `tests/pod-inside-nono/test_p1_docs_orientation.sh`
 
 - [ ] **Step 1: Write the failing docs contract first**
 
@@ -129,7 +129,7 @@ fi
 Run:
 
 ```bash
-bash tests/context/pod-inside-nono/test_p1_docs_orientation.sh
+bash tests/pod-inside-nono/test_p1_docs_orientation.sh
 ```
 
 Expected: FAIL because `README.md` is still 2 lines and neither entry-point comment block exists yet.
@@ -137,7 +137,7 @@ Expected: FAIL because `README.md` is still 2 lines and neither entry-point comm
 - [ ] **Step 3: Commit the red test slice**
 
 ```bash
-git add tests/context/pod-inside-nono/test_p1_docs_orientation.sh
+git add tests/pod-inside-nono/test_p1_docs_orientation.sh
 git commit -m "test(docs): lock p1 orientation contract"
 ```
 
@@ -147,7 +147,7 @@ git commit -m "test(docs): lock p1 orientation contract"
 
 **Files:**
 - Modify: `README.md`
-- Test: `tests/context/pod-inside-nono/test_p1_docs_orientation.sh`
+- Test: `../../../tests/pod-inside-nono/test_p1_docs_orientation.sh`
 
 - [ ] **Step 1: Replace the README with the exact orientation content**
 
@@ -203,9 +203,9 @@ bin/clone-repo https://github.com/<owner>/<repo>.git
 ### Agent / verification
 
 ```bash
-bash tests/context/pod-inside-nono/test_p1_docs_orientation.sh
-bash tests/context/pod-inside-nono/test_devspace_command_surface.sh
-bash tests/context/pod-outside-nono/test_install_local_source_contract.sh
+bash tests/pod-inside-nono/test_p1_docs_orientation.sh
+bash tests/pod-inside-nono/test_devspace_command_surface.sh
+bash tests/pod-outside-nono/test_install_local_source_contract.sh
 ```
 
 ## Repo layout
@@ -229,7 +229,7 @@ bash tests/context/pod-outside-nono/test_install_local_source_contract.sh
 Run:
 
 ```bash
-bash tests/context/pod-inside-nono/test_p1_docs_orientation.sh
+bash tests/pod-inside-nono/test_p1_docs_orientation.sh
 ```
 
 Expected: FAIL only on the still-missing `devspace.yaml` and `install.sh` comment anchors.
@@ -248,7 +248,7 @@ git commit -m "docs: add top-level repo orientation"
 **Files:**
 - Modify: `devspace.yaml`
 - Modify: `install.sh`
-- Test: `tests/context/pod-inside-nono/test_p1_docs_orientation.sh`
+- Test: `../../../tests/pod-inside-nono/test_p1_docs_orientation.sh`
 
 - [ ] **Step 1: Add the exact header comment to `devspace.yaml`**
 
@@ -284,7 +284,7 @@ assume_yes=false
 Run:
 
 ```bash
-bash tests/context/pod-inside-nono/test_p1_docs_orientation.sh
+bash tests/pod-inside-nono/test_p1_docs_orientation.sh
 ```
 
 Expected: PASS.
@@ -304,14 +304,14 @@ git commit -m "docs: add entry-point cross-links"
 - Review only: `README.md`
 - Review only: `devspace.yaml`
 - Review only: `install.sh`
-- Review only: `tests/context/pod-inside-nono/test_p1_docs_orientation.sh`
+- Review only: `../../../tests/pod-inside-nono/test_p1_docs_orientation.sh`
 
 - [ ] **Step 1: Re-run the focused DevSpace behavior guard**
 
 Run:
 
 ```bash
-bash tests/context/pod-inside-nono/test_devspace_command_surface.sh
+bash tests/pod-inside-nono/test_devspace_command_surface.sh
 ```
 
 Expected: PASS.
@@ -321,7 +321,7 @@ Expected: PASS.
 Run:
 
 ```bash
-bash tests/context/pod-outside-nono/test_install_local_source_contract.sh
+bash tests/pod-outside-nono/test_install_local_source_contract.sh
 ```
 
 Expected: PASS.
@@ -337,9 +337,9 @@ Review the changed slice for readability only:
 If the wording is adjusted during this checkpoint, rerun:
 
 ```bash
-bash tests/context/pod-inside-nono/test_p1_docs_orientation.sh
-bash tests/context/pod-inside-nono/test_devspace_command_surface.sh
-bash tests/context/pod-outside-nono/test_install_local_source_contract.sh
+bash tests/pod-inside-nono/test_p1_docs_orientation.sh
+bash tests/pod-inside-nono/test_devspace_command_surface.sh
+bash tests/pod-outside-nono/test_install_local_source_contract.sh
 ```
 
 - [ ] **Step 4: User Check-in**
@@ -350,7 +350,7 @@ Present the rendered `README.md` plus the two new entry-point comment blocks and
 
 Report:
 
-- changed files: `README.md`, `devspace.yaml`, `install.sh`, `tests/context/pod-inside-nono/test_p1_docs_orientation.sh`
+- changed files: `README.md`, `devspace.yaml`, `install.sh`, `../../../tests/pod-inside-nono/test_p1_docs_orientation.sh`
 - fresh verification commands run
 - confirmation that no runbooks, policy files, or runtime behavior changed
 
@@ -358,9 +358,9 @@ Report:
 
 ## Final verification checklist
 
-- [ ] `bash tests/context/pod-inside-nono/test_p1_docs_orientation.sh`
-- [ ] `bash tests/context/pod-inside-nono/test_devspace_command_surface.sh`
-- [ ] `bash tests/context/pod-outside-nono/test_install_local_source_contract.sh`
+- [ ] `bash tests/pod-inside-nono/test_p1_docs_orientation.sh`
+- [ ] `bash tests/pod-inside-nono/test_devspace_command_surface.sh`
+- [ ] `bash tests/pod-outside-nono/test_install_local_source_contract.sh`
 - [ ] Re-read `docs/superpowers/review-records/2026-06-20-repo-documentation-and-refactor-audit.md` and confirm the implementation still matches the approved P1 slice.
 - [ ] Confirm `README.md` explains what the repo is, what to do first, where the three runbooks live, which commands each audience needs, and where subagent readers should go next.
 - [ ] Confirm `devspace.yaml` and `install.sh` gained comments only, with no logic changes.

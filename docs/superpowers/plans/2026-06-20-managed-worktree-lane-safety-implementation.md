@@ -16,9 +16,9 @@
 - Editable repo root: `/workspaces/dotfiles/main`
 - Existing worktree command surface: `bin/new-worktree`, `bin/dwt`, `bin/dre`, `scripts/lib/worktree-env.sh`
 - Existing guardrails/tests to extend rather than bypass:
-  - `tests/context/pod-inside-nono/test_new_worktree.sh`
-  - `tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
-  - `tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
+  - `tests/pod-inside-nono/test_new_worktree.sh`
+  - `tests/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+  - `tests/pod-inside-nono/test_bare_hub_guardrails.sh`
 - Reviewer feedback that is now part of this plan’s scope:
   1. add a small ordered list of available intent signals so Maestro/subagent wording stays behaviorally aligned;
   2. mirror the non-guarantee language for wrong-yet-self-consistent sibling-lane dispatch exactly in doc-contract tests.
@@ -72,20 +72,20 @@
 
 ### Tests
 
-- Create: `tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh`
-- Modify: `tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
-- Modify: `tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
-- Modify: `tests/context/pod-inside-nono/test_new_worktree.sh`
-- Create: `tests/context/pod-inside-nono/test_managed_lane_registry.sh`
-- Create: `tests/context/pod-inside-nono/test_retire_worktree.sh`
+- Create: `tests/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh`
+- Modify: `tests/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+- Modify: `tests/pod-inside-nono/test_bare_hub_guardrails.sh`
+- Modify: `tests/pod-inside-nono/test_new_worktree.sh`
+- Create: `tests/pod-inside-nono/test_managed_lane_registry.sh`
+- Create: `tests/pod-inside-nono/test_retire_worktree.sh`
 
 ---
 
 ## Task 1: Lock the approved lane-safety policy in failing docs tests
 
 **Files:**
-- Create: `tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh`
-- Modify: `tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+- Create: `tests/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh`
+- Modify: `tests/pod-inside-nono/test_delegation_packet_policy_contract.sh`
 
 - [ ] **Step 1: Write the failing doc-contract coverage first**
   - Assert that `.config/opencode/AGENTS.md` defines lane-scoped-by-default behavior, mandatory worktree resolution before dispatch, hard-stop wrong-worktree conditions, and subagent independent verification.
@@ -97,7 +97,7 @@
   - Run:
 
     ```bash
-    bash tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh
+    bash tests/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh
     ```
 
   - Expected: FAIL because the lane-safety wording, ordered intent-signal list, and exact non-guarantee anchor do not exist yet.
@@ -132,8 +132,8 @@
   - Run:
 
     ```bash
-    bash tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh
-    bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh
+    bash tests/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh
+    bash tests/pod-inside-nono/test_delegation_packet_policy_contract.sh
     ```
 
   - Expected: PASS.
@@ -156,12 +156,12 @@
 **Files:**
 - Create: `scripts/lib/managed-lane-registry.sh`
 - Modify: `bin/new-worktree`
-- Modify: `tests/context/pod-inside-nono/test_new_worktree.sh`
-- Create: `tests/context/pod-inside-nono/test_managed_lane_registry.sh`
+- Modify: `../../../tests/pod-inside-nono/test_new_worktree.sh`
+- Create: `../../../tests/pod-inside-nono/test_managed_lane_registry.sh`
 
 - [ ] **Step 1: Write the failing shell tests first**
-  - Extend `tests/context/pod-inside-nono/test_new_worktree.sh` so new hub and child worktrees must also create lane metadata, not just branch/worktree directories.
-  - Add `tests/context/pod-inside-nono/test_managed_lane_registry.sh` for registry behavior:
+  - Extend `../../../tests/pod-inside-nono/test_new_worktree.sh` so new hub and child worktrees must also create lane metadata, not just branch/worktree directories.
+  - Add `../../../tests/pod-inside-nono/test_managed_lane_registry.sh` for registry behavior:
     - one registry per managed repo context;
     - per-worktree reverse lookup metadata;
     - lane ID stored separately from branch/worktree path;
@@ -181,8 +181,8 @@
   - Run:
 
     ```bash
-    bash tests/context/pod-inside-nono/test_new_worktree.sh
-    bash tests/context/pod-inside-nono/test_managed_lane_registry.sh
+    bash tests/pod-inside-nono/test_new_worktree.sh
+    bash tests/pod-inside-nono/test_managed_lane_registry.sh
     ```
 
   - Expected: FAIL until lane-registry helpers and `bin/new-worktree` recording behavior exist.
@@ -213,7 +213,7 @@
 **Files:**
 - Create: `bin/retire-worktree`
 - Create: `scripts/lib/managed-worktree-cleanup.sh`
-- Create: `tests/context/pod-inside-nono/test_retire_worktree.sh`
+- Create: `../../../tests/pod-inside-nono/test_retire_worktree.sh`
 
 - [ ] **Step 1: Write the failing cleanup tests first**
   - Cover both hub and child repos.
@@ -235,7 +235,7 @@
   - Run:
 
     ```bash
-    bash tests/context/pod-inside-nono/test_retire_worktree.sh
+    bash tests/pod-inside-nono/test_retire_worktree.sh
     ```
 
   - Expected: FAIL because the cleanup command and helper do not exist yet.
@@ -247,7 +247,7 @@
   - On successful cleanup, remove the worktree, delete the local branch, and convert the active binding into a retired/tombstone record.
 
 - [ ] **Step 4: Verify GREEN**
-  - Rerun `bash tests/context/pod-inside-nono/test_retire_worktree.sh` and confirm it passes.
+  - Rerun `bash tests/pod-inside-nono/test_retire_worktree.sh` and confirm it passes.
 
 - [ ] **Step 5: Mandatory refactor checkpoint**
   - Keep evidence generation and token computation inside the helper rather than spreading it across the CLI wrapper.
@@ -265,8 +265,8 @@
 **Files:**
 - Modify: `docs/superpowers/runbooks/devspace-bare-hub-usage.md`
 - Modify: `docs/superpowers/runbooks/devspace-workspace-lifecycle.md`
-- Modify: `tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
-- Modify: `tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh`
+- Modify: `../../../tests/pod-inside-nono/test_bare_hub_guardrails.sh`
+- Modify: `../../../tests/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh`
 
 - [ ] **Step 1: Write or extend failing doc assertions first if the runbook wording needs new anchors**
   - Lock examples for:
@@ -284,8 +284,8 @@
   - Run:
 
     ```bash
-    bash tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh
-    bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh
+    bash tests/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh
+    bash tests/pod-inside-nono/test_bare_hub_guardrails.sh
     ```
 
   - Expected: PASS.
@@ -304,12 +304,12 @@
   - Run:
 
     ```bash
-    bash tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh
-    bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh
-    bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh
-    bash tests/context/pod-inside-nono/test_new_worktree.sh
-    bash tests/context/pod-inside-nono/test_managed_lane_registry.sh
-    bash tests/context/pod-inside-nono/test_retire_worktree.sh
+    bash tests/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh
+    bash tests/pod-inside-nono/test_delegation_packet_policy_contract.sh
+    bash tests/pod-inside-nono/test_bare_hub_guardrails.sh
+    bash tests/pod-inside-nono/test_new_worktree.sh
+    bash tests/pod-inside-nono/test_managed_lane_registry.sh
+    bash tests/pod-inside-nono/test_retire_worktree.sh
     ```
 
 - [ ] **Step 2: Re-read the spec and confirm each acceptance criterion is covered by policy text, command behavior, or tests**
@@ -332,12 +332,12 @@
 
 ## Final verification checklist
 
-- [ ] `bash tests/context/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh`
-- [ ] `bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
-- [ ] `bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
-- [ ] `bash tests/context/pod-inside-nono/test_new_worktree.sh`
-- [ ] `bash tests/context/pod-inside-nono/test_managed_lane_registry.sh`
-- [ ] `bash tests/context/pod-inside-nono/test_retire_worktree.sh`
+- [ ] `bash tests/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh`
+- [ ] `bash tests/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+- [ ] `bash tests/pod-inside-nono/test_bare_hub_guardrails.sh`
+- [ ] `bash tests/pod-inside-nono/test_new_worktree.sh`
+- [ ] `bash tests/pod-inside-nono/test_managed_lane_registry.sh`
+- [ ] `bash tests/pod-inside-nono/test_retire_worktree.sh`
 - [ ] Re-read `docs/superpowers/specs/2026-06-20-managed-worktree-lane-safety-design.md` and confirm every acceptance criterion maps to final tests or user-visible behavior.
 - [ ] Confirm the ordered available-intent-signals list is present and consistent across canonical/operational policy surfaces.
 - [ ] Confirm the exact non-guarantee sentence is mirrored verbatim in the doc-contract tests.

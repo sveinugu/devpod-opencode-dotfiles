@@ -24,8 +24,8 @@
   - `bin/dre`
   - `bin/dwt`
 - Existing behavior safety rails that must remain green:
-  - `tests/context/pod-outside-nono/test_workspace_navigation_commands.sh`
-  - `tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
+  - `tests/pod-outside-nono/test_workspace_navigation_commands.sh`
+  - `tests/pod-outside-nono/test_workspace_navigation_shell.sh`
 
 ## Scope
 
@@ -56,43 +56,43 @@
 
 ## Proposed file map
 
-- Create: `tests/context/pod-inside-nono/test_workspace_navigation_helper_layout.sh` — structural contract for helper existence, caller sourcing, and removal of inline duplicate helper definitions.
-- Create: `tests/context/pod-outside-nono/test_workspace_navigation_helper_contracts.sh` — focused runtime contract for `did_you_mean()` output and metadata refusal/repair output.
+- Create: `tests/pod-inside-nono/test_workspace_navigation_helper_layout.sh` — structural contract for helper existence, caller sourcing, and removal of inline duplicate helper definitions.
+- Create: `tests/pod-outside-nono/test_workspace_navigation_helper_contracts.sh` — focused runtime contract for `did_you_mean()` output and metadata refusal/repair output.
 - Create: `scripts/lib/did-you-mean.sh` — shared `did_you_mean()` helper only.
 - Create: `scripts/lib/managed-repo-metadata.sh` — shared `metadata_refusal()`, `metadata_repair_hint()`, and `fail_metadata()` helpers only.
 - Modify: `bin/dre` — source the new helper files and remove the duplicated inline helper definitions.
 - Modify: `bin/dwt` — source the new helper files and remove the duplicated inline helper definitions.
 - Verify only:
-  - `tests/context/pod-inside-nono/test_workspace_navigation_helper_layout.sh`
-  - `tests/context/pod-outside-nono/test_workspace_navigation_helper_contracts.sh`
-  - `tests/context/pod-outside-nono/test_workspace_navigation_commands.sh`
-  - `tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
+  - `tests/pod-inside-nono/test_workspace_navigation_helper_layout.sh`
+  - `tests/pod-outside-nono/test_workspace_navigation_helper_contracts.sh`
+  - `tests/pod-outside-nono/test_workspace_navigation_commands.sh`
+  - `tests/pod-outside-nono/test_workspace_navigation_shell.sh`
 
 ---
 
 ## Task 1: Prove the current navigation slice and add failing `did_you_mean` seam tests
 
 **Files:**
-- Create: `tests/context/pod-inside-nono/test_workspace_navigation_helper_layout.sh`
-- Create: `tests/context/pod-outside-nono/test_workspace_navigation_helper_contracts.sh`
+- Create: `tests/pod-inside-nono/test_workspace_navigation_helper_layout.sh`
+- Create: `tests/pod-outside-nono/test_workspace_navigation_helper_contracts.sh`
 - Verify only:
-  - `tests/context/pod-outside-nono/test_workspace_navigation_commands.sh`
-  - `tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
+  - `tests/pod-outside-nono/test_workspace_navigation_commands.sh`
+  - `tests/pod-outside-nono/test_workspace_navigation_shell.sh`
 
 - [ ] **Step 1: Prove the current navigation behavior baseline is green before refactoring structure**
 
 Run:
 
 ```bash
-bash tests/context/pod-outside-nono/test_workspace_navigation_commands.sh
-bash tests/context/pod-outside-nono/test_workspace_navigation_shell.sh
+bash tests/pod-outside-nono/test_workspace_navigation_commands.sh
+bash tests/pod-outside-nono/test_workspace_navigation_shell.sh
 ```
 
 Expected: PASS for both commands. If either suite is already red before the seam extraction begins, stop and ask the user whether baseline repair is now in scope.
 
 - [ ] **Step 2: Add a failing helper-layout contract for the shared `did_you_mean` seam**
 
-Create `tests/context/pod-inside-nono/test_workspace_navigation_helper_layout.sh` with this exact content:
+Create `../../../tests/pod-inside-nono/test_workspace_navigation_helper_layout.sh` with this exact content:
 
 ```bash
 #!/usr/bin/env bash
@@ -134,7 +134,7 @@ printf 'PASS test_workspace_navigation_helper_layout\n'
 
 - [ ] **Step 3: Add a failing focused runtime contract for `did_you_mean()` behavior**
 
-Create `tests/context/pod-outside-nono/test_workspace_navigation_helper_contracts.sh` with this exact content:
+Create `../../../tests/pod-outside-nono/test_workspace_navigation_helper_contracts.sh` with this exact content:
 
 ```bash
 #!/usr/bin/env bash
@@ -184,8 +184,8 @@ printf 'PASS test_workspace_navigation_helper_contracts\n'
 Run:
 
 ```bash
-bash tests/context/pod-inside-nono/test_workspace_navigation_helper_layout.sh
-bash tests/context/pod-outside-nono/test_workspace_navigation_helper_contracts.sh
+bash tests/pod-inside-nono/test_workspace_navigation_helper_layout.sh
+bash tests/pod-outside-nono/test_workspace_navigation_helper_contracts.sh
 ```
 
 Expected: FAIL because `scripts/lib/did-you-mean.sh` does not exist yet and the callers still define `did_you_mean()` inline.
@@ -193,8 +193,8 @@ Expected: FAIL because `scripts/lib/did-you-mean.sh` does not exist yet and the 
 - [ ] **Step 5: Commit the red `did_you_mean` seam tests**
 
 ```bash
-git add tests/context/pod-inside-nono/test_workspace_navigation_helper_layout.sh \
-  tests/context/pod-outside-nono/test_workspace_navigation_helper_contracts.sh
+git add tests/pod-inside-nono/test_workspace_navigation_helper_layout.sh \
+  tests/pod-outside-nono/test_workspace_navigation_helper_contracts.sh
 git commit -m "test(devspace): lock did-you-mean seam"
 ```
 
@@ -206,10 +206,10 @@ git commit -m "test(devspace): lock did-you-mean seam"
 - Create: `scripts/lib/did-you-mean.sh`
 - Modify: `bin/dre`
 - Modify: `bin/dwt`
-- Test: `tests/context/pod-inside-nono/test_workspace_navigation_helper_layout.sh`
-- Test: `tests/context/pod-outside-nono/test_workspace_navigation_helper_contracts.sh`
-- Test: `tests/context/pod-outside-nono/test_workspace_navigation_commands.sh`
-- Test: `tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
+- Test: `../../../tests/pod-inside-nono/test_workspace_navigation_helper_layout.sh`
+- Test: `../../../tests/pod-outside-nono/test_workspace_navigation_helper_contracts.sh`
+- Test: `../../../tests/pod-outside-nono/test_workspace_navigation_commands.sh`
+- Test: `../../../tests/pod-outside-nono/test_workspace_navigation_shell.sh`
 
 - [ ] **Step 1: Create `scripts/lib/did-you-mean.sh` with the exact shared helper body**
 
@@ -238,10 +238,10 @@ Then delete the inline `did_you_mean()` definition from both files. Do not chang
 Run:
 
 ```bash
-bash tests/context/pod-inside-nono/test_workspace_navigation_helper_layout.sh
-bash tests/context/pod-outside-nono/test_workspace_navigation_helper_contracts.sh
-bash tests/context/pod-outside-nono/test_workspace_navigation_commands.sh
-bash tests/context/pod-outside-nono/test_workspace_navigation_shell.sh
+bash tests/pod-inside-nono/test_workspace_navigation_helper_layout.sh
+bash tests/pod-outside-nono/test_workspace_navigation_helper_contracts.sh
+bash tests/pod-outside-nono/test_workspace_navigation_commands.sh
+bash tests/pod-outside-nono/test_workspace_navigation_shell.sh
 ```
 
 Expected: PASS for all four commands.
@@ -258,12 +258,12 @@ git commit -m "refactor(nav): extract did-you-mean helper"
 ## Task 3: Add failing metadata-helper seam tests
 
 **Files:**
-- Modify: `tests/context/pod-inside-nono/test_workspace_navigation_helper_layout.sh`
-- Modify: `tests/context/pod-outside-nono/test_workspace_navigation_helper_contracts.sh`
+- Modify: `../../../tests/pod-inside-nono/test_workspace_navigation_helper_layout.sh`
+- Modify: `../../../tests/pod-outside-nono/test_workspace_navigation_helper_contracts.sh`
 
 - [ ] **Step 1: Extend the helper-layout contract to require the metadata helper seam**
 
-Update `tests/context/pod-inside-nono/test_workspace_navigation_helper_layout.sh` to add these assertions:
+Update `../../../tests/pod-inside-nono/test_workspace_navigation_helper_layout.sh` to add these assertions:
 
 - `scripts/lib/managed-repo-metadata.sh` must exist
 - both `bin/dre` and `bin/dwt` must contain:
@@ -341,7 +341,7 @@ grep -F 'case "$default_dir_canon" in' "$dwt_script" >/dev/null || fail 'dwt sho
 
 - [ ] **Step 2: Extend the helper-runtime contract to lock metadata refusal and repair output**
 
-Update `tests/context/pod-outside-nono/test_workspace_navigation_helper_contracts.sh` so it also sources `scripts/lib/managed-repo-metadata.sh` and proves `fail_metadata()` behavior in isolation.
+Update `../../../tests/pod-outside-nono/test_workspace_navigation_helper_contracts.sh` so it also sources `scripts/lib/managed-repo-metadata.sh` and proves `fail_metadata()` behavior in isolation.
 
 Add a temporary workspace fixture and assert these exact contracts:
 
@@ -372,8 +372,8 @@ Keep the existing CLI usage assertions and `did_you_mean()` assertions in the sa
 Run:
 
 ```bash
-bash tests/context/pod-inside-nono/test_workspace_navigation_helper_layout.sh
-bash tests/context/pod-outside-nono/test_workspace_navigation_helper_contracts.sh
+bash tests/pod-inside-nono/test_workspace_navigation_helper_layout.sh
+bash tests/pod-outside-nono/test_workspace_navigation_helper_contracts.sh
 ```
 
 Expected: FAIL because `scripts/lib/managed-repo-metadata.sh` does not exist yet and the metadata helper trio is still duplicated inline in both callers.
@@ -381,8 +381,8 @@ Expected: FAIL because `scripts/lib/managed-repo-metadata.sh` does not exist yet
 - [ ] **Step 4: Commit the red metadata seam tests**
 
 ```bash
-git add tests/context/pod-inside-nono/test_workspace_navigation_helper_layout.sh \
-  tests/context/pod-outside-nono/test_workspace_navigation_helper_contracts.sh
+git add tests/pod-inside-nono/test_workspace_navigation_helper_layout.sh \
+  tests/pod-outside-nono/test_workspace_navigation_helper_contracts.sh
 git commit -m "test(devspace): lock metadata helper seam"
 ```
 
@@ -394,10 +394,10 @@ git commit -m "test(devspace): lock metadata helper seam"
 - Create: `scripts/lib/managed-repo-metadata.sh`
 - Modify: `bin/dre`
 - Modify: `bin/dwt`
-- Test: `tests/context/pod-inside-nono/test_workspace_navigation_helper_layout.sh`
-- Test: `tests/context/pod-outside-nono/test_workspace_navigation_helper_contracts.sh`
-- Test: `tests/context/pod-outside-nono/test_workspace_navigation_commands.sh`
-- Test: `tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
+- Test: `../../../tests/pod-inside-nono/test_workspace_navigation_helper_layout.sh`
+- Test: `../../../tests/pod-outside-nono/test_workspace_navigation_helper_contracts.sh`
+- Test: `../../../tests/pod-outside-nono/test_workspace_navigation_commands.sh`
+- Test: `../../../tests/pod-outside-nono/test_workspace_navigation_shell.sh`
 
 - [ ] **Step 1: Create `scripts/lib/managed-repo-metadata.sh` with the exact shared helper bodies**
 
@@ -437,10 +437,10 @@ Preservation rules for this step:
 Run:
 
 ```bash
-bash tests/context/pod-inside-nono/test_workspace_navigation_helper_layout.sh
-bash tests/context/pod-outside-nono/test_workspace_navigation_helper_contracts.sh
-bash tests/context/pod-outside-nono/test_workspace_navigation_commands.sh
-bash tests/context/pod-outside-nono/test_workspace_navigation_shell.sh
+bash tests/pod-inside-nono/test_workspace_navigation_helper_layout.sh
+bash tests/pod-outside-nono/test_workspace_navigation_helper_contracts.sh
+bash tests/pod-outside-nono/test_workspace_navigation_commands.sh
+bash tests/pod-outside-nono/test_workspace_navigation_shell.sh
 ```
 
 Expected: PASS for all four commands.
@@ -472,20 +472,20 @@ Ask whether the seam boundary is clear enough now that only the exact duplicated
 - Review only: `bin/dre`
 - Review only: `bin/dwt`
 - Verify only:
-  - `tests/context/pod-inside-nono/test_workspace_navigation_helper_layout.sh`
-  - `tests/context/pod-outside-nono/test_workspace_navigation_helper_contracts.sh`
-  - `tests/context/pod-outside-nono/test_workspace_navigation_commands.sh`
-  - `tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
+  - `../../../tests/pod-inside-nono/test_workspace_navigation_helper_layout.sh`
+  - `../../../tests/pod-outside-nono/test_workspace_navigation_helper_contracts.sh`
+  - `../../../tests/pod-outside-nono/test_workspace_navigation_commands.sh`
+  - `../../../tests/pod-outside-nono/test_workspace_navigation_shell.sh`
 
 - [ ] **Step 1: Re-run the full HC-6 seam-extraction verification suite from a clean working state**
 
 Run:
 
 ```bash
-bash tests/context/pod-inside-nono/test_workspace_navigation_helper_layout.sh
-bash tests/context/pod-outside-nono/test_workspace_navigation_helper_contracts.sh
-bash tests/context/pod-outside-nono/test_workspace_navigation_commands.sh
-bash tests/context/pod-outside-nono/test_workspace_navigation_shell.sh
+bash tests/pod-inside-nono/test_workspace_navigation_helper_layout.sh
+bash tests/pod-outside-nono/test_workspace_navigation_helper_contracts.sh
+bash tests/pod-outside-nono/test_workspace_navigation_commands.sh
+bash tests/pod-outside-nono/test_workspace_navigation_shell.sh
 ```
 
 Expected: PASS for all four commands.
@@ -514,7 +514,7 @@ Review the final slice against the approved architecture:
 - `bin/dre` and `bin/dwt` should still own argument handling, repo/worktree lookup, `repo.env` loading, canonicalization, and caller-specific resolution logic.
 - The metadata loading/validation blocks should remain inline and visibly separate between the two callers.
 - The helper files should rely on caller-owned `workspace_root` and `script_dir` rather than introducing a new global initialization pattern.
-- `tests/context/pod-outside-nono/test_workspace_navigation_commands.sh` and `tests/context/pod-outside-nono/test_workspace_navigation_shell.sh` should still be proving unchanged user-visible behavior.
+- `../../../tests/pod-outside-nono/test_workspace_navigation_commands.sh` and `../../../tests/pod-outside-nono/test_workspace_navigation_shell.sh` should still be proving unchanged user-visible behavior.
 - No completion, doc, onboarding, or unrelated navigation files should change in this slice.
 
 If this checkpoint uncovers behavior-preserving cleanup inside the touched files, apply it and rerun the Step 1 verification suite.
@@ -531,10 +531,10 @@ Report back with:
 ## Final verification checklist
 
 - [ ] Run the focused regression suite:
-  - `bash tests/context/pod-inside-nono/test_workspace_navigation_helper_layout.sh`
-  - `bash tests/context/pod-outside-nono/test_workspace_navigation_helper_contracts.sh`
-  - `bash tests/context/pod-outside-nono/test_workspace_navigation_commands.sh`
-  - `bash tests/context/pod-outside-nono/test_workspace_navigation_shell.sh`
+  - `bash tests/pod-inside-nono/test_workspace_navigation_helper_layout.sh`
+  - `bash tests/pod-outside-nono/test_workspace_navigation_helper_contracts.sh`
+  - `bash tests/pod-outside-nono/test_workspace_navigation_commands.sh`
+  - `bash tests/pod-outside-nono/test_workspace_navigation_shell.sh`
 - [ ] Re-read the user-approved HC-6 extraction boundary and confirm each requirement is covered:
   1. `did_you_mean()` moved to `scripts/lib/did-you-mean.sh`.
   2. `metadata_refusal()`, `metadata_repair_hint()`, and `fail_metadata()` moved to `scripts/lib/managed-repo-metadata.sh`.

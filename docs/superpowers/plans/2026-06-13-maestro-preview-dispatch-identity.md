@@ -17,8 +17,8 @@
 - Maestro operational surface: `.config/opencode/agents/maestro.md`
 - Template surface: `docs/superpowers/templates/subagent-handoff-templates.md`
 - Existing docs-contract tests:
-  - `tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
-  - `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
+  - `tests/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+  - `tests/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
 ## Scope
 
@@ -55,8 +55,8 @@
 - Review and modify only if needed: `docs/superpowers/templates/subagent-handoff-templates.md`
 
 **Docs-contract verification**
-- Modify: `tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
-- Modify or consolidate: `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
+- Modify: `tests/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+- Modify or consolidate: `tests/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
 ---
 
@@ -66,11 +66,11 @@ This slice should be implemented test-first at the docs-contract level.
 
 ### Primary failing test surface
 
-- `tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+- `tests/pod-inside-nono/test_delegation_packet_policy_contract.sh`
 
 ### Secondary verification surface
 
-- `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
+- `tests/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
 ### Expected new/updated contract anchors
 
@@ -121,15 +121,15 @@ The plan does **not** require those exact phrases if the implementation chooses 
 ## Task 1: Extend docs-contract tests first
 
 **Files:**
-- Modify: `tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
-- Modify or consolidate: `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
+- Modify: `../../../tests/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+- Modify or consolidate: `../../../tests/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 - Review only: `docs/superpowers/templates/subagent-handoff-templates.md`
 
 - [ ] Add failing assertions for the preview-response contract: `ok / edit / cancel`, exact-token matching, and direct-response-only approval.
 - [ ] Add failing assertions for `edit` and `cancel` behavior.
 - [ ] Add failing assertions for no-post-approval-payload-drift, preview/dispatch identity, refusal-on-mismatch, and no-extra-prose prohibitions.
 - [ ] Add or update assertions that `Warnings:` remains factual-only and non-steering.
-- [ ] Decide whether `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh` should remain as a focused Maestro mirror test or be consolidated into the broader contract test.
+- [ ] Decide whether `../../../tests/pod-inside-nono/test_maestro_intent_preservation_policy.sh` should remain as a focused Maestro mirror test or be consolidated into the broader contract test.
 - [ ] If consolidation removes a historical test file, ensure the replacement coverage is equal or stronger in the same slice.
 - [ ] **User Check-in:** if one docs-policy test is removed rather than rewritten, present the replacement coverage before finalizing.
 
@@ -203,11 +203,11 @@ This is the only binding policy surface. If a rule is normative, it belongs here
 - Review only: `.config/opencode/AGENTS.md`
 - Review only: `.config/opencode/agents/maestro.md`
 - Review only: `docs/superpowers/templates/subagent-handoff-templates.md`
-- Review only: `tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
-- Review only: `tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
+- Review only: `../../../tests/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+- Review only: `../../../tests/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 
-- [ ] Run `bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`.
-- [ ] Run `bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh` if the file remains.
+- [ ] Run `bash tests/pod-inside-nono/test_delegation_packet_policy_contract.sh`.
+- [ ] Run `bash tests/pod-inside-nono/test_maestro_intent_preservation_policy.sh` if the file remains.
 - [ ] Re-read the binding spec and map each acceptance criterion to AGENTS, `maestro.md`, template verification, or docs tests.
 - [ ] Review the final diff for accidental schema changes, duplicate policy wording, or scope creep into runtime enforcement.
 - [ ] Confirm the final slice stays docs/tests only.
@@ -216,9 +216,9 @@ This is the only binding policy surface. If a rule is normative, it belongs here
 
 ## Final verification checklist
 
-- [ ] `bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
-- [ ] `bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh` (if retained)
-- [ ] `git diff -- .config/opencode/AGENTS.md .config/opencode/agents/maestro.md docs/superpowers/templates/subagent-handoff-templates.md tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
+- [ ] `bash tests/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+- [ ] `bash tests/pod-inside-nono/test_maestro_intent_preservation_policy.sh` (if retained)
+- [ ] `git diff -- .config/opencode/AGENTS.md .config/opencode/agents/maestro.md docs/superpowers/templates/subagent-handoff-templates.md tests/pod-inside-nono/test_delegation_packet_policy_contract.sh tests/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
 - [ ] Confirm no runtime/plugin enforcement work was introduced.
 - [ ] Confirm the template surface is either updated minimally or explicitly verified as compatible.
 

@@ -69,9 +69,9 @@ bin/clone-repo https://github.com/<owner>/<repo>.git
 ### Agent / verification
 
 ```bash
-bash tests/context/pod-inside-nono/test_p1_docs_orientation.sh
-bash tests/context/pod-inside-nono/test_devspace_command_surface.sh
-bash tests/context/pod-outside-nono/test_install_local_source_contract.sh
+bash tests/pod-inside-nono/test_p1_docs_orientation.sh
+bash tests/pod-inside-nono/test_devspace_command_surface.sh
+bash tests/pod-outside-nono/test_install_local_source_contract.sh
 ```
 
 ## Repo layout

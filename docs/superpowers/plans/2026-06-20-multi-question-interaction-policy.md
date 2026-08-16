@@ -36,7 +36,7 @@
 
 ## File map
 
-- Create: `tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh` — focused doc-contract test for the new batching and choice-framing policy.
+- Create: `tests/pod-inside-nono/test_multi_question_interaction_policy.sh` — focused doc-contract test for the new batching and choice-framing policy.
 - Modify: `.config/opencode/AGENTS.md` — canonical subagent interaction policy text.
 
 ---
@@ -44,8 +44,8 @@
 ## Task 1: Lock the approved interaction policy in a failing doc-contract test
 
 **Files:**
-- Create: `tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh`
-- Test: `tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh`
+- Create: `tests/pod-inside-nono/test_multi_question_interaction_policy.sh`
+- Test: `tests/pod-inside-nono/test_multi_question_interaction_policy.sh`
 
 - [ ] **Step 1: Write the failing doc-contract test**
   - Point the test at `.config/opencode/AGENTS.md` only.
@@ -68,14 +68,14 @@
   - Follow the existing doc-contract style used in `tests/docs/`: simple shell helpers plus fixed-string or regex anchor checks.
 
 - [ ] **Step 3: Verify RED**
-  - Run: `bash tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh`
+  - Run: `bash tests/pod-inside-nono/test_multi_question_interaction_policy.sh`
   - Expected: FAIL because `.config/opencode/AGENTS.md` still contains the retired one-question language and lacks the new batching/choice-framing anchors.
 
 - [ ] **Step 4: Commit the red test slice**
   - Run:
 
     ```bash
-    git add tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh
+    git add tests/pod-inside-nono/test_multi_question_interaction_policy.sh
     git commit -m "test(policy): lock multi-question interaction contract"
     ```
 
@@ -85,7 +85,7 @@
 
 **Files:**
 - Modify: `.config/opencode/AGENTS.md`
-- Test: `tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh`
+- Test: `tests/pod-inside-nono/test_multi_question_interaction_policy.sh`
 
 - [ ] **Step 1: Replace the recommended first subagent message**
   - Update the quoted first-message recommendation so it preserves direct subagent-to-user interaction and completion handoff, but no longer promises one-question-at-a-time behavior.
@@ -104,19 +104,19 @@
   - Expand the direct/minimal guidance so choice prompts include brief background, trade-offs, recommendation, and a short why before the actual question, and explicitly forbid hiding the recommendation inside rhetorical or loaded framing.
 
 - [ ] **Step 4: Verify GREEN on the new contract**
-  - Run: `bash tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh`
+  - Run: `bash tests/pod-inside-nono/test_multi_question_interaction_policy.sh`
   - Expected: PASS.
 
 - [ ] **Step 5: Mandatory refactor checkpoint**
   - Keep the policy edit surgical: touch only the first-message line and the nearby interaction-rule bullets needed for this slice.
   - If wording is duplicated or awkward, simplify it without changing the approved meaning.
-  - Rerun: `bash tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh`
+  - Rerun: `bash tests/pod-inside-nono/test_multi_question_interaction_policy.sh`
 
 - [ ] **Step 6: Commit the green policy slice**
   - Run:
 
     ```bash
-    git add .config/opencode/AGENTS.md tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh
+    git add .config/opencode/AGENTS.md tests/pod-inside-nono/test_multi_question_interaction_policy.sh
     git commit -m "docs(policy): adopt multi-question interaction defaults"
     ```
 
@@ -133,17 +133,17 @@
   - Run:
 
     ```bash
-    bash tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh
-    bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh
-    bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh
-    bash tests/context/pod-inside-nono/test_clean_code_policy_contract.sh
-    bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh
+    bash tests/pod-inside-nono/test_multi_question_interaction_policy.sh
+    bash tests/pod-inside-nono/test_delegation_packet_policy_contract.sh
+    bash tests/pod-inside-nono/test_maestro_intent_preservation_policy.sh
+    bash tests/pod-inside-nono/test_clean_code_policy_contract.sh
+    bash tests/pod-inside-nono/test_bare_hub_guardrails.sh
     ```
 
   - Expected: all pass.
 
 - [ ] **Step 2: Re-read the approved spec and map every acceptance criterion to the final policy text or test coverage**
-  - Confirm each acceptance criterion from `docs/superpowers/specs/2026-06-20-multi-question-interaction-design.md` is visibly satisfied by the final `AGENTS.md` text and/or `tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh`.
+  - Confirm each acceptance criterion from `docs/superpowers/specs/2026-06-20-multi-question-interaction-design.md` is visibly satisfied by the final `AGENTS.md` text and/or `../../../tests/pod-inside-nono/test_multi_question_interaction_policy.sh`.
 
 - [ ] **Step 3: Record the operational follow-up**
   - In the handoff/PR note, remind the user that opencode loads config-time instructions once at startup, so they should restart opencode after the change is merged/applied if they want the updated interaction policy to affect new sessions.
@@ -157,11 +157,11 @@
 
 ## Final verification checklist
 
-- [ ] `bash tests/context/pod-inside-nono/test_multi_question_interaction_policy.sh`
-- [ ] `bash tests/context/pod-inside-nono/test_delegation_packet_policy_contract.sh`
-- [ ] `bash tests/context/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
-- [ ] `bash tests/context/pod-inside-nono/test_clean_code_policy_contract.sh`
-- [ ] `bash tests/context/pod-inside-nono/test_bare_hub_guardrails.sh`
+- [ ] `bash tests/pod-inside-nono/test_multi_question_interaction_policy.sh`
+- [ ] `bash tests/pod-inside-nono/test_delegation_packet_policy_contract.sh`
+- [ ] `bash tests/pod-inside-nono/test_maestro_intent_preservation_policy.sh`
+- [ ] `bash tests/pod-inside-nono/test_clean_code_policy_contract.sh`
+- [ ] `bash tests/pod-inside-nono/test_bare_hub_guardrails.sh`
 - [ ] Re-read `docs/superpowers/specs/2026-06-20-multi-question-interaction-design.md` and confirm these acceptance points are covered:
   1. the recommended first subagent message no longer promises one-question-at-a-time interaction;
   2. ordinary clarifying/discovery exchanges default to multi-question batching, capped at five;

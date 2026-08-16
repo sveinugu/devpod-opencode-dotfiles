@@ -26,9 +26,9 @@
   - `scripts/lib/managed-worktree-cleanup.sh`
   - `bin/retire-worktree`
 - Behavior safety rails that must remain green:
-  - `tests/context/pod-inside-nono/test_managed_lane_registry.sh`
-  - `tests/context/pod-inside-nono/test_new_worktree.sh`
-  - `tests/context/pod-inside-nono/test_retire_worktree.sh`
+  - `tests/pod-inside-nono/test_managed_lane_registry.sh`
+  - `tests/pod-inside-nono/test_new_worktree.sh`
+  - `tests/pod-inside-nono/test_retire_worktree.sh`
 
 ## Scope
 
@@ -57,45 +57,45 @@
 
 ## Proposed file map
 
-- Create: `tests/context/pod-inside-nono/test_managed_lane_registry_layout.sh` — structural contract for helper layout and thin compatibility entrypoint.
-- Create: `tests/context/pod-inside-nono/test_managed_lane_registry_contracts.sh` — focused runtime contract for sourced-file restoration, refusal text, pointer key order, and pointer-path de-duplication.
+- Create: `tests/pod-inside-nono/test_managed_lane_registry_layout.sh` — structural contract for helper layout and thin compatibility entrypoint.
+- Create: `tests/pod-inside-nono/test_managed_lane_registry_contracts.sh` — focused runtime contract for sourced-file restoration, refusal text, pointer key order, and pointer-path de-duplication.
 - Create: `scripts/lib/managed-lane-registry-path.sh` — required-field guard, state-root/path helpers, pointer-path helper, and TSV escaping.
 - Create: `scripts/lib/managed-lane-registry-mutations.sh` — registry header creation, pointer writes, pointer de-duplication, and record append.
 - Modify: `scripts/lib/managed-lane-registry.sh` — becomes a thin compatibility entrypoint that sources the two helpers, restores caller sourcing state, and keeps `managed_lane_registry_record_binding`.
 - Verify only:
-  - `tests/context/pod-inside-nono/test_managed_lane_registry_layout.sh`
-  - `tests/context/pod-inside-nono/test_managed_lane_registry_contracts.sh`
-  - `tests/context/pod-inside-nono/test_managed_lane_registry.sh`
-  - `tests/context/pod-inside-nono/test_new_worktree.sh`
-  - `tests/context/pod-inside-nono/test_retire_worktree.sh`
+  - `tests/pod-inside-nono/test_managed_lane_registry_layout.sh`
+  - `tests/pod-inside-nono/test_managed_lane_registry_contracts.sh`
+  - `tests/pod-inside-nono/test_managed_lane_registry.sh`
+  - `tests/pod-inside-nono/test_new_worktree.sh`
+  - `tests/pod-inside-nono/test_retire_worktree.sh`
 
 ---
 
 ## Task 1: Prove the baseline and add failing contract tests
 
 **Files:**
-- Create: `tests/context/pod-inside-nono/test_managed_lane_registry_layout.sh`
-- Create: `tests/context/pod-inside-nono/test_managed_lane_registry_contracts.sh`
+- Create: `tests/pod-inside-nono/test_managed_lane_registry_layout.sh`
+- Create: `tests/pod-inside-nono/test_managed_lane_registry_contracts.sh`
 - Verify only:
-  - `tests/context/pod-inside-nono/test_managed_lane_registry.sh`
-  - `tests/context/pod-inside-nono/test_new_worktree.sh`
-  - `tests/context/pod-inside-nono/test_retire_worktree.sh`
+  - `tests/pod-inside-nono/test_managed_lane_registry.sh`
+  - `tests/pod-inside-nono/test_new_worktree.sh`
+  - `../../../tests/pod-inside-nono/test_retire_worktree.sh`
 
 - [ ] **Step 1: Prove the current hotspot slice is green before changing structure**
 
 Run:
 
 ```bash
-bash tests/context/pod-inside-nono/test_managed_lane_registry.sh
-bash tests/context/pod-inside-nono/test_new_worktree.sh
-bash tests/context/pod-inside-nono/test_retire_worktree.sh
+bash tests/pod-inside-nono/test_managed_lane_registry.sh
+bash tests/pod-inside-nono/test_new_worktree.sh
+bash tests/pod-inside-nono/test_retire_worktree.sh
 ```
 
 Expected: PASS for all three commands. If any command fails before the helper split starts, stop and ask the user whether baseline repair is now in scope.
 
 - [ ] **Step 2: Add a failing structural contract for the new helper layout**
 
-Create `tests/context/pod-inside-nono/test_managed_lane_registry_layout.sh` with this exact content:
+Create `../../../tests/pod-inside-nono/test_managed_lane_registry_layout.sh` with this exact content:
 
 ```bash
 #!/usr/bin/env bash
@@ -142,7 +142,7 @@ printf 'PASS test_managed_lane_registry_layout\n'
 
 - [ ] **Step 3: Add a failing runtime-contract test for restoration and behavior preservation**
 
-Create `tests/context/pod-inside-nono/test_managed_lane_registry_contracts.sh` with this exact content:
+Create `../../../tests/pod-inside-nono/test_managed_lane_registry_contracts.sh` with this exact content:
 
 ```bash
 #!/usr/bin/env bash
@@ -235,8 +235,8 @@ printf 'PASS test_managed_lane_registry_contracts\n'
 Run:
 
 ```bash
-bash tests/context/pod-inside-nono/test_managed_lane_registry_layout.sh
-bash tests/context/pod-inside-nono/test_managed_lane_registry_contracts.sh
+bash tests/pod-inside-nono/test_managed_lane_registry_layout.sh
+bash tests/pod-inside-nono/test_managed_lane_registry_contracts.sh
 ```
 
 Expected: FAIL because the two helper files, the sourcing-state restore pattern, and the new runtime-contract surface do not exist yet.
@@ -244,8 +244,8 @@ Expected: FAIL because the two helper files, the sourcing-state restore pattern,
 - [ ] **Step 5: Commit the red structural and runtime contracts**
 
 ```bash
-git add tests/context/pod-inside-nono/test_managed_lane_registry_layout.sh \
-  tests/context/pod-inside-nono/test_managed_lane_registry_contracts.sh
+git add tests/pod-inside-nono/test_managed_lane_registry_layout.sh \
+  tests/pod-inside-nono/test_managed_lane_registry_contracts.sh
 git commit -m "test(devspace): lock lane registry helper layout"
 ```
 
@@ -257,11 +257,11 @@ git commit -m "test(devspace): lock lane registry helper layout"
 - Create: `scripts/lib/managed-lane-registry-path.sh`
 - Create: `scripts/lib/managed-lane-registry-mutations.sh`
 - Modify: `scripts/lib/managed-lane-registry.sh`
-- Test: `tests/context/pod-inside-nono/test_managed_lane_registry_layout.sh`
-- Test: `tests/context/pod-inside-nono/test_managed_lane_registry_contracts.sh`
-- Test: `tests/context/pod-inside-nono/test_managed_lane_registry.sh`
-- Test: `tests/context/pod-inside-nono/test_new_worktree.sh`
-- Test: `tests/context/pod-inside-nono/test_retire_worktree.sh`
+- Test: `../../../tests/pod-inside-nono/test_managed_lane_registry_layout.sh`
+- Test: `../../../tests/pod-inside-nono/test_managed_lane_registry_contracts.sh`
+- Test: `../../../tests/pod-inside-nono/test_managed_lane_registry.sh`
+- Test: `../../../tests/pod-inside-nono/test_new_worktree.sh`
+- Test: `../../../tests/pod-inside-nono/test_retire_worktree.sh`
 
 - [ ] **Step 1: Create `scripts/lib/managed-lane-registry-path.sh` and move the non-mutating helpers into it**
 
@@ -380,11 +380,11 @@ Preservation rules for this step:
 Run:
 
 ```bash
-bash tests/context/pod-inside-nono/test_managed_lane_registry_layout.sh
-bash tests/context/pod-inside-nono/test_managed_lane_registry_contracts.sh
-bash tests/context/pod-inside-nono/test_managed_lane_registry.sh
-bash tests/context/pod-inside-nono/test_new_worktree.sh
-bash tests/context/pod-inside-nono/test_retire_worktree.sh
+bash tests/pod-inside-nono/test_managed_lane_registry_layout.sh
+bash tests/pod-inside-nono/test_managed_lane_registry_contracts.sh
+bash tests/pod-inside-nono/test_managed_lane_registry.sh
+bash tests/pod-inside-nono/test_new_worktree.sh
+bash tests/pod-inside-nono/test_retire_worktree.sh
 ```
 
 Expected: PASS for all five commands.
@@ -416,22 +416,22 @@ Ask whether the split between path/invariant helpers and mutation helpers is cle
 - Review only: `scripts/lib/managed-lane-registry-path.sh`
 - Review only: `scripts/lib/managed-lane-registry-mutations.sh`
 - Verify only:
-  - `tests/context/pod-inside-nono/test_managed_lane_registry_layout.sh`
-  - `tests/context/pod-inside-nono/test_managed_lane_registry_contracts.sh`
-  - `tests/context/pod-inside-nono/test_managed_lane_registry.sh`
-  - `tests/context/pod-inside-nono/test_new_worktree.sh`
-  - `tests/context/pod-inside-nono/test_retire_worktree.sh`
+  - `../../../tests/pod-inside-nono/test_managed_lane_registry_layout.sh`
+  - `../../../tests/pod-inside-nono/test_managed_lane_registry_contracts.sh`
+  - `../../../tests/pod-inside-nono/test_managed_lane_registry.sh`
+  - `../../../tests/pod-inside-nono/test_new_worktree.sh`
+  - `../../../tests/pod-inside-nono/test_retire_worktree.sh`
 
 - [ ] **Step 1: Re-run the full HC-5 safety-rail suite from a clean working state**
 
 Run:
 
 ```bash
-bash tests/context/pod-inside-nono/test_managed_lane_registry_layout.sh
-bash tests/context/pod-inside-nono/test_managed_lane_registry_contracts.sh
-bash tests/context/pod-inside-nono/test_managed_lane_registry.sh
-bash tests/context/pod-inside-nono/test_new_worktree.sh
-bash tests/context/pod-inside-nono/test_retire_worktree.sh
+bash tests/pod-inside-nono/test_managed_lane_registry_layout.sh
+bash tests/pod-inside-nono/test_managed_lane_registry_contracts.sh
+bash tests/pod-inside-nono/test_managed_lane_registry.sh
+bash tests/pod-inside-nono/test_new_worktree.sh
+bash tests/pod-inside-nono/test_retire_worktree.sh
 ```
 
 Expected: PASS for all five commands.
@@ -456,8 +456,8 @@ Review the final slice against the approved architecture:
 - `scripts/lib/managed-lane-registry.sh` should read like orchestration only.
 - `scripts/lib/managed-lane-registry-path.sh` should own required-field, path, and TSV-escaping logic only.
 - `scripts/lib/managed-lane-registry-mutations.sh` should own file writes and registry mutation logic only.
-- `tests/context/pod-inside-nono/test_managed_lane_registry_contracts.sh` should prove sourced-file `script_dir` restoration, missing-field refusal text, pointer key order, and pointer-path replacement semantics.
-- `tests/context/pod-inside-nono/test_managed_lane_registry.sh`, `tests/context/pod-inside-nono/test_new_worktree.sh`, and `tests/context/pod-inside-nono/test_retire_worktree.sh` should still be proving unchanged runtime behavior.
+- `../../../tests/pod-inside-nono/test_managed_lane_registry_contracts.sh` should prove sourced-file `script_dir` restoration, missing-field refusal text, pointer key order, and pointer-path replacement semantics.
+- `../../../tests/pod-inside-nono/test_managed_lane_registry.sh`, `../../../tests/pod-inside-nono/test_new_worktree.sh`, and `../../../tests/pod-inside-nono/test_retire_worktree.sh` should still be proving unchanged runtime behavior.
 - `scripts/lib/new-worktree-flow.sh`, `bin/new-worktree`, `scripts/lib/managed-worktree-cleanup.sh`, and `bin/retire-worktree` should remain unchanged in this slice.
 - `registry.tsv` and `lane-binding.env` shapes should remain byte-for-byte compatible with the pre-refactor contract surfaces.
 

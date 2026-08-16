@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+# shellcheck source=tests/lib/context-guards.sh
+source "$repo_root/tests/lib/context-guards.sh"
+require_pod_inside_nono_test 'test_bare_hub_guardrails'
+
+grep -F '`/workspaces/dotfiles` is a manager hub, not a normal checkout.' .config/opencode/AGENTS.md >/dev/null
+grep -F 'Agents MUST treat `/workspaces/dotfiles/main` or another explicit worktree path as the editable repository root.' .config/opencode/AGENTS.md >/dev/null
+grep -F "Child repos under \`repos/\` follow the same pattern; use each repo's detected default-branch checkout at \`repos/<repo>/<default-branch>\` and worktrees under \`repos/<repo>/work/<branch>\`." .config/opencode/AGENTS.md >/dev/null
+grep -F 'Refused — hub-root CWD detected. Provide explicit worktree path.' .config/opencode/AGENTS.md >/dev/null
+grep -F '> What changed for implementers:' .config/opencode/AGENTS.md >/dev/null
+
+grep -F 'Repo-specific bare-hub override: `/workspaces/dotfiles` is a manager hub, not a normal checkout.' .config/opencode/agents/maestro.md >/dev/null
+grep -F 'Repo-specific bare-hub override: `/workspaces/dotfiles` is a manager hub, not a normal checkout.' .config/opencode/agents/senior-implementer.md >/dev/null
+grep -F '> What changed for implementers:' .config/opencode/agents/maestro.md >/dev/null
+grep -F '> What changed for implementers:' .config/opencode/agents/senior-implementer.md >/dev/null
+
+grep -F 'devspace run-pipeline provision' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F 'bash /workspaces/dotfiles/main/install.sh --dry-run' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F 'ssh -o BatchMode=yes workspace.dotfiles.devspace' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F 'devspace run-pipeline verify-ssh' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F 'HUB_PROVISION_ARGS' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F 'bin/clone-repo' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F 'bin/new-worktree' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F 'bin/retire-worktree' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F 'dhub' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F 'Interactive `new-worktree` and `clone-repo` wrappers auto-jump to the created checkout by default.' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F '`HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1`' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F 'Raw script usage remains valid for automation and still does not change the parent shell directory.' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F 'dre <repo>' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F 'dre <repo>` → jump to child default checkout at `/workspaces/dotfiles/repos/<repo>/<default-branch>`' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F 'dwt <name>' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F 'dwt` with no argument' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F 'dwt <default-branch-name>' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+if grep -F 'temporary compatibility alias to `dhub`' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null; then
+  printf 'FAIL test_bare_hub_guardrails: runbook must not describe dd compatibility alias\n' >&2
+  exit 1
+fi
+grep -F 'default branch name' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+if grep -F 'dre <repo>` → jump to `/workspaces/dotfiles/repos/<repo>`' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null; then
+  printf 'FAIL test_bare_hub_guardrails: bare-hub runbook must not describe dre landing at child repo root\n' >&2
+  exit 1
+fi
+grep -F 'bin/clone-repo' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F 'bin/new-worktree' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F 'bin/retire-worktree' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F 'Manual Additions Log' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F 'Manual Additions Log' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+[ -f docs/superpowers/change-records/manual-additions-log.md ]
+grep -F 'interactive `new-worktree` / `clone-repo` shell wrappers auto-jump to created checkouts by default' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F '`HUB_WORKSPACE_NAV_DISABLE_AUTO_CD=1`' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F '.envrc' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F '.envrc.local' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F 'dhub' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F 'use `dhub`, `dre`, and `dwt`' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+if grep -F 'temporary compatibility alias to `dhub`' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null; then
+  printf 'FAIL test_bare_hub_guardrails: lifecycle runbook must not describe dd compatibility alias\n' >&2
+  exit 1
+fi
+if grep -F 'dre <repo>` for child repo roots under `repos/`' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null; then
+  printf 'FAIL test_bare_hub_guardrails: lifecycle runbook must not describe dre landing at child repo root\n' >&2
+  exit 1
+fi
+grep -F 'state/hub/etc/install.env' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
+grep -F 'remote branch deletion remains out of scope for v1' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+
+grep -F 'prefer `bin/clone-repo` and `bin/new-worktree`' .config/opencode/AGENTS.md >/dev/null
+grep -F 'prefer `bin/clone-repo` and `bin/new-worktree`' .config/opencode/agents/maestro.md >/dev/null
+grep -F 'prefer `bin/clone-repo` and `bin/new-worktree`' .config/opencode/agents/senior-implementer.md >/dev/null
+
+printf 'PASS test_bare_hub_guardrails\n'
