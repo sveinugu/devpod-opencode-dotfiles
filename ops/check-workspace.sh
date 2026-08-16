@@ -29,7 +29,7 @@ check "workspace PVC exists" test "${HUB_CHECK_PVC:-no}" = "yes"
 check "workspace pod is reachable" test -n "${HUB_CHECK_POD:-}"
 
 check "top-level .bare is a valid bare Git directory" git --git-dir="$workspace_root/.bare" rev-parse --is-bare-repository
-check "top-level main exists and is attached" sh -lc "[ -d '$workspace_root/main' ] && git --git-dir='$workspace_root/.bare' worktree list --porcelain | grep -F 'worktree $workspace_root/main' >/dev/null"
+check "top-level main exists and is attached" sh -c "[ -d '$workspace_root/main' ] && git --git-dir='$workspace_root/.bare' worktree list --porcelain | grep -F 'worktree $workspace_root/main' >/dev/null"
 
 check "managed directory work/ exists" test -d "$workspace_root/work"
 check "managed directory repos/ exists" test -d "$workspace_root/repos"

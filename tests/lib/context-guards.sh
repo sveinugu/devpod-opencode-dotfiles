@@ -105,6 +105,14 @@ context_resolve_temp_root_host() {
     temp_root='/tmp'
   fi
 
+  while [ "$temp_root" != '/' ] && [ "${temp_root%/}" != "$temp_root" ]; do
+    temp_root="${temp_root%/}"
+  done
+
+  if [ -z "$temp_root" ]; then
+    temp_root='/tmp'
+  fi
+
   printf '%s\n' "$temp_root"
 }
 
@@ -135,4 +143,21 @@ context_make_test_tmpdir() {
 
   mkdir -p "$test_tmp_root"
   mktemp -d "$test_tmp_root/${test_slug}-XXXXXX"
+}
+
+context_stat_mode() {
+  local path="$1"
+  local mode=''
+
+  if mode="$(stat -c '%a' "$path" 2>/dev/null)"; then
+    printf '%s\n' "$mode"
+    return 0
+  fi
+
+  if mode="$(stat -f '%Lp' "$path" 2>/dev/null)"; then
+    printf '%s\n' "$mode"
+    return 0
+  fi
+
+  return 1
 }

@@ -26,6 +26,13 @@ run_step() {
   fi
 }
 
+worktree_is_clean_for_ff() {
+  local worktree_path="$1"
+
+  git -C "$worktree_path" diff --quiet --ignore-submodules -- &&
+    git -C "$worktree_path" diff --cached --quiet --ignore-submodules --
+}
+
 ensure_dir_path() {
   local path="$1"
   if [ -e "$path" ] && [ ! -d "$path" ]; then
@@ -56,7 +63,9 @@ if git --git-dir="$workspace_root/.bare" worktree list --porcelain | grep -F "wo
     run_step 'switch main worktree to branch main' git -C "$workspace_root/main" checkout main
   fi
 
-  if [ "$fetched_origin_main" = true ] && git --git-dir="$workspace_root/.bare" show-ref --verify --quiet refs/remotes/origin/main; then
+  if [ "$fetched_origin_main" = true ] &&
+    git --git-dir="$workspace_root/.bare" show-ref --verify --quiet refs/remotes/origin/main &&
+    worktree_is_clean_for_ff "$workspace_root/main"; then
     run_step 'fast-forward main worktree to origin/main' git -C "$workspace_root/main" merge --ff-only origin/main
   fi
 else
@@ -117,7 +126,9 @@ else
   if git --git-dir="$workspace_root/.bare" fetch origin "refs/heads/$install_branch:refs/remotes/origin/$install_branch" >/dev/null 2>&1; then
     fetched_install_branch=true
   fi
-  if [ "$fetched_install_branch" = true ] && git --git-dir="$workspace_root/.bare" show-ref --verify --quiet "refs/remotes/origin/$install_branch"; then
+  if [ "$fetched_install_branch" = true ] &&
+    git --git-dir="$workspace_root/.bare" show-ref --verify --quiet "refs/remotes/origin/$install_branch" &&
+    worktree_is_clean_for_ff "$install_dir"; then
     run_step "fast-forward install worktree $install_branch" git -C "$install_dir" merge --ff-only "origin/$install_branch"
   fi
 fi

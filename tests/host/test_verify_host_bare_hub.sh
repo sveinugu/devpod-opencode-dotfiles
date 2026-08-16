@@ -46,7 +46,7 @@ chmod +x "$checkout/scripts/lib/ensure-bare-excludes.sh"
     >/dev/null
 )
 
-install_mode_good="$(stat -c '%a' "$hub_root/main/install.sh")"
+install_mode_good="$(context_stat_mode "$hub_root/main/install.sh")"
 [ "$install_mode_good" = "700" ]
 
 (
@@ -128,7 +128,7 @@ PY
   printf 'Y\n' | bash "./scripts/setup-host-bare-hub.sh" --hub-root "$hub_root" --mode host >/dev/null
 )
 
-install_mode_after_repair="$(stat -c '%a' "$hub_root/main/install.sh")"
+install_mode_after_repair="$(context_stat_mode "$hub_root/main/install.sh")"
 [ "$install_mode_after_repair" = "700" ]
 
 chmod 755 "$hub_root/work"

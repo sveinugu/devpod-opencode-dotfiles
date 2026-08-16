@@ -113,7 +113,7 @@ for pattern in '.envrc' '.envrc.local' '.envrc.bak.*' '.opencode/'; do
 done
 main_branch="$(git -C "$hub_root/main" rev-parse --abbrev-ref HEAD)"
 [ "$main_branch" = "main" ]
-install_mode_first="$(stat -c '%a' "$hub_root/main/install.sh")"
+install_mode_first="$(context_stat_mode "$hub_root/main/install.sh")"
 [ "$install_mode_first" = "700" ]
 
 (
@@ -121,7 +121,7 @@ install_mode_first="$(stat -c '%a' "$hub_root/main/install.sh")"
   printf 'Y\n' | bash "./scripts/setup-host-bare-hub.sh" --hub-root "$hub_root" --mode host >"$tmpdir/out-second.txt"
 )
 
-install_mode_second="$(stat -c '%a' "$hub_root/main/install.sh")"
+install_mode_second="$(context_stat_mode "$hub_root/main/install.sh")"
 [ "$install_mode_second" = "700" ]
 
 (

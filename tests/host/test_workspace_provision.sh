@@ -65,6 +65,7 @@ workspace_root="$tmpdir/workspace"
 home_dir="$tmpdir/home"
 source_repo="$tmpdir/source-main"
 install_log="$tmpdir/tool-installs.log"
+workspace_owned_by_other="$tmpdir/workspace-owned-by-other"
 
 make_source_repo_with_main "$source_repo"
 mkdir -p "$workspace_root" "$home_dir"
@@ -100,6 +101,22 @@ main_branch="$(git -C "$workspace_root/main" rev-parse --abbrev-ref HEAD)"
 [ -f "$home_dir/.local/state/workspace-tools/pyenv.installed" ] || fail "missing pyenv marker"
 
 grep -F 'pyenv-install' "$install_log" >/dev/null || fail "pyenv install command was not invoked on first run"
+
+mkdir -p "$workspace_owned_by_other"
+if command -v chown >/dev/null 2>&1 && [ "$(id -u)" = "0" ]; then
+  chown 65534:65534 "$workspace_owned_by_other"
+  if HUB_WORKSPACE_ROOT="$workspace_owned_by_other" \
+    HUB_PROVISION_SOURCE="$source_repo" \
+    HUB_INSTALL_BRANCH='main' \
+    HUB_PYENV_INSTALL_COMMAND=":" \
+    HUB_OPENCODE_INSTALL_COMMAND=":" \
+    HOME="$home_dir" \
+    bash "$script" >"$tmpdir/host-owner-mismatch.out" 2>&1; then
+    fail "expected host-side provision to refuse ownership mismatch without auto-chown"
+  fi
+  grep -F 'refused: workspace root owner (' "$tmpdir/host-owner-mismatch.out" >/dev/null || fail "host ownership refusal should mention owner mismatch"
+  grep -F 'host-side provision will not auto-chown' "$tmpdir/host-owner-mismatch.out" >/dev/null || fail "host ownership refusal should mention host no-auto-chown policy"
+fi
 
 exclude_file="$workspace_root/.bare/info/exclude"
 [ -f "$exclude_file" ] || fail "missing top-level bare info/exclude after first provision"

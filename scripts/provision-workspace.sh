@@ -42,6 +42,33 @@ run_tool_installer() {
   touch "$marker_path"
 }
 
+stat_uid() {
+  local path="$1"
+  local uid=''
+
+  if uid="$(stat -c '%u' "$path" 2>/dev/null)"; then
+    printf '%s\n' "$uid"
+    return 0
+  fi
+
+  if uid="$(stat -f '%u' "$path" 2>/dev/null)"; then
+    printf '%s\n' "$uid"
+    return 0
+  fi
+
+  return 1
+}
+
+is_workspace_pod_context() {
+  [ -d /workspaces/dotfiles ] || return 1
+
+  if [ -f "/.dockerenv" ] || [ -f "/run/.containerenv" ] || [ -n "${KUBERNETES_SERVICE_HOST:-}" ]; then
+    return 0
+  fi
+
+  return 1
+}
+
 configure_git_identity() {
   local bare_dir="$1"
   local github_user_name="${HUB_GITHUB_USER_NAME:-}"
@@ -58,8 +85,23 @@ configure_git_identity() {
 
 pyenv_install_command="${HUB_PYENV_INSTALL_COMMAND:-curl -fsSL https://pyenv.run | zsh}"
 
-if [ -d "$workspace_root" ] && [ "$(stat -c '%u' "$workspace_root" 2>/dev/null)" != "$(id -u)" ]; then
-  sudo chown "$(id -u):$(id -g)" "$workspace_root"
+if [ -d "$workspace_root" ]; then
+  workspace_uid="$(stat_uid "$workspace_root" || true)"
+  if [ -n "$workspace_uid" ] && [ "$workspace_uid" != "$(id -u)" ]; then
+    if is_workspace_pod_context; then
+      if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
+        sudo -n chown "$(id -u):$(id -g)" "$workspace_root"
+      elif [ "$(id -u)" = "0" ]; then
+        chown "$(id -u):$(id -g)" "$workspace_root"
+      else
+        printf 'refused: workspace root owner (%s) differs from current uid (%s) in pod context and sudo -n is unavailable\n' "$workspace_uid" "$(id -u)" >&2
+        exit 1
+      fi
+    else
+      printf 'refused: workspace root owner (%s) differs from current uid (%s); host-side provision will not auto-chown\n' "$workspace_uid" "$(id -u)" >&2
+      exit 1
+    fi
+  fi
 fi
 
 create_bare_hub "$workspace_root" "$source_repo" main
