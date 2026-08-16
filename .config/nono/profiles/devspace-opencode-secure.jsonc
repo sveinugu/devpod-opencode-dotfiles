@@ -145,9 +145,9 @@
         }
       },
       "git-receive-pack": {
-        "executable": "/usr/local/bin/git-receive-pack",
+        "executable": "/usr/local/libexec/git-core/git-receive-pack",
         "from": {
-          "git": {
+          "session": {
             "sandbox": {
               "fs_read": [
                 "/workspaces/dotfiles",
@@ -171,9 +171,9 @@
         }
       },
       "git-upload-pack": {
-        "executable": "/usr/local/bin/git-upload-pack",
+        "executable": "/usr/local/libexec/git-core/git-upload-pack",
         "from": {
-          "git": {
+          "session": {
             "sandbox": {
               "fs_read": [
                 "/workspaces/dotfiles",
@@ -197,9 +197,9 @@
         }
       },
       "git-upload-archive": {
-        "executable": "/usr/local/bin/git-upload-archive",
+        "executable": "/usr/local/libexec/git-core/git-upload-archive",
         "from": {
-          "git": {
+          "session": {
             "sandbox": {
               "fs_read": [
                 "/workspaces/dotfiles",
