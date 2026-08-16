@@ -6,10 +6,16 @@ repo_root="$(git rev-parse --show-toplevel)"
 source "$repo_root/tests/lib/context-guards.sh"
 require_pod_outside_nono_test 'test_public_repo_clone_behavior_ux'
 
+clone_script="$repo_root/bin/clone-repo"
+provision_script="$repo_root/scripts/provision-workspace.sh"
+
 fail() {
   printf 'FAIL test_public_repo_clone_behavior_ux: %s\n' "$1" >&2
   exit 1
 }
+
+[ -f "$clone_script" ] || fail 'bin/clone-repo not found'
+[ -f "$provision_script" ] || fail 'scripts/provision-workspace.sh not found'
 
 temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_public_repo_clone_behavior_ux')"
 tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_public_repo_clone_behavior_ux')"
@@ -115,6 +121,7 @@ if grep -F 'Username for' "$tmpdir/private-clone.out" >/dev/null; then
 fi
 
 set +e
+mkdir -p "$tmpdir/home-private-provision"
 PATH="$mock_bin:$PATH" \
 REAL_GIT="$real_git" \
 MOCK_PUBLIC_URL="$public_url" \

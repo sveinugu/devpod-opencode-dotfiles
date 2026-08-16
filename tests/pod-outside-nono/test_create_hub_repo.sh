@@ -6,10 +6,16 @@ repo_root="$(git rev-parse --show-toplevel)"
 source "$repo_root/tests/lib/context-guards.sh"
 require_pod_outside_nono_test 'test_create_hub_repo'
 
+script="$repo_root/bin/clone-repo"
+runbook="$repo_root/docs/superpowers/runbooks/devspace-bare-hub-usage.md"
+
 fail() {
   printf 'FAIL test_create_hub_repo: %s\n' "$1" >&2
   exit 1
 }
+
+[ -f "$script" ] || fail 'bin/clone-repo not found'
+[ -f "$runbook" ] || fail 'runbook missing: docs/superpowers/runbooks/devspace-bare-hub-usage.md'
 
 temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_create_hub_repo')"
 tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_create_hub_repo')"

@@ -109,10 +109,12 @@ else
   printf 'expected install.sh dry-run to link .config/nono from source worktree\n' >&2
   exit 1
 fi
-grep -F "DRY-RUN (cd $target_home && npx -y skills add wondelai/skills/pragmatic-programmer -y)" "$tmpdir/main.out" >/dev/null
-grep -F "DRY-RUN (cd $target_home && npx -y skills add wondelai/skills/clean-code -y)" "$tmpdir/main.out" >/dev/null
-grep -F "DRY-RUN (cd $tmpdir/agent-home && sudo -n -u agent env HOME=$tmpdir/agent-home npx -y skills add wondelai/skills/pragmatic-programmer -y)" "$tmpdir/main.out" >/dev/null
-grep -F "DRY-RUN (cd $tmpdir/agent-home && sudo -n -u agent env HOME=$tmpdir/agent-home npx -y skills add wondelai/skills/clean-code -y)" "$tmpdir/main.out" >/dev/null
+grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/pragmatic-programmer -y)" "$tmpdir/main.out" >/dev/null
+grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/clean-code -y)" "$tmpdir/main.out" >/dev/null
+if grep -F "DRY-RUN (cd $tmpdir/agent-home" "$tmpdir/main.out" >/dev/null; then
+  printf 'did not expect dry-run opencode commands to execute from agent runtime home\n' >&2
+  exit 1
+fi
 if grep -F 'skills add wondelai/skills/pragmatic-programmer -g -y' "$tmpdir/main.out" >/dev/null; then
   printf 'did not expect global skill install flag (-g) for pragmatic-programmer\n' >&2
   exit 1
@@ -193,8 +195,12 @@ quoted_dir="$(printf '%s' "$quoted_vars_out" | sed -n '2p')"
 grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.zshrc $target_home/.zshrc" "$tmpdir/feature.out" >/dev/null
 grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.config/opencode $target_home/.config/opencode" "$tmpdir/feature.out" >/dev/null
 grep -F "DRY-RUN sudo -n -u agent ln -sfn $workspace_root/work/feature-x/.config/opencode $tmpdir/agent-home/.config/opencode" "$tmpdir/feature.out" >/dev/null
-grep -F "DRY-RUN (cd $tmpdir/agent-home && sudo -n -u agent env HOME=$tmpdir/agent-home npx -y skills add wondelai/skills/pragmatic-programmer -y)" "$tmpdir/feature.out" >/dev/null
-grep -F "DRY-RUN (cd $tmpdir/agent-home && sudo -n -u agent env HOME=$tmpdir/agent-home npx -y skills add wondelai/skills/clean-code -y)" "$tmpdir/feature.out" >/dev/null
+grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/pragmatic-programmer -y)" "$tmpdir/feature.out" >/dev/null
+grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/clean-code -y)" "$tmpdir/feature.out" >/dev/null
+if grep -F "DRY-RUN (cd $tmpdir/agent-home" "$tmpdir/feature.out" >/dev/null; then
+  printf 'did not expect feature dry-run opencode commands to execute from agent runtime home\n' >&2
+  exit 1
+fi
 if grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.config/nono $target_home/.config/nono" "$tmpdir/feature.out" >/dev/null; then
   :
 else

@@ -39,19 +39,12 @@ probe_script="$tmp_root/proxy-probe.sh"
 header_log="$tmp_root/upstream-headers.log"
 upstream_server_log="$tmp_root/upstream-server.log"
 upstream_port_file="$tmp_root/upstream-port.txt"
+real_token='REAL_PROXY_TOKEN_FOR_TOY_CONTRACT'
 
 cat >"$profile_path" <<'EOF'
 {
   "meta": {
     "name": "nono-toy-proxy-contract"
-  },
-  "workdir": {
-    "access": "readwrite"
-  },
-  "filesystem": {
-    "allow": [
-      "$WORKDIR"
-    ]
   },
   "network": {
     "credentials": [
@@ -93,25 +86,35 @@ printf 'proxy-toy:proxy-route-succeeded-and-direct-bypass-blocked\n'
 EOF
 chmod +x "$probe_script"
 
-python3 - "$header_log" "$upstream_port_file" >"$upstream_server_log" 2>&1 <<'PY' &
+python3 - "$header_log" "$upstream_port_file" "$real_token" >"$upstream_server_log" 2>&1 <<'PY' &
 import pathlib
 import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 header_log = pathlib.Path(sys.argv[1])
 port_file = pathlib.Path(sys.argv[2])
+real_token = sys.argv[3]
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         lines = [f"path={self.path}"]
         for key, value in self.headers.items():
             lines.append(f"{key}: {value}")
-        header_log.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        with header_log.open("a", encoding="utf-8") as fh:
+            fh.write("\n".join(lines) + "\n---\n")
 
-        self.send_response(200)
+        auth_header = self.headers.get("Authorization", "")
+        if auth_header == f"Bearer {real_token}":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"ok":true}')
+            return
+
+        self.send_response(401)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
-        self.wfile.write(b'{"ok":true}')
+        self.wfile.write(b'{"ok":false,"error":"unauthorized"}')
 
     def log_message(self, fmt, *args):
         return
@@ -151,7 +154,6 @@ profile.write_text(content.replace("{{UPSTREAM_PORT}}", port), encoding="utf-8")
 PY
 
 upstream_url="http://127.0.0.1:$upstream_port"
-real_token='REAL_PROXY_TOKEN_FOR_TOY_CONTRACT'
 probe_output="$tmp_root/probe-output.log"
 
 HUB_NONO_TOY_REAL_TOKEN="$real_token" \

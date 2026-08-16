@@ -37,6 +37,7 @@ path_after_insert="$(
   PATH="$base_path" \
   HUB_INSTALL_BRANCH_DIR="$branch_dir" \
   WORKSPACE_NAV_SCRIPT="$nav_script" \
+  WORKSPACE_NAV_INSTALL_ENV_FILE=/nonexistent \
   zsh -fc '. "$WORKSPACE_NAV_SCRIPT"; printf "%s\n" "$PATH"'
 )"
 
@@ -49,6 +50,7 @@ resolved_tool="$(
   PATH="$base_path" \
   HUB_INSTALL_BRANCH_DIR="$branch_dir" \
   WORKSPACE_NAV_SCRIPT="$nav_script" \
+  WORKSPACE_NAV_INSTALL_ENV_FILE=/nonexistent \
   zsh -fc '. "$WORKSPACE_NAV_SCRIPT"; command -v branch-tool'
 )"
 
@@ -61,6 +63,7 @@ path_without_bin="$(
   PATH="$base_path" \
   HUB_INSTALL_BRANCH_DIR="$missing_branch_dir" \
   WORKSPACE_NAV_SCRIPT="$nav_script" \
+  WORKSPACE_NAV_INSTALL_ENV_FILE=/nonexistent \
   zsh -fc '. "$WORKSPACE_NAV_SCRIPT"; printf "%s\n" "$PATH"'
 )"
 
@@ -70,6 +73,7 @@ path_after_repeat="$(
   PATH="$base_path" \
   HUB_INSTALL_BRANCH_DIR="$branch_dir" \
   WORKSPACE_NAV_SCRIPT="$nav_script" \
+  WORKSPACE_NAV_INSTALL_ENV_FILE=/nonexistent \
   zsh -fc '. "$WORKSPACE_NAV_SCRIPT"; . "$WORKSPACE_NAV_SCRIPT"; printf "%s\n" "$PATH"'
 )"
 
