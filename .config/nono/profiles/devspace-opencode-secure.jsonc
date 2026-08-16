@@ -42,6 +42,7 @@
       "$HOME/.opencode",
       "$HOME/.cache",
       "$HOME/.agents",
+      "$HOME/.npm",
       "$XDG_CONFIG_HOME/opencode",
       "$XDG_CACHE_HOME/opencode",
       "$XDG_DATA_HOME/opencode",
