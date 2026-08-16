@@ -5,6 +5,7 @@ Status: Draft for user approval
 
 Related:
 - `docs/superpowers/specs/2026-07-14-devspace-model-credential-phasing-design.md`
+- `.config/opencode/AGENTS.md`
 - `scripts/lib/install/materialize.sh`
 - `scripts/lib/launch-opencode-nono.sh`
 - `scripts/provision-workspace.sh`
@@ -16,6 +17,15 @@ The current install flow mixes three different concerns:
 1. branch-aware workspace/home symlink materialization,
 2. skill installation,
 3. plugin installation.
+
+Current state snapshot:
+
+```text
+install.sh
+├── branch-aware home/worktree materialization
+├── local skill installation via repo-backed OpenCode config paths
+└── installer-style plugin regeneration into repo-backed OpenCode config paths
+```
 
 That mix currently creates two concrete problems:
 
@@ -32,12 +42,17 @@ The agent runtime remains primary. `install.sh` must therefore continue to suppo
 
 ## Goals
 
+### Primary goals
+
 - Keep `install.sh` as a first-class branch-apply workflow for both in-pod and provision-driven runs.
 - Move skills to a harness-invariant project-local surface.
 - Keep ordinary OpenCode npm plugin selection authoritative in `opencode.jsonc`.
 - Add an explicit contract for installer-style harness/plugin installs that materialize extra files.
 - Avoid per-user sudo-based skill/plugin installation.
 - Keep only the minimum privileged operations required for cross-user home wiring.
+
+### Supporting and future-facing goals
+
 - Preserve room for future harnesses beyond OpenCode without reopening the whole layout.
 - Retain a reusable general sudo+nono helper in scope as preparatory infrastructure, even if the chosen install model no longer depends on it for skill/plugin materialization.
 
@@ -48,7 +63,7 @@ The agent runtime remains primary. `install.sh` must therefore continue to suppo
 - Do not require committed generated installer-plugin outputs.
 - Do not require a dedicated per-user agent skill-install helper in the chosen approach.
 
-## Chosen approach (A)
+## Chosen approach
 
 Use a split model with one project-local harness surface and two OpenCode-specific install modes:
 
@@ -161,6 +176,8 @@ Required install contract:
 - output verification happens after install,
 - no sudo is used for this regeneration path.
 
+The manifest itself is committed repo state. The listed outputs are generated install state and must remain git-ignored rather than tracked.
+
 Generated outputs for installer-managed installs are intentionally git-ignored and refreshed on each install run.
 
 ### 5. Privilege boundary
@@ -175,6 +192,8 @@ Chosen privilege model:
   - cross-user home symlink switching/wiring tied to the active hub branch/worktree,
   - existing root-owned secure launch infrastructure,
   - future reusable harness infrastructure where a root-owned helper is still the right boundary.
+
+This inherits the broader two-user and constrained-helper security direction from `docs/superpowers/specs/2026-07-14-devspace-model-credential-phasing-design.md`; this slice narrows that boundary so skill and installer-managed plugin materialization stay outside the privileged path.
 
 The design keeps a reusable general sudo+nono helper in scope because it remains useful for future harness support even though the chosen skill/plugin materialization path no longer depends on it.
 
@@ -191,7 +210,30 @@ Purpose in this slice:
 - keep Opencode-specific secure launch logic factored cleanly from future generic harness execution needs,
 - refactor the existing OpenCode wrapper/launch path to use that general helper rather than keeping a permanently special-case wrapper path.
 
+Required helper interface contract:
+
+| Surface | Requirement |
+| --- | --- |
+| Inputs | The helper must accept a validated target program plus argument vector, and must not depend on hidden interactive shell state. |
+| Working directory | The caller must be able to run the helper from a declared repo/worktree path so install steps remain branch-aware. |
+| Environment | Any required environment inputs must be explicit and documented; ambient credential leakage is out of contract. |
+| Exit behavior | Exit `0` means the delegated command completed successfully; non-zero means validation failure, launch failure, or delegated command failure. Child exit status should be preserved when practical. |
+| Failure mode | Missing prerequisites must fail closed rather than silently skipping privilege or sandbox checks. |
+
 This helper is preparatory infrastructure in the chosen approach, not the primary mechanism for project-local skill installation or installer-plugin regeneration.
+
+### 7. Helper + local skill for future maintenance
+
+The design should include both:
+
+1. **Helper surface** to run the declared installer-managed refresh flow correctly from `harness-installs.jsonc`.
+2. **Local project skill** to explain the install model for future humans/agents.
+
+Intent:
+
+- the helper prevents procedural mistakes,
+- the skill preserves the reasoning and expected maintenance flow when details are forgotten later,
+- the maintenance skill should point future readers back to `.config/opencode/AGENTS.md` for design-approval and contract-test expectations.
 
 ### 8. Cleanup and conformance task
 
@@ -204,19 +246,13 @@ Required cleanup scope:
 - clean up `.gitignore` rules so committed vs generated surfaces are explicit,
 - make the cleanup task verification-focused so it can prove the repo no longer depends on the deprecated skill/plugin materialization paths.
 
+Definition of stale for this slice:
+
+- any generated skill content under repo-backed `.config/opencode/.agents/`, `.config/opencode/skills/`, or `.config/opencode/skills-lock.json`,
+- any generated plugin/command output under `.config/opencode/plugins/` or `.config/opencode/commands/` that is not declared by the current `harness-installs.jsonc` manifest outputs,
+- any ignore rule that still treats the deprecated layout as canonical after the new top-level `.agents/skills` + `skills-lock.json` contract is introduced.
+
 This cleanup task is separate from the core install-flow refactor so the resulting diff and verification story remain easier to review.
-
-### 7. Helper + local skill for future maintenance
-
-The design should include both:
-
-1. **Helper surface** to run the declared installer-managed refresh flow correctly from `harness-installs.jsonc`.
-2. **Local project skill** to explain the install model for future humans/agents.
-
-Intent:
-
-- the helper prevents procedural mistakes,
-- the skill preserves the reasoning and expected maintenance flow when details are forgotten later.
 
 ## Target artifacts
 
@@ -259,14 +295,16 @@ Intent:
 
 ## Verification strategy
 
-### Commands
+| Command | Expected pass criteria | Validates |
+| --- | --- | --- |
+| `bash tests/pod-outside-nono/test_install_local_source_contract.sh` | exits `0`; proves `install.sh` sources local skills from repo root/worktree context rather than repo-backed `.config/opencode/.agents/...` | branch-aware install source selection |
+| `bash tests/pod-outside-nono/test_project_local_skills_contract.sh` | exits `0`; proves skills materialize into top-level `.agents/skills/` and top-level `skills-lock.json` is the lock/reconstruction authority | project-local skill contract |
+| `bash tests/pod-outside-nono/test_harness_installs_contract.sh` | exits `0`; proves each manifest entry runs uninstall+install from its declared `workingDirectory` and verifies declared outputs | installer-managed manifest contract |
+| `bash tests/pod-outside-nono/test_generated_output_ignore_contract.sh` | exits `0`; proves installer-managed outputs are treated as generated and ignored rather than required committed files | generated-output ignore contract |
+| `bash tests/pod-outside-nono/test_cleanup_conformance_contract.sh` | exits `0`; proves stale legacy materialization paths are no longer canonical and `.gitignore` matches the new split | cleanup and conformance contract |
+| `bash tests/host/test_dockerfile_opencode_helper_contract.sh` | exits `0`; proves Dockerfile stages `/usr/local/libexec/dotfiles-run-helper` and the helper remains distinct from ordinary skill/plugin materialization | generic helper contract |
 
-- `bash tests/pod-outside-nono/test_install_local_source_contract.sh`
-- `bash tests/pod-outside-nono/test_project_local_skills_contract.sh`
-- `bash tests/pod-outside-nono/test_harness_installs_contract.sh`
-- `bash tests/host/test_dockerfile_opencode_helper_contract.sh`
-
-### Verification expectations
+Verification expectations:
 
 1. `install.sh` run from a worktree/root branch context installs skills from repo root into top-level `.agents/skills`, not from `.config/opencode` into stale `.config/opencode/.agents/...`.
 2. Top-level `skills-lock.json` is the generated/maintained lock artifact for local skill installation, and `install.sh` includes the lock-driven `npx -y skills experimentall_install` reconstruction path.
@@ -280,19 +318,23 @@ Intent:
 
 ## Acceptance tests
 
-- **Project-local skills contract:** a pod-outside-nono test proves install-time skill materialization targets top-level `.agents/skills` and top-level `skills-lock.json`.
-- **Harness install manifest contract:** a pod-outside-nono test proves each declared `harness-installs.jsonc` entry runs from its `workingDirectory`, performs uninstall+install, and verifies declared outputs.
-- **Generated-output ignore contract:** a pod-outside-nono test proves installer-managed outputs are ignored rather than required to be committed.
-- **Cleanup/conformance contract:** a pod-outside-nono test proves deprecated repo materialization paths and stale generated content are no longer part of the supported layout, and `.gitignore` reflects the new generated-vs-committed split.
-- **Dockerfile helper contract:** a host-context contract test proves the reusable generic helper is staged for installation at `/usr/local/libexec/dotfiles-run-helper` and remains separate from ordinary skill/plugin materialization.
+| Acceptance test | Goal / artifact coverage |
+| --- | --- |
+| **Project-local skills contract** (`tests/pod-outside-nono/test_project_local_skills_contract.sh`) | validates top-level `.agents/skills` and top-level `skills-lock.json` as the canonical local skill surfaces |
+| **Harness install manifest contract** (`tests/pod-outside-nono/test_harness_installs_contract.sh`) | validates `harness-installs.jsonc`, declared `workingDirectory`, uninstall+install refresh, and output verification |
+| **Generated-output ignore contract** (`tests/pod-outside-nono/test_generated_output_ignore_contract.sh`) | validates `.gitignore` treatment for `.config/opencode/plugins/` and `.config/opencode/commands/` generated outputs |
+| **Cleanup/conformance contract** (`tests/pod-outside-nono/test_cleanup_conformance_contract.sh`) | validates removal/quarantine of deprecated `.config/opencode/.agents/...`-style materialization and stale generated surfaces |
+| **Dockerfile helper contract** (`tests/host/test_dockerfile_opencode_helper_contract.sh`) | validates `/usr/local/libexec/dotfiles-run-helper` as reusable helper infrastructure distinct from ordinary skill/plugin materialization |
 
 ## Risks and follow-up concerns
 
-- **OpenCode npm cache runtime path:** because ordinary npm plugins remain authoritative in `opencode.jsonc`, implementation may need a nono/runtime policy update for `~/.cache/opencode/node_modules` access.
-- **Generated installer outputs may accumulate stale files without explicit cleanup:** this is why the manifest contract includes both `uninstall` and `install`.
-- **Authority confusion around `.config/opencode/package.json`:** implementation must keep it secondary to `opencode.jsonc` for runtime plugin selection.
-- **Repo hygiene drift:** stale generated content and legacy `.gitignore` rules can make the new layout look more complex than it is if the cleanup/conformance task is skipped.
-- **Future harness expansion:** the top-level `harness-installs.jsonc` and `.agents` layout intentionally reserve space for future Claude or other harness-specific install entries.
+| Risk | Mitigation / follow-up |
+| --- | --- |
+| **OpenCode npm cache runtime path**: because ordinary npm plugins remain authoritative in `opencode.jsonc`, implementation may need a nono/runtime policy update for `~/.cache/opencode/node_modules` access. | Re-check the runtime profile against the security constraints in `docs/superpowers/specs/2026-07-14-devspace-model-credential-phasing-design.md` and add or reject cache-path allowances explicitly. |
+| **Generated installer outputs may accumulate stale files without explicit cleanup.** | Keep both `uninstall` and `install` in the manifest contract and require the cleanup/conformance contract test to fail if undeclared outputs remain. |
+| **Authority confusion around `.config/opencode/package.json`.** | Document it as a secondary repo-local dependency surface only, and keep contract tests focused on `opencode.jsonc` as the runtime plugin authority. |
+| **Repo hygiene drift**: stale generated content and legacy `.gitignore` rules can make the new layout look more complex than it is if the cleanup/conformance task is skipped. | Treat cleanup/conformance as a separate required task with dedicated verification before the slice is considered done. |
+| **Future harness expansion**: the top-level `harness-installs.jsonc` and `.agents` layout intentionally reserve space for future Claude or other harness-specific install entries. | Keep the manifest format and helper contract harness-neutral; require any future harness entry to add its own contract test rather than relying on convention alone. |
 
 ## User Check-in
 
