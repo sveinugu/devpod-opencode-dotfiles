@@ -34,7 +34,7 @@ cat > "$mock_bin/direnv" <<'EOF'
 set -euo pipefail
 
 cmd="${1:-}"
-target="${2:-}"
+target="${2:-$(pwd -P)}"
 printf '%s|%s\n' "$cmd" "$target" >> "${DIRENV_LOG:?DIRENV_LOG must be set}"
 
 state_dir="${DIRENV_STATE_DIR:?DIRENV_STATE_DIR must be set}"
@@ -49,6 +49,10 @@ if [ "$cmd" = "allow" ]; then
 fi
 
 if [ "$cmd" = "status" ]; then
+  if [ "$#" -ne 1 ]; then
+    exit 2
+  fi
+
   trust_file="$state_dir/${target//\//__}.trust"
   if [ -f "$trust_file" ]; then
     cat "$trust_file"

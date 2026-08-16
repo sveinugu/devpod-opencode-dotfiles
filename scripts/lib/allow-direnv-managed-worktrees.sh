@@ -114,7 +114,9 @@ allow_direnv_discover_targets() {
   allow_direnv_target_repos=()
   allow_direnv_target_count=0
 
-  allow_direnv_add_target "$workspace_root/main" 'hub' 'hub'
+  if [ -d "$workspace_root/main" ]; then
+    allow_direnv_add_target "$workspace_root/main" 'hub' 'hub'
+  fi
 
   if [ -d "$workspace_root/.bare" ]; then
     while IFS= read -r worktree_path; do
@@ -187,7 +189,9 @@ allow_direnv_direnv_status_text() {
     return
   fi
 
-  if ! status_text="$(direnv status "$checkout_dir" 2>/dev/null || true)"; then
+  # direnv status does not support a positional path argument.
+  # Run status from the target checkout directory so detection matches real direnv behavior.
+  if ! status_text="$(cd "$checkout_dir" && direnv status 2>/dev/null || true)"; then
     printf '%s\n' "$ALLOW_DIRENV_STATUS_UNKNOWN"
     return
   fi
@@ -318,8 +322,10 @@ allow_direnv_needs_repair() {
       return 0
       ;;
     "$ALLOW_DIRENV_STATUS_DIVERGENT")
-      [ "$force_mode" = '1' ]
-      return
+      if [ "$force_mode" = '1' ]; then
+        return 0
+      fi
+      return 1
       ;;
   esac
 
@@ -331,7 +337,7 @@ allow_direnv_repair_target() {
   local hub_kind="$2"
   local repo_name="$3"
 
-  if HUB_WORKSPACE_ROOT="$allow_direnv_workspace_root" bash "$allow_direnv_lib_dir/worktree-env.sh" "$checkout_dir" "$hub_kind" "$repo_name" >/dev/null 2>&1; then
+  if WORKTREE_ENV_SKIP_DIRENV_ALLOW=1 HUB_WORKSPACE_ROOT="$allow_direnv_workspace_root" bash "$allow_direnv_lib_dir/worktree-env.sh" "$checkout_dir" "$hub_kind" "$repo_name" >/dev/null 2>&1; then
     return 0
   fi
 

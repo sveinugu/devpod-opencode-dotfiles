@@ -32,10 +32,13 @@ cat > "$mock_bin/direnv" <<'EOF'
 set -euo pipefail
 
 cmd="${1:-}"
-target="${2:-}"
+target="${2:-$(pwd -P)}"
 printf '%s|%s\n' "$cmd" "$target" >> "${DIRENV_LOG:?DIRENV_LOG must be set}"
 
 if [ "$cmd" = "status" ]; then
+  if [ "$#" -ne 1 ]; then
+    exit 2
+  fi
   printf '{"state":{"foundRC":{"allowed":0,"path":"%s"}}}\n' "$target"
   exit 0
 fi
@@ -86,6 +89,8 @@ HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script
 
 failing_checkout="$workspace_root/work/feature/failing"
 later_checkout="$workspace_root/work/feature/later"
+
+: > "$direnv_log"
 
 set +e
 (

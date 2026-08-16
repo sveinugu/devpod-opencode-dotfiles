@@ -32,10 +32,13 @@ cat > "$mock_bin/direnv" <<'EOF'
 set -euo pipefail
 
 cmd="${1:-}"
-target="${2:-}"
+target="${2:-$(pwd -P)}"
 printf '%s|%s\n' "$cmd" "$target" >> "${DIRENV_LOG:?DIRENV_LOG must be set}"
 
 if [ "$cmd" = "status" ]; then
+  if [ "$#" -ne 1 ]; then
+    exit 2
+  fi
   printf '{"state":{"foundRC":{"allowed":0,"path":"%s"}}}\n' "$target"
   exit 0
 fi
@@ -83,6 +86,8 @@ HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$new_worktree_script
 target_checkout="$workspace_root/work/feature/missing-envrc"
 rm -f "$target_checkout/.envrc" "$target_checkout/.envrc.local"
 
+: > "$direnv_log"
+
 (
   cd "$workspace_root/main"
   HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$script" --allow >"$tmpdir/envrc-repair.out"
@@ -91,6 +96,8 @@ rm -f "$target_checkout/.envrc" "$target_checkout/.envrc.local"
 [ -f "$target_checkout/.envrc" ] || fail 'expected .envrc repair'
 [ -f "$target_checkout/.envrc.local" ] || fail 'expected .envrc.local creation'
 grep -F "allow|$target_checkout" "$direnv_log" >/dev/null || fail 'expected direnv allow call'
+allow_count="$(grep -c "allow|$target_checkout" "$direnv_log")"
+[ "$allow_count" = '1' ] || fail 'expected exactly one direnv allow call for repaired target'
 grep -F 'ok:' "$tmpdir/envrc-repair.out" >/dev/null || fail 'expected success reporting'
 grep -F 'export HUB_DIR=' "$target_checkout/.envrc" >/dev/null || fail 'expected managed envrc content'
 

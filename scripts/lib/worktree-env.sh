@@ -6,6 +6,7 @@ hub_kind="${2:?usage: worktree-env.sh CHECKOUT_DIR HUB_KIND [REPO_NAME]}"
 repo_name="${3:-hub}"
 worktree_env_generated_path="${WORKTREE_ENV_GENERATED_PATH:-}"
 worktree_env_generate_only="${WORKTREE_ENV_GENERATE_ONLY:-0}"
+worktree_env_skip_direnv_allow="${WORKTREE_ENV_SKIP_DIRENV_ALLOW:-0}"
 
 workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
 
@@ -154,7 +155,7 @@ fi
 
 if [ "$write_new_envrc" = true ]; then
   mv "$generated_envrc" "$checkout_dir/.envrc"
-  if command -v direnv >/dev/null 2>&1; then
+  if [ "$worktree_env_skip_direnv_allow" != '1' ] && command -v direnv >/dev/null 2>&1; then
     direnv allow "$checkout_dir"
   fi
 fi
