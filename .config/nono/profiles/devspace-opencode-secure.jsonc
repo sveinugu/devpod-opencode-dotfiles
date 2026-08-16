@@ -32,6 +32,7 @@
       "$XDG_CACHE_HOME/opencode",
       "$XDG_DATA_HOME/opencode",
       "$XDG_DATA_HOME/opentui",
+      "/usr/local/share/git-core",
       "/usr/local/libexec/git-core",
       "$HOME/.local/state/opencode",
       "/workspaces/dotfiles",

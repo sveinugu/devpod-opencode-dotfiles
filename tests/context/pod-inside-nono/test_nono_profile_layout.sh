@@ -39,7 +39,7 @@ grep -F '"$HOME/.gitconfig"' "$profile" >/dev/null || fail "profile should allow
 grep -F '"/etc/gitconfig"' "$profile" >/dev/null || fail "profile should allow read-only access to system git config for safe.directory trust"
 grep -F '"$HOME/.local/state/opencode"' "$profile" >/dev/null || fail "profile should allow explicit opencode runtime state root path for nested state writes"
 grep -F '"$HOME/.local/share/direnv"' "$profile" >/dev/null || fail "profile should allow explicit $HOME/.local/share/direnv writes for direnv allow-list"
-python3 - "$profile" <<'PY' || fail "profile should grant /usr/local/bin/opencode-raw as filesystem.allow_file (not directory allow)"
+python3 - "$profile" <<'PY' || fail "profile should grant pinned git/opencode binaries as filesystem.allow_file (not directory allow)"
 import json
 import sys
 
@@ -51,11 +51,21 @@ filesystem = profile.get('filesystem', {})
 allow_file = filesystem.get('allow_file', [])
 allow_dir = filesystem.get('allow', [])
 
-if '/usr/local/bin/opencode-raw' not in allow_file:
-    raise SystemExit(1)
+required_allow_file = {
+    '/usr/local/bin/opencode-raw',
+    '/usr/local/bin/git',
+    '/usr/local/bin/git-upload-pack',
+    '/usr/local/bin/git-receive-pack',
+    '/usr/local/bin/git-upload-archive',
+}
 
-if '/usr/local/bin/opencode-raw' in allow_dir:
-    raise SystemExit(1)
+for required_path in required_allow_file:
+    if required_path not in allow_file:
+        raise SystemExit(1)
+
+for required_path in required_allow_file:
+    if required_path in allow_dir:
+        raise SystemExit(1)
 PY
 
 python3 - "$profile" <<'PY' || fail "profile should grant workspace root as read+write"
@@ -86,7 +96,7 @@ if '/etc/gitconfig' in allow_paths:
     raise SystemExit(1)
 PY
 
-python3 - "$profile" <<'PY' || fail "profile should grant git helper exec paths through command_policies.from.session sandbox"
+python3 - "$profile" <<'PY' || fail "profile should rely on filesystem path grants (without command_policies) for git helper execution"
 import json
 import sys
 
@@ -94,81 +104,21 @@ profile_path = sys.argv[1]
 with open(profile_path, 'r', encoding='utf-8') as fh:
     profile = json.load(fh)
 
-command_policies = profile.get('command_policies', {})
-commands = command_policies.get('commands', {})
+if 'command_policies' in profile:
+    raise SystemExit(1)
 
-required_commands = {
-    'git': '/usr/local/bin/git',
-    'git-upload-pack': '/usr/local/bin/git-upload-pack',
-    'git-receive-pack': '/usr/local/bin/git-receive-pack',
-    'git-upload-archive': '/usr/local/bin/git-upload-archive',
+filesystem = profile.get('filesystem', {})
+allow_paths = filesystem.get('allow', [])
+
+required_allow = {
+    '/usr/local/libexec/git-core',
+    '/usr/local/share/git-core',
+    '/workspaces/dotfiles',
+    '/tmp',
 }
 
-required_git_helpers = {
-    'git-upload-pack',
-    'git-receive-pack',
-    'git-upload-archive',
-}
-
-def assert_no_shim_paths(paths):
-    for path in paths:
-        if '/tmp/nono-tool-sandbox-' in path or '/shims' in path:
-            raise SystemExit(1)
-
-for command_name, executable in required_commands.items():
-    command_policy = commands.get(command_name, {})
-    if command_policy.get('executable') != executable:
-        raise SystemExit(1)
-
-    from_edges = command_policy.get('from', {})
-    if command_name == 'git':
-        can_use = command_policy.get('can_use', [])
-        if not isinstance(can_use, list):
-            raise SystemExit(1)
-        for helper_name in required_git_helpers:
-            if helper_name not in can_use:
-                raise SystemExit(1)
-
-    session_edge = from_edges.get('session', {})
-    sandbox = session_edge.get('sandbox', {})
-
-    if command_name in required_git_helpers:
-        if 'session' in from_edges:
-            raise SystemExit(1)
-        git_edge = from_edges.get('git', {})
-        sandbox = git_edge.get('sandbox', {})
-
-    if not sandbox:
-        raise SystemExit(1)
-
-    fs_read = sandbox.get('fs_read', [])
-    fs_write = sandbox.get('fs_write', [])
-    fs_read_file = sandbox.get('fs_read_file', [])
-    exec_paths = sandbox.get('exec_paths', [])
-
-    assert_no_shim_paths(fs_read)
-    assert_no_shim_paths(exec_paths)
-
-    for required_read in ('/workspaces/dotfiles', '/usr/local/libexec/git-core'):
-        if required_read not in fs_read:
-            raise SystemExit(1)
-
-    if command_name == 'git':
-        if '/usr/local/bin' not in fs_read:
-            raise SystemExit(1)
-
-    for required_write in ('/workspaces/dotfiles',):
-        if required_write not in fs_write:
-            raise SystemExit(1)
-
-    for required_read_file in ('$HOME/.gitconfig', '/etc/gitconfig'):
-        if required_read_file not in fs_read_file:
-            raise SystemExit(1)
-
-    if '/usr/local/libexec/git-core' not in exec_paths:
-        raise SystemExit(1)
-
-    if '/usr/local/bin' not in exec_paths:
+for required_path in required_allow:
+    if required_path not in allow_paths:
         raise SystemExit(1)
 PY
 
