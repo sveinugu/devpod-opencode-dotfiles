@@ -20,7 +20,11 @@
       "/etc/gitconfig"
     ],
     "allow_file": [
-      "/usr/local/bin/opencode-raw"
+      "/usr/local/bin/opencode-raw",
+      "/usr/local/bin/git",
+      "/usr/local/bin/git-receive-pack",
+      "/usr/local/bin/git-upload-pack",
+      "/usr/local/bin/git-upload-archive"
     ],
     "allow": [
       "$HOME/.opencode",
@@ -28,6 +32,7 @@
       "$XDG_CACHE_HOME/opencode",
       "$XDG_DATA_HOME/opencode",
       "$XDG_DATA_HOME/opentui",
+      "/usr/local/libexec/git-core",
       "$HOME/.local/state/opencode",
       "/workspaces/dotfiles",
       "$HOME/.local/share/direnv",
@@ -113,114 +118,6 @@
         "env_var": "GPT_UIO_RED_API_KEY",
         "inject_header": "Authorization",
         "credential_format": "Bearer {}"
-      }
-    }
-  },
-  "command_policies": {
-    "commands": {
-      "git": {
-        "executable": "/usr/local/bin/git",
-        "from": {
-          "session": {
-            "sandbox": {
-              "fs_read": [
-                "/workspaces/dotfiles",
-                "/usr/local/libexec/git-core",
-                "/usr/local/bin",
-                "/tmp"
-              ],
-              "fs_write": [
-                "/workspaces/dotfiles"
-              ],
-              "fs_read_file": [
-                "$HOME/.gitconfig",
-                "/etc/gitconfig"
-              ],
-              "exec_paths": [
-                "/usr/local/libexec/git-core",
-                "/usr/local/bin"
-              ]
-            }
-          }
-        }
-      },
-      "git-receive-pack": {
-        "executable": "/usr/local/libexec/git-core/git-receive-pack",
-        "from": {
-          "session": {
-            "sandbox": {
-              "fs_read": [
-                "/workspaces/dotfiles",
-                "/usr/local/libexec/git-core",
-                "/usr/local/bin",
-                "/tmp"
-              ],
-              "fs_write": [
-                "/workspaces/dotfiles"
-              ],
-              "fs_read_file": [
-                "$HOME/.gitconfig",
-                "/etc/gitconfig"
-              ],
-              "exec_paths": [
-                "/usr/local/libexec/git-core",
-                "/usr/local/bin"
-              ]
-            }
-          }
-        }
-      },
-      "git-upload-pack": {
-        "executable": "/usr/local/libexec/git-core/git-upload-pack",
-        "from": {
-          "session": {
-            "sandbox": {
-              "fs_read": [
-                "/workspaces/dotfiles",
-                "/usr/local/libexec/git-core",
-                "/usr/local/bin",
-                "/tmp"
-              ],
-              "fs_write": [
-                "/workspaces/dotfiles"
-              ],
-              "fs_read_file": [
-                "$HOME/.gitconfig",
-                "/etc/gitconfig"
-              ],
-              "exec_paths": [
-                "/usr/local/libexec/git-core",
-                "/usr/local/bin"
-              ]
-            }
-          }
-        }
-      },
-      "git-upload-archive": {
-        "executable": "/usr/local/libexec/git-core/git-upload-archive",
-        "from": {
-          "session": {
-            "sandbox": {
-              "fs_read": [
-                "/workspaces/dotfiles",
-                "/usr/local/libexec/git-core",
-                "/usr/local/bin",
-                "/tmp"
-              ],
-              "fs_write": [
-                "/workspaces/dotfiles"
-              ],
-              "fs_read_file": [
-                "$HOME/.gitconfig",
-                "/etc/gitconfig"
-              ],
-              "exec_paths": [
-                "/usr/local/libexec/git-core",
-                "/usr/local/bin"
-              ]
-            }
-          }
-        }
       }
     }
   }
