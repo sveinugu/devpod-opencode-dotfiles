@@ -62,6 +62,7 @@ case "$context" in
       tests/pod-outside-nono/test_nono_secret_helper_contract.sh
       tests/pod-outside-nono/test_workspace_navigation_shell.sh
       tests/pod-outside-nono/test_create_hub_repo.sh
+      tests/pod-outside-nono/test_provision_sync_contract.sh
       tests/pod-outside-nono/test_public_repo_clone_behavior_ux.sh
       tests/pod-outside-nono/test_workspace_navigation_commands.sh
       tests/pod-outside-nono/test_workspace_navigation_helper_contracts.sh

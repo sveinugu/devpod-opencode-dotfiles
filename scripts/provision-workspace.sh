@@ -92,6 +92,13 @@ worktree_attached_to_bare() {
   [ "$common_abs" = "$bare_abs" ]
 }
 
+worktree_is_clean_for_ff() {
+  local worktree_path="$1"
+
+  git -C "$worktree_path" diff --quiet --ignore-submodules -- &&
+    git -C "$worktree_path" diff --cached --quiet --ignore-submodules --
+}
+
 configure_git_identity() {
   local bare_dir="$1"
   local github_user_name="${HUB_GITHUB_USER_NAME:-}"
@@ -137,6 +144,24 @@ fi
 
 configure_git_identity "$workspace_root/.bare"
 
+if ! GIT_TERMINAL_PROMPT=0 \
+    GIT_ASKPASS=/bin/false \
+    SSH_ASKPASS=/bin/false \
+    git --git-dir="$workspace_root/.bare" fetch "$source_repo" "refs/heads/$install_branch:refs/remotes/origin/$install_branch" >/dev/null 2>&1; then
+  printf 'refused: unable to access source repo non-interactively (verify public HTTPS URL and repository visibility)\n' >&2
+  exit 1
+fi
+
+if ! git --git-dir="$workspace_root/.bare" show-ref --verify --quiet "refs/heads/$install_branch" && \
+   git --git-dir="$workspace_root/.bare" show-ref --verify --quiet "refs/remotes/origin/$install_branch"; then
+  git --git-dir="$workspace_root/.bare" branch "$install_branch" "origin/$install_branch" >/dev/null 2>&1 || true
+fi
+
+if ! git --git-dir="$workspace_root/.bare" show-ref --verify --quiet "refs/heads/$install_branch"; then
+  printf 'refused: origin/%s is required for bootstrap\n' "$install_branch" >&2
+  exit 1
+fi
+
 if [ ! -e "$workspace_root/main/.envrc" ]; then
   "$script_dir/lib/worktree-env.sh" "$workspace_root/main" hub >/dev/null
 fi
@@ -149,21 +174,6 @@ if [ "$install_branch" = "main" ]; then
   install_dir="$workspace_root/main"
 else
   install_dir="$workspace_root/work/$install_branch"
-  if ! GIT_TERMINAL_PROMPT=0 \
-      GIT_ASKPASS=/bin/false \
-      SSH_ASKPASS=/bin/false \
-      git --git-dir="$workspace_root/.bare" fetch "$source_repo" "refs/heads/$install_branch:refs/remotes/origin/$install_branch" >/dev/null 2>&1; then
-    printf 'refused: unable to access source repo non-interactively (verify public HTTPS URL and repository visibility)\n' >&2
-    exit 1
-  fi
-  if ! git --git-dir="$workspace_root/.bare" show-ref --verify --quiet "refs/heads/$install_branch" && \
-     git --git-dir="$workspace_root/.bare" show-ref --verify --quiet "refs/remotes/origin/$install_branch"; then
-    git --git-dir="$workspace_root/.bare" branch "$install_branch" "origin/$install_branch" >/dev/null 2>&1 || true
-  fi
-  if ! git --git-dir="$workspace_root/.bare" show-ref --verify --quiet "refs/heads/$install_branch"; then
-    printf 'refused: origin/%s is required for bootstrap\n' "$install_branch" >&2
-    exit 1
-  fi
   if worktree_attached_to_bare "$install_dir" "$workspace_root/.bare"; then
     :
   else
@@ -174,6 +184,11 @@ else
   if [ ! -e "$install_dir/.envrc" ]; then
     "$script_dir/lib/worktree-env.sh" "$install_dir" hub >/dev/null
   fi
+fi
+
+if worktree_is_clean_for_ff "$install_dir" &&
+   git --git-dir="$workspace_root/.bare" show-ref --verify --quiet "refs/remotes/origin/$install_branch"; then
+  git -C "$install_dir" merge --ff-only "origin/$install_branch" >/dev/null
 fi
 
 if [ ! -x "$install_dir/install.sh" ]; then

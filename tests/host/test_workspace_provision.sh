@@ -123,6 +123,13 @@ for pattern in '.envrc' '.envrc.local' '.envrc.bak.*' '.opencode/'; do
   grep -Fx "$pattern" "$exclude_file" >/dev/null || fail "missing $pattern in top-level bare info/exclude"
 done
 
+(
+  cd "$source_repo"
+  printf 'main-sync\n' > MAIN_SYNC_MARKER
+  git add MAIN_SYNC_MARKER
+  git commit -m 'add marker for provision main branch sync' >/dev/null 2>&1
+)
+
 printf 'manual-only\n' > "$exclude_file"
 
 : > "$install_log"
@@ -137,6 +144,8 @@ bash "$script" > "$tmpdir/second-run.out"
 for pattern in '.envrc' '.envrc.local' '.envrc.bak.*' '.opencode/'; do
   grep -Fx "$pattern" "$exclude_file" >/dev/null || fail "second provision should reset $pattern in top-level bare info/exclude"
 done
+
+[ -f "$workspace_root/main/MAIN_SYNC_MARKER" ] || fail "second provision should update existing main worktree to latest source tip"
 
 if [ -s "$install_log" ]; then
   fail "pyenv installer should not run when marker is present and --refresh-tools is absent"
@@ -288,6 +297,25 @@ HOME="$home_branch_fetch" \
 bash "$script" >"$tmpdir/branch-fetch-followup.out"
 
 [ -f "$workspace_branch_fetch/work/feature/from-origin/BRANCH_FETCH_MARKER" ] || fail "provision should fetch and attach install branch created after first bootstrap"
+
+(
+  cd "$source_branch_fetch"
+  git checkout feature/from-origin >/dev/null 2>&1
+  printf 'from-origin-update\n' > BRANCH_FETCH_MARKER_UPDATE
+  git add BRANCH_FETCH_MARKER_UPDATE
+  git commit -m 'update marker branch for existing worktree sync test' >/dev/null 2>&1
+)
+
+HUB_WORKSPACE_ROOT="$workspace_branch_fetch" \
+HUB_PROVISION_SOURCE="$source_branch_fetch" \
+HUB_PROVISION_ORIGIN_URL="$origin_override_ssh" \
+HUB_INSTALL_BRANCH='feature/from-origin' \
+HUB_PYENV_INSTALL_COMMAND=":" \
+HUB_OPENCODE_INSTALL_COMMAND=":" \
+HOME="$home_branch_fetch" \
+bash "$script" >"$tmpdir/branch-fetch-existing-worktree-followup.out"
+
+[ -f "$workspace_branch_fetch/work/feature/from-origin/BRANCH_FETCH_MARKER_UPDATE" ] || fail "provision should fast-forward existing install worktree to latest origin tip"
 
 (
   cd "$source_branch_fetch"
