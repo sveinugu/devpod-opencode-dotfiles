@@ -96,8 +96,6 @@
       "gpt-uio-yellow",
       "gpt-uio-red"
     ],
-    // Needed for local test harnesses (e.g. Prefect) that bind/listen on localhost.
-    // Using a high-port ephemeral range keeps scope tighter than all ports.
     "open_port_range": [
       [32768, 65535]
     ],
