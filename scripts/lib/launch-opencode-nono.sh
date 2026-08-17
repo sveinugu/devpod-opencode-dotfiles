@@ -153,4 +153,10 @@ require_absolute_path "$profile_path"
 
 [ -r "$profile_path" ] || fail "nono profile not readable at $profile_path"
 
+# Ingest managed workspace .envrc variables (HUB_*, DYN_*, TMPDIR, etc.)
+# so they reach the sandboxed OpenCode runtime. Vars explicitly set by the
+# exec env override (HOME, XDG_*, PATH, …) will still win, so security is
+# not affected.
+eval "$(direnv export bash 2>/dev/null || true)"
+
 exec /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$runtime_xdg_state_home" PATH="$runtime_path" LD_PRELOAD= LD_LIBRARY_PATH= PYTHONPATH= DYLD_INSERT_LIBRARIES= "$setpriv_binary" --reuid="$agent_uid" --regid="$agent_gid" --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp "$nono_binary" run --profile "$profile_path" --allow-cwd --no-rollback-prompt -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$opencode_xdg_state_home" OPENCODE_CONFIG_CONTENT="$opencode_config_content" "$raw_opencode_binary" "$@"
