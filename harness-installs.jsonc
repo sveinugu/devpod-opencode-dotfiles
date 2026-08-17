@@ -3,9 +3,10 @@
     {
       "name": "opencode-loop",
       "workingDirectory": ".config/opencode",
-      "install": ["npx", "-y", "@bybrawe/opencode-loop"],
+      "install": ["npx", "-y", "@bybrawe/opencode-loop@latest"],
       "uninstall": ["npx", "-y", "@bybrawe/opencode-loop", "--uninstall"],
       "outputs": [
+        ".config/opencode/agents/opencode-loop-local.md",
         ".config/opencode/plugins/opencode-loop.ts",
         ".config/opencode/commands/loop-help.md",
         ".config/opencode/commands/loop.md"
