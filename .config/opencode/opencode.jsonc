@@ -13,7 +13,8 @@
   // "small_model": "gpt-uio-yellow/gpt-5-mini",
   "plugin": [
     "oc-plugin-karpathy-guidelines@latest",
-    "superpowers@git+https://github.com/obra/superpowers.git"
+    "superpowers@git+https://github.com/obra/superpowers.git",
+    "@bybrawe/opencode-loop@0.5.28"
   ],
   "permission": {
     "bash": {
