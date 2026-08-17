@@ -1,3 +1,5 @@
 node_modules
 bun.lock
 .gitignore
+provider-runtime.json
+provider-verification.json
