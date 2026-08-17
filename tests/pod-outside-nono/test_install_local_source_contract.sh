@@ -88,7 +88,7 @@ cat > "$workspace_root/main/harness-installs.jsonc" <<'JSON'
       "install": ["npx", "-y", "@bybrawe/opencode-loop"],
       "uninstall": ["npx", "-y", "@bybrawe/opencode-loop", "--uninstall"],
       "outputs": [
-        ".config/opencode/plugins/opencode-loop.js",
+        ".config/opencode/plugins/opencode-loop.ts",
         ".config/opencode/commands/loop-help.md",
         ".config/opencode/commands/loop.md"
       ]
@@ -98,7 +98,7 @@ cat > "$workspace_root/main/harness-installs.jsonc" <<'JSON'
 JSON
 
 mkdir -p "$workspace_root/main/.config/opencode/plugins" "$workspace_root/main/.config/opencode/commands"
-printf 'generated\n' > "$workspace_root/main/.config/opencode/plugins/opencode-loop.js"
+printf 'generated\n' > "$workspace_root/main/.config/opencode/plugins/opencode-loop.ts"
 printf 'generated\n' > "$workspace_root/main/.config/opencode/commands/loop-help.md"
 printf 'generated\n' > "$workspace_root/main/.config/opencode/commands/loop.md"
 
@@ -115,7 +115,7 @@ cat > "$workspace_root/work/feature-x/harness-installs.jsonc" <<'JSON'
       "install": ["npx", "-y", "@bybrawe/opencode-loop"],
       "uninstall": ["npx", "-y", "@bybrawe/opencode-loop", "--uninstall"],
       "outputs": [
-        ".config/opencode/plugins/opencode-loop.js",
+        ".config/opencode/plugins/opencode-loop.ts",
         ".config/opencode/commands/loop-help.md",
         ".config/opencode/commands/loop.md"
       ]
@@ -125,7 +125,7 @@ cat > "$workspace_root/work/feature-x/harness-installs.jsonc" <<'JSON'
 JSON
 
 mkdir -p "$workspace_root/work/feature-x/.config/opencode/plugins" "$workspace_root/work/feature-x/.config/opencode/commands"
-printf 'generated\n' > "$workspace_root/work/feature-x/.config/opencode/plugins/opencode-loop.js"
+printf 'generated\n' > "$workspace_root/work/feature-x/.config/opencode/plugins/opencode-loop.ts"
 printf 'generated\n' > "$workspace_root/work/feature-x/.config/opencode/commands/loop-help.md"
 printf 'generated\n' > "$workspace_root/work/feature-x/.config/opencode/commands/loop.md"
 
@@ -376,7 +376,7 @@ cat > "$workspace_reg/main/harness-installs.jsonc" <<'JSON'
       "install": ["npx", "-y", "@bybrawe/opencode-loop"],
       "uninstall": ["npx", "-y", "@bybrawe/opencode-loop", "--uninstall"],
       "outputs": [
-        ".config/opencode/plugins/opencode-loop.js",
+        ".config/opencode/plugins/opencode-loop.ts",
         ".config/opencode/commands/loop-help.md",
         ".config/opencode/commands/loop.md"
       ]
@@ -385,7 +385,7 @@ cat > "$workspace_reg/main/harness-installs.jsonc" <<'JSON'
 }
 JSON
 printf '{"version":1,"skills":{}}\n' > "$workspace_reg/main/skills-lock.json"
-printf 'generated\n' > "$workspace_reg/main/.config/opencode/plugins/opencode-loop.js"
+printf 'generated\n' > "$workspace_reg/main/.config/opencode/plugins/opencode-loop.ts"
 printf 'generated\n' > "$workspace_reg/main/.config/opencode/commands/loop-help.md"
 printf 'generated\n' > "$workspace_reg/main/.config/opencode/commands/loop.md"
 printf 'stale\n' > "$home_reg/.config/opencode/stale.txt"

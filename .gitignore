@@ -16,7 +16,7 @@
 .devspace
 
 # Installer-generated harness outputs
-.config/opencode/plugins/opencode-loop.js
+.config/opencode/plugins/opencode-loop.ts
 .config/opencode/commands/*.md
 
 # External skills are regenerated from top-level skills-lock.json

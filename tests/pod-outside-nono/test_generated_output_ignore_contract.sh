@@ -14,7 +14,7 @@ require_pod_outside_nono_test 'test_generated_output_ignore_contract'
 [ -f "$repo_root/.gitignore" ] || fail 'missing top-level .gitignore'
 [ -f "$repo_root/.config/opencode/.gitignore" ] || fail 'missing .config/opencode/.gitignore'
 
-git -C "$repo_root" check-ignore -q '.config/opencode/plugins/opencode-loop.js' || fail 'generated opencode-loop plugin output must be git-ignored'
+git -C "$repo_root" check-ignore -q '.config/opencode/plugins/opencode-loop.ts' || fail 'generated opencode-loop plugin output must be git-ignored'
 git -C "$repo_root" check-ignore -q '.config/opencode/commands/loop-help.md' || fail 'generated loop-help output must be git-ignored'
 git -C "$repo_root" check-ignore -q '.config/opencode/commands/loop.md' || fail 'generated loop output must be git-ignored'
 

@@ -19,7 +19,7 @@ legacy_skills_lock="$repo_root/.config/opencode/skills-lock.json"
 [ ! -e "$legacy_skills_dir" ] || fail 'deprecated .config/opencode/skills surface should not exist'
 [ ! -e "$legacy_skills_lock" ] || fail 'deprecated .config/opencode/skills-lock.json should not exist'
 
-[ ! -e "$repo_root/.config/opencode/plugins/opencode-loop.js" ] || fail 'installer-generated plugin output should be regenerated output, not committed repo content'
+[ ! -e "$repo_root/.config/opencode/plugins/opencode-loop.ts" ] || fail 'installer-generated plugin output should be regenerated output, not committed repo content'
 [ ! -e "$repo_root/.config/opencode/commands/loop-help.md" ] || fail 'installer-generated command output loop-help should be regenerated output, not committed repo content'
 [ ! -e "$repo_root/.config/opencode/commands/loop.md" ] || fail 'installer-generated command output loop should be regenerated output, not committed repo content'
 
@@ -40,7 +40,7 @@ for entry in manifest.get('installs', []):
         outputs.add(output)
 
 declared_outputs = {
-    '.config/opencode/plugins/opencode-loop.js',
+    '.config/opencode/plugins/opencode-loop.ts',
     '.config/opencode/commands/loop-help.md',
     '.config/opencode/commands/loop.md',
 }
