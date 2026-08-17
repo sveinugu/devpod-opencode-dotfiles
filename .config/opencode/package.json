@@ -3,9 +3,6 @@
   "private": true,
   "description": "Secondary repo-local dependency surface for config-dir tooling; runtime plugin authority remains in opencode.jsonc.",
   "dependencies": {
-    "@bybrawe/opencode-loop": "^0.5.28",
-    "@opencode-ai/plugin": "1.17.8",
-    "oc-plugin-karpathy-guidelines": "^0.2.1",
-    "superpowers": "github:obra/superpowers"
+    "@opencode-ai/plugin": "1.18.5"
   }
 }
