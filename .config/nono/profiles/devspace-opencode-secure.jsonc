@@ -96,6 +96,8 @@
       "gpt-uio-yellow",
       "gpt-uio-red"
     ],
+    "open_port": [0],
+    "listen_port": [0],
     "open_port_range": [
       [32768, 65535]
     ],
