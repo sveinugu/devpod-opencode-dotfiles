@@ -89,10 +89,7 @@
   },
   "network": {
     "open_port_range": [
-      [32768, 65535]
-    ],
-    "listen_port_range": [
-      [32768, 65535]
+      [1, 65535]
     ],
     "credentials": [
       "openai",
