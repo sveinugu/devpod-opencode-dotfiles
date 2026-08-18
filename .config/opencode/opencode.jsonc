@@ -65,7 +65,8 @@
       "/home/vscode/.config/opencode/**": "allow",
       "/home/vscode/.local/share/opencode/**": "allow",
       "/home/agent/.config/opencode/**": "allow",
-      "/home/agent/.local/share/opencode/**": "allow"
+      "/home/agent/.local/share/opencode/**": "allow",
+      "/tmp/**": "allow"
     }
   },
   "agent": {
