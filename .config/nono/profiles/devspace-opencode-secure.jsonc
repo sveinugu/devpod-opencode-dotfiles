@@ -61,6 +61,10 @@
       "$HOME/.prefect",
       "/tmp"
     ],
+    "unix_socket_subtree": [
+      "/run",
+      "/var/run"
+    ],
     "bypass_protection": [
       "/workspaces/dotfiles/**/.zshrc",
       "/workspaces/dotfiles/**/.zprofile"
@@ -89,10 +93,6 @@
     ]
   },
   "network": {
-    "unix_socket_subtree": [
-      "/run",
-      "/var/run"
-    ],
     "open_port_range": [
       [1, 65535]
     ],
