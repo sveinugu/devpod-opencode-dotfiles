@@ -300,6 +300,78 @@ Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current
   - add explicit `.npm` bootstrap in the root init-home-agent setup so `/home/agent` runtime state is ready with correct ownership before sandboxed runs
 - rationale: fix agent OpenCode sessions missing skill/runtime surfaces by aligning sandbox file-access policy with agent-home bootstrap state.
 
+### 2026-08-16 · `8d7775b`, `de59292`, `eb43a6f` — OpenCode bootstrap switched to repo-root skills + harness install authority
+
+- scope: install/bootstrap flow, `.gitignore`, bootstrap contract tests
+- change:
+  - stop tracking copied external skill payloads in-repo and treat them as regenerated install artifacts
+  - move OpenCode bootstrap to repo-root skills + harness-install manifest authority
+  - add explicit bootstrap contract coverage so install/regeneration surfaces stay test-backed
+- rationale: reduce drift from checked-in generated skill artifacts and make skill/plugin bootstrap behavior reproducible from manifest-driven install state.
+
+### 2026-08-16 · `bf358d2`, `eefee72` — Managed direnv trust helper added for canonical checkouts
+
+- scope: `bin/allow-direnv-managed-worktrees`, runbooks, helper contracts
+- change:
+  - add a dedicated helper that discovers canonical managed checkouts and reports allow/trust state
+  - `--allow` path applies/refreshes `direnv allow` across managed checkouts and aligns single-allow status behavior
+- rationale: provide one deterministic operator command to restore direnv trust after reprovision/rebuild cycles.
+
+### 2026-08-17 · `1f5b229`, `c40c093`, `b0ca461` — Harness-install OpenCode loop output normalized to `.ts` and manifest refresh behavior tightened
+
+- scope: harness installer outputs, manifest/tests, plugin artifact contracts
+- change:
+  - normalize generated local plugin output extension to `.ts` (replacing old `.js` expectations)
+  - refresh harness-install manifest/output expectations so local loop plugin regeneration is contract-backed
+  - keep installer-managed local plugin as authority over ad hoc plugin drift
+- rationale: align generated plugin artifacts with the current installer pipeline and prevent recurring output-extension churn.
+
+### 2026-08-17 · `55a3f26` — Provision now fast-forwards install worktree before install
+
+- scope: provision/install workflow
+- change: ensure the install worktree is fast-forwarded before running install/materialization.
+- rationale: reduce stale-install drift when workspace state lags remote/default branch tip.
+
+### 2026-08-17 · `1315725` — `/etc/mime.types` added to OpenCode sandbox readable files
+
+- scope: `.config/nono/profiles/devspace-opencode-secure.jsonc`
+- change: add read access contract for `/etc/mime.types`.
+- rationale: satisfy runtime/tooling lookups that rely on system mime database reads inside sandboxed sessions.
+
+### 2026-08-17 · `af9756d`, `187ab9d` — nono profile network port policy widened
+
+- scope: `.config/nono/profiles/devspace-opencode-secure.jsonc`
+- change: restore/open configured listen+open port ranges, then broaden to full-port allowance for the active profile contract.
+- rationale: remove intermittent local tool/runtime bind/connect failures caused by overly narrow port-range settings.
+
+### 2026-08-18 · `6ddef3c` — OpenCode permissions updated to allow `/tmp`
+
+- scope: OpenCode permission surface
+- change: add `/tmp` path allowance where required by active tool/runtime behavior.
+- rationale: avoid sandboxed tool failures that materialize transient files/sockets in `/tmp` during normal operation.
+
+### 2026-08-24 · `2932c4d` — OpenCode permissions updated to allow `/etc/debian_version`
+
+- scope: OpenCode permission surface
+- change: add read allowance for `/etc/debian_version`.
+- rationale: satisfy environment-detection/runtime probes that read distro version metadata.
+
+### 2026-08-24 · `b9884fe`, `2ee418e` — Dynamic per-invocation direnv loading moved inside sandboxed bash (with recursion guard)
+
+- scope: `.config/opencode/bin/opencode`, `scripts/lib/launch-opencode-nono.sh`, `.config/opencode/bash_env.sh`, `Dockerfile`, nono profile env allowlist, wrapper/nono contract tests
+- change:
+  - replace one-time pre-sandbox `.envrc` export injection with `BASH_ENV`-based in-sandbox loading for each non-interactive bash invocation
+  - pass explicit `--runtime-bash-env` through the constrained launch-helper + sudoers contracts
+  - remove unnecessary nono inherited env allowlist widening for `DYN_*`/`TMP*`
+  - add recursion guard in `bash_env.sh` (`BASH_ENV` self-unset around `direnv export bash` + sentinel) to prevent process storms/fork loops
+- rationale: keep env values dynamic when cwd/worktree changes while preserving secure launch boundaries and preventing recursive bash spawn failures.
+
+### 2026-08-24 · `bec9f42` — `opencode-loop-local` agent now hidden subagent-only shim
+
+- scope: `.config/opencode/agents/opencode-loop-local.md`
+- change: switch from primary exposure to hidden subagent mode while preserving deny-all + fixed acknowledgment behavior.
+- rationale: keep loop-ack handling internal to orchestration flow and avoid accidental direct user routing to a no-tools shim agent.
+
 ## Operator reminder
 
 After updates affecting `Dockerfile` or deployment manifests:
