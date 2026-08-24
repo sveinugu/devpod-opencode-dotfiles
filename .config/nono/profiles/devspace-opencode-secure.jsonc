@@ -29,6 +29,7 @@
       "/workspaces/dotfiles/**/.zshrc",
       "/workspaces/dotfiles/**/.zprofile",
       "$HOME/.gitconfig",
+      "/etc/debian_version",
       "/etc/gitconfig",
       "/etc/mime.types"
     ],
