@@ -372,6 +372,24 @@ Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current
 - change: switch from primary exposure to hidden subagent mode while preserving deny-all + fixed acknowledgment behavior.
 - rationale: keep loop-ack handling internal to orchestration flow and avoid accidental direct user routing to a no-tools shim agent.
 
+### 2026-08-24 · `56a7d8b` — Provision/repair now refresh managed direnv trust through one shared helper
+
+- scope: `scripts/lib/refresh-managed-direnv-trust.sh`, `scripts/provision-workspace.sh`, `bin/repair-workspace`, host/pod contract tests
+- change:
+  - add a shared `refresh_managed_direnv_trust` helper that runs `bin/allow-direnv-managed-worktrees --allow` from the install checkout
+  - wire the helper into provision and repair flows as a warn-only post-install step
+  - add contract coverage for helper wiring and invocation anchors
+- rationale: reduce post-redeploy manual steps by refreshing managed direnv trust automatically while keeping lifecycle flows non-destructive.
+
+### 2026-08-24 · `2139feb` — Clone flow now prints pre-commit bootstrap hint (no automatic hook install)
+
+- scope: `bin/clone-repo`, `docs/superpowers/runbooks/devspace-bare-hub-usage.md`, clone + runbook guardrail contract tests
+- change:
+  - detect `.pre-commit-config.yaml` in the cloned child repo default checkout and print a hint to install hooks from the repo's own bootstrap/dev setup
+  - keep clone behavior non-enforcing (no automatic `pre-commit install`)
+  - document the same guidance in the bare-hub usage runbook and lock it with contract assertions
+- rationale: provide timely onboarding guidance without assuming repo-specific virtualenv/bootstrap workflows.
+
 ## Operator reminder
 
 After updates affecting `Dockerfile` or deployment manifests:
