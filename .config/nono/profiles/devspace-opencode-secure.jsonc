@@ -31,7 +31,11 @@
       "$HOME/.gitconfig",
       "/etc/debian_version",
       "/etc/gitconfig",
-      "/etc/mime.types"
+      "/etc/mime.types",
+      "/etc/host.conf",
+      "/etc/nsswitch.conf",
+      "/etc/hosts",
+      "/etc/resolv.conf"
     ],
     "allow_file": [
       "/usr/local/bin/opencode-raw",
@@ -85,6 +89,10 @@
     ]
   },
   "network": {
+    "unix_socket_subtree": [
+      "/run",
+      "/var/run"
+    ],
     "open_port_range": [
       [1, 65535]
     ],
