@@ -19,6 +19,7 @@ runtime_xdg_data_home="${HUB_NONO_RUNTIME_XDG_DATA_HOME:-/home/agent/.local/shar
 runtime_xdg_state_home="${HUB_NONO_RUNTIME_XDG_STATE_HOME:-/home/agent/.local/state}"
 opencode_xdg_state_home="${HUB_OPENCODE_RUNTIME_XDG_STATE_HOME:-/home/agent/.local/state}"
 runtime_path="${HUB_NONO_RUNTIME_PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin}"
+runtime_bash_env="${HUB_NONO_RUNTIME_BASH_ENV:-$source_root/.config/opencode/bash_env.sh}"
 generated_profile_writer="${HUB_NONO_GENERATED_PROFILE_WRITER:-/usr/local/libexec/dotfiles-generate-nono-profile}"
 generated_profile_dir="${HUB_NONO_GENERATED_PROFILE_DIR:-/etc/nono/profiles/runtime}"
 launch_helper="${HUB_NONO_LAUNCH_HELPER:-/usr/local/libexec/dotfiles-launch-opencode-nono}"
@@ -153,6 +154,11 @@ if [ ! -x "$launch_helper" ]; then
   exit 1
 fi
 
+if [ ! -r "$runtime_bash_env" ]; then
+  printf 'refused: runtime BASH_ENV helper not readable at %s\n' "$runtime_bash_env" >&2
+  exit 1
+fi
+
 # Clear inherited nested-sandbox/session markers before launching a new nono runtime.
 # If these leak into a fresh launch, diagnostics like `nono why --self` can reload
 # stale session state (e.g. tty/fd paths) and fail with path-drift parse errors.
@@ -204,4 +210,4 @@ print(json.dumps({'enabled_providers': enabled, 'provider': provider_payload}))
 PY
 )"
 
-exec sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-binary "$nono_binary" --profile "$profile_path" --agent-uid "$agent_uid" --agent-gid "$agent_gid" --runtime-home "$runtime_home" --runtime-xdg-config-home "$runtime_xdg_config_home" --runtime-xdg-cache-home "$runtime_xdg_cache_home" --runtime-xdg-data-home "$runtime_xdg_data_home" --runtime-xdg-state-home "$runtime_xdg_state_home" --opencode-xdg-state-home "$opencode_xdg_state_home" --runtime-path "$runtime_path" --opencode-config-content "$opencode_provider_runtime_json" --raw-opencode-binary "$raw_opencode_binary" -- "$@"
+exec sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-binary "$nono_binary" --profile "$profile_path" --agent-uid "$agent_uid" --agent-gid "$agent_gid" --runtime-home "$runtime_home" --runtime-xdg-config-home "$runtime_xdg_config_home" --runtime-xdg-cache-home "$runtime_xdg_cache_home" --runtime-xdg-data-home "$runtime_xdg_data_home" --runtime-xdg-state-home "$runtime_xdg_state_home" --opencode-xdg-state-home "$opencode_xdg_state_home" --runtime-path "$runtime_path" --runtime-bash-env "$runtime_bash_env" --opencode-config-content "$opencode_provider_runtime_json" --raw-opencode-binary "$raw_opencode_binary" -- "$@"

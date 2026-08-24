@@ -42,6 +42,7 @@ runtime_xdg_data_home=''
 runtime_xdg_state_home=''
 opencode_xdg_state_home=''
 runtime_path=''
+runtime_bash_env=''
 opencode_config_content=''
 raw_opencode_binary=''
 
@@ -95,6 +96,10 @@ while [ "$#" -gt 0 ]; do
       runtime_path="$2"
       shift 2
       ;;
+    --runtime-bash-env)
+      runtime_bash_env="$2"
+      shift 2
+      ;;
     --opencode-config-content)
       opencode_config_content="$2"
       shift 2
@@ -125,6 +130,7 @@ done
 [ -n "$runtime_xdg_state_home" ] || fail 'missing --runtime-xdg-state-home'
 [ -n "$opencode_xdg_state_home" ] || fail 'missing --opencode-xdg-state-home'
 [ -n "$runtime_path" ] || fail 'missing --runtime-path'
+[ -n "$runtime_bash_env" ] || fail 'missing --runtime-bash-env'
 [ -n "$opencode_config_content" ] || fail 'missing --opencode-config-content'
 [ -n "$raw_opencode_binary" ] || fail 'missing --raw-opencode-binary'
 
@@ -149,14 +155,10 @@ require_absolute_path "$runtime_xdg_cache_home"
 require_absolute_path "$runtime_xdg_data_home"
 require_absolute_path "$runtime_xdg_state_home"
 require_absolute_path "$opencode_xdg_state_home"
+require_absolute_path "$runtime_bash_env"
 require_absolute_path "$profile_path"
 
 [ -r "$profile_path" ] || fail "nono profile not readable at $profile_path"
+[ -r "$runtime_bash_env" ] || fail "runtime BASH_ENV helper not readable at $runtime_bash_env"
 
-# Ingest managed workspace .envrc variables (HUB_*, DYN_*, TMPDIR, etc.)
-# so they reach the sandboxed OpenCode runtime. Vars explicitly set by the
-# exec env override (HOME, XDG_*, PATH, …) will still win, so security is
-# not affected.
-eval "$(direnv export bash 2>/dev/null || true)"
-
-exec /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$runtime_xdg_state_home" PATH="$runtime_path" LD_PRELOAD= LD_LIBRARY_PATH= PYTHONPATH= DYLD_INSERT_LIBRARIES= "$setpriv_binary" --reuid="$agent_uid" --regid="$agent_gid" --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp "$nono_binary" run --profile "$profile_path" --allow-cwd --no-rollback-prompt -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$opencode_xdg_state_home" OPENCODE_CONFIG_CONTENT="$opencode_config_content" "$raw_opencode_binary" "$@"
+exec /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$runtime_xdg_state_home" PATH="$runtime_path" BASH_ENV="$runtime_bash_env" LD_PRELOAD= LD_LIBRARY_PATH= PYTHONPATH= DYLD_INSERT_LIBRARIES= "$setpriv_binary" --reuid="$agent_uid" --regid="$agent_gid" --clear-groups --inh-caps=-all --ambient-caps=-all --bounding-set=-all --nnp "$nono_binary" run --profile "$profile_path" --allow-cwd --no-rollback-prompt -- /usr/bin/env HOME="$runtime_home" XDG_CONFIG_HOME="$runtime_xdg_config_home" XDG_CACHE_HOME="$runtime_xdg_cache_home" XDG_DATA_HOME="$runtime_xdg_data_home" XDG_STATE_HOME="$opencode_xdg_state_home" BASH_ENV="$runtime_bash_env" OPENCODE_CONFIG_CONTENT="$opencode_config_content" "$raw_opencode_binary" "$@"

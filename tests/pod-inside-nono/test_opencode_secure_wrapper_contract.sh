@@ -19,7 +19,7 @@ grep -F 'source "$secret_helper"' "$wrapper" >/dev/null || fail "wrapper must so
 grep -F 'if [ "${1:-}" = "completion" ]; then' "$wrapper" >/dev/null || fail "wrapper must special-case completion subcommand"
 grep -F 'exec "$raw_opencode_binary" "$@"' "$wrapper" >/dev/null || fail "wrapper must execute raw opencode binary directly for completion subcommand"
 grep -F 'nono_secret_env_emit_exports' "$wrapper" >/dev/null || fail "wrapper must call nono_secret_env_emit_exports"
-grep -F 'exec sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-binary "$nono_binary" --profile "$profile_path" --agent-uid "$agent_uid" --agent-gid "$agent_gid" --runtime-home "$runtime_home" --runtime-xdg-config-home "$runtime_xdg_config_home" --runtime-xdg-cache-home "$runtime_xdg_cache_home" --runtime-xdg-data-home "$runtime_xdg_data_home" --runtime-xdg-state-home "$runtime_xdg_state_home" --opencode-xdg-state-home "$opencode_xdg_state_home" --runtime-path "$runtime_path" --opencode-config-content "$opencode_provider_runtime_json" --raw-opencode-binary "$raw_opencode_binary" -- "$@"' "$wrapper" >/dev/null || fail "wrapper must launch through constrained helper before setpriv+nono runtime chain"
+grep -F 'exec sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-binary "$nono_binary" --profile "$profile_path" --agent-uid "$agent_uid" --agent-gid "$agent_gid" --runtime-home "$runtime_home" --runtime-xdg-config-home "$runtime_xdg_config_home" --runtime-xdg-cache-home "$runtime_xdg_cache_home" --runtime-xdg-data-home "$runtime_xdg_data_home" --runtime-xdg-state-home "$runtime_xdg_state_home" --opencode-xdg-state-home "$opencode_xdg_state_home" --runtime-path "$runtime_path" --runtime-bash-env "$runtime_bash_env" --opencode-config-content "$opencode_provider_runtime_json" --raw-opencode-binary "$raw_opencode_binary" -- "$@"' "$wrapper" >/dev/null || fail "wrapper must launch through constrained helper before setpriv+nono runtime chain"
 grep -F 'HUB_NONO_PROVIDER_SECRET_DIR' "$wrapper" >/dev/null || fail "wrapper must honor HUB_NONO_PROVIDER_SECRET_DIR"
 grep -F 'HUB_NONO_SECRET_HELPER_SUDO' "$wrapper" >/dev/null || fail "wrapper must require HUB_NONO_SECRET_HELPER_SUDO contract"
 grep -F 'HUB_NONO_AGENT_USER' "$wrapper" >/dev/null || fail "wrapper must require HUB_NONO_AGENT_USER contract"
@@ -30,6 +30,7 @@ grep -F 'HUB_NONO_RUNTIME_XDG_CONFIG_HOME' "$wrapper" >/dev/null || fail "wrappe
 grep -F 'HUB_NONO_RUNTIME_XDG_CACHE_HOME' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime XDG cache contract"
 grep -F 'HUB_NONO_RUNTIME_XDG_DATA_HOME' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime XDG data contract"
 grep -F 'HUB_NONO_RUNTIME_XDG_STATE_HOME' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime XDG state contract"
+grep -F 'HUB_NONO_RUNTIME_BASH_ENV' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime BASH_ENV contract"
 grep -F 'HUB_NONO_GENERATED_PROFILE_WRITER' "$wrapper" >/dev/null || fail "wrapper must support explicit generated nono profile writer contract"
 grep -F 'HUB_NONO_GENERATED_PROFILE_DIR' "$wrapper" >/dev/null || fail "wrapper must support explicit generated nono profile output directory contract"
 grep -F 'HUB_NONO_LAUNCH_HELPER' "$wrapper" >/dev/null || fail "wrapper must support explicit launch helper path contract"
@@ -42,11 +43,12 @@ grep -F '/etc/nono/profiles/devspace-opencode-secure.jsonc' "$wrapper" >/dev/nul
 grep -F '/usr/local/libexec/dotfiles-generate-nono-profile' "$wrapper" >/dev/null || fail "wrapper must default generated profile writer path to root-owned helper"
 grep -F '/usr/local/libexec/dotfiles-launch-opencode-nono' "$wrapper" >/dev/null || fail "wrapper must default launch helper path to root-owned helper"
 grep -F '/etc/nono/profiles/runtime' "$wrapper" >/dev/null || fail "wrapper must default generated profile output directory to root-owned runtime profile path"
+grep -F '$source_root/.config/opencode/bash_env.sh' "$wrapper" >/dev/null || fail "wrapper must default runtime BASH_ENV path to install-branch opencode bash env helper"
 grep -F '/usr/local/bin/nono' "$wrapper" >/dev/null || fail "wrapper must default nono binary path to /usr/local/bin/nono"
 grep -F '/usr/local/bin/opencode-raw' "$wrapper" >/dev/null || fail "wrapper must default raw opencode binary path to root-owned /usr/local/bin/opencode-raw"
 grep -F 'unset NONO_CAP_FILE NONO_TOOL_SANDBOX_SOCKET NONO_TOOL_SANDBOX_SHIM_DIR NONO_PROXY_TOKEN NONO_NO_PROXY' "$wrapper" >/dev/null || fail "wrapper must scrub inherited nono runtime session environment before nested launch"
-grep -F 'sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-binary "$nono_binary" --profile "$profile_path" --agent-uid "$agent_uid" --agent-gid "$agent_gid" --runtime-home "$runtime_home" --runtime-xdg-config-home "$runtime_xdg_config_home" --runtime-xdg-cache-home "$runtime_xdg_cache_home" --runtime-xdg-data-home "$runtime_xdg_data_home" --runtime-xdg-state-home "$runtime_xdg_state_home" --opencode-xdg-state-home "$opencode_xdg_state_home" --runtime-path "$runtime_path" --opencode-config-content "$opencode_provider_runtime_json" --raw-opencode-binary "$raw_opencode_binary" -- "$@"' "$wrapper" >/dev/null || fail "wrapper must launch nono through constrained launch helper chain"
-grep -F 'exec sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-binary "$nono_binary" --profile "$profile_path" --agent-uid "$agent_uid" --agent-gid "$agent_gid" --runtime-home "$runtime_home" --runtime-xdg-config-home "$runtime_xdg_config_home" --runtime-xdg-cache-home "$runtime_xdg_cache_home" --runtime-xdg-data-home "$runtime_xdg_data_home" --runtime-xdg-state-home "$runtime_xdg_state_home" --opencode-xdg-state-home "$opencode_xdg_state_home" --runtime-path "$runtime_path" --opencode-config-content "$opencode_provider_runtime_json" --raw-opencode-binary "$raw_opencode_binary" -- "$@"' "$wrapper" >/dev/null || fail "wrapper must always append end-of-options marker and argv passthrough"
+grep -F 'sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-binary "$nono_binary" --profile "$profile_path" --agent-uid "$agent_uid" --agent-gid "$agent_gid" --runtime-home "$runtime_home" --runtime-xdg-config-home "$runtime_xdg_config_home" --runtime-xdg-cache-home "$runtime_xdg_cache_home" --runtime-xdg-data-home "$runtime_xdg_data_home" --runtime-xdg-state-home "$runtime_xdg_state_home" --opencode-xdg-state-home "$opencode_xdg_state_home" --runtime-path "$runtime_path" --runtime-bash-env "$runtime_bash_env" --opencode-config-content "$opencode_provider_runtime_json" --raw-opencode-binary "$raw_opencode_binary" -- "$@"' "$wrapper" >/dev/null || fail "wrapper must launch nono through constrained launch helper chain"
+grep -F 'exec sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-binary "$nono_binary" --profile "$profile_path" --agent-uid "$agent_uid" --agent-gid "$agent_gid" --runtime-home "$runtime_home" --runtime-xdg-config-home "$runtime_xdg_config_home" --runtime-xdg-cache-home "$runtime_xdg_cache_home" --runtime-xdg-data-home "$runtime_xdg_data_home" --runtime-xdg-state-home "$runtime_xdg_state_home" --opencode-xdg-state-home "$opencode_xdg_state_home" --runtime-path "$runtime_path" --runtime-bash-env "$runtime_bash_env" --opencode-config-content "$opencode_provider_runtime_json" --raw-opencode-binary "$raw_opencode_binary" -- "$@"' "$wrapper" >/dev/null || fail "wrapper must always append end-of-options marker and argv passthrough"
 grep -F 'HUB_NONO_RUNTIME_PATH' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime PATH contract"
 
 temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_opencode_secure_wrapper_contract')"
@@ -64,13 +66,25 @@ raw_binary="$tmp_root/opencode-raw"
 setpriv_binary="$mock_bin/setpriv"
 generated_profile_dir="$tmp_root/generated-profiles"
 generated_profile_writer="$tmp_root/generate-nono-profile"
+runtime_bash_env="$install_root/.config/opencode/bash_env.sh"
 mock_passwd="$tmp_root/passwd"
 
 mkdir -p "$helper_root" "$profile_root" "$secret_root" "$mock_bin" "$generated_profile_dir"
 
+mkdir -p "$install_root/.config/opencode"
+cat >"$runtime_bash_env" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+EOF
+chmod +x "$runtime_bash_env"
+
 cp "$repo_root/scripts/lib/nono-secret-env.sh" "$helper_root/nono-secret-env.sh"
 cp "$repo_root/scripts/lib/launch-opencode-nono.sh" "$launch_helper"
 chmod +x "$launch_helper"
+grep -F -- '--runtime-bash-env' "$launch_helper" >/dev/null || fail "launch helper must require runtime BASH_ENV contract"
+if grep -F 'eval "$(direnv export bash' "$launch_helper" >/dev/null; then
+  fail "launch helper must not inject static direnv exports before entering sandbox"
+fi
 cp "$repo_root/.config/nono/profiles/devspace-opencode-secure.jsonc" "$profile_root/devspace-opencode-secure.jsonc"
 
 cat >"$raw_binary" <<'EOF'
@@ -179,6 +193,7 @@ printf 'REQUESTS_CA_BUNDLE=%s\n' "${REQUESTS_CA_BUNDLE:-}" >>"$MOCK_NONO_ENV_LOG
 printf 'NODE_EXTRA_CA_CERTS=%s\n' "${NODE_EXTRA_CA_CERTS:-}" >>"$MOCK_NONO_ENV_LOG"
 printf 'CURL_CA_BUNDLE=%s\n' "${CURL_CA_BUNDLE:-}" >>"$MOCK_NONO_ENV_LOG"
 printf 'GIT_SSL_CAINFO=%s\n' "${GIT_SSL_CAINFO:-}" >>"$MOCK_NONO_ENV_LOG"
+printf 'BASH_ENV=%s\n' "${BASH_ENV:-}" >>"$MOCK_NONO_ENV_LOG"
 printf 'NONO_CAP_FILE=%s\n' "${NONO_CAP_FILE:-}" >>"$MOCK_NONO_ENV_LOG"
 printf 'NONO_TOOL_SANDBOX_SOCKET=%s\n' "${NONO_TOOL_SANDBOX_SOCKET:-}" >>"$MOCK_NONO_ENV_LOG"
 printf 'NONO_TOOL_SANDBOX_SHIM_DIR=%s\n' "${NONO_TOOL_SANDBOX_SHIM_DIR:-}" >>"$MOCK_NONO_ENV_LOG"
@@ -236,6 +251,7 @@ printf 'LD_PRELOAD=%s\n' "${LD_PRELOAD:-}" >>"$MOCK_SETPRIV_LOG"
 printf 'LD_LIBRARY_PATH=%s\n' "${LD_LIBRARY_PATH:-}" >>"$MOCK_SETPRIV_LOG"
 printf 'PYTHONPATH=%s\n' "${PYTHONPATH:-}" >>"$MOCK_SETPRIV_LOG"
 printf 'DYLD_INSERT_LIBRARIES=%s\n' "${DYLD_INSERT_LIBRARIES:-}" >>"$MOCK_SETPRIV_LOG"
+printf 'BASH_ENV=%s\n' "${BASH_ENV:-}" >>"$MOCK_SETPRIV_LOG"
 while [ "$#" -gt 0 ]; do
   if [ "$1" = "--" ]; then
     shift
@@ -381,7 +397,8 @@ grep -F -- ' run --profile ' "$setpriv_log" >/dev/null || fail "launch helper sh
 if grep -F -- '--silent' "$setpriv_log" >/dev/null; then
   fail "launch helper should not pass --silent to nono"
 fi
-grep -F -- '-- /usr/bin/env HOME=/home/agent XDG_CONFIG_HOME=/home/agent/.config XDG_CACHE_HOME=/home/agent/.cache XDG_DATA_HOME=/home/agent/.local/share XDG_STATE_HOME=/home/agent/.local/state OPENCODE_CONFIG_CONTENT=' "$arg_log" >/dev/null || fail "wrapper should inject pinned runtime HOME/XDG and provider config into opencode process"
+grep -F -- '-- /usr/bin/env HOME=/home/agent XDG_CONFIG_HOME=/home/agent/.config XDG_CACHE_HOME=/home/agent/.cache XDG_DATA_HOME=/home/agent/.local/share XDG_STATE_HOME=/home/agent/.local/state BASH_ENV=' "$arg_log" >/dev/null || fail "wrapper should inject pinned runtime HOME/XDG and BASH_ENV into opencode process"
+grep -F -- ' OPENCODE_CONFIG_CONTENT=' "$arg_log" >/dev/null || fail "wrapper should inject provider config into opencode process"
 grep -F -- "$raw_binary --version" "$arg_log" >/dev/null || fail "wrapper should launch configured raw opencode binary through nono"
 grep -F 'sudo-user=root' "$sudo_log" >/dev/null || fail "wrapper should run sudo as root only for setpriv handoff"
 grep -F 'HOME=/home/agent' "$setpriv_log" >/dev/null || fail "launch helper should pin HOME during setpriv handoff"
@@ -392,6 +409,8 @@ grep -F 'LD_PRELOAD=' "$setpriv_log" >/dev/null || fail "launch helper should cl
 grep -F 'LD_LIBRARY_PATH=' "$setpriv_log" >/dev/null || fail "launch helper should clear LD_LIBRARY_PATH before setpriv handoff"
 grep -F 'PYTHONPATH=' "$setpriv_log" >/dev/null || fail "launch helper should clear PYTHONPATH before setpriv handoff"
 grep -F 'DYLD_INSERT_LIBRARIES=' "$setpriv_log" >/dev/null || fail "launch helper should clear DYLD_INSERT_LIBRARIES before setpriv handoff"
+grep -F "BASH_ENV=$runtime_bash_env" "$setpriv_log" >/dev/null || fail "launch helper should pin BASH_ENV during setpriv handoff"
+grep -F "BASH_ENV=$runtime_bash_env" "$env_log" >/dev/null || fail "launch helper should propagate BASH_ENV into sandbox runtime"
 
 cat >"$tmp_root/provider-runtime-invalid.json" <<'JSON'
 {

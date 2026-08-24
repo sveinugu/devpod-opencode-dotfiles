@@ -74,10 +74,6 @@
       "PWD",
       "XDG_*",
       "HUB_*",
-      "DYN_*",
-      "TMPDIR",
-      "TMP",
-      "TEMP",
       "OPENCODE_*"
     ],
     "deny_vars": [
