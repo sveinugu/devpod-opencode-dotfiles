@@ -23,6 +23,8 @@ if grep -F -- '--no-prompts' "$script" >/dev/null; then
   fail "provision-workspace.sh should not expose unused --no-prompts option"
 fi
 
+grep -F 'refresh-managed-direnv-trust.sh' "$script" >/dev/null || fail "provision-workspace.sh should invoke shared managed direnv trust refresh helper"
+
 temp_root="$(context_resolve_temp_root_host)"
 tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_workspace_provision')"
 trap 'rm -rf "$tmpdir"' EXIT

@@ -19,6 +19,7 @@ materialize_helper="$repo_root/scripts/lib/install/materialize.sh"
 [ -f "$install_script" ] || fail "install.sh not found"
 [ -f "$materialize_helper" ] || fail "scripts/lib/install/materialize.sh not found"
 grep -F 'if [ ! -f "$oh_my_zsh_dir/oh-my-zsh.sh" ]; then' "$materialize_helper" >/dev/null || fail "install materialize helper should use file-based oh-my-zsh guard"
+grep -F 'refresh-managed-direnv-trust.sh' "$script" >/dev/null || fail "repair-workspace should invoke shared managed direnv trust refresh helper"
 
 temp_root="$(context_resolve_temp_root_host)"
 tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_workspace_repair')"

@@ -10,6 +10,8 @@ workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
 home_dir="${HUB_HOME_DIR:-/home/vscode}"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 read_install_env_script="$script_dir/../scripts/lib/read-install-env.sh"
+# shellcheck source=scripts/lib/refresh-managed-direnv-trust.sh
+source "$script_dir/../scripts/lib/refresh-managed-direnv-trust.sh"
 
 refuse() {
   printf '%s\n' "$1" >&2
@@ -200,5 +202,7 @@ if [ "$preserve_non_main" = false ]; then
     exit 1
   fi
 fi
+
+refresh_managed_direnv_trust "$install_dir" "$workspace_root" repair
 
 printf 'ok: repaired workspace structure at %s\n' "$workspace_root"

@@ -4,6 +4,8 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 # shellcheck source=scripts/lib/hub-repo-core.sh
 source "$script_dir/lib/hub-repo-core.sh"
+# shellcheck source=scripts/lib/refresh-managed-direnv-trust.sh
+source "$script_dir/lib/refresh-managed-direnv-trust.sh"
 
 workspace_root="${HUB_WORKSPACE_ROOT:-/workspaces/dotfiles}"
 source_repo="${HUB_PROVISION_SOURCE:-https://github.com/sveinugu/devpod-opencode-dotfiles.git}"
@@ -196,5 +198,7 @@ if [ ! -x "$install_dir/install.sh" ]; then
 fi
 
 HUB_INSTALL_BRANCH="$install_branch" HUB_INSTALL_BRANCH_DIR="$install_dir" "$install_dir/install.sh"
+
+refresh_managed_direnv_trust "$install_dir" "$workspace_root" provision
 
 printf 'ok: provisioned top-level workspace at %s\n' "$workspace_root"
