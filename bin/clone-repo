@@ -85,4 +85,9 @@ if [ -f "$workspace_nav_target_writer" ]; then
   bash "$workspace_nav_target_writer" "$default_dir" >/dev/null 2>&1 || true
 fi
 
+if [ -f "$default_dir/.pre-commit-config.yaml" ]; then
+  printf 'hint: detected .pre-commit-config.yaml in %s\n' "$default_dir"
+  printf "hint: install hooks from the repo's bootstrap/dev setup after environment creation (for example: pre-commit install)\n"
+fi
+
 printf 'ok: created child hub repo at %s\n' "$child_root"

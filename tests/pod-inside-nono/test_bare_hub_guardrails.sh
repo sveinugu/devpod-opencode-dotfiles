@@ -23,6 +23,7 @@ grep -F 'ssh -o BatchMode=yes workspace.dotfiles.devspace' docs/superpowers/runb
 grep -F 'devspace run-pipeline verify-ssh' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'HUB_PROVISION_ARGS' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'bin/clone-repo' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
+grep -F "If a child repo includes \`.pre-commit-config.yaml\`, install hooks from that repo's own bootstrap/dev setup after creating its environment (for example \`pre-commit install\`)." docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'bin/new-worktree' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'bin/retire-worktree' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'dhub' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null

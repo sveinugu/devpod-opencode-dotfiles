@@ -66,6 +66,8 @@ From inside the workspace pod, add a child repo as a managed bare hub under `rep
 /workspaces/dotfiles/main/bin/clone-repo https://github.com/<owner>/<repo>.git
 ```
 
+If a child repo includes `.pre-commit-config.yaml`, install hooks from that repo's own bootstrap/dev setup after creating its environment (for example `pre-commit install`).
+
 Create managed worktrees (top-level hub and child repos):
 
 ```bash

@@ -42,8 +42,12 @@ set -euo pipefail
 :
 EOF
   chmod +x install.sh
+  cat > .pre-commit-config.yaml <<'EOF'
+repos: []
+EOF
   git add README.md
   git add install.sh
+  git add .pre-commit-config.yaml
   git commit -m 'public fixture main' >/dev/null 2>&1
 
   git checkout -b feature/public-fetch >/dev/null 2>&1
@@ -282,6 +286,7 @@ HUB_HOME_DIR="$home_dir" \
 HUB_WORKSPACE_NAV_TARGET_FILE="$tmpdir/clone-target-path" \
 bash "$clone_script" "$public_url" >"$tmpdir/public-clone.out" 2>&1 || fail "public HTTPS onboarding should succeed"
 grep -F 'Receiving objects: 100% (mock progress)' "$tmpdir/public-clone.out" >/dev/null || fail "clone-repo should request git clone progress output"
+grep -F 'hint: detected .pre-commit-config.yaml' "$tmpdir/public-clone.out" >/dev/null || fail "clone-repo should print pre-commit bootstrap hint when pre-commit config exists"
 
 [ -f "$tmpdir/clone-target-path" ] || fail "clone-repo should write target path handoff file when requested"
 clone_written_target="$(<"$tmpdir/clone-target-path")"
@@ -306,6 +311,9 @@ MOCK_PUBLIC_SOURCE_DEFAULT="$public_source_default" \
 HUB_WORKSPACE_ROOT="$workspace_root" \
 HUB_HOME_DIR="$home_dir" \
 bash "$clone_script" "$public_url_default" >"$tmpdir/public-clone-default.out" 2>&1 || fail "public HTTPS onboarding should succeed when default branch is not main"
+if grep -F 'hint: detected .pre-commit-config.yaml' "$tmpdir/public-clone-default.out" >/dev/null; then
+  fail "clone-repo should not print pre-commit bootstrap hint when pre-commit config is absent"
+fi
 
 [ -d "$workspace_root/repos/default/.bare" ] || fail "missing bare repo for non-main default branch clone"
 default_branch_name="$(git -C "$workspace_root/repos/default/master" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
