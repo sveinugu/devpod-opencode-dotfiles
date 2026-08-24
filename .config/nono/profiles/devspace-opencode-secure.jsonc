@@ -1,41 +1,34 @@
 {
+  "extends": "opencode",
   "meta": {
     "name": "devspace-opencode-secure",
     "description": "DevSpace secure OpenCode profile with explicit provider credential routes"
   },
   "groups": {
-    "include": [
-      "node_runtime",
-      "rust_runtime",
-      "python_runtime",
-      { "name": "user_caches_macos", "when": "macos" },
-      { "name": "user_caches_linux", "when": "linux" },
-      { "name": "linux_sysfs_read", "when": "linux" },
-      "nix_runtime",
-      "git_config",
-      "unlink_protection",
-      { "name": "opencode_linux", "when": "linux" }
-    ],
     "exclude": [
       "dangerous_commands",
       "dangerous_commands_linux"
     ]
   },
-  "workdir": {
-    "access": "readwrite"
-  },
   "filesystem": {
+    "allow": [
+      "$HOME/.cache",
+      "$HOME/.npm",
+      "$HOME/.local/share/direnv",
+      "$HOME/.prefect",
+      "/workspaces/dotfiles",
+      "/tmp"
+    ],
     "read": [
-      "/workspaces/dotfiles/**/.zshrc",
-      "/workspaces/dotfiles/**/.zprofile",
-      "$HOME/.gitconfig",
       "/etc/debian_version",
       "/etc/gitconfig",
-      "/etc/mime.types",
       "/etc/host.conf",
-      "/etc/nsswitch.conf",
       "/etc/hosts",
-      "/etc/resolv.conf"
+      "/etc/mime.types",
+      "/etc/nsswitch.conf",
+      "/etc/resolv.conf",
+      "/usr/local/share/git-core",
+      "/usr/local/libexec/git-core"
     ],
     "allow_file": [
       "/usr/local/bin/opencode-raw",
@@ -44,27 +37,7 @@
       "/usr/local/bin/git-upload-pack",
       "/usr/local/bin/git-upload-archive"
     ],
-    "allow": [
-      "$HOME/.opencode",
-      "$HOME/.cache",
-      "$HOME/.agents",
-      "$HOME/.npm",
-      "$XDG_CONFIG_HOME/opencode",
-      "$XDG_CACHE_HOME/opencode",
-      "$XDG_DATA_HOME/opencode",
-      "$XDG_DATA_HOME/opentui",
-      "/usr/local/share/git-core",
-      "/usr/local/libexec/git-core",
-      "$HOME/.local/state/opencode",
-      "/workspaces/dotfiles",
-      "$HOME/.local/share/direnv",
-      "$HOME/.prefect",
-      "/tmp"
-    ],
-    "unix_socket_subtree": [
-      "/run",
-      "/var/run"
-    ],
+    "read_file": [],
     "bypass_protection": [
       "/workspaces/dotfiles/**/.zshrc",
       "/workspaces/dotfiles/**/.zprofile"
@@ -93,10 +66,8 @@
     ]
   },
   "network": {
+    "no_proxy": ["localhost", "127.0.0.1"],
     "open_port_range": [
-      [1, 65535]
-    ],
-    "listen_port_range": [
       [1, 65535]
     ],
     "credentials": [
@@ -152,5 +123,11 @@
         "credential_format": "Bearer {}"
       }
     }
+  },
+  "open_urls": {
+    "allow_origins": [
+      "http://127.0.0.1"
+    ],
+    "allow_localhost": true
   }
 }
