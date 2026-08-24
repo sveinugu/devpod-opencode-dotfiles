@@ -88,6 +88,9 @@
     "open_port_range": [
       [1, 65535]
     ],
+    "listen_port_range": [
+      [1, 65535]
+    ],
     "credentials": [
       "openai",
       "anthropic",
