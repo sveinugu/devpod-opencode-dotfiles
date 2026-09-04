@@ -122,6 +122,9 @@
         "inject_header": "Authorization",
         "credential_format": "Bearer {}"
       }
+    },
+    "rate_limit": {
+      "requests_per_minute": 0
     }
   },
   "open_urls": {
