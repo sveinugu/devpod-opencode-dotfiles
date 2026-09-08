@@ -25,7 +25,7 @@ RUN apt-get update \
 # Install additional packages
 RUN apt-get update \
     && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends acl direnv emacs gh ripgrep \
+    && apt-get -y install --no-install-recommends acl direnv emacs gh ripgrep locales-all \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
 
