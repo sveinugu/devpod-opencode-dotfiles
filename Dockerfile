@@ -25,9 +25,12 @@ RUN apt-get update \
 # Install additional packages
 RUN apt-get update \
     && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends acl direnv emacs gh ripgrep locales-all \
+    && apt-get -y install --no-install-recommends acl direnv emacs gh ripgrep locales-all nscd \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
+
+# Start the Name Service Cache Daemon (nscd) as a workaround for https://github.com/nolabs-ai/nono/issues/1827.
+RUN service nscd start
 
 # Trust only workspace-managed repositories across shared runtime users.
 RUN git config --system --add safe.directory /workspaces/dotfiles/*

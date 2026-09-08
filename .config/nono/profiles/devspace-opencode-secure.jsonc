@@ -41,6 +41,9 @@
     "bypass_protection": [
       "/workspaces/dotfiles/**/.zshrc",
       "/workspaces/dotfiles/**/.zprofile"
+    ],
+    "unix_socket_subtree": [
+      "/run/nscd"
     ]
   },
   "environment": {
