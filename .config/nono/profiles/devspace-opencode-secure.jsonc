@@ -66,7 +66,7 @@
     ]
   },
   "network": {
-    "no_proxy": ["localhost", "127.0.0.1"],
+    "allow_domain": ["*"],
     "open_port_range": [
       [1, 65535]
     ],
@@ -122,15 +122,6 @@
         "inject_header": "Authorization",
         "credential_format": "Bearer {}"
       }
-    },
-    "rate_limit": {
-      "requests_per_minute": 0
     }
-  },
-  "open_urls": {
-    "allow_origins": [
-      "http://127.0.0.1"
-    ],
-    "allow_localhost": true
   }
 }
