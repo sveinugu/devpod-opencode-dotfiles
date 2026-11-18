@@ -1,13 +1,9 @@
-Use the exact returned `task_id` verbatim for `<task_id>` when available; delegating agents must validate `Session:` and `Resume:` against it before sending. Examples below use `ses_...` only because that is the current shape of a real task_id.
+### Task payload
 
-### Start
-```text
-Switching you to the <subagent> subagent now — please interact directly with it; I will remain available for orchestration.
+Use the packet rules in `.config/opencode/skills/opencode-dispatch/SKILL.md`.
+
+`````text
 Delegation Packet
-Session: <task_id>
-Resume: $<task_id> <your reply>
-Owner: <subagent>
-Authority: the owning subagent owns this scope, subject to the general-agent exception and any human-approved Maestro override
 Artifact path: <exact approved plan/spec path; omit when not applicable>
 Worktree path: <explicit absolute path to editable checkout; omit when not applicable>
 Verbatim user request:
@@ -28,9 +24,22 @@ Evidence (verbatim, source: <label>):
 ````text
 <raw output>
 ````
-```
+`````
+
 > **Note:** `Preview:` is meta-commentary outside the packet, not a packet field.
 > Preview non-trivial packets with a separate preview wrapper that shows the exact outgoing dispatch content and explicitly asks for `ok / edit / cancel`.
+
+### After successful launch
+
+Use the exact returned `task_id` with `.config/opencode/skills/opencode-sessions/SKILL.md`.
+
+```text
+Switching you to the <subagent> subagent now — please interact directly with it; I will remain available for orchestration.
+Session: <task_id>
+Resume: $<task_id> <your reply>
+Owner: <subagent>
+Authority: the owning subagent owns this scope, subject to the general-agent exception and any human-approved Maestro override
+```
 
 ### Pause / waiting for user
 ```text

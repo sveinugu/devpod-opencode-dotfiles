@@ -6,16 +6,12 @@ repo_root="$(git rev-parse --show-toplevel)"
 source "$repo_root/tests/lib/context-guards.sh"
 require_pod_inside_nono_test 'test_bare_hub_guardrails'
 
-grep -F '`/workspaces/dotfiles` is a manager hub, not a normal checkout.' .config/opencode/AGENTS.md >/dev/null
-grep -F 'Agents MUST treat `/workspaces/dotfiles/main` or another explicit worktree path as the editable repository root.' .config/opencode/AGENTS.md >/dev/null
-grep -F "Child repos under \`repos/\` follow the same pattern; use each repo's detected default-branch checkout at \`repos/<repo>/<default-branch>\` and worktrees under \`repos/<repo>/work/<branch>\`." .config/opencode/AGENTS.md >/dev/null
-grep -F 'Refused — hub-root CWD detected. Provide explicit worktree path.' .config/opencode/AGENTS.md >/dev/null
-grep -F '> What changed for implementers:' .config/opencode/AGENTS.md >/dev/null
-
-grep -F 'Repo-specific bare-hub override: `/workspaces/dotfiles` is a manager hub, not a normal checkout.' .config/opencode/agents/maestro.md >/dev/null
-grep -F 'Repo-specific bare-hub override: `/workspaces/dotfiles` is a manager hub, not a normal checkout.' .config/opencode/agents/senior-implementer.md >/dev/null
-grep -F '> What changed for implementers:' .config/opencode/agents/maestro.md >/dev/null
-grep -F '> What changed for implementers:' .config/opencode/agents/senior-implementer.md >/dev/null
+lanes="$repo_root/.config/opencode/skills/managed-worktrees/SKILL.md"
+for rule in '/workspaces/dotfiles/main' 'repos/<repo>/<default-branch>' 'repos/<repo>/work/<branch>' \
+    'bin/clone-repo' 'bin/new-worktree' 'state/hub/etc/install.env' \
+    'Refused — hub-root CWD detected. Provide explicit worktree path.'; do
+  rg -qF -- "$rule" "$lanes" || { echo "Missing hub guardrail: $rule" >&2; exit 1; }
+done
 
 grep -F 'devspace run-pipeline provision' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
 grep -F 'bash /workspaces/dotfiles/main/install.sh --dry-run' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
@@ -66,9 +62,5 @@ if grep -F 'dre <repo>` for child repo roots under `repos/`' docs/superpowers/ru
 fi
 grep -F 'state/hub/etc/install.env' docs/superpowers/runbooks/devspace-workspace-lifecycle.md >/dev/null
 grep -F 'remote branch deletion remains out of scope for v1' docs/superpowers/runbooks/devspace-bare-hub-usage.md >/dev/null
-
-grep -F 'prefer `bin/clone-repo` and `bin/new-worktree`' .config/opencode/AGENTS.md >/dev/null
-grep -F 'prefer `bin/clone-repo` and `bin/new-worktree`' .config/opencode/agents/maestro.md >/dev/null
-grep -F 'prefer `bin/clone-repo` and `bin/new-worktree`' .config/opencode/agents/senior-implementer.md >/dev/null
 
 printf 'PASS test_bare_hub_guardrails\n'

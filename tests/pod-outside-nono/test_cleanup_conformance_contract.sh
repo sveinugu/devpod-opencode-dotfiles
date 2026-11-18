@@ -12,11 +12,13 @@ source "$repo_root/tests/lib/context-guards.sh"
 require_pod_outside_nono_test 'test_cleanup_conformance_contract'
 
 legacy_agents_dir="$repo_root/.config/opencode/.agents"
-legacy_skills_dir="$repo_root/.config/opencode/skills"
+harness_skills_dir="$repo_root/.config/opencode/skills"
 legacy_skills_lock="$repo_root/.config/opencode/skills-lock.json"
 
 [ ! -e "$legacy_agents_dir" ] || fail 'deprecated .config/opencode/.agents surface should not exist'
-[ ! -e "$legacy_skills_dir" ] || fail 'deprecated .config/opencode/skills surface should not exist'
+for external_skill in clean-code pragmatic-programmer; do
+  [ ! -e "$harness_skills_dir/$external_skill" ] || fail "external skill belongs under .agents/skills: $external_skill"
+done
 [ ! -e "$legacy_skills_lock" ] || fail 'deprecated .config/opencode/skills-lock.json should not exist'
 
 [ ! -e "$repo_root/.config/opencode/plugins/opencode-loop.js" ] || fail 'installer-generated plugin output should be regenerated output, not committed repo content'

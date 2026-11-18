@@ -213,6 +213,8 @@ Run `bash install.sh` from a plain shell (outside the `nono` sandbox) during wor
 
 If you skip this step and start OpenCode under `nono` first, the loop plugin and commands will be missing. In that case, exit OpenCode, run `bash install.sh` from a plain shell, and restart.
 
+## Managed local retirement
+
 Retire lane worktrees with the managed command instead of manual `git worktree remove` + `git branch -D`:
 
 ```bash

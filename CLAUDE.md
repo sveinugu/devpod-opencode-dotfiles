@@ -60,7 +60,7 @@ bash tests/run.sh pod-outside-nono
 bash tests/run.sh pod-inside-nono
 ```
 
-There is no global test runner — run individual files directly with `bash`.
+The runner selects tests by execution context; individual files can also run directly with `bash` in their required context.
 
 ## Tests
 
@@ -79,19 +79,19 @@ Doc-contract tests use `rg` (ripgrep) to assert that required text patterns exis
 Config lives in `.config/opencode/`. This directory is symlinked to `~/.config/opencode` after install.
 
 - `opencode.jsonc` — model config, permission rules, plugins
-- `AGENTS.md` — **canonical policy document** for the entire agent system (TDD policy, delegation packet schema, session management, Maestro override rules)
+- `AGENTS.md` — shared working agreements and triggers for harness skills
 - `agents/maestro.md` — primary orchestrator (low-power model, delegates everything)
 - `agents/*.md` — specialist subagents (planner, senior/junior implementer, code-reviewer, docs-writer, etc.)
 - `commands/*.md` — slash command definitions (loop-* family)
 - `plugins/opencode-loop.js` — plugin implementation
 
-`AGENTS.md` is the single source of truth for delegation packet schema and session policy. Agent files are downstream pointers, not co-equal policy sources.
+Harness-wide procedures live in `.config/opencode/skills/`. Project-local skills and their external install lock live at the repo root.
 
 ## Architecture constraints worth knowing
 
-**Delegation**: Maestro may only write code or perform subagent work when the human activates the two-message Maestro override (`maestro-override: <scope>` then `maestro-override-confirm`). Without that, all implementation, planning, and doc-writing must go through Task-tool delegation to the appropriate subagent.
+**Delegation**: Maestro may only write code or perform subagent work when the human activates the Maestro override with one message (`maestro-override: <scope>`), which authorizes that scope immediately. Without that, Maestro delegates implementation, planning, and doc-writing through Task. The general agent may perform specialist work when the human requests it, without an override. Explicitly agreed pre-implementation checkpoint waivers are defined in `.config/opencode/skills/delivery-workflow/SKILL.md`.
 
-**Delegation Packet**: Maestro → subagent handoffs use a closed-schema block. The canonical schema is in `AGENTS.md → "Delegation & Sessions (canonical)"`. The `maestro.md` file is a downstream pointer. Forbidden fields include `Instructions:`, `Notes:`, `Deliverables:`, and any interpretive text outside the packet/Annex structure.
+**Delegation Packet**: Maestro → subagent handoffs use a closed-schema block. The canonical schema is in `.config/opencode/skills/opencode-dispatch/SKILL.md`. Forbidden fields include `Instructions:`, `Notes:`, `Deliverables:`, and any interpretive text outside the packet/Annex structure.
 
 **TDD level**: Tests are written at the integration/contract level for cross-layer changes. Unit tests are used only for isolated logic. Tests in `tests/docs/` are contract tests that verify policy documents — they are not unit tests.
 
