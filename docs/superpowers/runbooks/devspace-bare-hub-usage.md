@@ -204,7 +204,14 @@ Current policy note:
 - `github-copilot` with `all` mode
 - UiO providers (`gpt-uio-yellow`, `gpt-uio-red`) use full current model lists
 
-## Managed local retirement
+## Installer-managed harness packages
+
+The `harness-installs.jsonc` manifest declares `@bybrawe/opencode-loop` as an installer-managed package. Its outputs (plugin and slash-command definitions) are git-ignored and must be present before OpenCode starts.
+
+**Install during provisioning:**
+Run `bash install.sh` from a plain shell (outside the `nono` sandbox) during workspace provisioning. The installer phase in `install.sh` refreshes harness-managed outputs before the sandboxed OpenCode session begins. The generated files then persist across restarts.
+
+If you skip this step and start OpenCode under `nono` first, the loop plugin and commands will be missing. In that case, exit OpenCode, run `bash install.sh` from a plain shell, and restart.
 
 Retire lane worktrees with the managed command instead of manual `git worktree remove` + `git branch -D`:
 

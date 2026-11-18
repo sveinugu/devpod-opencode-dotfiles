@@ -48,9 +48,10 @@ if entry.get('uninstall') != ['npx', '-y', '@bybrawe/opencode-loop', '--uninstal
     raise SystemExit('uninstall command mismatch for opencode-loop')
 
 expected_outputs = [
-    '.config/opencode/plugins/opencode-loop.ts',
-    '.config/opencode/commands/loop-help.md',
+    '.config/opencode/plugins/opencode-loop.js',
     '.config/opencode/commands/loop.md',
+    '.config/opencode/commands/loop-help.md',
+    '.config/opencode/commands/loop-goal.md',
 ]
 if entry.get('outputs') != expected_outputs:
     raise SystemExit('outputs mismatch for opencode-loop')
