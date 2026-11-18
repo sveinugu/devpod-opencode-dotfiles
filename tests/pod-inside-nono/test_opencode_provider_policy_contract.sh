@@ -47,11 +47,11 @@ red_expected = [
 
 yellow_expected = [
     ('Gemma 4', 'google/gemma-4-31B-it', None),
-    ('GPT-5', 'gpt-5', 'openai-responses'),
-    ('GPT-5 mini', 'gpt-5-mini', 'openai-responses'),
-    ('GPT-5.1 Thinking', 'gpt-5.1', 'openai-responses'),
-    ('GPT-5.4', 'gpt-5.4', 'openai-responses'),
-    ('GPT-OSS 120B', 'gpt-oss-120b', 'openai-responses'),
+    ('GPT-5', 'gpt-5', '@ai-sdk/openai'),
+    ('GPT-5 mini', 'gpt-5-mini', '@ai-sdk/openai'),
+    ('GPT-5.1 Thinking', 'gpt-5.1', '@ai-sdk/openai'),
+    ('GPT-5.4', 'gpt-5.4', '@ai-sdk/openai'),
+    ('GPT-OSS 120B', 'gpt-oss-120b', '@ai-sdk/openai'),
     ('GLM 5.3', 'Inferact/GLM-5.3-NVFP4', None),
     ('Multilingual E5 Large Instruct', 'intfloat/multilingual-e5-large-instruct', None),
     ('Kimi K2.6', 'moonshotai/Kimi-K2.6', None),
@@ -59,9 +59,9 @@ yellow_expected = [
     ('NorMistral 11B', 'norallm/normistral-11b-thinking', None),
     ('NorwAI Magistral', 'NorwAI/NorwAI-Magistral-24B-reasoning', None),
     ('Qwen 3.8', 'Qwen/Qwen3.8-27B-FP8', None),
-    ('GPT-6 Luna', 'gpt-6-luna', 'openai-responses'),
-    ('GPT-6.1 Sol', 'gpt-6.1-sol', 'openai-responses'),
-    ('GPT-6.1 Terra', 'gpt-6.1-terra', 'openai-responses'),
+    ('GPT-6 Luna', 'gpt-6-luna', '@ai-sdk/openai'),
+    ('GPT-6.1 Sol', 'gpt-6.1-sol', '@ai-sdk/openai'),
+    ('GPT-6.1 Terra', 'gpt-6.1-terra', '@ai-sdk/openai'),
 ]
 
 copilot_expected = None
@@ -78,7 +78,7 @@ def assert_provider(name, expected_mode, expected_models):
         return
 
     actual = [
-        (m.get('name'), m.get('id'), (m.get('provider') or {}).get('api'))
+        (m.get('name'), m.get('id'), (m.get('provider') or {}).get('npm'))
         for m in models
     ]
     if actual != expected_models:

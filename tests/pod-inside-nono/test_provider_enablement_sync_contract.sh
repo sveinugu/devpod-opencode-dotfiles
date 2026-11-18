@@ -75,11 +75,13 @@ providers = policy.get('supported_providers', {})
 provider_payload = {
     'gpt-uio-red': {
         'api': 'openai',
+        'env': ['GPT_UIO_RED_API_KEY'],
         'options': {'baseURL': 'https://gpt.uio.no/api/v1'},
         'models': {},
     },
     'gpt-uio-yellow': {
         'api': 'openai',
+        'env': ['GPT_UIO_YELLOW_API_KEY'],
         'options': {'baseURL': 'https://gpt.uio.no/api/v1'},
         'models': {},
     },

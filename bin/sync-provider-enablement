@@ -136,6 +136,7 @@ if provider_enabled('gpt-uio-red'):
         red_models[model_id] = red_entry
     provider_payload['gpt-uio-red'] = {
         'api': 'openai',
+        'env': ['GPT_UIO_RED_API_KEY'],
         'options': {
             'baseURL': 'https://gpt.uio.no/api/v1',
         },
@@ -160,6 +161,7 @@ if provider_enabled('gpt-uio-yellow'):
         yellow_models[model_id] = yellow_entry
     provider_payload['gpt-uio-yellow'] = {
         'api': 'openai',
+        'env': ['GPT_UIO_YELLOW_API_KEY'],
         'options': {
             'baseURL': 'https://gpt.uio.no/api/v1',
         },
