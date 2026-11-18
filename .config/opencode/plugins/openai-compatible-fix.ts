@@ -11,7 +11,7 @@
  * `max_completion_tokens`, and drop `reasoningSummary`.
  */
 
-const REASONING_MODEL_PREFIXES = ["gpt-5", "o1", "o3", "o4"]
+const REASONING_MODEL_PREFIXES = ["gpt-5", "gpt-6", "o1", "o3", "o4"]
 const DEBUG_ENV_KEY = "OPENCODE_PLUGIN_DEBUG"
 const DEBUG_LOG_LABEL = "[openai-compatible-fix]"
 
@@ -108,6 +108,9 @@ export const OpenAICompatibleFix = async () => {
         : {}
       const changed = []
 
+      const hasTools = Array.isArray(incoming?.tools) && incoming.tools.length > 0
+        || Array.isArray(incoming?.functions) && incoming.functions.length > 0
+
       if (output) output.options = options
 
       const maxOutputTokens = output?.maxOutputTokens
@@ -127,6 +130,19 @@ export const OpenAICompatibleFix = async () => {
 
       if (Object.hasOwn(options, "reasoningSummary")) changed.push("reasoningSummary")
       delete options.reasoningSummary
+
+      // Tool calls on chat/completions are rejected by reasoning models unless
+      // reasoning_effort is exactly "none"; absence of the param means "high".
+      if (hasTools) {
+        const currentEffort = options.reasoning_effort ?? options.reasoningEffort
+        if (currentEffort === undefined ||
+            typeof currentEffort !== "string" ||
+            currentEffort.trim().toLowerCase() !== "none") {
+          changed.push("reasoning_effort")
+          options.reasoning_effort = "none"
+        }
+        delete options.reasoningEffort
+      }
 
       logPatch(firstModelIdentifier(incoming), [...new Set(changed)])
     },

@@ -88,10 +88,13 @@ provider_payload = {
 for provider_name in ('gpt-uio-red', 'gpt-uio-yellow'):
     for model in providers.get(provider_name, {}).get('models', []):
         model_id = model['id']
-        provider_payload[provider_name]['models'][model_id] = {
+        entry = {
             'name': model['name'],
             'id': model_id,
         }
+        if 'provider' in model:
+            entry['provider'] = model['provider']
+        provider_payload[provider_name]['models'][model_id] = entry
 
 copilot_policy = providers.get('github-copilot', {})
 copilot_mode = copilot_policy.get('mode')

@@ -50,9 +50,12 @@ grep -q 'delete .*max_tokens' "$plugin_file" || fail "plugin must delete max_tok
 grep -q 'delete .*reasoningSummary' "$plugin_file" || fail "plugin must delete reasoningSummary from output/options"
 
 # --- Covers known reasoning model prefixes -----------------------------------
-for prefix in "gpt-5" "o1" "o3" "o4"; do
+for prefix in "gpt-5" "gpt-6" "o1" "o3" "o4"; do
   grep -F "$prefix" "$plugin_file" >/dev/null || fail "plugin must cover reasoning model prefix '$prefix'"
 done
+
+# --- Forces reasoning_effort to none when tools are present -------------------
+grep -q 'reasoning_effort' "$plugin_file" || fail "plugin must patch reasoning_effort when tools are present"
 
 # --- Plugin must not be in opencode.jsonc's "plugin" array --------------------
 # Local .ts plugins in plugins/ are auto-discovered; they do not belong in the

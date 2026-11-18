@@ -12,11 +12,11 @@
       "mode": "full-current-list",
       "models": [
         { "name": "Gemma 4", "id": "google/gemma-4-31B-it" },
-        { "name": "GPT-5", "id": "gpt-5" },
-        { "name": "GPT-5 mini", "id": "gpt-5-mini" },
-        { "name": "GPT-5.1 Thinking", "id": "gpt-5.1" },
-        { "name": "GPT-5.4", "id": "gpt-5.4" },
-        { "name": "GPT-OSS 120B", "id": "gpt-oss-120b" },
+        { "name": "GPT-5", "id": "gpt-5", "provider": { "api": "openai-responses" } },
+        { "name": "GPT-5 mini", "id": "gpt-5-mini", "provider": { "api": "openai-responses" } },
+        { "name": "GPT-5.1 Thinking", "id": "gpt-5.1", "provider": { "api": "openai-responses" } },
+        { "name": "GPT-5.4", "id": "gpt-5.4", "provider": { "api": "openai-responses" } },
+        { "name": "GPT-OSS 120B", "id": "gpt-oss-120b", "provider": { "api": "openai-responses" } },
         { "name": "GLM 5.3", "id": "Inferact/GLM-5.3-NVFP4" },
         { "name": "Multilingual E5 Large Instruct", "id": "intfloat/multilingual-e5-large-instruct" },
         { "name": "Kimi K2.6", "id": "moonshotai/Kimi-K2.6" },
@@ -24,9 +24,9 @@
         { "name": "NorMistral 11B", "id": "norallm/normistral-11b-thinking" },
         { "name": "NorwAI Magistral", "id": "NorwAI/NorwAI-Magistral-24B-reasoning" },
         { "name": "Qwen 3.8", "id": "Qwen/Qwen3.8-27B-FP8" },
-        { "name": "GPT-6 Luna", "id": "gpt-6-luna" },
-        { "name": "GPT-6.1 Sol", "id": "gpt-6.1-sol" },
-        { "name": "GPT-6.1 Terra", "id": "gpt-6.1-terra" }
+        { "name": "GPT-6 Luna", "id": "gpt-6-luna", "provider": { "api": "openai-responses" } },
+        { "name": "GPT-6.1 Sol", "id": "gpt-6.1-sol", "provider": { "api": "openai-responses" } },
+        { "name": "GPT-6.1 Terra", "id": "gpt-6.1-terra", "provider": { "api": "openai-responses" } }
       ]
     },
     "github-copilot": {

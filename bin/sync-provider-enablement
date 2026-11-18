@@ -127,10 +127,13 @@ if provider_enabled('gpt-uio-red'):
         model_name = model.get('name')
         if not isinstance(model_id, str) or not model_id:
             raise SystemExit('refused: gpt-uio-red model entry missing id')
-        red_models[model_id] = {
+        red_entry = {
             'id': model_id,
             'name': model_name if isinstance(model_name, str) and model_name else model_id,
         }
+        if 'provider' in model:
+            red_entry['provider'] = model['provider']
+        red_models[model_id] = red_entry
     provider_payload['gpt-uio-red'] = {
         'api': 'openai',
         'options': {
@@ -148,10 +151,13 @@ if provider_enabled('gpt-uio-yellow'):
         model_name = model.get('name')
         if not isinstance(model_id, str) or not model_id:
             raise SystemExit('refused: gpt-uio-yellow model entry missing id')
-        yellow_models[model_id] = {
+        yellow_entry = {
             'id': model_id,
             'name': model_name if isinstance(model_name, str) and model_name else model_id,
         }
+        if 'provider' in model:
+            yellow_entry['provider'] = model['provider']
+        yellow_models[model_id] = yellow_entry
     provider_payload['gpt-uio-yellow'] = {
         'api': 'openai',
         'options': {

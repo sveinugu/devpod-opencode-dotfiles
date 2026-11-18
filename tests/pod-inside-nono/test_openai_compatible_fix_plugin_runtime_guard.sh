@@ -139,6 +139,38 @@ async function withDebugEnv(value, run) {
     assert(output.options.max_completion_tokens === undefined, "non-reasoning model should not get max_completion_tokens")
   }
 
+  // Tool calls on reasoning models must force reasoning_effort to "none"
+  // so /v1/chat/completions accepts them (gpt-6.x hard restriction).
+  {
+    const output = {
+      maxOutputTokens: 100,
+      options: { reasoning_effort: "medium" },
+    }
+    await hook(
+      { model: { modelID: "gpt-uio-yellow/gpt-6.1-terra" }, tools: [{ type: "function", function: { name: "read" } }] },
+      output
+    )
+    assert(output.options.reasoning_effort === "none", "tool call should force reasoning_effort to none")
+  }
+
+  {
+    const output = { maxOutputTokens: 100, options: {} }
+    await hook(
+      { model: { modelID: "gpt-uio-yellow/gpt-6.1-terra" }, tools: [{}] },
+      output
+    )
+    assert(output.options.reasoning_effort === "none", "tool call without preset effort should add reasoning_effort none")
+  }
+
+  {
+    const output = {
+      maxOutputTokens: 100,
+      options: { reasoning_effort: "high" },
+    }
+    await hook({ model: { modelID: "gpt-uio-yellow/gpt-6.1-terra" } }, output)
+    assert(output.options.reasoning_effort === "high", "no tools present should keep reasoning_effort")
+  }
+
   // Debug logging should be opt-in and emitted only when a patch is applied.
   await withDebugEnv(undefined, async () => {
     const logs = await captureDebugLogs(async () => {

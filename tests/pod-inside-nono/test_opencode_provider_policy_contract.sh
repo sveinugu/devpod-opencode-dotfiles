@@ -40,28 +40,28 @@ if set(providers.keys()) != expected_keys:
     raise SystemExit(f'supported_providers keys mismatch: {set(providers.keys())!r}')
 
 red_expected = [
-    ('GPT-OSS 120B', 'gpt-oss-120b'),
-    ('GLM 5.3', 'Inferact/GLM-5.3-NVFP4'),
-    ('Multilingual E5 Large Instruct', 'intfloat/multilingual-e5-large-instruct'),
+    ('GPT-OSS 120B', 'gpt-oss-120b', None),
+    ('GLM 5.3', 'Inferact/GLM-5.3-NVFP4', None),
+    ('Multilingual E5 Large Instruct', 'intfloat/multilingual-e5-large-instruct', None),
 ]
 
 yellow_expected = [
-    ('Gemma 4', 'google/gemma-4-31B-it'),
-    ('GPT-5', 'gpt-5'),
-    ('GPT-5 mini', 'gpt-5-mini'),
-    ('GPT-5.1 Thinking', 'gpt-5.1'),
-    ('GPT-5.4', 'gpt-5.4'),
-    ('GPT-OSS 120B', 'gpt-oss-120b'),
-    ('GLM 5.3', 'Inferact/GLM-5.3-NVFP4'),
-    ('Multilingual E5 Large Instruct', 'intfloat/multilingual-e5-large-instruct'),
-    ('Kimi K2.6', 'moonshotai/Kimi-K2.6'),
-    ('Mistral Medium 3.5 128B', 'mistralai/Mistral-Medium-3.5-128B'),
-    ('NorMistral 11B', 'norallm/normistral-11b-thinking'),
-    ('NorwAI Magistral', 'NorwAI/NorwAI-Magistral-24B-reasoning'),
-    ('Qwen 3.8', 'Qwen/Qwen3.8-27B-FP8'),
-    ('GPT-6 Luna', 'gpt-6-luna'),
-    ('GPT-6.1 Sol', 'gpt-6.1-sol'),
-    ('GPT-6.1 Terra', 'gpt-6.1-terra'),
+    ('Gemma 4', 'google/gemma-4-31B-it', None),
+    ('GPT-5', 'gpt-5', 'openai-responses'),
+    ('GPT-5 mini', 'gpt-5-mini', 'openai-responses'),
+    ('GPT-5.1 Thinking', 'gpt-5.1', 'openai-responses'),
+    ('GPT-5.4', 'gpt-5.4', 'openai-responses'),
+    ('GPT-OSS 120B', 'gpt-oss-120b', 'openai-responses'),
+    ('GLM 5.3', 'Inferact/GLM-5.3-NVFP4', None),
+    ('Multilingual E5 Large Instruct', 'intfloat/multilingual-e5-large-instruct', None),
+    ('Kimi K2.6', 'moonshotai/Kimi-K2.6', None),
+    ('Mistral Medium 3.5 128B', 'mistralai/Mistral-Medium-3.5-128B', None),
+    ('NorMistral 11B', 'norallm/normistral-11b-thinking', None),
+    ('NorwAI Magistral', 'NorwAI/NorwAI-Magistral-24B-reasoning', None),
+    ('Qwen 3.8', 'Qwen/Qwen3.8-27B-FP8', None),
+    ('GPT-6 Luna', 'gpt-6-luna', 'openai-responses'),
+    ('GPT-6.1 Sol', 'gpt-6.1-sol', 'openai-responses'),
+    ('GPT-6.1 Terra', 'gpt-6.1-terra', 'openai-responses'),
 ]
 
 copilot_expected = None
@@ -77,7 +77,10 @@ def assert_provider(name, expected_mode, expected_models):
             raise SystemExit(f'{name} must not declare model list when mode=all')
         return
 
-    actual = [(m.get('name'), m.get('id')) for m in models]
+    actual = [
+        (m.get('name'), m.get('id'), (m.get('provider') or {}).get('api'))
+        for m in models
+    ]
     if actual != expected_models:
         raise SystemExit(f'{name} model list mismatch: {actual!r}')
 
