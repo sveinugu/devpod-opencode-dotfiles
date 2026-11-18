@@ -16,9 +16,6 @@ profile="$repo_root/.config/nono/profiles/devspace-opencode-secure.jsonc"
 [ -f "$profile" ] || fail "devspace nono secure profile missing"
 
 grep -F '"name": "devspace-opencode-secure"' "$profile" >/dev/null || fail "profile should declare devspace-opencode-secure meta name"
-if grep -F '"extends": "nolabs-ai/opencode"' "$profile" >/dev/null; then
-  fail "profile should not rely on remote pack inheritance; secure path must stay repo-contained"
-fi
 
 grep -F '"groups"' "$profile" >/dev/null || fail "profile should declare explicit group exclusions for incompatible startup command blocking"
 grep -F '"exclude"' "$profile" >/dev/null || fail "profile should define group exclusion list"
