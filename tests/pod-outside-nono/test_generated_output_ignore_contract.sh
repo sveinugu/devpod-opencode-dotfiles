@@ -17,6 +17,14 @@ require_pod_outside_nono_test 'test_generated_output_ignore_contract'
 git -C "$repo_root" check-ignore -q '.config/opencode/plugins/opencode-loop.ts' || fail 'generated opencode-loop plugin output must be git-ignored'
 git -C "$repo_root" check-ignore -q '.config/opencode/commands/loop-help.md' || fail 'generated loop-help output must be git-ignored'
 git -C "$repo_root" check-ignore -q '.config/opencode/commands/loop.md' || fail 'generated loop output must be git-ignored'
+git -C "$repo_root" check-ignore -q '.config/opencode/.nono-opencode-v1-pack-marker' || fail 'Nono pack marker must be git-ignored'
+git -C "$repo_root" check-ignore -q '.config/opencode/plugins/nono-sandbox.ts' || fail 'Nono pack plugin link must be git-ignored'
+git -C "$repo_root" check-ignore -q '.config/opencode/skills/nono-sandbox' || fail 'Nono pack skill link must be git-ignored'
+git -C "$repo_root" check-ignore -q '.config/nono/pack-update-hints.json' || fail 'Nono pack update hints must be git-ignored'
+
+if git -C "$repo_root" check-ignore -q '.config/opencode/.agents/skills/clean-code/SKILL.md'; then
+  fail 'deprecated config-local skill copies must remain visible for cleanup'
+fi
 
 if git -C "$repo_root" check-ignore -q 'skills-lock.json'; then
   fail 'top-level skills-lock.json authority file must remain committed, not ignored'

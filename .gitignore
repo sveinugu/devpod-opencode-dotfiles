@@ -29,3 +29,4 @@
 # Nono runtime
 .config/nono/packages
 .config/nono/profile-drafts
+.config/nono/pack-update-hints.json

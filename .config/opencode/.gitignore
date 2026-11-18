@@ -3,3 +3,6 @@ bun.lock
 .gitignore
 provider-runtime.json
 provider-verification.json
+.nono-opencode-v1-pack-marker
+plugins/nono-sandbox.ts
+skills/nono-sandbox
