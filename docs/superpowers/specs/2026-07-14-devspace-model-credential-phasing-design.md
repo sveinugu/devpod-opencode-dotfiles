@@ -291,7 +291,7 @@ the repo should define the integration/auth contract needed to make the provider
 
 - **UiO providers** use repo-tracked full current model lists.
 - **Standard providers** use repo-tracked allowlists, expected to map to OpenCode provider filtering such as `whitelist`, so the workspace does not surface the full upstream model catalog by default.
-- **Standard providers** use repo-tracked allowlists, except approved explicit `mode: all` entries for `openai` and `anthropic`.
+- **Standard providers** use repo-tracked allowlists, except approved explicit `mode: all` entries for `openai`, `anthropic`, and `github-copilot`.
 
 This is required because provider-owned catalogs can be much broader than the sanctioned or intended set for this workspace, including the reduced UiO-provided GitHub Copilot model set.
 

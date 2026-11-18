@@ -239,7 +239,7 @@ Docs Review Gate: do not begin Task 2.5 runtime implementation until the user ap
 - [ ] Add repo-tracked configuration for the exact supported provider set and exclude unsupported providers from the secure path.
 - [ ] Keep that provider selection scoped to the repo-supported secure path only; do not redefine out-of-scope raw OpenCode use into a repo-enforced global allowlist.
 - [ ] Keep UiO yellow/red as separate providers with separate routing identities and repo-tracked full current model lists.
-- [ ] Keep standard-provider model policy as repo-tracked allowlists, with approved explicit `mode: all` exceptions for `openai` and `anthropic`.
+- [ ] Keep standard-provider model policy as repo-tracked allowlists, with approved explicit `mode: all` exceptions for `openai`, `anthropic`, and `github-copilot`.
 - [ ] Ensure the supported-provider auth contract stays consistent with the `nono` credential-route contract and does not make supported-provider `auth.json` authoritative.
 - [ ] Verify GREEN on provider-specific auth/list/request smoke tests, including `GITHUB_TOKEN`-based evidence for GitHub Copilot.
 - [ ] Perform the mandatory refactor checkpoint and keep model-policy ownership boundaries clear.

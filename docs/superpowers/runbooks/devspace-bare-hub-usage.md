@@ -201,7 +201,7 @@ Bootstrap guardrail:
 Current policy note:
 
 - openai/anthropic with `all` mode
-- `github-copilot` is constrained by allowlist mode in repo policy
+- `github-copilot` with `all` mode
 - UiO providers (`gpt-uio-yellow`, `gpt-uio-red`) use full current model lists
 
 ## Managed local retirement

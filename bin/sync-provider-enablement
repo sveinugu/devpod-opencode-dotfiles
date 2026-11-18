@@ -161,19 +161,26 @@ if provider_enabled('gpt-uio-yellow'):
     }
 
 if provider_enabled('github-copilot'):
-    copilot_allowlist = []
-    for model in model_entries('github-copilot'):
-        if not isinstance(model, dict):
-            raise SystemExit('refused: github-copilot model entries must be objects')
-        model_id = model.get('id')
-        if not isinstance(model_id, str) or not model_id:
-            raise SystemExit('refused: github-copilot model entry missing id')
-        if model_id.startswith('github-copilot/'):
-            model_id = model_id.split('/', 1)[1]
-        copilot_allowlist.append(model_id)
-    provider_payload['github-copilot'] = {
-        'whitelist': copilot_allowlist,
-    }
+    copilot_policy = supported.get('github-copilot', {})
+    copilot_mode = copilot_policy.get('mode', 'allowlist')
+    if copilot_mode == 'allowlist':
+        copilot_allowlist = []
+        for model in model_entries('github-copilot'):
+            if not isinstance(model, dict):
+                raise SystemExit('refused: github-copilot model entries must be objects')
+            model_id = model.get('id')
+            if not isinstance(model_id, str) or not model_id:
+                raise SystemExit('refused: github-copilot model entry missing id')
+            if model_id.startswith('github-copilot/'):
+                model_id = model_id.split('/', 1)[1]
+            copilot_allowlist.append(model_id)
+        provider_payload['github-copilot'] = {
+            'whitelist': copilot_allowlist,
+        }
+    elif copilot_mode == 'all':
+        pass
+    else:
+        raise SystemExit(f'refused: unsupported github-copilot mode: {copilot_mode}')
 
 runtime_payload = {
     'enabled_providers': manifest_order_enabled,

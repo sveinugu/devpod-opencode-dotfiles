@@ -83,9 +83,6 @@ provider_payload = {
         'options': {'baseURL': 'https://gpt.uio.no/api/v1'},
         'models': {},
     },
-    'github-copilot': {
-        'whitelist': [],
-    },
 }
 
 for provider_name in ('gpt-uio-red', 'gpt-uio-yellow'):
@@ -96,11 +93,19 @@ for provider_name in ('gpt-uio-red', 'gpt-uio-yellow'):
             'id': model_id,
         }
 
-for model in providers.get('github-copilot', {}).get('models', []):
-    model_id = model['id']
-    if isinstance(model_id, str) and model_id.startswith('github-copilot/'):
-        model_id = model_id.split('/', 1)[1]
-    provider_payload['github-copilot']['whitelist'].append(model_id)
+copilot_policy = providers.get('github-copilot', {})
+copilot_mode = copilot_policy.get('mode')
+if copilot_mode == 'allowlist':
+    provider_payload['github-copilot'] = {'whitelist': []}
+    for model in copilot_policy.get('models', []):
+        model_id = model['id']
+        if isinstance(model_id, str) and model_id.startswith('github-copilot/'):
+            model_id = model_id.split('/', 1)[1]
+        provider_payload['github-copilot']['whitelist'].append(model_id)
+elif copilot_mode == 'all':
+    pass
+else:
+    raise SystemExit(f'unsupported github-copilot mode in test fixture: {copilot_mode!r}')
 
 for provider_name in ('gpt-uio-red', 'gpt-uio-yellow', 'github-copilot'):
     if provider_name not in providers:
@@ -156,12 +161,16 @@ if not isinstance(provider_payload, dict):
     raise SystemExit('runtime provider payload must be an object')
 
 copilot_payload = provider_payload.get('github-copilot', {})
-if not isinstance(copilot_payload, dict):
-    raise SystemExit('runtime github-copilot payload must be an object when enabled')
+if 'github-copilot' in expected:
+    if 'github-copilot' in provider_payload:
+        if not isinstance(copilot_payload, dict):
+            raise SystemExit('runtime github-copilot payload must be an object when enabled with provider payload')
 
-for model_id in copilot_payload.get('whitelist', []):
-    if isinstance(model_id, str) and model_id.startswith('github-copilot/'):
-        raise SystemExit(f'github-copilot whitelist must use canonical model ids without provider prefix: {model_id}')
+        for model_id in copilot_payload.get('whitelist', []):
+            if isinstance(model_id, str) and model_id.startswith('github-copilot/'):
+                raise SystemExit(f'github-copilot whitelist must use canonical model ids without provider prefix: {model_id}')
+    elif 'github-copilot' in runtime.get('provider', {}):
+        raise SystemExit('runtime github-copilot payload must be absent when policy mode is all')
 
 if verification.get('enabled_providers') != expected:
     raise SystemExit(f'verification output mismatch: {verification.get("enabled_providers")!r}')

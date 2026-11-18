@@ -41,8 +41,8 @@ if set(providers.keys()) != expected_keys:
 
 red_expected = [
     ('GPT-OSS 120B', 'gpt-oss-120b'),
+    ('GLM 5.3', 'Inferact/GLM-5.3-NVFP4'),
     ('Multilingual E5 Large Instruct', 'intfloat/multilingual-e5-large-instruct'),
-    ('GLM 5.2', 'nvidia/GLM-5.2-NVFP4'),
 ]
 
 yellow_expected = [
@@ -52,22 +52,19 @@ yellow_expected = [
     ('GPT-5.1 Thinking', 'gpt-5.1'),
     ('GPT-5.4', 'gpt-5.4'),
     ('GPT-OSS 120B', 'gpt-oss-120b'),
+    ('GLM 5.3', 'Inferact/GLM-5.3-NVFP4'),
     ('Multilingual E5 Large Instruct', 'intfloat/multilingual-e5-large-instruct'),
-    ('MiniMax M3', 'MiniMaxAI/MiniMax-M3-MXFP8'),
-    ('Mistral Medium 3.5 128B', 'mistralai/Mistral-Medium-3.5-128B'),
     ('Kimi K2.6', 'moonshotai/Kimi-K2.6'),
-    ('Multilingual E5 Large Instruct', 'multilingual-e5-large-instruct'),
+    ('Mistral Medium 3.5 128B', 'mistralai/Mistral-Medium-3.5-128B'),
     ('NorMistral 11B', 'norallm/normistral-11b-thinking'),
     ('NorwAI Magistral', 'NorwAI/NorwAI-Magistral-24B-reasoning'),
-    ('GLM 5.2', 'nvidia/GLM-5.2-NVFP4'),
-    ('Qwen 3.6', 'Qwen/Qwen3.6-27B-FP8'),
+    ('Qwen 3.8', 'Qwen/Qwen3.8-27B-FP8'),
+    ('GPT-6 Luna', 'gpt-6-luna'),
+    ('GPT-6.1 Sol', 'gpt-6.1-sol'),
+    ('GPT-6.1 Terra', 'gpt-6.1-terra'),
 ]
 
-copilot_expected = [
-    ('GPT-5 mini', 'github-copilot/gpt-5-mini'),
-    ('GPT-5.4', 'github-copilot/gpt-5.4'),
-    ('GPT-5.3 Codex', 'github-copilot/gpt-5.3-codex'),
-]
+copilot_expected = None
 
 def assert_provider(name, expected_mode, expected_models):
     provider = providers[name]
@@ -86,7 +83,7 @@ def assert_provider(name, expected_mode, expected_models):
 
 assert_provider('gpt-uio-red', 'full-current-list', red_expected)
 assert_provider('gpt-uio-yellow', 'full-current-list', yellow_expected)
-assert_provider('github-copilot', 'allowlist', copilot_expected)
+assert_provider('github-copilot', 'all', copilot_expected)
 assert_provider('openai', 'all', None)
 assert_provider('anthropic', 'all', None)
 PY
