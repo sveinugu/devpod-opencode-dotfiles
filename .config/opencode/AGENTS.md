@@ -82,11 +82,11 @@ Following this interaction policy is the priority of all members of The Superpow
 - Prefer real interactions for contract/integration checks. Mock only when unavoidable and document rationale in the test file header.
 - Agents SHOULD complete brainstorming before planning.
 - Agents MUST complete planning before implementation.
-- Design specifications and plan documents MUST be made available to the user (docs path + commit) and approved before moving on to the next phase.
+- Design specifications and plan documents MUST be made available to the user (docs path + commit) and approved before moving on to the next phase, unless the human and agent agree to waive those pre-implementation checkpoints as described in the planning and implementation policy.
 - Human interaction in the brainstorming and planning processes are crucial. Make sure the intent of the user is followed before moving on to details.
 - Tests are primary deliverables of plans and a focus of discussions with the owners. They define the scope of the work and the interfaces towards users and other components. Avoid adding too much implementation details into plans, even though the
   `writing-plans` skill says otherwise.
-- After plan approval, agents must follow TDD (tests-first) on the agreed slice. If tests reveal gaps, open a focused design and/or plan update (depending on severity) and re-approve.
+- After planning and any applicable approval, agents must follow TDD (tests-first) on the agreed slice. If tests reveal gaps, open a focused design and/or plan update (depending on severity) and obtain any applicable approval.
 - After a task is implemented, the work should be presented to the human for manual testing, iterative improvements, and approval.
 - Tasks that depend sequentially on other tasks must not be started until prior tasks have been approved, unless instructed otherwise by a human.
 - Before marking a feature done, run the pragmatic-programmer quick diagnostic and a clean-code checklist/score review. Append both results to the PR, review summary, or handoff note. If the pragmatic-programmer score is < 8, append 1–3 remediation tasks. If the clean-code review finds material issues, append 1–3 cleanup/remediation tasks or explicitly justify why they are deferred.
@@ -105,7 +105,7 @@ Following this interaction policy is the priority of all members of The Superpow
 
 ### How to reconcile in practice (short recipe for agents)
 
-1. Brainstorm → write lightweight design and define tracer bullet (verification: design committed).
+1. Brainstorm → define a lightweight design and tracer bullet (commit the design unless the human agrees to waive that checkpoint).
 2. Plan → select tech stack, break down into verifiable tasks, define acceptance tests, describe the task with enough detail to be implemented by a specialist subagent.
 3. Choose test level for the tracer bullet (integration/contract preferred for E2E; unit for focused logic).
 4. TDD at the chosen level → write a failing test, watch it fail, implement minimal code, and verify green.
@@ -140,7 +140,7 @@ Why this works
 
 ## Core principle of delegating responsibility:
 
-- If a responsibility or skill in repo docs or agent specs is assigned to a named subagent, the parent agent MUST spawn that subagent to perform the work.
+- If a responsibility or skill in repo docs or agent specs is assigned to a named subagent, the parent agent MUST spawn that subagent to perform the work, subject to the general-agent exception in named-responsibility ownership.
 
 ## Delegation in practice
 
@@ -149,8 +149,8 @@ Why this works
 - Routing question: before spawning, the Maestro MAY ask exactly one routing-only clarifying question (hard limit: 1 question, max 18 words) to choose the correct subagent or scope. This single question must not perform or begin the delegated work (no discovery beyond routing). After the Maestro spawns a subagent, that subagent follows its own interaction rules — e.g. iterative clarification or discovery exchanges — to refine scope and design.
 - Handoff wording (required): when spawning a named subagent the Maestro MUST use exactly, and only after successful launch:
   `Switching you to the <subagent> subagent now — please interact directly with it; I will remain available for orchestration.`
-- Planner ownership sentence: planner-owned artifacts (plans/specs) must be authored/committed by planner unless an explicit Maestro override is active.
-- Design specifications and plan documents must be written to file and committed by the sub-agents before handed back to the Maestro.
+- Planner ownership sentence: planner-owned artifacts (plans/specs) must be authored/committed by planner unless an explicit Maestro override or the general-agent exception is active.
+- Design specifications and plan documents must be written to file and committed by the sub-agents before handback to the Maestro, unless the human and agent agree to waive those pre-implementation checkpoints.
 - Review-record policy: review feedback is conversational by default. A persistent review-record document is created only when explicitly requested or required by a plan/spec. When such a document is created, it is owned by the reviewing subagent unless explicitly reassigned. For PR-based review, GitHub review history is the default persisted review record.
 - Delegation Packet definition: `Delegation Packet` is the canonical Maestro-to-subagent routing wrapper for new scoped delegation. It preserves exact references and verbatim user intent; it is not an interpretation step.
 - Router-owned session metadata (required whenever a delegating/router agent dispatches, resumes, or reports handback for a subagent session, replace
@@ -159,7 +159,7 @@ Why this works
     Session: <task_id>
     Resume: $<task_id> <your reply>
     Owner: <subagent>
-    Authority: only the owning subagent may perform <subagent> responsibilities unless a human-approved Maestro override is active
+    Authority: the owning subagent owns this scope, subject to the general-agent exception and any human-approved Maestro override
     ```
 - When a Task or native subagent launch returns `task_id`, agents MUST use that exact returned `task_id` verbatim as the canonical session identifier.
 - Delegating agents MUST validate surfaced `Session:` and `Resume:` values against that exact returned `task_id` before sending or repeating them.
@@ -172,7 +172,7 @@ Why this works
     2. Include the exact returned `task_id` when available.
     3. Include the exact resume command in `$<task_id> <reply>` form.
     4. State that replies with `$<task_id>` route to the owning subagent, not Maestro triage.
-    5. State that only the owning subagent may perform its named responsibilities unless the human activates the two-step Maestro override.
+    5. State the owning subagent's authority, including the general-agent exception and the human-only two-step Maestro override.
     6. When resuming an existing subagent session, explicitly say it is a resume of the existing session, not a new session.
 - Per-subagent override: a subagent file may define a more specific first-message/handoff wording; that override applies only to that subagent and must be explicit in the subagent file.
 
@@ -528,19 +528,21 @@ When only the parent artifact matches multiple active lanes, Maestro must ask ra
 
 - An approved plan, spec, acceptance-test document, or similar approved artifact is enough to start when it already defines the task at the right level. Maestro must not require a separate implementation plan by default.
 - For policy, documentation, and similarly bounded process changes, an approved spec may serve directly as the implementation authority when it already defines the work at the correct level.
+- The human and agent may explicitly agree to waive pre-implementation approval checkpoints, including written or committed planning artifacts. This agreement does not waive planning, workspace safety, TDD, refactoring, or verification.
 - Plans and specs should stay high-level. They should define goals, tests / acceptance criteria, constraints, known risks, and `User Check-in` markers.
 - Plans and specs should not prescribe detailed implementation steps unless the user explicitly asks for that level of detail.
 - Acceptance-test documents should remain behavioral and should not carry `User Check-in` markers.
 - Implementers should use pragmatic TDD with direct user feedback. Tests are the primary basis for refining interface shape, feature boundaries, and behavior.
 - Implementers may propose solutions that diverge from plan details, but must surface the divergence explicitly before it hardens into costly downstream work.
 - Implementers must pause before hard-to-reverse choices, especially around interfaces, test semantics, and architecture boundaries, if ownership is unclear.
-- `User Check-in` markers are mandatory pause points.
+- `User Check-in` markers are mandatory pause points unless the human and agent explicitly agree to waive a pre-implementation check-in.
 
 ## Named-responsibility ownership
 
-- If repo docs or agent specs assign a responsibility to a named subagent, that subagent is the sole owner of that responsibility for the active scope.
+- If repo docs or agent specs assign a responsibility to a named subagent, that subagent is the sole owner of that responsibility for the active scope, except as specified below.
+- A general agent may perform named-specialist responsibilities when the human requests it, without a Maestro override. It must not impersonate another agent or misrepresent another session's work.
 - Other agents, including Maestro and senior-implementer, MUST NOT perform that responsibility, commit artifacts owned by that responsibility, or answer in a way that implies takeover.
-- Exception: the human may activate the existing two-step Maestro override for an exact short scope. Without that override, takeover is forbidden.
+- Exception for Maestro: the human may activate the existing two-step Maestro override for an exact short scope. Without that override, Maestro takeover is forbidden.
 - If takeover would otherwise occur, the acting agent must refuse with:
   `Refused — owned by <subagent>; resume or re-dispatch that subagent, or use Maestro override.`
 
@@ -559,7 +561,7 @@ Interaction rules:
 - Exact-token or other protocol-sensitive prompts may remain isolated when batching would reduce reliability or make the required reply ambiguous.
 - Repository policy override: when a loaded skill or subagent prompt prefers one-question-at-a-time discovery, subagents in this repository should follow the batching policy above unless a stricter protocol or routing rule in `AGENTS.md` applies.
 - If the user sends an immediately following message that clearly corrects or amends their previous message, treat the later message as authoritative for any overlapping or conflicting content, even when the correction changes meaning or adds/removes sentences. If it is not clear that the later message is a correction or amendment, ask instead of assuming.
-- Perform only the responsibilities listed in the subagent file and only for the currently delegated scope.
+- Perform only the responsibilities listed in the subagent file and only for the currently delegated scope, except for the general-agent exception in named-responsibility ownership.
 - Session metadata is router-owned. Ordinary subagents should not be required to emit `Session:` / `Resume:` metadata in start, pause, resume, or completion messages.
 - Exception: subagents that themselves delegate work inherit router obligations for the child session they create.
 - Ordinary subagent pause / question messages should be direct and minimal.
@@ -568,7 +570,7 @@ Interaction rules:
 - Prefer the order: context, options/trade-offs, recommendation, then the actual question or question batch.
 - Anti-impersonation rule: delegating/router agents, including Maestro, MUST NOT speak in a subagent's voice, MUST NOT author first-person subagent messages, and MUST NOT fabricate subagent pause/completion/status text. The only exception is exact verbatim routing of a user-provided `$<task_id>` payload, which remains routing rather than subagent authorship.
 
-- No takeover rule: no other agent may perform the owning subagent's named responsibilities, commit on its behalf, or declare its scoped work complete unless the human has activated the two-step Maestro override for that exact scope.
+- No takeover rule: except for the general-agent exception in named-responsibility ownership, no other agent may perform the owning subagent's named responsibilities, commit on its behalf, or declare its scoped work complete unless the human has activated the two-step Maestro override for that exact scope.
 - When done, return control to the <parent agent> with the exact final handoff:
 
   "The <subagent> subagent has completed the scoped work. Returning control to the <parent agent> for orchestration and next-step delegation."

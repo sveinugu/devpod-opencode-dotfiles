@@ -7,7 +7,7 @@ Delegation Packet
 Session: <task_id>
 Resume: $<task_id> <your reply>
 Owner: <subagent>
-Authority: only the owning subagent may perform <subagent> responsibilities unless a human-approved Maestro override is active
+Authority: the owning subagent owns this scope, subject to the general-agent exception and any human-approved Maestro override
 Artifact path: <exact approved plan/spec path; omit when not applicable>
 Worktree path: <explicit absolute path to editable checkout; omit when not applicable>
 Verbatim user request:
