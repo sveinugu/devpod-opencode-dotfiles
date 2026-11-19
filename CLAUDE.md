@@ -83,7 +83,7 @@ Config lives in `.config/opencode/`. This directory is symlinked to `~/.config/o
 - `agents/maestro.md` — primary orchestrator (low-power model, delegates everything)
 - `agents/*.md` — specialist subagents (planner, senior/junior implementer, code-reviewer, docs-writer, etc.)
 - `commands/*.md` — slash command definitions (loop-* family)
-- `plugins/opencode-loop.js` — plugin implementation
+- `plugins/opencode-loop.ts` — installer-generated OpenCode Loop plugin (gitignored)
 
 Harness-wide procedures live in `.config/opencode/skills/`. Project-local skills and their external install lock live at the repo root.
 

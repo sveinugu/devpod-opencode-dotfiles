@@ -74,7 +74,7 @@ if marker_path.exists() and (marker_path.is_symlink() or marker_path.stat().st_s
 PY
 
 for generated_output in \
-  .config/opencode/plugins/opencode-loop.js \
+  .config/opencode/plugins/opencode-loop.ts \
   .config/opencode/commands/loop-help.md \
   .config/opencode/commands/loop.md; do
   if git -C "$repo_root" ls-files --error-unmatch -- "$generated_output" >/dev/null 2>&1; then
@@ -99,7 +99,7 @@ for entry in manifest.get('installs', []):
         outputs.add(output)
 
 declared_outputs = {
-    '.config/opencode/plugins/opencode-loop.js',
+    '.config/opencode/plugins/opencode-loop.ts',
     '.config/opencode/commands/loop.md',
     '.config/opencode/commands/loop-help.md',
     '.config/opencode/commands/loop-goal.md',
