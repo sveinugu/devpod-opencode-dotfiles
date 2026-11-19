@@ -95,9 +95,9 @@ There is no automatic model fallback. Each agent has one active `model:`; the `#
 Check effective models:
 
 - **Your shell (as `vscode`):** `opencode debug agent <name>` goes through the wrapper, reads the current overrides file and prints the `model override:` lines.
-- **Inside an agent session (nono):** `opencode` is not on PATH. `opencode-raw debug agent <name> --pure` shows only the config that session started with, not the current overrides file. To preview what the next launch will apply, run:
+- **Inside an agent session (nono):** `opencode` is not on PATH. `opencode-raw debug agent <name> --pure` shows the current committed files plus the overrides the session started with, not the current overrides file (`--pure` also leaves out plugins). To preview what the next launch will apply, run:
   `python3 scripts/lib/opencode-config-content.py --runtime .config/opencode/provider-runtime.json --overrides /workspaces/dotfiles/state/hub/etc/model-overrides.json --agents-dir .config/opencode/agents`
-  from the install-branch checkout.
+  from the install-branch checkout. Add `>/dev/null` to see only the `model override:` and warning lines.
 
 ---
 
@@ -136,7 +136,7 @@ A depleted pool needs an override for **every** role whose `#1` is that model; s
 
 ## Design rules
 
-1. **Fallbacks keep the quality tier and switch quota pool.** Quality-critical roles (`planner`, `senior-implementer`, `code-reviewer`, `docs-writer`, both docs reviewers) fall back within the strong group (AA Index 51-59 at maximum reasoning) and alternate between a UiO pool and the shared Copilot pool. Local UiO models (AA Index 32 or lower, or unscored) serve high-volume and utility roles. `brainstormer`, `policy-implementer` and `maestro` start on unscored or mid-tier UiO GPT to spread quota. At the configured `high`/`medium` settings scores are lower and the order can change: Sonnet 5.5 at `high` scores 41.5, below `gpt-6.2-sol` at `high` (54.9).
+1. **Fallbacks keep the quality tier and switch quota pool.** Quality-critical roles (`planner`, `senior-implementer`, `code-reviewer`, `docs-writer`, both docs reviewers) fall back within the strong group (AA Index 51-59 at maximum reasoning) and alternate between a UiO pool and the shared Copilot pool. Exception: `docs-reviewer-claude` has no UiO Claude option, so its `#2` is also Copilot and its `#3` is GLM 5.3 (32). Local UiO models (AA Index 32 or lower, or unscored) serve high-volume and utility roles. `brainstormer`, `policy-implementer` and `maestro` start on UiO GPT (`gpt-5.4` is unscored; `gpt-6.1-terra` scores 51) to spread quota. At the configured `high`/`medium` settings scores are lower and the order can change: Sonnet 5.5 at `high` scores 41.5, below `gpt-6.2-sol` at `high` (54.9).
 2. **Distribute UiO pools.** Each UiO pool is #1 for different roles, so no single pool drains first. `plan` and `build` are rarely used and are not counted when spreading UiO quota; they mirror `planner` and `senior-implementer`.
 3. **Claude for coding.** `senior-implementer` defaults to Sonnet 5.5. Opus 5.5 is a manual escalation for hard tasks (2x Sonnet's price). `junior-implementer` uses Haiku 5.5 (AA Index 36, cheap).
 4. **Review always uses the opposite model family from the author.** Claude-written code is reviewed by `code-reviewer` (GPT). Specs, plans and docs go to `docs-reviewer-gpt` when the author ran on Claude and to `docs-reviewer-claude` when the author ran on GPT or another family. If `senior-implementer` ran on a GPT fallback, switch `code-reviewer` to Copilot `claude-sonnet-5.5` (or `claude-opus-5.5`) for that review with an override and a restart.
