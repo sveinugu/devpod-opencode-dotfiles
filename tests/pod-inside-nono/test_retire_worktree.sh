@@ -215,7 +215,7 @@ grep -F 'loss evidence (untracked text): UNTRACKED.txt' "$tmpdir/loss-refusal.ou
 grep -F 'loss evidence (binary): BINARY.bin' "$tmpdir/loss-refusal.out" >/dev/null || fail 'retire-worktree should include binary-file evidence'
 grep -F 'loss check: local-only commits would become unreachable' "$tmpdir/loss-refusal.out" >/dev/null || fail 'retire-worktree should report local-only commit loss risk'
 grep -F 'loss evidence (local-only commits):' "$tmpdir/loss-refusal.out" >/dev/null || fail 'retire-worktree should include local-only commit list and patch evidence'
-grep -F 'loss check: unable to prove upstream safety' "$tmpdir/loss-refusal.out" >/dev/null || fail 'retire-worktree should report missing upstream proof loss risk'
+grep -F 'note: upstream branch not found, but using main for safety check' "$tmpdir/loss-refusal.out" >/dev/null || fail 'retire-worktree should fall back to the default branch when upstream is missing'
 grep -F 'retry with: ' "$tmpdir/loss-refusal.out" >/dev/null || fail 'retire-worktree should print exact retry command with force token'
 
 loss_token="$(sed -n 's/^force-token: //p' "$tmpdir/loss-refusal.out" | head -n1)"
