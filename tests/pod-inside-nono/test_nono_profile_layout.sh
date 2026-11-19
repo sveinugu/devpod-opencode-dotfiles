@@ -32,9 +32,39 @@ for credential in '"openai"' '"anthropic"' '"github-copilot"' '"gpt-uio-yellow"'
   grep -F "$credential" "$profile" >/dev/null || fail "profile missing required credential route $credential"
 done
 
-grep -F '"$HOME/.gitconfig"' "$profile" >/dev/null || fail "profile should allow read-only access to home git config for safe.directory trust"
 grep -F '"/etc/gitconfig"' "$profile" >/dev/null || fail "profile should allow read-only access to system git config for safe.directory trust"
-grep -F '"$HOME/.local/state/opencode"' "$profile" >/dev/null || fail "profile should allow explicit opencode runtime state root path for nested state writes"
+
+# Home git config and opencode state grants are inherited from nolabs-ai/opencode-v1,
+# so assert them against nono's resolved profile rather than the child file.
+resolved_profile_json="$(nono profile show "$profile" --json)" || fail "nono should resolve the profile with its inherited grants"
+git_config_group_json="$(nono profile groups git_config --json)" || fail "nono should describe the git_config policy group"
+export resolved_profile_json git_config_group_json
+
+python3 <<'PY' || fail "profile should allow read-only access to home git config for safe.directory trust"
+import json
+import os
+
+profile = json.loads(os.environ['resolved_profile_json'])
+group = json.loads(os.environ['git_config_group_json'])
+
+groups = profile.get('groups', {})
+if 'git_config' not in groups.get('include', []) or 'git_config' in groups.get('exclude', []):
+    raise SystemExit(1)
+if '$HOME/.gitconfig' not in [entry['raw'] for entry in group.get('allow', {}).get('read', [])]:
+    raise SystemExit(1)
+if '$HOME/.gitconfig' in profile.get('filesystem', {}).get('allow', []):
+    raise SystemExit(1)
+PY
+
+python3 <<'PY' || fail "profile should allow explicit opencode runtime state root path for nested state writes"
+import json
+import os
+
+profile = json.loads(os.environ['resolved_profile_json'])
+if '$HOME/.local/state/opencode' not in profile.get('filesystem', {}).get('allow', []):
+    raise SystemExit(1)
+PY
+
 grep -F '"$HOME/.local/share/direnv"' "$profile" >/dev/null || fail "profile should allow explicit $HOME/.local/share/direnv writes for direnv allow-list"
 python3 - "$profile" <<'PY' || fail "profile should grant pinned git/opencode binaries as filesystem.allow_file (not directory allow)"
 import json
@@ -83,11 +113,7 @@ if '/workspaces/dotfiles' not in allow_paths:
 if '/workspaces/dotfiles' in read_paths:
     raise SystemExit(1)
 
-if '$HOME/.gitconfig' not in read_paths:
-    raise SystemExit(1)
 if '/etc/gitconfig' not in read_paths:
-    raise SystemExit(1)
-if '$HOME/.gitconfig' in allow_paths:
     raise SystemExit(1)
 if '/etc/gitconfig' in allow_paths:
     raise SystemExit(1)
@@ -106,16 +132,25 @@ if 'command_policies' in profile:
 
 filesystem = profile.get('filesystem', {})
 allow_paths = filesystem.get('allow', [])
+read_paths = filesystem.get('read', [])
 
 required_allow = {
-    '/usr/local/libexec/git-core',
-    '/usr/local/share/git-core',
     '/workspaces/dotfiles',
     '/tmp',
 }
 
 for required_path in required_allow:
     if required_path not in allow_paths:
+        raise SystemExit(1)
+
+# Executing git helpers only needs read access to the git-core trees.
+required_read_or_allow = {
+    '/usr/local/libexec/git-core',
+    '/usr/local/share/git-core',
+}
+
+for required_path in required_read_or_allow:
+    if required_path not in read_paths and required_path not in allow_paths:
         raise SystemExit(1)
 PY
 
