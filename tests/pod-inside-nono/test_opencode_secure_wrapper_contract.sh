@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Exercise the real wrapper and secret helper with synthetic secrets. Privilege
+# changes, sandbox launch, and the provider binary are doubled so this contract
+# test stays inside nono without accessing real credentials or changing identity.
+
 fail() {
   printf 'FAIL test_opencode_secure_wrapper_contract: %s\n' "$1" >&2
   exit 1
@@ -96,12 +100,14 @@ chmod +x "$raw_binary"
 
 printf 'gpt_uio_red_api_key-value\n' >"$secret_root/gpt_uio_red_api_key"
 printf 'gpt_uio_yellow_api_key-value\n' >"$secret_root/gpt_uio_yellow_api_key"
+printf 'openai_api_key-value\n' >"$secret_root/openai_api_key"
+printf 'github_token-value\n' >"$secret_root/github_token"
 
 cat >"$provider_runtime" <<'JSON'
 {
   "enabled_providers": [
     "gpt-uio-red",
-    "openai"
+    "github-copilot"
   ],
   "provider": {
     "gpt-uio-red": {
@@ -446,9 +452,9 @@ fi
 grep -F 'refused: raw opencode binary not executable at' "$tmp_root/raw-binary.err" >/dev/null || fail "wrapper should explain raw opencode binary executable contract failure"
 
 grep -F 'GPT_UIO_RED_API_KEY=gpt_uio_red_api_key-value' "$env_log" >/dev/null || fail "wrapper should export red key from mounted secret when gpt-uio-red is enabled"
-grep -F 'OPENAI_API_KEY=' "$env_log" >/dev/null || fail "wrapper should not require openai key when openai has no runtime provider payload entry"
+grep -Fx 'OPENAI_API_KEY=' "$env_log" >/dev/null || fail "wrapper should not load openai key when openai provider is disabled"
 grep -F 'ANTHROPIC_API_KEY=' "$env_log" >/dev/null || fail "wrapper should not require anthropic key when anthropic provider is disabled"
-grep -F 'GITHUB_TOKEN=' "$env_log" >/dev/null || fail "wrapper should not require github token when github-copilot provider is disabled"
+grep -Fx 'GITHUB_TOKEN=github_token-value' "$env_log" >/dev/null || fail "wrapper should export github token when Copilot has no runtime provider payload entry"
 grep -F 'GPT_UIO_YELLOW_API_KEY=' "$env_log" >/dev/null || fail "wrapper should not require yellow key when gpt-uio-yellow provider is disabled"
 
 cat >"$tmp_root/provider-runtime-yellow-only.json" <<'JSON'
@@ -530,7 +536,45 @@ if grep -F '"gpt-uio-red"' "$profile_used" >/dev/null; then
 fi
 
 grep -F 'GPT_UIO_YELLOW_API_KEY=gpt_uio_yellow_api_key-value' "$env_log" >/dev/null || fail "wrapper should export yellow key from mounted secret when gpt-uio-yellow is enabled"
+grep -Fx 'OPENAI_API_KEY=openai_api_key-value' "$env_log" >/dev/null || fail "wrapper should export openai key when enabled without a runtime provider payload entry"
 grep -F 'GPT_UIO_RED_API_KEY=' "$env_log" >/dev/null || fail "wrapper should not require red key when gpt-uio-red provider is disabled"
+
+cat >"$tmp_root/provider-runtime-copilot-all.json" <<'JSON'
+{
+  "enabled_providers": ["gpt-uio-yellow", "github-copilot"],
+  "provider": {
+    "gpt-uio-yellow": {}
+  }
+}
+JSON
+
+run_copilot_all_wrapper() {
+  PATH="$mock_bin:$PATH" \
+  HUB_INSTALL_BRANCH_DIR="$install_root" \
+  HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" \
+  HUB_NONO_SECRET_HELPER_SUDO='sudo -n' \
+  HUB_NONO_AGENT_USER='agent' \
+  HUB_NONO_BINARY="$mock_bin/nono" \
+  HUB_NONO_SET_PRIV_BINARY="$setpriv_binary" \
+  HUB_NONO_PROFILE_TEMPLATE_PATH="$profile_root/devspace-opencode-secure.jsonc" \
+  OPENCODE_PROVIDER_RUNTIME_PATH="$tmp_root/provider-runtime-copilot-all.json" \
+  OPENCODE_RAW_BINARY="$raw_binary" \
+  MOCK_NONO_ARG_LOG="$arg_log" \
+  MOCK_NONO_ENV_LOG="$env_log" \
+  MOCK_SUDO_LOG="$sudo_log" \
+  bash "$wrapper" --version
+}
+
+run_copilot_all_wrapper >"$tmp_root/copilot-all.out" 2>&1 || fail "wrapper should execute with Copilot enabled in all mode"
+grep -Fx 'GITHUB_TOKEN=github_token-value' "$env_log" >/dev/null || fail "wrapper should export github token when Copilot has no runtime provider payload entry"
+grep -Fx 'GPT_UIO_YELLOW_API_KEY=gpt_uio_yellow_api_key-value' "$env_log" >/dev/null || fail "wrapper should retain yellow credential selection alongside Copilot"
+grep -Fx 'OPENAI_API_KEY=' "$env_log" >/dev/null || fail "wrapper should not load a disabled provider credential even when its secret exists"
+
+rm -f "$secret_root/github_token"
+if run_copilot_all_wrapper >"$tmp_root/missing-copilot-secret.err" 2>&1; then
+  fail "wrapper should refuse Copilot all mode when its enabled credential is missing"
+fi
+grep -F "refused: missing nono provider secret file: $secret_root/github_token" "$tmp_root/missing-copilot-secret.err" >/dev/null || fail "wrapper should identify the missing Copilot credential"
 
 cat >"$tmp_root/stale-nono-cap.json" <<'JSON'
 {
