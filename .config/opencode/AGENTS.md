@@ -21,3 +21,13 @@ Use the skill tool when a trigger below applies.
 - For discovery, group related questions (up to five). Ask only what is needed and estimate remaining rounds. Explain options, trade-offs and your recommendation before asking for a choice. Keep exact-token prompts separate.
 
 On completion, return control to your parent. Use the handoff “The <subagent> subagent has completed the scoped work. Returning control to the <parent agent> for orchestration and next-step delegation.”
+
+## Managed repository lifecycle
+
+Use `bin/new-worktree` and `bin/clone-repo` for managed worktree and repository creation.
+
+These approved helpers are explicitly authorized to set repository-local `branch.<branch>.remote` and `branch.<branch>.merge` tracking configuration as part of their documented lifecycle operations.
+
+This authorization does not permit ad hoc Git configuration changes, global/system configuration changes, credential or identity changes, hook bypasses, or execution outside the agent's authorized context.
+
+Do not substitute raw Git commands to avoid helper requirements. If another instruction or execution boundary blocks a helper, stop and report the conflict.

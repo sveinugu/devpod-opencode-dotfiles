@@ -113,7 +113,7 @@ secret_key_by_provider = {
 }
 
 required = []
-for provider in provider_payload.keys():
+for provider in enabled:
     key = secret_key_by_provider.get(provider)
     if key and key not in required:
         required.append(key)
