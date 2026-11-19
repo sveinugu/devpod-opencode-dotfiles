@@ -1,6 +1,6 @@
 # Host-local OpenCode model overrides
 
-Status: draft for approval (2026-11-19, revision 2)
+Status: draft for approval (2026-11-19, revision 3)
 
 ## Problem
 
@@ -48,7 +48,7 @@ Path: `/workspaces/dotfiles/state/hub/etc/model-overrides.json` (host-local, lik
 ```
 
 - Top-level keys: `agents` and `defaults`, both optional objects. Any other top-level key is refused.
-- `agents` keys are agent names: files in `.config/opencode/agents/*.md` (without `.md`) and the built-ins `build`, `plan`, `general`, `explore`, `title`, `summary`, `compaction`. Any other name is refused, because OpenCode turns an unknown agent name into a new selectable agent instead of failing.
+- `agents` keys are agent names: files in `.config/opencode/agents/*.md` (without `.md`) in the install-branch checkout the wrapper runs from (`$source_root`) and the built-ins `build`, `plan`, `general`, `explore`, `title`, `summary`, `compaction`. Any other name is refused, because OpenCode turns an unknown agent name into a new selectable agent instead of failing.
 - `defaults` keys are `model` and `small_model` only.
 - Each entry has exactly these keys:
   - `model` (required): `provider/model`.
@@ -73,7 +73,7 @@ Validation (refuse to launch, before `sudo`, with a message on stderr naming the
 - `model` uses a provider that is not in `enabled_providers` of `provider-runtime.json`.
 - `model` uses a provider that lists models in `provider-runtime.json` (the UiO providers) and the model is not listed there.
 
-GitHub Copilot model names are not checked: Copilot runs with `mode: all` and has no model list, and OpenCode loads an unknown Copilot model without error. A mistyped Copilot model fails only on first use.
+GitHub Copilot model names are not checked: `provider-runtime.json` has no model list for `github-copilot`, and OpenCode loads an unknown Copilot model without error. A mistyped Copilot model fails only on first use.
 
 Warnings on stderr (launch continues): expired `until`.
 
@@ -105,15 +105,17 @@ The planned OpenCode upgrade may change this. Acceptance test 3 guards it.
 
 ## Tasks
 
+The wrapper runs live from the install-branch checkout (`/workspaces/dotfiles/main`), so edits there affect the next launch even before they are committed. Tasks 1, 2 and 4 are done in a managed worktree created with `bin/new-worktree`, and reach `main` only by merge.
+
 1. Write failing tests 1, 2 and 3.
 2. Implement the merge helper and wrapper change; make tests 1, 2 and 3 pass.
-3. **User Check-in:** the human creates `/workspaces/dotfiles/state/hub/etc/model-overrides.json` for the current depletion. The current wrapper ignores the file, so creating it early is harmless. This must happen before task 4 lands on the install branch, or depleted `#1` models go live.
+3. **User Check-in:** the human creates `/workspaces/dotfiles/state/hub/etc/model-overrides.json` for the current depletion. The current wrapper ignores the file, so creating it early is harmless. This must happen before task 4 is merged into the install branch, or depleted `#1` models go live.
 4. Set every committed role and default to `#1`, remove depletion comments, update the runbook.
 5. **User Check-in:** the human runs acceptance test 4.
 
 ## Risks
 
 - **OpenCode upgrade changes precedence or schema.** The human plans an upgrade after this work. Mitigation: acceptance test 3 runs before and after the upgrade. If precedence breaks, write overrides as generated agent files in a host-local config directory instead.
-- **Agents can edit the overrides file.** nono grants agents read and write on `/workspaces/dotfiles`, which includes `state/hub/etc/`. Today a routing change shows in `git status`; with this design it shows only in the launch lines and `opencode debug agent`. Mitigation: launch lines and the `reason` field. Follow-up, out of scope here: deny agent writes to the file in the nono profile.
+- **Agents can edit the overrides file.** nono grants agents read and write on `/workspaces/dotfiles`, which includes `state/hub/etc/`. Today a routing change shows in `git status`; with this design it shows only in the launch lines and `opencode debug agent`. Mitigation: launch lines and the `reason` field. Follow-up, out of scope here: deny agent writes to the file if nono can express a per-file deny inside the `/workspaces/dotfiles` grant (Landlock only grants access, so the file may instead need to move outside the granted tree). Not checked.
 - **Mistyped Copilot model names are not caught at launch** (see Validation).
 - **Helper trust.** The helper runs as `vscode` from the agent-writable install-branch checkout, the same trust as the existing `nono-secret-env.sh` helper, and its output merges at near-highest precedence. Mitigation: the helper's output is restricted to the keys listed under Launch-time merge, and tests 1 and 2 check that.
