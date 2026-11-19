@@ -136,9 +136,9 @@ A depleted pool needs an override for **every** role whose `#1` is that model; s
 
 ## Design rules
 
-1. **Fallbacks keep the quality tier and switch quota pool.** Quality-critical roles (`planner`, `senior-implementer`, `code-reviewer`, `docs-writer`, both docs reviewers) fall back within the strong group (AA Index 51-59 at maximum reasoning) and alternate between a UiO pool and the shared Copilot pool. Exception: `docs-reviewer-claude` has no UiO Claude option, so its `#2` is also Copilot and its `#3` is GLM 5.3 (32). Local UiO models (AA Index 32 or lower, or unscored) serve high-volume and utility roles. `brainstormer`, `policy-implementer` and `maestro` start on UiO GPT (`gpt-5.4` is unscored; `gpt-6.1-terra` scores 51) to spread quota. At the configured `high`/`medium` settings scores are lower and the order can change: Sonnet 5.5 at `high` scores 41.5, below `gpt-6.2-sol` at `high` (54.9).
+1. **Fallbacks keep the quality tier and switch quota pool.** Quality-critical roles (`planner`, `senior-implementer`, `code-reviewer`, `docs-writer`, both docs reviewers) fall back within the strong group (AA Index 51-59 at maximum reasoning) and alternate between a UiO pool and the shared Copilot pool. Exception: `docs-reviewer-claude` has no UiO Claude option, so its `#2` is also Copilot and its `#3` is GLM 5.3 (32). Local UiO models (AA Index 32 or lower, or unscored) serve high-volume and utility roles. `brainstormer`, `policy-implementer` and `maestro` start on UiO GPT (`gpt-5.4` is unscored; `gpt-6.1-terra` scores 51) to spread quota. At the configured `high`/`medium` settings scores are lower and the order can change: at `high`, Opus 5.5 scores 51.8 and Sonnet 5.5 41.5, both below `gpt-6.2-sol` (54.9).
 2. **Distribute UiO pools.** Each UiO pool is #1 for different roles, so no single pool drains first. `plan` and `build` are rarely used and are not counted when spreading UiO quota; they mirror `planner` and `senior-implementer`.
-3. **Claude for coding.** `senior-implementer` defaults to Sonnet 5.5. Opus 5.5 is a manual escalation for hard tasks (2x Sonnet's price). `junior-implementer` uses Haiku 5.5 (AA Index 36, cheap).
+3. **Claude for coding.** `senior-implementer` uses Opus 5.5 (2x Sonnet's price); Sonnet 5.5 is the cheaper Claude option when Copilot credits are tight. `junior-implementer` uses Haiku 5.5 (AA Index 36, cheap).
 4. **Review always uses the opposite model family from the author.** Claude-written code is reviewed by `code-reviewer` (GPT). Specs, plans and docs go to `docs-reviewer-gpt` when the author ran on Claude and to `docs-reviewer-claude` when the author ran on GPT or another family. If `senior-implementer` ran on a GPT fallback, switch `code-reviewer` to Copilot `claude-sonnet-5.5` (or `claude-opus-5.5`) for that review with an override and a restart.
 5. **UiO GPT is preferred over the same GPT model on Copilot.** Copilot GPT is a cross-pool fallback. At the top of the range, `gpt-6.2-sol` (57) costs half of Opus (59); `gpt-6.1-sol` and Sonnet 5.5 cost the same.
 6. **Copilot is #1 only where quality matters more than volume:** `planner`, `senior-implementer`, `junior-implementer` (Haiku), `docs-writer`, `docs-reviewer-claude`.
@@ -147,9 +147,8 @@ A depleted pool needs an override for **every** role whose `#1` is that model; s
 
 ## Symptoms → switch action
 
-### Hard coding task (senior)
-- Symptoms: repeated failed edits, weak refactor strategy, brittle debug loops.
-- Action: override `senior-implementer` with `github-copilot/claude-opus-5.5`, then remove the override when the task is done. Overrides apply only at launch, so this restarts OpenCode and ends the coordinating session; plan the switch between tasks.
+### Copilot credits tight on routine coding (senior)
+- Action: override `senior-implementer` with `github-copilot/claude-sonnet-5.5` (half Opus's price), and remove the override for hard tasks. Overrides apply only at launch, so this restarts OpenCode and ends the coordinating session; plan the switch between tasks.
 
 ### A quota pool is depleted or rate-limited
 - Action: add an override for each affected role, using its `#2` (a different pool from `#1`, except `docs-reviewer-claude`, where both are Copilot). If `#2` is also depleted, use `#3`.
@@ -174,7 +173,7 @@ Target routing as committed. Temporary switches live in the overrides file, not 
 | Agent | #1 | #2 | #3 | Notes |
 |---|---|---|---|---|
 | `planner` | Copilot `claude-opus-5.5` (59) | UiO `gpt-6.1-sol` (55) | Copilot `gpt-6.2-sol` (57) | |
-| `senior-implementer` | Copilot `claude-sonnet-5.5` (55) | UiO `gpt-6.1-sol` (55) | Copilot `gpt-6.2-sol` (57) | Escalation for hard tasks: Copilot `claude-opus-5.5` (59) |
+| `senior-implementer` | Copilot `claude-opus-5.5` (59) | UiO `gpt-6.1-sol` (55) | Copilot `gpt-6.2-sol` (57) | Cheaper Claude when credits are tight: Copilot `claude-sonnet-5.5` (55) |
 | `junior-implementer` | Copilot `claude-haiku-5.5` (36) | UiO `Kimi-K2.6` (n/a) | UiO `GLM-5.3-NVFP4` (32) | |
 | `code-reviewer` | UiO `gpt-6.1-sol` (55) | Copilot `gpt-6.2-sol` (57) | UiO `gpt-6.1-terra` (51) | GPT reviews Claude-written code |
 | `docs-writer` | Copilot `claude-sonnet-5.5` (55) | UiO `gpt-6.1-terra` (51) | Copilot `gpt-6.2-sol` (57) | |
@@ -219,7 +218,7 @@ Claude-backed roles keep their `temperature` and `reasoningEffort` settings. If 
 ## Token/cost guardrails
 
 - Copilot prices (input / output per 1M): Haiku 5.5 and `gpt-6-luna` 0.10 / 0.50; `gpt-6.1-terra` 1 / 5; Sonnet 5.5, `gpt-6.1-sol`, `gpt-6.2-sol` 2 / 10; Opus 5.5 4 / 20.
-- Opus is used by `planner`, `plan`, `docs-reviewer-claude`, manual senior escalation, and Claude code review after a GPT-authored change.
+- Opus is used by `planner`, `plan`, `senior-implementer`, `build`, `docs-reviewer-claude`, and Claude code review after a GPT-authored change. `senior-implementer` is the largest Opus consumer; switch it to Sonnet with an override when credits are tight.
 - Long-context tiers: GPT-6 and GPT-5.6 Sol models raise input, cached-input and cache-write prices 2x and output 1.5x above 272K input tokens (GPT-5.6 Luna above 200K); Haiku 5.5 rises above 100K; Grok above 200K. GPT-5.3 Codex has no long-context tier.
 - UiO context and output limits are declared in `provider-policy.jsonc` (output = smallest of the vendor maximum, 32,768, and a quarter of UiO's context) so OpenCode can trigger compaction.
 

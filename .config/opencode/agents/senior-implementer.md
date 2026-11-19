@@ -1,12 +1,12 @@
 ---
 description: Implement and debug code, supervising junior implementers.
 mode: all
-model: github-copilot/claude-sonnet-5.5
+model: github-copilot/claude-opus-5.5
 # #2 switch when: Copilot is constrained or rate-limited.
 # model: gpt-uio-yellow/gpt-6.1-sol
 # #3 switch when: both pools above are unavailable.
 # model: github-copilot/gpt-6.2-sol
-# Escalation for hard tasks (manual): github-copilot/claude-opus-5.5
+# Cheaper Claude for routine work when Copilot credits are tight: github-copilot/claude-sonnet-5.5
 reasoningEffort: high
 # reasoningEffort: medium
 textVerbosity: medium
