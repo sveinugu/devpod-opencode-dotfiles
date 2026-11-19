@@ -1,91 +1,119 @@
 # Host-local OpenCode model overrides
 
-Status: draft for approval (2026-11-19)
+Status: draft for approval (2026-11-19, revision 2)
 
 ## Problem
 
-Agent model routing is committed in `.config/opencode/agents/*.md` and `.config/opencode/opencode.jsonc`. Each role has a `#1` model and commented `#2`/`#3` fallbacks (see `docs/superpowers/runbooks/opencode-model-routing-fallback-cheatsheet.md`).
+Agent model routing is committed in `.config/opencode/agents/*.md` and `.config/opencode/opencode.jsonc`. Each role has a `#1` model and commented `#2`/`#3` fallbacks (see `docs/superpowers/runbooks/opencode-model-routing-fallback-cheatsheet.md`). The top-level `model` and `small_model` defaults have fallback chains too.
 
 Quota state changes often: UiO pools deplete per model and reset monthly, and the GitHub Copilot credit pool is shared. Today the only way to switch to a fallback is to edit the committed files. That either leaves uncommitted changes in tracked files or commits temporary state (for example "UiO GPT depleted until December") into the repository.
 
 ## Goals
 
-1. The repository holds only the target routing: every role runs its `#1` model.
+1. The repository holds only the target routing: every role and default runs its `#1` model.
 2. Temporary switches, and the reason for them, live in one host-local file outside every checkout.
 3. Overrides apply at OpenCode launch with no edits to tracked files, and apply to every worktree.
-4. A broken overrides file never silently changes routing.
+4. A broken or mistyped overrides file never silently changes routing.
 
 ## Non-goals
 
 - Automatic fallback when a request fails (OpenCode has no native fallback chain).
 - Detecting quota depletion automatically.
 - A CLI to edit overrides (hand-edited JSON is enough; revisit if it becomes tedious).
-- Overriding anything other than an agent's `model`.
+- Overriding anything other than models (agent `model`, top-level `model`, top-level `small_model`).
+- Applying overrides to already-running sessions; overrides take effect at the next launch.
 
 ## Design
 
 ### Overrides file
 
-Path: `/workspaces/dotfiles/state/hub/etc/model-overrides.json` (host-local, like `provider-enablement.json`; not in any checkout, so no gitignore entry is needed). Optional; a missing file means no overrides.
+Path: `/workspaces/dotfiles/state/hub/etc/model-overrides.json` (host-local, like `provider-enablement.json`; not in any checkout, so no gitignore entry is needed). The wrapper reads the path from `HUB_OPENCODE_MODEL_OVERRIDES_PATH`, defaulting to that location, so tests can point it at fixtures. The file is optional; a missing file means no overrides.
 
 ```json
 {
-  "overrides": {
+  "agents": {
     "maestro": {
       "model": "github-copilot/gpt-6.1-terra",
       "reason": "UiO gpt-6.1-terra quota depleted",
       "until": "2026-12-01"
     }
+  },
+  "defaults": {
+    "small_model": {
+      "model": "gpt-uio-yellow/Qwen/Qwen3.8-27B-FP8",
+      "reason": "Gemma 4 quota depleted"
+    }
   }
 }
 ```
 
-- Keys under `overrides` are agent names: custom agents (`agents/*.md`) and built-ins (`build`, `plan`, `general`, `explore`, `title`, `summary`, `compaction`).
-- `model` is required: `provider/model`.
-- `reason` is required: free text that records the quota status. It is the only place depletion status is written down.
-- `until` is optional: an ISO date. On or after that date the override is ignored and a warning names it, so overrides cannot outlive the reset unnoticed.
+- Top-level keys: `agents` and `defaults`, both optional objects. Any other top-level key is refused.
+- `agents` keys are agent names: files in `.config/opencode/agents/*.md` (without `.md`) and the built-ins `build`, `plan`, `general`, `explore`, `title`, `summary`, `compaction`. Any other name is refused, because OpenCode turns an unknown agent name into a new selectable agent instead of failing.
+- `defaults` keys are `model` and `small_model` only.
+- Each entry has exactly these keys:
+  - `model` (required): `provider/model`.
+  - `reason` (required): free text that records the quota status. It is the only place depletion status is written down.
+  - `until` (optional): a date in `YYYY-MM-DD` form, compared with the pod's current UTC date. The override applies before that date and is ignored, with a warning, on or after it, so overrides cannot outlive a reset unnoticed.
 
 ### Launch-time merge
 
-The secure wrapper `.config/opencode/bin/opencode` already builds the JSON it passes to OpenCode as `OPENCODE_CONFIG_CONTENT` (via the launch helper `scripts/lib/launch-opencode-nono.sh`). That JSON currently holds the generated provider config from `provider-runtime.json`.
+The secure wrapper `.config/opencode/bin/opencode` builds the JSON it passes to OpenCode as `OPENCODE_CONFIG_CONTENT` (through the image-installed launch helper, which already accepts `--opencode-config-content`). That JSON currently holds the generated provider config from `provider-runtime.json`.
 
-The wrapper will also read the overrides file and add `agent.<name>.model` for each active override. Logic lives in a small Python helper under `scripts/lib/` so it can be tested inside nono without launching OpenCode.
+A new Python helper under `scripts/lib/` reads the provider runtime and the overrides file and prints the config content. Its output may contain only:
+- the provider block (`enabled_providers`, `provider`), unchanged;
+- `agent.<name>.model` for each active agent override;
+- top-level `model` and `small_model` for each active default override.
 
-Validation (refuse to launch with a message naming the file and entry):
-- File is not valid JSON, or `overrides` is not an object.
-- An entry lacks `model` or `reason`, or has an unknown key.
-- `model` uses a provider that is not enabled in `provider-runtime.json`, or names a UiO model that is not in the generated provider list.
-- `until` is not an ISO date.
+The wrapper calls the helper in place of its current inline Python. The launch helper, the image and the sudoers rules do not change, so no image rebuild is needed. The wrapper runs live from the install-branch checkout (`$HUB_INSTALL_BRANCH_DIR`, currently `/workspaces/dotfiles/main`), so a change takes effect at the next launch once it is in that checkout.
 
-Warnings (launch continues): expired `until`; agent name not found among agent files or built-ins.
+Validation (refuse to launch, before `sudo`, with a message on stderr naming the file and entry):
+- The file is not valid JSON, or has an unknown top-level key, or `agents`/`defaults` is not an object.
+- An agent name or default key is not one of those listed above.
+- An entry lacks `model` or `reason`, has an unknown key, or has an `until` that is not `YYYY-MM-DD`.
+- `model` uses a provider that is not in `enabled_providers` of `provider-runtime.json`.
+- `model` uses a provider that lists models in `provider-runtime.json` (the UiO providers) and the model is not listed there.
 
-On launch the wrapper prints one line per active override, for example `model override: maestro -> github-copilot/gpt-6.1-terra (UiO gpt-6.1-terra quota depleted; until 2026-12-01)`.
+GitHub Copilot model names are not checked: Copilot runs with `mode: all` and has no model list, and OpenCode loads an unknown Copilot model without error. A mistyped Copilot model fails only on first use.
+
+Warnings on stderr (launch continues): expired `until`.
+
+The wrapper prints one stderr line per active override before launch, for example `model override: maestro -> github-copilot/gpt-6.1-terra (UiO gpt-6.1-terra quota depleted; until 2026-12-01)`. The TUI's alternate screen may hide it, so the runbook documents how to check effective models (`opencode debug agent <name>`).
 
 ### Committed config and runbook
 
-- Every role's committed `model:` is its `#1`. Remove "#2 active" and "restore after reset" comments.
-- The runbook drops quota-status statements and documents the overrides file, with an example.
+- Every committed role and default uses its `#1` model. Remove "#2 active" and "restore after reset" comments.
+- The runbook drops quota-status statements, documents the overrides file with an example, and states that overrides apply only at launch.
 
-## Precedence assumption
+### Generated nono profile
 
-`OPENCODE_CONFIG_CONTENT` is documented as the final local-scope merge, so `agent.<name>.model` from it is expected to win over agent-file frontmatter and `opencode.jsonc`. This has not been verified for markdown agents. Task 1 verifies it before any other work.
+The nono profile generator also reads `provider-runtime.json`. The helper only reads that file and never writes it, and an override can only name a provider that is already enabled, so overrides cannot add providers or network hosts to the profile.
+
+## Precedence
+
+Verified on OpenCode 1.18.5 by the docs reviewer: `Config.loadInstanceState` loads agent directories, including markdown agents, before it merges `OPENCODE_CONFIG_CONTENT` at local scope; only account/organisation config merges after it. Running `opencode-raw debug agent <name> --pure` with `OPENCODE_CONFIG_CONTENT` setting `agent.maestro.model` and `agent.compaction.model` showed both overrides winning over markdown frontmatter and `opencode.jsonc`.
+
+Not verified: plugin `config` hooks (excluded by `--pure`), and whether `title` and `summary` use their agent model at runtime rather than `small_model`.
+
+The planned OpenCode upgrade may change this. Acceptance test 3 guards it.
 
 ## Acceptance tests
 
-1. **Merge helper (pod-inside-nono contract test):** given a provider runtime and an overrides file, the helper output contains the provider config unchanged plus `agent.<name>.model` for each active override; expired overrides are omitted with a warning; each invalid case above is refused with its message; a missing file produces the provider config unchanged.
-2. **Wrapper wiring (pod-inside-nono contract test):** the wrapper calls the helper with the canonical overrides path and passes its output as the config content.
-3. **Runtime precedence (pod-outside-nono, run by the human):** with an override for one custom agent and one built-in, OpenCode reports the overridden models for both; with the file removed, it reports the committed `#1` models.
+1. **Merge helper (pod-inside-nono contract test):** given a provider runtime and an overrides file, the output contains the provider block unchanged plus the agent and default overrides that are active, and nothing else. A missing file produces the provider block unchanged. Expired overrides are omitted with a stderr warning. Each refusal case above is refused with its message.
+2. **Wrapper behavior (pod-inside-nono contract test, extending `tests/pod-inside-nono/test_opencode_secure_wrapper_contract.sh`):** with `HUB_OPENCODE_MODEL_OVERRIDES_PATH` pointing at a fixture, the `--opencode-config-content` captured in the sudo mock log contains the overrides, and an invalid fixture makes the wrapper exit non-zero before calling `sudo`. Lines in that test that pin the old inline variable are updated deliberately, not weakened.
+3. **Precedence regression (pod-inside-nono, agent-run):** `opencode-raw debug agent <name> --pure` with a synthetic `OPENCODE_CONFIG_CONTENT` reports the overridden model for one custom agent and one built-in, and the committed model without it. Run again after every OpenCode upgrade.
+4. **Real launch path (pod-outside-nono, run by the human):** with an overrides file for one custom agent and one built-in, launching through the wrapper as `vscode` prints the override lines, and `opencode debug agent <name>` shows the overridden models. With the file removed, it shows the committed `#1` models.
 
 ## Tasks
 
-1. Verify precedence: the human launches OpenCode with an `OPENCODE_CONFIG_CONTENT` that sets `agent.maestro.model` and `agent.compaction.model`, then reports the effective models (exact command supplied in the plan). **User Check-in:** if precedence does not hold, stop and redesign.
-2. Write failing tests 1 and 2.
-3. Implement the merge helper and wrapper wiring; make tests 1 and 2 pass.
-4. Set every committed role to `#1`, remove depletion comments, update the runbook.
-5. **User Check-in:** the human creates the overrides file for current depletion, runs acceptance test 3, and reinstalls the wrapper if the installed copy differs from the repository (outside nono).
+1. Write failing tests 1, 2 and 3.
+2. Implement the merge helper and wrapper change; make tests 1, 2 and 3 pass.
+3. **User Check-in:** the human creates `/workspaces/dotfiles/state/hub/etc/model-overrides.json` for the current depletion. The current wrapper ignores the file, so creating it early is harmless. This must happen before task 4 lands on the install branch, or depleted `#1` models go live.
+4. Set every committed role and default to `#1`, remove depletion comments, update the runbook.
+5. **User Check-in:** the human runs acceptance test 4.
 
 ## Risks
 
-- **Precedence fails for markdown agents.** Mitigation: Task 1 runs first; the fallback design writes overrides as generated agent files in a host-local config directory.
-- **Typo in an override breaks launch.** Intended: refusing is safer than silently running the wrong model. The message names the entry.
-- **Installed wrapper drift.** The wrapper and launch helper run from installed copies; the human must reinstall after changes.
+- **OpenCode upgrade changes precedence or schema.** The human plans an upgrade after this work. Mitigation: acceptance test 3 runs before and after the upgrade. If precedence breaks, write overrides as generated agent files in a host-local config directory instead.
+- **Agents can edit the overrides file.** nono grants agents read and write on `/workspaces/dotfiles`, which includes `state/hub/etc/`. Today a routing change shows in `git status`; with this design it shows only in the launch lines and `opencode debug agent`. Mitigation: launch lines and the `reason` field. Follow-up, out of scope here: deny agent writes to the file in the nono profile.
+- **Mistyped Copilot model names are not caught at launch** (see Validation).
+- **Helper trust.** The helper runs as `vscode` from the agent-writable install-branch checkout, the same trust as the existing `nono-secret-env.sh` helper, and its output merges at near-highest precedence. Mitigation: the helper's output is restricted to the keys listed under Launch-time merge, and tests 1 and 2 check that.
