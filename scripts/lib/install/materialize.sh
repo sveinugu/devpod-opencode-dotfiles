@@ -70,6 +70,41 @@ install_rebuild_project_skills() {
   bash "$helper" "$source_root"
 }
 
+install_global_opencode_skill() {
+  local skill_name="$1"
+  local opencode_config_dir="$home_dir/.config/opencode"
+  local skill_source="wondelai/skills/$skill_name"
+  local staging_dir=''
+
+  if [ "$dry_run" = true ]; then
+    printf 'DRY-RUN (stage npx -y skills add %s -y; copy to %s/skills/%s)\n' "$skill_source" "$opencode_config_dir" "$skill_name"
+    return 0
+  fi
+
+  staging_dir="$(mktemp -d)"
+  (
+    trap 'rm -rf "$staging_dir"' EXIT
+    cd "$staging_dir"
+    npx -y skills add "$skill_source" -y
+
+    local staged_skill_dir="$staging_dir/.agents/skills/$skill_name"
+    local global_skill_dir="$opencode_config_dir/skills/$skill_name"
+    if [ ! -f "$staged_skill_dir/SKILL.md" ]; then
+      printf 'refused: fetched skill is missing SKILL.md: %s\n' "$staged_skill_dir" >&2
+      exit 1
+    fi
+
+    mkdir -p "$opencode_config_dir/skills"
+    rm -rf "$global_skill_dir"
+    cp -R "$staged_skill_dir" "$global_skill_dir"
+  )
+}
+
+install_global_opencode_skills() {
+  install_global_opencode_skill pragmatic-programmer
+  install_global_opencode_skill clean-code
+}
+
 install_refresh_harness_installs() {
   local helper="$source_root/scripts/lib/install/run-harness-installs.sh"
 
@@ -134,6 +169,7 @@ install_materialize() {
   install_link_path "$source_root/.config/nono" "$home_dir/.config/nono"
 
   install_rebuild_project_skills
+  install_global_opencode_skills
   install_refresh_harness_installs
 
   printf 'ok: dotfiles applied from %s\n' "$source_root"

@@ -21,25 +21,18 @@ installer_script="$repo_root/scripts/lib/install/install-project-skills.sh"
 [ -f "$maintenance_skill" ] || fail 'missing maintenance skill under top-level .agents/skills'
 [ -f "$installer_script" ] || fail 'missing install-project-skills helper'
 
-grep -F '"clean-code"' "$lock_file" >/dev/null || fail 'skills-lock.json must include clean-code authority'
-grep -F '"pragmatic-programmer"' "$lock_file" >/dev/null || fail 'skills-lock.json must include pragmatic-programmer authority'
+if grep -F '"clean-code"' "$lock_file" >/dev/null; then
+  fail 'clean-code must not be installed as a project-local skill'
+fi
+
+if grep -F '"pragmatic-programmer"' "$lock_file" >/dev/null; then
+  fail 'pragmatic-programmer must not be installed as a project-local skill'
+fi
+
 grep -F 'npx -y skills experimental_install' "$installer_script" >/dev/null || fail 'install-project-skills helper must run experimental_install'
 grep -F 'skills-lock.json' "$installer_script" >/dev/null || fail 'install-project-skills helper must validate top-level skills-lock authority'
 
-if [ -e "$skills_root/clean-code/SKILL.md" ]; then
-  fail 'external clean-code skill materialization should be generated, not committed'
-fi
-
-if [ -e "$skills_root/pragmatic-programmer/SKILL.md" ]; then
-  fail 'external pragmatic-programmer skill materialization should be generated, not committed'
-fi
-
-if grep -F 'skills add wondelai/skills/pragmatic-programmer' "$repo_root/scripts/lib/install/materialize.sh" >/dev/null; then
-  fail 'materialize install flow must not use .config/opencode-scoped skills add commands'
-fi
-
-if grep -F 'skills add wondelai/skills/clean-code' "$repo_root/scripts/lib/install/materialize.sh" >/dev/null; then
-  fail 'materialize install flow must not use .config/opencode-scoped skills add commands'
-fi
+git -C "$repo_root" check-ignore -q '.config/opencode/skills/clean-code/SKILL.md' || fail 'globally installed clean-code skill must be ignored by Git'
+git -C "$repo_root" check-ignore -q '.config/opencode/skills/pragmatic-programmer/SKILL.md' || fail 'globally installed pragmatic-programmer skill must be ignored by Git'
 
 printf 'PASS test_project_local_skills_contract\n'

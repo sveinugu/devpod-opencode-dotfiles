@@ -21,6 +21,10 @@
 .config/opencode/commands/*.md
 .config/opencode/agents/opencode-loop-local.md
 
+# OpenCode-global skills are fetched during dotfiles installation.
+.config/opencode/skills/clean-code/
+.config/opencode/skills/pragmatic-programmer/
+
 # External skills are regenerated from top-level skills-lock.json
 .agents/skills/*
 !.agents/skills/harness-install-maintenance/

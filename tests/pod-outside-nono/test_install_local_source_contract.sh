@@ -53,7 +53,7 @@ copy_install_support_tree() {
       "$target_root/scripts/lib/install/run-harness-installs.sh"
   fi
 
-  if [ -f "$repo_root/harness-installs.jsonc" ]; then
+  if [ ! -f "$target_root/harness-installs.jsonc" ] && [ -f "$repo_root/harness-installs.jsonc" ]; then
     cp "$repo_root/harness-installs.jsonc" "$target_root/harness-installs.jsonc"
   fi
 
@@ -169,32 +169,24 @@ else
   printf 'expected install.sh dry-run to link .config/nono from source worktree\n' >&2
   exit 1
 fi
-grep -F "DRY-RUN (cd $workspace_root/main && npx -y skills experimental_install \"$workspace_root/main/skills-lock.json\")" "$tmpdir/main.out" >/dev/null || {
-  printf 'expected dry-run project skill reconstruction from repo-root skills-lock.json\n' >&2
+if grep -F 'skills experimental_install' "$tmpdir/main.out" >/dev/null; then
+  printf 'did not expect an empty project-local skills lock to trigger reconstruction\n' >&2
   exit 1
-}
+fi
 grep -F "DRY-RUN (cd $workspace_root/main && $workspace_root/main/scripts/lib/install/run-harness-installs.sh)" "$tmpdir/main.out" >/dev/null || {
   printf 'expected dry-run manifest-driven harness install invocation\n' >&2
   exit 1
 }
-if grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/pragmatic-programmer -y)" "$tmpdir/main.out" >/dev/null; then
-  printf 'did not expect .config/opencode-scoped skills add for pragmatic-programmer\n' >&2
+grep -F "DRY-RUN (stage npx -y skills add wondelai/skills/pragmatic-programmer -y; copy to $target_home/.config/opencode/skills/pragmatic-programmer)" "$tmpdir/main.out" >/dev/null || {
+  printf 'expected dry-run staged global install for pragmatic-programmer\n' >&2
   exit 1
-fi
-if grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/clean-code -y)" "$tmpdir/main.out" >/dev/null; then
-  printf 'did not expect .config/opencode-scoped skills add for clean-code\n' >&2
+}
+grep -F "DRY-RUN (stage npx -y skills add wondelai/skills/clean-code -y; copy to $target_home/.config/opencode/skills/clean-code)" "$tmpdir/main.out" >/dev/null || {
+  printf 'expected dry-run staged global install for clean-code\n' >&2
   exit 1
-fi
+}
 if grep -F "DRY-RUN (cd $tmpdir/agent-home" "$tmpdir/main.out" >/dev/null; then
   printf 'did not expect dry-run opencode commands to execute from agent runtime home\n' >&2
-  exit 1
-fi
-if grep -F 'skills add wondelai/skills/pragmatic-programmer -g -y' "$tmpdir/main.out" >/dev/null; then
-  printf 'did not expect global skill install flag (-g) for pragmatic-programmer\n' >&2
-  exit 1
-fi
-if grep -F 'skills add wondelai/skills/clean-code -g -y' "$tmpdir/main.out" >/dev/null; then
-  printf 'did not expect global skill install flag (-g) for clean-code\n' >&2
   exit 1
 fi
 ! grep -F "$workspace_root/work/feature-x/.zshrc" "$tmpdir/main.out" >/dev/null
@@ -269,22 +261,22 @@ quoted_dir="$(printf '%s' "$quoted_vars_out" | sed -n '2p')"
 grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.zshrc $target_home/.zshrc" "$tmpdir/feature.out" >/dev/null
 grep -F "DRY-RUN ln -sfn $workspace_root/work/feature-x/.config/opencode $target_home/.config/opencode" "$tmpdir/feature.out" >/dev/null
 grep -F "DRY-RUN sudo -n -u agent ln -sfn $workspace_root/work/feature-x/.config/opencode $tmpdir/agent-home/.config/opencode" "$tmpdir/feature.out" >/dev/null
-grep -F "DRY-RUN (cd $workspace_root/work/feature-x && npx -y skills experimental_install \"$workspace_root/work/feature-x/skills-lock.json\")" "$tmpdir/feature.out" >/dev/null || {
-  printf 'expected feature dry-run project skill reconstruction from feature repo-root skills-lock.json\n' >&2
+if grep -F 'skills experimental_install' "$tmpdir/feature.out" >/dev/null; then
+  printf 'did not expect an empty feature project-local skills lock to trigger reconstruction\n' >&2
   exit 1
-}
+fi
 grep -F "DRY-RUN (cd $workspace_root/work/feature-x && $workspace_root/work/feature-x/scripts/lib/install/run-harness-installs.sh)" "$tmpdir/feature.out" >/dev/null || {
   printf 'expected feature dry-run manifest-driven harness install invocation\n' >&2
   exit 1
 }
-if grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/pragmatic-programmer -y)" "$tmpdir/feature.out" >/dev/null; then
-  printf 'did not expect feature dry-run .config/opencode-scoped skills add for pragmatic-programmer\n' >&2
+grep -F "DRY-RUN (stage npx -y skills add wondelai/skills/pragmatic-programmer -y; copy to $target_home/.config/opencode/skills/pragmatic-programmer)" "$tmpdir/feature.out" >/dev/null || {
+  printf 'expected feature dry-run staged global install for pragmatic-programmer\n' >&2
   exit 1
-fi
-if grep -F "DRY-RUN (cd $target_home/.config/opencode && npx -y skills add wondelai/skills/clean-code -y)" "$tmpdir/feature.out" >/dev/null; then
-  printf 'did not expect feature dry-run .config/opencode-scoped skills add for clean-code\n' >&2
+}
+grep -F "DRY-RUN (stage npx -y skills add wondelai/skills/clean-code -y; copy to $target_home/.config/opencode/skills/clean-code)" "$tmpdir/feature.out" >/dev/null || {
+  printf 'expected feature dry-run staged global install for clean-code\n' >&2
   exit 1
-fi
+}
 if grep -F "DRY-RUN (cd $tmpdir/agent-home" "$tmpdir/feature.out" >/dev/null; then
   printf 'did not expect feature dry-run opencode commands to execute from agent runtime home\n' >&2
   exit 1
@@ -413,6 +405,11 @@ if [ ! -d "$HOME/.config/opencode" ]; then
   printf 'missing opencode config directory\n' >&2
   exit 77
 fi
+if [ "${1:-}" = '-y' ] && [ "${2:-}" = 'skills' ] && [ "${3:-}" = 'add' ]; then
+  skill_name="${4##*/}"
+  mkdir -p "$PWD/.agents/skills/$skill_name"
+  printf 'name: %s\n' "$skill_name" > "$PWD/.agents/skills/$skill_name/SKILL.md"
+fi
 exit 0
 EOF
 chmod +x "$bin_reg/npx"
@@ -427,10 +424,14 @@ exec "$@"
 EOF
 chmod +x "$bin_reg/sudo"
 
-(
+if ! (
   cd "$offcwd"
   PATH="$bin_reg:$PATH" HOME="$home_reg" WORKSPACE_ROOT="$workspace_reg" HUB_NONO_AGENT_USER='agent' HUB_NONO_RUNTIME_HOME="$agent_home_reg" bash "$workspace_reg/main/install.sh" >"$tmpdir/reg.out" 2>&1
-)
+); then
+  printf 'install.sh regression fixture failed; captured output follows:\n' >&2
+  cat "$tmpdir/reg.out" >&2
+  exit 1
+fi
 
 [ -L "$home_reg/.config/opencode" ] || {
   printf 'expected ~/.config/opencode to be a symlink after install\n' >&2
@@ -468,6 +469,17 @@ resolved_nono="$(readlink -f "$home_reg/.config/nono")"
   printf 'expected agent runtime ~/.config/opencode to be a symlink after install\n' >&2
   exit 1
 }
+
+for skill_name in pragmatic-programmer clean-code; do
+  [ -f "$workspace_reg/main/.config/opencode/skills/$skill_name/SKILL.md" ] || {
+    printf 'expected fetched %s skill under global OpenCode skills\n' "$skill_name" >&2
+    exit 1
+  }
+  [ ! -e "$workspace_reg/main/.agents/skills/$skill_name" ] || {
+    printf 'did not expect %s in project-local skills\n' "$skill_name" >&2
+    exit 1
+  }
+done
 
 resolved_agent_opencode="$(readlink -f "$agent_home_reg/.config/opencode")"
 [ "$resolved_agent_opencode" = "$workspace_reg/main/.config/opencode" ] || {
