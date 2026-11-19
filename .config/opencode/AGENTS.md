@@ -8,6 +8,8 @@ Named specialists own their work and commits. A general agent may perform named-
 
 Harness agents do not have permission to execute work designated `pod-outside-nono` or to run as the `vscode` user. This applies to tests, installers, diagnostics and runtime repairs, including commands relayed to subagents. Changing HOME/XDG variables does not change execution identity or grant permission. Do not bypass context guards, clear sandbox variables, switch users, or reproduce the underlying operations directly to evade this boundary.
 
+All temporary file operations must use the environment's `TMPDIR` (or `TMP` / `TEMP`) variable. Ignore any tool-suggested defaults (e.g., `/home/agent/.cache/opencode/tmp`) in favor of the hub-provided temporary directories.
+
 Ask the human to run outside-nono or vscode-only commands in their own shell and return the output. Agents may inspect and edit repository sources within their authorized checkout and run checks designated for their actual execution context. Distinguish human-provided verification from checks run by the agent; a sandboxed reproduction is not evidence for the vscode execution context. Stop at the boundary instead of modifying another user's runtime state or weakening tests to obtain a passing result.
 
 ## Skill triggers
