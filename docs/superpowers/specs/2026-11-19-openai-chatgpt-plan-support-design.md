@@ -1,6 +1,6 @@
 # OpenAI ChatGPT Plus/Pro plan support
 
-Status: draft for approval (2026-11-19, revision 2, after docs-reviewer-gpt review)
+Status: draft for approval (2026-11-19, revision 3, after two docs-reviewer-gpt reviews)
 Related: `docs/superpowers/specs/2026-07-14-devspace-model-credential-phasing-design.md`, `docs/superpowers/specs/2026-11-19-opencode-host-local-model-overrides-design.md`, `https://nono.sh/docs/cli/features/sandboxed-oauth-logins`
 
 ## Problem
@@ -12,7 +12,7 @@ The ChatGPT login stores OAuth access and refresh tokens in OpenCode's `auth.jso
 ## Goals
 
 1. OpenCode inside the DevSpace pod, under nono, can log in with a ChatGPT Plus account and use the models OpenCode shows for that login that the signed-in plan authorizes. Pro uses the same flow and is labelled unverified unless a Pro account is tested (see gate 10).
-2. The sandbox never holds real OAuth material: `auth.json` contains only nono phantom tokens, and the intermediate device-flow credentials are also phantoms (see nono profile).
+2. The sandbox never holds real OAuth material from a supported ChatGPT login: `auth.json` contains only nono phantom tokens, and the intermediate device-flow credentials are also phantoms (see nono profile). The OAuth capture route is present in every mode, so an unsupported in-session ChatGPT login also yields phantoms only. What the design does not enforce is listed under Auth-state guard.
 3. The existing OpenAI API-key path keeps working, under a clearer name, with a defined cutover and rollback.
 4. The ChatGPT-plan models appear as the `#3` fallback in the committed routing comments, and the previous `#3` becomes `#4`.
 
@@ -33,11 +33,11 @@ The ChatGPT login stores OAuth access and refresh tokens in OpenCode's `auth.jso
    - `openai-api`: the existing API-key path, renamed from `openai`. Behavior is unchanged.
    - `openai-chatgpt`: new, ChatGPT plan OAuth. It needs no API-key secret.
    Both map to OpenCode's `openai`. Enabling both is refused, because they would configure the same OpenCode provider with two different auth methods.
-3. **The persisted auth entry decides the transport, so the launcher guards it.** OpenCode 1.19.6 chooses the ChatGPT transport from the persisted `openai` entry (`type: oauth`), not from this repo's manifest. The manifest alone therefore cannot enforce the mode. A launch-time guard checks the entry against the enabled token (see Auth-state guard).
+3. **The persisted auth entry decides the transport, so the launcher guards it.** OpenCode 1.19.6 chooses the ChatGPT transport from the persisted `openai` entry (`type: oauth`), not from this repo's manifest, and `enabled_providers` controls provider selection, not what the sandbox can read in `auth.json`. The manifest alone therefore cannot enforce the mode. A launch-time guard checks the `openai` entry against the enabled token, and a restricted operator recovery action clears a rejected entry (see Auth-state guard and Recovery). The guard enforces launch-time state only; the design does not claim to control what the user does inside a running session.
 4. **Rename scope.** The rename changes only the enablement token (manifest, seed, provider policy, sync script, wrapper and generator mappings, tests, docs). The nono route name `openai`, the secret file `openai_api_key` and the env var `OPENAI_API_KEY` stay. The sync script and policy refuse a manifest that lists `openai`, with a message saying it was renamed to `openai-api`. The wrapper and the generator keep `openai` as a legacy alias of `openai-api` for one release, so stale generated outputs and mixed-version rollouts keep working (see Rollout and migration).
 5. **Model list.** `openai-chatgpt` uses `mode: all`, like the other standard providers: no repo-owned model list.
 6. **Fallback placement.** ChatGPT plan is `#3` and the old `#3` is `#4`, per role, as listed under Fallback chains.
-7. **Image artifacts.** The profile template, the profile generator and the launch helper are root-owned image artifacts, so this change ships as a rebuilt and redeployed image, not as a checkout edit.
+7. **Image artifacts.** The profile template, the profile generator, the launch helper and the new recovery helper are root-owned image artifacts, so this change ships as a rebuilt and redeployed image, not as a checkout edit.
 
 ## Design
 
@@ -61,25 +61,47 @@ In `.config/nono/profiles/devspace-opencode-secure.jsonc`, one `credential_provi
 
 - The goal is that neither the device-flow `authorization_code` and `code_verifier` nor the final tokens are readable in real form by the sandbox. `id_token` is not persisted in `auth.json` by OpenCode, but it is real token material in the response, so it is phantomed as `jwt` for the client's local claim parsing.
 - `api_hosts`: `https://auth.openai.com` and `https://chatgpt.com`. OpenCode 1.19.6 rewrites model requests to `https://chatgpt.com/backend-api/codex/responses` and sends the access token there as a bearer.
-- `credential_store`: a `file_json` entry for `$HOME/.local/share/opencode/auth.json` with `phantom_fields` `openai.access` and `openai.refresh` (those are the fields OpenCode persists; no `id_token`), if the schema accepts them. Its path must match the runtime `XDG_DATA_HOME` the launch helper sets, not `$HOME` by assumption.
+- `credential_store`: mandatory. A `file_json` entry for `$HOME/.local/share/opencode/auth.json` with `phantom_fields` `openai.access` and `openai.refresh` (the fields OpenCode persists; no `id_token`). The nono 0.82.0 schema accepts `file_json` with `path` and `phantom_fields`. The path must equal `<runtime XDG_DATA_HOME>/opencode/auth.json`; the wrapper's default runtime data home is `/home/agent/.local/share`, and a test asserts the two agree. If `nono profile validate` rejects the entry on the deployed nono (gate 1), the slice stops and the spec is revised; there is no silent downgrade.
 - The existing `network.tls_intercept.ca_env_vars` already includes `NODE_EXTRA_CA_CERTS`, which OpenCode (Bun) honors; no new CA variable is expected.
 - Whether nono passes through non-phantom values in the resolved request fields, and fails closed on token-shaped responses at unconfigured paths, is not documented. Gate 0 tests it. If the deployed nono cannot mediate the full exchange, stop and re-plan; do not ship a partial mediation.
 
-`scripts/lib/generate-nono-profile.py` keeps the OAuth provider and route only when `openai-chatgpt` is enabled, and drops them otherwise, in the same way it filters API-key routes today. `openai-api` (and the legacy alias `openai`) select the existing `openai` route. The generator refuses an enabled provider token it does not know, instead of silently ignoring it as today.
+`scripts/lib/generate-nono-profile.py` keeps the OAuth provider and route in the generated profile in every mode, including `openai-api` and neither token. The route only acts on token responses from `auth.openai.com` and resolves only phantoms, so it grants nothing when no ChatGPT login has happened, and it means a ChatGPT login started inside a running session in any mode still stores phantoms, never real tokens. `openai-api` (and the legacy alias `openai`) select the existing `openai` API-key route. The generator refuses an enabled provider token it does not know, instead of silently ignoring it as today.
 
 ### Auth-state guard
 
-Before the sandbox starts, the root-owned launch helper checks the persisted `openai` entry in `<runtime XDG_DATA_HOME>/opencode/auth.json` against the enabled token, using shapes only:
+Before the sandbox starts, the root-owned launch helper checks the persisted `openai` entry in `<runtime XDG_DATA_HOME>/opencode/auth.json` against the enabled token, using shapes only. "Phantom oauth" means `type: oauth` with `access` and `refresh` both phantom-shaped (`nono_` plus 64 hex).
 
-| Enabled token | `openai` entry absent | `openai` entry `type: oauth`, `access` and `refresh` both phantom-shaped (`nono_` plus 64 hex) | Any other entry (API key, `oauth` with non-phantom values, other type, unparseable file) |
+| Enabled token | `openai` entry absent | Phantom oauth entry | Any other state (API key, `oauth` with non-phantom values, other type, unparseable file) |
 | --- | --- | --- | --- |
 | `openai-chatgpt` | launch (login pending) | launch | refuse |
-| `openai-api` (or legacy `openai`) | launch | refuse (stale ChatGPT state would select the ChatGPT transport) | launch if `type: api`; otherwise refuse |
-| neither | launch; the OpenCode provider list excludes `openai`, so the entry is ignored | launch | launch |
+| `openai-api` (or legacy `openai`) | launch | refuse (it would select the ChatGPT transport) | refuse |
+| neither | launch | launch (harmless phantoms, kept for re-enable) | refuse |
 
-- A refusal prints the provider entry name, the failing shape and the corrective step (log out of `openai` through the wrapped launcher in the mode that created it, then retry). It never prints token values, never deletes or edits `auth.json`, and never inspects other providers' entries.
-- Phantom shape is checked only for the `openai` entry's `access` and `refresh` fields.
-- The plan decides where the check runs and how the mode reaches it. The constraint is that it runs with access to the agent's data directory, before launch, and that it adds no new sudo permissions beyond the existing wildcard launch rule.
+What this enforces, and what it does not:
+
+- **Enforced:** at launch, the `openai` entry holds no real credential. In API-key mode a persisted `type: api` entry is refused too, because that path delivers the key through nono injection and `auth.json` is not a credential source (credential-phasing spec). An entry for `openai` that is not a phantom is refused in every mode.
+- **Enforced by the always-present OAuth route:** a ChatGPT login completed in a running session, in any mode, stores phantoms.
+- **Not enforced:** what the user types or selects inside a running session. OpenCode 1.19.6 still offers other login methods, including "Manually enter API Key", which writes a real key into `auth.json` where the sandbox can read it. The launcher cannot stop that. It is detected and refused at the next launch (the table above), and the runbook says to use only the headless method. A mode-incompatible change after launch therefore takes effect for the remainder of that session and is caught at the next start; the design does not claim otherwise.
+- **Out of scope:** other providers' entries in `auth.json`. The guard reads, and its output reveals, only the `openai` entry's type and the shape of `access` and `refresh`.
+- A refusal prints the entry name, the failing shape and the Recovery command. It never prints token values and never changes `auth.json`.
+- The plan decides where the check runs and how the mode reaches it. The constraint is that it runs with access to the agent's data directory, before launch, and adds no sudo permission beyond the existing wildcard launch rule.
+
+### Recovery
+
+A refusal must not block its own recovery. Logging out through the wrapper does not work for a rejected state, because the wrapper refuses to start. Recovery is therefore a separate, restricted operator action, not a session:
+
+- A root-owned helper, `dotfiles-openai-auth-recover`, installed in the image. The human operator runs it with `sudo`; it is not offered to harness agents, which cannot run outside-nono actions.
+- It removes only the `openai` key from `auth.json` and leaves every other entry unchanged. It writes the result atomically and keeps the previous file next to it with a timestamped name, so nothing is lost.
+- If `auth.json` is not parseable, it cannot edit one entry safely. It moves the whole file aside under a timestamped name instead of deleting it, and says so.
+- It starts no OpenCode session, accepts no entry name or path arguments, prints no values and touches no network.
+- The sudoers addition is one exact-match line with no wildcard arguments, added with the image rebuild. This is the only new sudo permission in this design, and it is explicit and minimal.
+
+Recovery sequences:
+
+- **Mode switch with a clean phantom state:** `opencode auth logout openai` through the wrapper in the original mode works, because the guard accepts that state. This is the normal path.
+- **Rejected state (raw OAuth entry, API key entry, unparseable file, or phantom state in API mode):** run the recovery helper, then launch normally.
+- **Rollback from ChatGPT to API mode:** log out through the wrapper in ChatGPT mode, or run the recovery helper, before switching the manifest. Because the guard refuses a phantom oauth entry in API mode, skipping this step surfaces as a refusal, and the recovery helper clears it.
+- The capture store keeps its phantom mappings for up to 90 days, which is harmless, but the real tokens stay valid at OpenAI until revoked. The runbook tells an operator who is dropping ChatGPT access to revoke the session in their ChatGPT account.
 
 ### Login
 
@@ -98,7 +120,9 @@ The nono debug targets (`nono_proxy::oauth_capture`, `nono_proxy::tls_intercept`
 
 - The switch sets only those two debug targets for the nono process, and writes nono's log to a file in a fixed location the operator can read.
 - It adds no sudo rules and no env pass-through; the existing wildcard launch rule must already accept the extra argument, which the plan confirms.
-- Logs are redacted by construction (the two nono targets log matches and rewrites, not bodies); a shape check on the captured file is part of gate 0 evidence. The runbook says never to enable other log targets that dump request or response bodies.
+- Logs are redacted by construction (the two nono targets log matches and rewrites, not bodies), but that is an assumption, not a proof. Gate 0 therefore checks, under the real launcher with synthetic credentials, that no synthetic credential value appears in the log file.
+- The log file lives outside every path the profile grants to the sandbox. The nono supervisor writes it as `agent`, the same UID as the child, so only Landlock keeps the child away from it. Gate 0 checks that the child can neither read nor modify the file, so the operator's evidence cannot be tampered with from inside.
+- The runbook says never to enable other log targets that dump request or response bodies.
 
 ### Rollout and migration
 
@@ -110,9 +134,16 @@ Operator order:
 2. Update the host manifest: rename `openai` to `openai-api` if present, and add `openai-chatgpt` if wanted (not both). Provision copies the seed only when the manifest is absent, so existing manifests are edited by the operator.
 3. Update the install-branch checkout (the new wrapper, sync script and policy).
 4. Run provision or sync to regenerate `provider-runtime.json` and `provider-verification.json`.
-5. Validate the generated profile against the deployed nono (gate 1), then run the verification gates.
+5. Run gates 0 and 1 with synthetic credentials only (preflight and generated-profile validation against the deployed nono), and only then the gates that need a real login.
 
-Rollback: restore the previous manifest and the previous checkout commit, then rerun sync. The new image keeps the legacy alias, so both the old and new checkout generate a correct profile on it. Rolling back the image itself needs a manifest with neither new token, because the old generator ignores unknown tokens.
+Rollback:
+
+1. If a ChatGPT login exists, clear it first (see Recovery): log out through the wrapper in ChatGPT mode, or run the recovery helper.
+2. Restore the previous manifest and the previous checkout commit, then rerun sync. The new image keeps the legacy alias, so both the old and new checkout generate a correct profile on it.
+3. Rolling back the image itself needs a manifest with neither new token, because the old generator ignores unknown tokens.
+4. Verify with a wrapped launch (and, where `openai-api` is enabled, an API-key smoke test).
+
+The sudoers line for the recovery helper is part of the new image; an older image has neither the helper nor the guard.
 
 On this host the manifest lists only `gpt-uio-yellow` and `github-copilot`, so there is no `openai` entry to rename. The API-key smoke test applies to workspaces that enable `openai-api` and is recorded as not applicable here unless an operator enables it.
 
@@ -134,26 +165,32 @@ Not changed: chains labelled "(local)" (`small_model`, `title`, `summary`, `comp
 
 ### Documentation
 
-- The nono-policy runbook lists the new route, the per-endpoint phantom behavior, the auth-state guard, the diagnostics switch and the login procedure.
+- The nono-policy runbook lists the new route, the per-endpoint phantom behavior, the auth-state guard and its limits, the recovery helper and sequences, the diagnostics switch and the login procedure.
 - The model-routing cheatsheet gets a ChatGPT-plan section and describes chains as `#1` to `#4`.
 - The bare-hub and lifecycle runbooks use `openai-api` where they name the API-key provider and describe the rollout order.
 - The credential-phasing spec gets a short pointer to this spec (its existing contract lines stay unchanged, since contract tests pin them).
 
 ## Verification gates
 
-Blocking, recorded with evidence before the slice counts as done. Gates 0 to 10 need the rebuilt image running in the pod under nono and, from gate 2 on, a real ChatGPT account, so the human runs them; agents cannot run them. Gate 0 runs before any real login.
+Blocking, recorded with evidence before the slice counts as done. All gates need the rebuilt image running in the pod under nono, so the human runs them; agents cannot run them. **Gates 0 and 1 use only synthetic credentials and must pass before any real ChatGPT login.** Gates 2 to 10 use a real ChatGPT account.
 
-0. **Synthetic mediation (before the first real login).** With the production profile structure pointed at a local test issuer and synthetic credentials, the full headless sequence runs through nono. The sandbox sees only phantoms for `authorization_code`, `code_verifier`, `access_token`, `refresh_token` and `id_token`; the synthetic real values never appear in the child's environment, files or logs; a token-shaped response at an unconfigured path fails closed; and non-phantom values in the resolved request fields are handled as the design assumes. If nono cannot mediate the full exchange, stop and re-plan.
-1. **Generated profile.** After the image rebuild and redeploy, the **generated** profile for each manifest case (`openai-api`, `openai-chatgpt`, neither) validates against the deployed nono binary (`nono profile show` or `validate`), and the nono version is recorded.
-2. **Login entrypoints, independent.** Starting from a clean auth state (`opencode auth logout openai` through the wrapper, `openai` entry confirmed absent), a headless login via `opencode auth login` leaves only phantom `openai.access` and `openai.refresh` values (shape check, no values printed), and debug logs show `matched OAuth capture endpoint` and `rewrote OAuth token response fields to phantoms` for each configured endpoint. Repeat from a clean state via `/connect` in the TUI, so neither check can pass on the other's phantoms.
+0. **Synthetic preflight, before the first real login.** Under the actual candidate launcher, with the production profile structure pointed at a local test issuer and synthetic credentials, and with a **populated** capture store and a populated diagnostics log:
+   - (a) *Mediation.* The full headless sequence runs through nono. The sandbox sees only phantoms for `authorization_code`, `code_verifier`, `access_token`, `refresh_token` and `id_token`; the synthetic real values never appear in the child's environment, files or logs; a token-shaped response at an unconfigured path fails closed; non-phantom values in the resolved request fields are handled as the design assumes.
+   - (b) *Store isolation.* From inside the wrapped session, reading the capture store is denied (`nono why --self --path <store> --op read` reports a denial, and a read attempt fails). Owner-only permissions are not accepted as proof, because the supervisor and child run as the same `agent` UID. If the store is reachable, move it and retest.
+   - (c) *Diagnostics file.* No synthetic credential value appears in the diagnostics log, and the sandbox can neither read nor modify it.
+   - (d) *Always-on route.* In `openai-api` and neither-token modes, a ChatGPT login started inside the session still yields phantoms only.
+   If any part fails, stop and re-plan; do not proceed to a real login.
+1. **Generated profile.** After the image rebuild and redeploy, the **generated** profile for each manifest case (`openai-api`, `openai-chatgpt`, neither) validates against the deployed nono binary, including the `credential_store` entry, and the nono version is recorded.
+2. **Login entrypoints, independent.** Starting from a clean auth state (`opencode auth logout openai` through the wrapper, `openai` entry confirmed absent), a headless login via `opencode auth login` leaves only phantom `openai.access` and `openai.refresh` values (shape check, no values printed), and debug logs show `matched OAuth capture endpoint` and `rewrote OAuth token response fields to phantoms` for each token-bearing endpoint. Repeat from a clean state via `/connect` in the TUI, so neither check can pass on the other's phantoms.
 3. A prompt and a tool-using task run end to end through the wrapped launcher using the phantom-only `auth.json`, including a token refresh.
 4. **Account id.** OpenCode 1.19.6 derives the ChatGPT account id from `chatgpt_account_id` claims in `id_token` or `access_token`. A synthetic phantom `id_token` has no such claim and the opaque access phantom is not JWT-shaped, so the `ChatGPT-Account-Id` header is likely missing at login (a refresh keeps any previously stored value). Confirm a personal Plus account works without it. If not, stop and re-plan; do not weaken the phantom guarantee.
 5. The token request body formats and the backend host seen in debug logs match the table above; correct the profile if they differ.
-6. **Capture store.** The capture store survives a pod restart; otherwise the runbook documents re-login after restart.
-7. **Capture store inaccessible to the sandbox.** From inside the wrapped session, reading the capture store location is denied (`nono why --self --path <store> --op read` reports a denial, and a read attempt fails). Owner-only permissions are not accepted as proof, because the nono supervisor and the sandboxed child both run as the `agent` UID. The plan identifies the store path from nono's behavior; if the store lands where the child can read it, move it (the launch helper already gives the supervisor and the child separate `XDG_STATE_HOME` values) and retest.
+6. **Capture store persistence.** The capture store survives a pod restart; otherwise the runbook documents re-login after restart.
+7. **Store isolation with real tokens.** Gate 0(b) repeated after the real login: the store now holds real tokens, and the child is still denied.
 8. **Entitlement and usability.** Catalog evidence (`opencode models openai`) is recorded separately from request evidence. One successful representative request per model used in the fallback table (`gpt-6.2-sol`, `gpt-6.1-terra`, `gpt-6-luna`) is required; a model the plan does not authorize is replaced as described under Fallback chains.
 9. No real token or exchange credential appears in `env`, `/proc/*/environ`, logs or shell-visible files inside the sandbox.
 10. **Plan scope.** The support claim is verified for Plus. Pro is labelled unverified unless the human also runs gates 2 to 4 and 8 on a Pro account.
+11. **Recovery and rollback.** The refusal → recovery → launch sequences from the Recovery section run on the real image, including ChatGPT-to-API rollback after a successful login.
 
 ## Acceptance tests
 
@@ -162,13 +199,18 @@ Repo-file contract tests in `tests/pod-inside-nono/` run by the agent, written f
 1. **Provider policy:** `openai-api` and `openai-chatgpt` are supported with `mode: all`; bare `openai` is no longer supported.
 2. **Sync:** the manifest accepts either new token, refuses both together, and refuses bare `openai` with the rename hint; the OpenCode-facing provider list contains `openai` once.
 3. **Wrapper:** `openai-api` and the legacy alias `openai` still export `OPENAI_API_KEY` from `openai_api_key`; `openai-chatgpt` requires no secret and exports none.
-4. **Profile generator:** with `openai-chatgpt` enabled the generated profile contains the OAuth provider and route; without it, it contains neither; `openai-api` and the legacy alias `openai` select the existing `openai` route; an unknown provider token is refused.
-5. **Template shape:** the committed profile's OAuth provider declares the three endpoints with the per-endpoint request bodies, response fields and request fields from the table, `api_hosts` including `https://chatgpt.com`, `credential_store` fields `openai.access` and `openai.refresh`, and the `NODE_EXTRA_CA_CERTS` path stays configured.
-6. **Auth-state guard:** each cell of the guard table behaves as specified against fixture `auth.json` files: both switch directions, the disabled mode, and a pre-existing non-phantom entry; a refusal prints no token values, other providers' entries are neither read into output nor modified, and the file is unchanged afterwards.
-7. **Upgrade and rollback:** starting from a fixture manifest containing `openai`, the new sync script refuses it with the hint; the renamed manifest regenerates correct outputs; the generator given pre-migration outputs (`openai`) still yields the API route; and a generator from the new commit run against an old-style runtime does not drop the API route.
-8. **Fallback layout:** each chain in the table above has `#3` set to the ChatGPT-plan model and `#4` set to the former `#3`, and the excluded chains are unchanged.
-9. **Diagnostics switch:** the launch helper's diagnostics option sets only the two nono debug targets and a log file path, and passes no other environment through.
-10. **Docs contract:** the runbooks and cheatsheet carry the new anchors. Existing contract tests that pin `openai` are updated deliberately, not weakened.
+4. **Profile generator:** the OAuth provider and route are present in the generated profile for `openai-chatgpt`, `openai-api` and neither token; `openai-api` and the legacy alias `openai` select the existing `openai` API-key route, and `openai-chatgpt` and neither do not; an unknown provider token is refused.
+5. **Template shape:** the committed profile's OAuth provider lists exactly the two token-bearing endpoints, `/api/accounts/deviceauth/token` and `/oauth/token`, and does not list `/api/accounts/deviceauth/usercode`; each endpoint declares the request body, response fields and request fields from the table; `api_hosts` includes `https://auth.openai.com` and `https://chatgpt.com`; the mandatory `credential_store` is `file_json` with `phantom_fields` `openai.access` and `openai.refresh`, and its path equals `<wrapper default runtime data home>/opencode/auth.json`; the `NODE_EXTRA_CA_CERTS` path stays configured; and the profile passes `nono profile validate` offline where nono is available in the test context.
+6. **Auth-state guard:** each cell of the guard table behaves as specified against fixture `auth.json` files, including both switch directions, `type: api` in API mode, the neither-token mode with phantom and non-phantom entries, and an unparseable file; a refusal prints no token values, other providers' entries are neither read into output nor modified, and the file is unchanged afterwards. **After-launch change:** a fixture `auth.json` that passes at launch and is then changed to a mode-incompatible state (for example a real API key entry) is refused at the next launch. The test does not claim in-session prevention.
+7. **Supported combinations, upgrade and rollback:** wrapper, generator and runtime are exercised together for these combinations:
+   - new generator with a new-token runtime;
+   - new generator with a legacy `openai` runtime (the alias yields the API route);
+   - the rollback runtime restored after a ChatGPT login (manifest with `openai`, or neither token).
+   Starting from a fixture manifest containing `openai`, the new sync script refuses it with the hint. The rollback sequence (clear the ChatGPT login, restore the previous manifest, rerun sync, launch) succeeds and ends with the API route present and no ChatGPT transport selected. Old-image combinations cannot run in a repo test and are covered by gates 1 and 11 and the operator order, not by this test.
+8. **Recovery helper:** for each rejected state (raw OAuth entry, API key entry, unparseable file, phantom state in API mode), the sequence refusal → recovery → successful launch works; the helper changes only the `openai` entry (other entries are semantically unchanged), keeps the previous file under a timestamped name, prints no values, rejects extra arguments, and the sudoers line is an exact match without wildcard arguments.
+9. **Fallback layout:** each chain in the table above has `#3` set to the ChatGPT-plan model and `#4` set to the former `#3`, and the excluded chains are unchanged.
+10. **Diagnostics switch:** the launch helper's diagnostics option sets only the two nono debug targets and a log file path outside the profile's granted paths, and passes no other environment through.
+11. **Docs contract:** the runbooks and cheatsheet carry the new anchors. Existing contract tests that pin `openai` are updated deliberately, not weakened.
 
 The `pod-outside-nono` blocking-matrix probe for `openai` is updated for the rename and run by the human, together with a wrapped API-key smoke test on any workspace that enables `openai-api`.
 
@@ -176,21 +218,23 @@ The `pod-outside-nono` blocking-matrix probe for `openai` is updated for the ren
 
 Done in a managed worktree created with `bin/new-worktree`, reaching `main` only by merge.
 
-1. Write failing acceptance tests 1 to 10. **User Check-in:** the human reviews the interface-defining tests.
-2. Implement enablement, sync, wrapper and generator changes (rename, legacy alias, unknown-token refusal, `openai-chatgpt`); make tests 1 to 4 and 7 pass.
+1. Write failing acceptance tests 1 to 11. **User Check-in:** the human reviews the interface-defining tests.
+2. Implement enablement, sync, wrapper and generator changes (rename, legacy alias, unknown-token refusal, `openai-chatgpt`, always-on OAuth route); make tests 1 to 4 and 7 pass.
 3. Add the OAuth provider and route to the nono profile; make test 5 pass.
-4. Implement the auth-state guard and the diagnostics switch in the launch helper; make tests 6 and 9 pass.
-5. Update fallback comments, runbooks, cheatsheet and the credential-phasing pointer; make tests 8 and 10 pass.
-6. **User Check-in:** the human builds and deploys the candidate image, follows the rollout order, and runs gates 0 and 1. If gate 0 fails, stop and re-plan.
-7. **User Check-in:** the human enables `openai-chatgpt`, logs in from clean states, and returns the evidence for gates 2 to 10.
+4. Implement the auth-state guard, the recovery helper with its sudoers line, and the diagnostics switch in the image artifacts; make tests 6, 8 and 10 pass.
+5. Update fallback comments, runbooks, cheatsheet and the credential-phasing pointer; make tests 9 and 11 pass.
+6. **User Check-in:** the human builds and deploys the candidate image and follows the rollout order, then runs gates 0 and 1 with synthetic credentials only. If either fails, stop and re-plan. No real ChatGPT login happens before this check-in passes.
+7. **User Check-in:** the human enables `openai-chatgpt`, logs in from clean states, and returns the evidence for gates 2 to 11.
 8. Correct the profile or fallback ids from the gate results, and rerun the affected tests.
 
 ## Risks
 
 - **Mediation of the full exchange** (gate 0). nono's handling of the device-flow intermediates and of non-phantom values in resolved request fields is undocumented. Mitigation: gate 0 runs before any real login, and a failure stops the slice.
 - **Phantom `id_token` lacks the account claim** (gate 4). This is the most likely failure at the API layer. Mitigation: gate 4; the answer may require a nono profile change or an upstream fix.
-- **Capture store reachable by the child** (gate 7). The supervisor and child share a UID, so only Landlock separates them. Mitigation: gate 7, and moving the store through the supervisor's separate `XDG_STATE_HOME`.
-- **Stale persisted auth** selects the wrong transport after a mode switch. Mitigation: the auth-state guard and its tests.
+- **Capture store or diagnostics file reachable by the child** (gates 0(b), 0(c), 7). The supervisor and child share a UID, so only Landlock separates them. Mitigation: the denial checks run on a populated synthetic store before any real login and again after it; the store and log are moved if reachable.
+- **In-session auth changes.** The launcher cannot stop a user from entering a real key or choosing another login method inside a running session. Mitigation: the always-on OAuth route for ChatGPT logins, refusal at the next launch, and the runbook; the residual risk is explicit under Auth-state guard.
+- **Recovery helper is a new sudo permission.** Mitigation: one exact-match sudoers line, no arguments, operator-only, touching only the `openai` entry.
+- **Stale persisted auth** selects the wrong transport after a mode switch. Mitigation: the auth-state guard, the recovery path and their tests.
 - **Mixed-version rollout** silently drops the API route on an old generator. Mitigation: legacy alias, unknown-token refusal and the operator order above.
 - **Image rebuild is required.** Checkout edits alone will not change the launcher. Mitigation: Decision 7 and the rollout order.
 - **Model ids differ by plan.** The ChatGPT backend authorizes a subset of the catalog. Mitigation: gate 8.
