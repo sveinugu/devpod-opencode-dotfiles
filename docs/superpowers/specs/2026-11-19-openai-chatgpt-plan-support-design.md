@@ -62,7 +62,12 @@ In `.config/nono/profiles/devspace-opencode-secure.jsonc`:
 
 ### Login
 
-`opencode auth login` runs through the wrapped launcher in the pod and uses the "ChatGPT Pro/Plus (headless)" method (device code), which needs no loopback callback port. The nono runbook documents the steps, how to enable `openai-chatgpt` in the host manifest, how to enable nono debug logging (`RUST_LOG=nono_proxy::oauth_capture=debug,nono_proxy::tls_intercept=debug`) while verifying, and how to check that `auth.json` holds only phantoms by shape, never by printing token values.
+Login runs through the wrapped launcher in the pod and uses the "ChatGPT Pro/Plus (headless)" method (device code), which needs no loopback callback port; the browser variant redirects to `localhost:1455`, which a browser outside the pod cannot reach. OpenCode 1.19.6 has two entrypoints that use the same `openai` provider auth definition and the same OAuth endpoints:
+
+- `opencode auth login` (alias `opencode providers login`): the documented path, needing no running TUI session.
+- `/connect` inside the TUI, which reaches the same flow through OpenCode's server API.
+
+Both run inside the sandbox, so nono's token-response rewriting applies to both. Whether they share identical code is not proven; gate 2 therefore checks each entrypoint. The nono runbook documents the steps, how to enable `openai-chatgpt` in the host manifest, how to enable nono debug logging (`RUST_LOG=nono_proxy::oauth_capture=debug,nono_proxy::tls_intercept=debug`) while verifying, and how to check that `auth.json` holds only phantoms by shape, never by printing token values.
 
 ### Fallback chains
 
@@ -92,7 +97,7 @@ Not changed: chains labelled "(local)" (`small_model`, `title`, `summary`, `comp
 Blocking, recorded with evidence before the slice counts as done. Gates 1 to 6 need a real ChatGPT Plus account and run in the pod under nono, so the human runs them; agents cannot run them.
 
 1. Debug logs show `matched OAuth capture endpoint` and `rewrote OAuth token response fields to phantoms` for the login.
-2. `auth.json` contains only phantom-shaped token values (shape check, no values printed).
+2. `auth.json` contains only phantom-shaped token values (shape check, no values printed), after a login from each entrypoint: `opencode auth login` and `/connect` in the TUI.
 3. A prompt and a tool-using task run end to end through the wrapped launcher using the phantom-only `auth.json`, including a token refresh.
 4. **Account id.** OpenCode derives the ChatGPT account id from `chatgpt_account_id` claims in `id_token` or `access_token`. A synthetic phantom `id_token` has no such claim, so the `ChatGPT-Account-Id` header may be missing. Confirm a personal Plus account works without it. If not, stop and re-plan; do not weaken the phantom guarantee.
 5. The ChatGPT backend host and the token request body format are confirmed from debug logs and the profile is corrected if the first guess differs.
