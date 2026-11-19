@@ -73,59 +73,29 @@ fi
 # Provider config plus host-local model overrides; refuses before any sudo call.
 opencode_config_content="$(python3 "$config_content_helper" --runtime "$provider_runtime_path" --overrides "$model_overrides_path" --agents-dir "$source_root/.config/opencode/agents")" || exit 1
 
+# Secrets for the enabled providers, taken from the payload the helper already validated.
 required_secret_keys="$({
-  python3 - "$provider_runtime_path" <<'PY'
+  python3 -c '
 import json
 import sys
 
-runtime_path = sys.argv[1]
-
-with open(runtime_path, 'r', encoding='utf-8') as fh:
-    runtime = json.load(fh)
-
-if not isinstance(runtime, dict):
-    raise SystemExit('refused: generated provider runtime output must be a JSON object')
-
-allowed_keys = {'enabled_providers', 'provider'}
-runtime_keys = set(runtime.keys())
-if runtime_keys != allowed_keys:
-    raise SystemExit('refused: generated provider runtime output contains unsupported keys')
-
-enabled = runtime.get('enabled_providers')
-if not isinstance(enabled, list):
-    raise SystemExit('refused: generated provider runtime output must define enabled_providers as a list')
-
-for provider in enabled:
-    if not isinstance(provider, str) or not provider.strip():
-        raise SystemExit('refused: generated provider runtime output has invalid enabled_providers entry')
-
-provider_payload = runtime.get('provider')
-if not isinstance(provider_payload, dict):
-    raise SystemExit('refused: generated provider runtime output must define provider as an object')
-
-for provider_name, provider_config in provider_payload.items():
-    if not isinstance(provider_name, str) or not provider_name.strip():
-        raise SystemExit('refused: generated provider runtime output has invalid provider key')
-    if not isinstance(provider_config, dict):
-        raise SystemExit('refused: generated provider runtime output provider entries must be objects')
-
 secret_key_by_provider = {
-    'openai': 'openai_api_key',
-    'anthropic': 'anthropic_api_key',
-    'github-copilot': 'github_token',
-    'gpt-uio-yellow': 'gpt_uio_yellow_api_key',
-    'gpt-uio-red': 'gpt_uio_red_api_key',
+    "openai": "openai_api_key",
+    "anthropic": "anthropic_api_key",
+    "github-copilot": "github_token",
+    "gpt-uio-yellow": "gpt_uio_yellow_api_key",
+    "gpt-uio-red": "gpt_uio_red_api_key",
 }
 
 required = []
-for provider in enabled:
+for provider in json.loads(sys.argv[1])["enabled_providers"]:
     key = secret_key_by_provider.get(provider)
     if key and key not in required:
         required.append(key)
 
 for key in required:
     print(key)
-PY
+' "$opencode_config_content"
 } || exit 1)"
 
 if [ -n "$required_secret_keys" ]; then

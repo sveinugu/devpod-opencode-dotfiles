@@ -18,6 +18,8 @@ BUILTIN_AGENTS = {'build', 'plan', 'general', 'explore', 'title', 'summary', 'co
 DEFAULT_KEYS = {'model', 'small_model'}
 ENTRY_KEYS = {'model', 'reason', 'until'}
 DATE_PATTERN = re.compile(r'^\d{4}-\d{2}-\d{2}$')
+# Literal provider/model id; model ids may contain namespace slashes. No whitespace or {env:}/{file:} placeholders.
+MODEL_PATTERN = re.compile(r'^[A-Za-z0-9._-]+/[^\s{}]+$')
 
 
 def refuse(message):
@@ -55,7 +57,10 @@ def load_runtime(path):
 def known_agents(agents_dir):
     names = set(BUILTIN_AGENTS)
     if os.path.isdir(agents_dir):
-        names.update(name[:-3] for name in os.listdir(agents_dir) if name.endswith('.md'))
+        names.update(
+            name[:-3] for name in os.listdir(agents_dir)
+            if name.endswith('.md') and os.path.isfile(os.path.join(agents_dir, name))
+        )
     return names
 
 
@@ -69,8 +74,8 @@ def check_entry(label, entry, runtime, fail):
         if not isinstance(entry.get(key), str) or not entry[key].strip():
             fail(f'{label}: missing {key}')
 
-    until = entry.get('until')
-    if until is not None:
+    if 'until' in entry:
+        until = entry['until']
         if not isinstance(until, str) or not DATE_PATTERN.match(until):
             fail(f'{label}: until must be YYYY-MM-DD')
         try:
@@ -78,9 +83,9 @@ def check_entry(label, entry, runtime, fail):
         except ValueError:
             fail(f'{label}: until must be YYYY-MM-DD')
 
-    provider, sep, model_id = entry['model'].partition('/')
-    if not sep or not model_id:
-        fail(f'{label}: model must be provider/model')
+    if not MODEL_PATTERN.match(entry['model']):
+        fail(f'{label}: model must be a literal provider/model id')
+    provider, _, model_id = entry['model'].partition('/')
     if provider not in runtime['enabled_providers']:
         fail(f'{label}: provider not enabled: {provider}')
     listed = runtime['provider'].get(provider, {}).get('models')
@@ -93,7 +98,8 @@ def active(name, entry, today):
     if until is not None and today >= until:
         print(f'warning: model override for {name} expired on {until}; ignored', file=sys.stderr)
         return False
-    detail = entry['reason'] + (f'; until {until}' if until else '')
+    reason = ' '.join(entry['reason'].split())
+    detail = reason + (f'; until {until}' if until else '')
     print(f'model override: {name} -> {entry["model"]} ({detail})', file=sys.stderr)
     return True
 
@@ -105,9 +111,17 @@ def apply_overrides(payload, overrides_path, runtime, agents_dir, today):
     def fail(message):
         refuse(f'model overrides {overrides_path}: {message}')
 
+    def reject_duplicates(pairs):
+        obj = {}
+        for key, value in pairs:
+            if key in obj:
+                fail(f'duplicate key: {key}')
+            obj[key] = value
+        return obj
+
     try:
         with open(overrides_path, 'r', encoding='utf-8') as fh:
-            overrides = json.load(fh)
+            overrides = json.load(fh, object_pairs_hook=reject_duplicates)
     except json.JSONDecodeError:
         fail('not valid JSON')
 

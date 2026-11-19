@@ -429,7 +429,20 @@ cat >"$tmp_root/model-overrides.json" <<'JSON'
 { "agents": { "maestro": { "model": "github-copilot/gpt-6.1-terra", "reason": "fixture switch" } } }
 JSON
 override_arg_log="$tmp_root/override-nono-args.log"
-HUB_OPENCODE_MODEL_OVERRIDES_PATH="$tmp_root/model-overrides.json" PATH="$mock_bin:$PATH" HUB_INSTALL_BRANCH_DIR="$install_root" HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" HUB_NONO_SECRET_HELPER_SUDO='sudo -n' HUB_NONO_AGENT_USER='agent' HUB_NONO_BINARY="$mock_bin/nono" HUB_NONO_SET_PRIV_BINARY="$setpriv_binary" HUB_NONO_PROFILE_TEMPLATE_PATH="$profile_root/devspace-opencode-secure.jsonc" OPENCODE_PROVIDER_RUNTIME_PATH="$provider_runtime" OPENCODE_RAW_BINARY="$raw_binary" MOCK_NONO_ARG_LOG="$override_arg_log" MOCK_NONO_ENV_LOG="$env_log" MOCK_SUDO_LOG="$sudo_log" bash "$wrapper" --version >/dev/null 2>"$tmp_root/override.err" || fail "wrapper should launch with a valid model overrides file: $(cat "$tmp_root/override.err")"
+override_sudo_log="$tmp_root/override-sudo.log"
+HUB_OPENCODE_MODEL_OVERRIDES_PATH="$tmp_root/model-overrides.json" PATH="$mock_bin:$PATH" HUB_INSTALL_BRANCH_DIR="$install_root" HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" HUB_NONO_SECRET_HELPER_SUDO='sudo -n' HUB_NONO_AGENT_USER='agent' HUB_NONO_BINARY="$mock_bin/nono" HUB_NONO_SET_PRIV_BINARY="$setpriv_binary" HUB_NONO_PROFILE_TEMPLATE_PATH="$profile_root/devspace-opencode-secure.jsonc" OPENCODE_PROVIDER_RUNTIME_PATH="$provider_runtime" OPENCODE_RAW_BINARY="$raw_binary" MOCK_NONO_ARG_LOG="$override_arg_log" MOCK_NONO_ENV_LOG="$env_log" MOCK_SUDO_LOG="$override_sudo_log" bash "$wrapper" --version >/dev/null 2>"$tmp_root/override.err" || fail "wrapper should launch with a valid model overrides file: $(cat "$tmp_root/override.err")"
+# Decode the payload handed to the launch helper at the sudo boundary.
+python3 - "$override_sudo_log" "$provider_runtime" <<'PY' || fail "wrapper should hand the launch helper the provider block plus the active override, and nothing else"
+import json, sys
+line = next(l for l in open(sys.argv[1]) if '--opencode-config-content ' in l)
+payload = json.loads(line.split('--opencode-config-content ', 1)[1].split(' --raw-opencode-binary ', 1)[0])
+runtime = json.load(open(sys.argv[2]))
+assert payload == {
+    'enabled_providers': runtime['enabled_providers'],
+    'provider': runtime['provider'],
+    'agent': {'maestro': {'model': 'github-copilot/gpt-6.1-terra'}},
+}, payload
+PY
 grep -F '"agent": {"maestro": {"model": "github-copilot/gpt-6.1-terra"}}' "$override_arg_log" >/dev/null || fail "wrapper should pass active model overrides in OPENCODE_CONFIG_CONTENT"
 grep -F 'model override: maestro -> github-copilot/gpt-6.1-terra (fixture switch)' "$tmp_root/override.err" >/dev/null || fail "wrapper should announce active model overrides on stderr"
 

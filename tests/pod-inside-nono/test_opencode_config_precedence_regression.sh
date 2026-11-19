@@ -36,8 +36,14 @@ cat >"$tmp_root/config/opencode/opencode.json" <<'JSON'
 }
 JSON
 
+# Usage: run_opencode <config-content-or-empty> <opencode args...>
+# Parent config inputs are cleared so only the fixture and the given content apply.
 run_opencode() {
-  (cd "$tmp_root" && XDG_CONFIG_HOME="$tmp_root/config" XDG_DATA_HOME="$tmp_root/data" \
+  local content="$1"
+  shift
+  (cd "$tmp_root" && env -u OPENCODE_CONFIG_CONTENT -u OPENCODE_CONFIG -u OPENCODE_CONFIG_DIR \
+    ${content:+OPENCODE_CONFIG_CONTENT="$content"} \
+    XDG_CONFIG_HOME="$tmp_root/config" XDG_DATA_HOME="$tmp_root/data" \
     XDG_STATE_HOME="$tmp_root/state" XDG_CACHE_HOME="$tmp_root/cache" \
     timeout 120 "$raw_opencode" "$@" --pure)
 }
@@ -62,12 +68,12 @@ print(json.loads(text[text.index("{"):]).get(sys.argv[1]))
 
 overrides='{"agent":{"fixture-agent":{"model":"github-copilot/claude-haiku-5.5"},"compaction":{"model":"github-copilot/claude-haiku-5.5"}},"model":"github-copilot/claude-sonnet-5.5","small_model":"github-copilot/gpt-6-luna"}'
 
-[ "$(run_opencode debug agent fixture-agent | agent_model)" = "gpt-uio-yellow/gpt-6.1-terra" ] || fail "baseline: custom agent should use its frontmatter model"
-[ "$(run_opencode debug agent compaction | agent_model)" = "gpt-uio-yellow/Inferact/GLM-5.3-NVFP4" ] || fail "baseline: built-in agent should use its opencode.json model"
+[ "$(run_opencode "" debug agent fixture-agent | agent_model)" = "gpt-uio-yellow/gpt-6.1-terra" ] || fail "baseline: custom agent should use its frontmatter model"
+[ "$(run_opencode "" debug agent compaction | agent_model)" = "gpt-uio-yellow/Inferact/GLM-5.3-NVFP4" ] || fail "baseline: built-in agent should use its opencode.json model"
 
-[ "$(OPENCODE_CONFIG_CONTENT="$overrides" run_opencode debug agent fixture-agent | agent_model)" = "github-copilot/claude-haiku-5.5" ] || fail "OPENCODE_CONFIG_CONTENT must override markdown agent frontmatter"
-[ "$(OPENCODE_CONFIG_CONTENT="$overrides" run_opencode debug agent compaction | agent_model)" = "github-copilot/claude-haiku-5.5" ] || fail "OPENCODE_CONFIG_CONTENT must override built-in agent model from opencode.json"
-config_out="$(OPENCODE_CONFIG_CONTENT="$overrides" run_opencode debug config)"
+[ "$(run_opencode "$overrides" debug agent fixture-agent | agent_model)" = "github-copilot/claude-haiku-5.5" ] || fail "OPENCODE_CONFIG_CONTENT must override markdown agent frontmatter"
+[ "$(run_opencode "$overrides" debug agent compaction | agent_model)" = "github-copilot/claude-haiku-5.5" ] || fail "OPENCODE_CONFIG_CONTENT must override built-in agent model from opencode.json"
+config_out="$(run_opencode "$overrides" debug config)"
 [ "$(config_value model <<<"$config_out")" = "github-copilot/claude-sonnet-5.5" ] || fail "OPENCODE_CONFIG_CONTENT must override top-level model"
 [ "$(config_value small_model <<<"$config_out")" = "github-copilot/gpt-6-luna" ] || fail "OPENCODE_CONFIG_CONTENT must override top-level small_model"
 

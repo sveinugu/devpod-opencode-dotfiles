@@ -27,6 +27,7 @@ agents_dir="$tmp_root/agents"
 mkdir -p "$agents_dir"
 printf -- '---\nmodel: gpt-uio-yellow/gpt-6.1-terra\n---\n' >"$agents_dir/maestro.md"
 printf -- '---\nmodel: github-copilot/claude-opus-5.5\n---\n' >"$agents_dir/planner.md"
+mkdir -p "$agents_dir/phantom.md"
 
 cat >"$runtime" <<'JSON'
 {
@@ -63,7 +64,7 @@ PY
 cat >"$tmp_root/valid.json" <<'JSON'
 {
   "agents": {
-    "maestro": { "model": "github-copilot/gpt-6.1-terra", "reason": "UiO terra depleted", "until": "2026-12-01" },
+    "maestro": { "model": "github-copilot/gpt-6.1-terra", "reason": "UiO terra\n  depleted", "until": "2026-12-01" },
     "compaction": { "model": "gpt-uio-yellow/Qwen/Qwen3.8-27B-FP8", "reason": "GLM depleted" },
     "planner": { "model": "github-copilot/gpt-6.2-sol", "reason": "old switch", "until": "2026-11-19" }
   },
@@ -109,5 +110,11 @@ expect_refusal unknown-entry-key '{ "agents": { "maestro": { "model": "github-co
 expect_refusal bad-until '{ "agents": { "maestro": { "model": "github-copilot/gpt-6.1-terra", "reason": "x", "until": "1 Dec" } } }' 'agents.maestro: until must be YYYY-MM-DD'
 expect_refusal provider-disabled '{ "agents": { "maestro": { "model": "openai/gpt-6.1-terra", "reason": "x" } } }' 'agents.maestro: provider not enabled: openai'
 expect_refusal model-unlisted '{ "agents": { "maestro": { "model": "gpt-uio-yellow/gpt-6.1-terra", "reason": "x" } } }' 'agents.maestro: model not listed for gpt-uio-yellow: gpt-6.1-terra'
+
+expect_refusal null-until '{ "agents": { "maestro": { "model": "github-copilot/gpt-6.1-terra", "reason": "x", "until": null } } }' 'agents.maestro: until must be YYYY-MM-DD'
+expect_refusal directory-agent '{ "agents": { "phantom": { "model": "github-copilot/gpt-6.1-terra", "reason": "x" } } }' 'unknown agent: phantom'
+expect_refusal blank-model-id '{ "agents": { "maestro": { "model": "github-copilot/ ", "reason": "x" } } }' 'agents.maestro: model must be a literal provider/model id'
+expect_refusal placeholder-model '{ "agents": { "maestro": { "model": "github-copilot/{env:MODEL}", "reason": "x" } } }' 'agents.maestro: model must be a literal provider/model id'
+expect_refusal duplicate-key '{ "agents": { "maestro": { "model": "openai/gpt-6.1-terra", "model": "github-copilot/gpt-6.1-terra", "reason": "x" } } }' 'duplicate key: model'
 
 printf 'PASS test_opencode_model_overrides_helper_contract\n'
