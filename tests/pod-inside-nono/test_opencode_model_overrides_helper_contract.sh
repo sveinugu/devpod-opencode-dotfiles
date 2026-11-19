@@ -115,6 +115,7 @@ expect_refusal null-until '{ "agents": { "maestro": { "model": "github-copilot/g
 expect_refusal directory-agent '{ "agents": { "phantom": { "model": "github-copilot/gpt-6.1-terra", "reason": "x" } } }' 'unknown agent: phantom'
 expect_refusal blank-model-id '{ "agents": { "maestro": { "model": "github-copilot/ ", "reason": "x" } } }' 'agents.maestro: model must be a literal provider/model id'
 expect_refusal placeholder-model '{ "agents": { "maestro": { "model": "github-copilot/{env:MODEL}", "reason": "x" } } }' 'agents.maestro: model must be a literal provider/model id'
+expect_refusal trailing-newline-model '{ "agents": { "maestro": { "model": "github-copilot/gpt-6.1-terra\n", "reason": "x" } } }' 'agents.maestro: model must be a literal provider/model id'
 expect_refusal duplicate-key '{ "agents": { "maestro": { "model": "openai/gpt-6.1-terra", "model": "github-copilot/gpt-6.1-terra", "reason": "x" } } }' 'duplicate key: model'
 
 printf 'PASS test_opencode_model_overrides_helper_contract\n'

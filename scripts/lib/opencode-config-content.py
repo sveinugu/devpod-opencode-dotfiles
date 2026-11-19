@@ -76,14 +76,14 @@ def check_entry(label, entry, runtime, fail):
 
     if 'until' in entry:
         until = entry['until']
-        if not isinstance(until, str) or not DATE_PATTERN.match(until):
+        if not isinstance(until, str) or not DATE_PATTERN.fullmatch(until):
             fail(f'{label}: until must be YYYY-MM-DD')
         try:
             datetime.date.fromisoformat(until)
         except ValueError:
             fail(f'{label}: until must be YYYY-MM-DD')
 
-    if not MODEL_PATTERN.match(entry['model']):
+    if not MODEL_PATTERN.fullmatch(entry["model"]):
         fail(f'{label}: model must be a literal provider/model id')
     provider, _, model_id = entry['model'].partition('/')
     if provider not in runtime['enabled_providers']:
