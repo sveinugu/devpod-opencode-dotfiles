@@ -23,7 +23,7 @@ grep -F 'source "$secret_helper"' "$wrapper" >/dev/null || fail "wrapper must so
 grep -F 'if [ "${1:-}" = "completion" ]; then' "$wrapper" >/dev/null || fail "wrapper must special-case completion subcommand"
 grep -F 'exec "$raw_opencode_binary" "$@"' "$wrapper" >/dev/null || fail "wrapper must execute raw opencode binary directly for completion subcommand"
 grep -F 'nono_secret_env_emit_exports' "$wrapper" >/dev/null || fail "wrapper must call nono_secret_env_emit_exports"
-grep -F 'exec sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-binary "$nono_binary" --profile "$profile_path" --agent-uid "$agent_uid" --agent-gid "$agent_gid" --runtime-home "$runtime_home" --runtime-xdg-config-home "$runtime_xdg_config_home" --runtime-xdg-cache-home "$runtime_xdg_cache_home" --runtime-xdg-data-home "$runtime_xdg_data_home" --runtime-xdg-state-home "$runtime_xdg_state_home" --opencode-xdg-state-home "$opencode_xdg_state_home" --runtime-path "$runtime_path" --runtime-bash-env "$runtime_bash_env" --opencode-config-content "$opencode_provider_runtime_json" --raw-opencode-binary "$raw_opencode_binary" -- "$@"' "$wrapper" >/dev/null || fail "wrapper must launch through constrained helper before setpriv+nono runtime chain"
+grep -F 'exec sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-binary "$nono_binary" --profile "$profile_path" --agent-uid "$agent_uid" --agent-gid "$agent_gid" --runtime-home "$runtime_home" --runtime-xdg-config-home "$runtime_xdg_config_home" --runtime-xdg-cache-home "$runtime_xdg_cache_home" --runtime-xdg-data-home "$runtime_xdg_data_home" --runtime-xdg-state-home "$runtime_xdg_state_home" --opencode-xdg-state-home "$opencode_xdg_state_home" --runtime-path "$runtime_path" --runtime-bash-env "$runtime_bash_env" --opencode-config-content "$opencode_config_content" --raw-opencode-binary "$raw_opencode_binary" -- "$@"' "$wrapper" >/dev/null || fail "wrapper must launch through constrained helper before setpriv+nono runtime chain"
 grep -F 'HUB_NONO_PROVIDER_SECRET_DIR' "$wrapper" >/dev/null || fail "wrapper must honor HUB_NONO_PROVIDER_SECRET_DIR"
 grep -F 'HUB_NONO_SECRET_HELPER_SUDO' "$wrapper" >/dev/null || fail "wrapper must require HUB_NONO_SECRET_HELPER_SUDO contract"
 grep -F 'HUB_NONO_AGENT_USER' "$wrapper" >/dev/null || fail "wrapper must require HUB_NONO_AGENT_USER contract"
@@ -51,9 +51,10 @@ grep -F '$source_root/.config/opencode/bash_env.sh' "$wrapper" >/dev/null || fai
 grep -F '/usr/local/bin/nono' "$wrapper" >/dev/null || fail "wrapper must default nono binary path to /usr/local/bin/nono"
 grep -F '/usr/local/bin/opencode-raw' "$wrapper" >/dev/null || fail "wrapper must default raw opencode binary path to root-owned /usr/local/bin/opencode-raw"
 grep -F 'unset NONO_CAP_FILE NONO_TOOL_SANDBOX_SOCKET NONO_TOOL_SANDBOX_SHIM_DIR NONO_PROXY_TOKEN NONO_NO_PROXY' "$wrapper" >/dev/null || fail "wrapper must scrub inherited nono runtime session environment before nested launch"
-grep -F 'sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-binary "$nono_binary" --profile "$profile_path" --agent-uid "$agent_uid" --agent-gid "$agent_gid" --runtime-home "$runtime_home" --runtime-xdg-config-home "$runtime_xdg_config_home" --runtime-xdg-cache-home "$runtime_xdg_cache_home" --runtime-xdg-data-home "$runtime_xdg_data_home" --runtime-xdg-state-home "$runtime_xdg_state_home" --opencode-xdg-state-home "$opencode_xdg_state_home" --runtime-path "$runtime_path" --runtime-bash-env "$runtime_bash_env" --opencode-config-content "$opencode_provider_runtime_json" --raw-opencode-binary "$raw_opencode_binary" -- "$@"' "$wrapper" >/dev/null || fail "wrapper must launch nono through constrained launch helper chain"
-grep -F 'exec sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-binary "$nono_binary" --profile "$profile_path" --agent-uid "$agent_uid" --agent-gid "$agent_gid" --runtime-home "$runtime_home" --runtime-xdg-config-home "$runtime_xdg_config_home" --runtime-xdg-cache-home "$runtime_xdg_cache_home" --runtime-xdg-data-home "$runtime_xdg_data_home" --runtime-xdg-state-home "$runtime_xdg_state_home" --opencode-xdg-state-home "$opencode_xdg_state_home" --runtime-path "$runtime_path" --runtime-bash-env "$runtime_bash_env" --opencode-config-content "$opencode_provider_runtime_json" --raw-opencode-binary "$raw_opencode_binary" -- "$@"' "$wrapper" >/dev/null || fail "wrapper must always append end-of-options marker and argv passthrough"
+grep -F 'sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-binary "$nono_binary" --profile "$profile_path" --agent-uid "$agent_uid" --agent-gid "$agent_gid" --runtime-home "$runtime_home" --runtime-xdg-config-home "$runtime_xdg_config_home" --runtime-xdg-cache-home "$runtime_xdg_cache_home" --runtime-xdg-data-home "$runtime_xdg_data_home" --runtime-xdg-state-home "$runtime_xdg_state_home" --opencode-xdg-state-home "$opencode_xdg_state_home" --runtime-path "$runtime_path" --runtime-bash-env "$runtime_bash_env" --opencode-config-content "$opencode_config_content" --raw-opencode-binary "$raw_opencode_binary" -- "$@"' "$wrapper" >/dev/null || fail "wrapper must launch nono through constrained launch helper chain"
+grep -F 'exec sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-binary "$nono_binary" --profile "$profile_path" --agent-uid "$agent_uid" --agent-gid "$agent_gid" --runtime-home "$runtime_home" --runtime-xdg-config-home "$runtime_xdg_config_home" --runtime-xdg-cache-home "$runtime_xdg_cache_home" --runtime-xdg-data-home "$runtime_xdg_data_home" --runtime-xdg-state-home "$runtime_xdg_state_home" --opencode-xdg-state-home "$opencode_xdg_state_home" --runtime-path "$runtime_path" --runtime-bash-env "$runtime_bash_env" --opencode-config-content "$opencode_config_content" --raw-opencode-binary "$raw_opencode_binary" -- "$@"' "$wrapper" >/dev/null || fail "wrapper must always append end-of-options marker and argv passthrough"
 grep -F 'HUB_NONO_RUNTIME_PATH' "$wrapper" >/dev/null || fail "wrapper must support explicit runtime PATH contract"
+grep -F 'HUB_OPENCODE_MODEL_OVERRIDES_PATH:-/workspaces/dotfiles/state/hub/etc/model-overrides.json' "$wrapper" >/dev/null || fail "wrapper must default model overrides to the host-local state path"
 
 temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_opencode_secure_wrapper_contract')"
 tmp_root="$(context_make_test_tmpdir "$temp_root" 'test_opencode_secure_wrapper_contract')"
@@ -83,6 +84,8 @@ EOF
 chmod +x "$runtime_bash_env"
 
 cp "$repo_root/scripts/lib/nono-secret-env.sh" "$helper_root/nono-secret-env.sh"
+cp "$repo_root/scripts/lib/opencode-config-content.py" "$helper_root/opencode-config-content.py"
+mkdir -p "$install_root/.config/opencode/agents"
 cp "$repo_root/scripts/lib/launch-opencode-nono.sh" "$launch_helper"
 chmod +x "$launch_helper"
 grep -F -- '--runtime-bash-env' "$launch_helper" >/dev/null || fail "launch helper must require runtime BASH_ENV contract"
@@ -345,6 +348,8 @@ export HUB_NONO_GENERATED_PROFILE_DIR="$generated_profile_dir"
 export HUB_NONO_GENERATED_PROFILE_WRITER="$generated_profile_writer"
 export HUB_NONO_LAUNCH_HELPER="$launch_helper"
 export MOCK_SETPRIV_LOG="$setpriv_log"
+# Keep the host-local overrides file out of unrelated wrapper runs.
+export HUB_OPENCODE_MODEL_OVERRIDES_PATH="$tmp_root/no-model-overrides.json"
 
 PATH="$mock_bin:$PATH" \
 HUB_INSTALL_BRANCH_DIR="$install_root" \
@@ -417,6 +422,25 @@ grep -F 'PYTHONPATH=' "$setpriv_log" >/dev/null || fail "launch helper should cl
 grep -F 'DYLD_INSERT_LIBRARIES=' "$setpriv_log" >/dev/null || fail "launch helper should clear DYLD_INSERT_LIBRARIES before setpriv handoff"
 grep -F "BASH_ENV=$runtime_bash_env" "$setpriv_log" >/dev/null || fail "launch helper should pin BASH_ENV during setpriv handoff"
 grep -F "BASH_ENV=$runtime_bash_env" "$env_log" >/dev/null || fail "launch helper should propagate BASH_ENV into sandbox runtime"
+
+# Model overrides: an active override reaches OpenCode; an invalid file refuses before sudo.
+printf -- '---\nmodel: gpt-uio-red/gpt-oss-120b\n---\n' >"$install_root/.config/opencode/agents/maestro.md"
+cat >"$tmp_root/model-overrides.json" <<'JSON'
+{ "agents": { "maestro": { "model": "github-copilot/gpt-6.1-terra", "reason": "fixture switch" } } }
+JSON
+override_arg_log="$tmp_root/override-nono-args.log"
+HUB_OPENCODE_MODEL_OVERRIDES_PATH="$tmp_root/model-overrides.json" PATH="$mock_bin:$PATH" HUB_INSTALL_BRANCH_DIR="$install_root" HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" HUB_NONO_SECRET_HELPER_SUDO='sudo -n' HUB_NONO_AGENT_USER='agent' HUB_NONO_BINARY="$mock_bin/nono" HUB_NONO_SET_PRIV_BINARY="$setpriv_binary" HUB_NONO_PROFILE_TEMPLATE_PATH="$profile_root/devspace-opencode-secure.jsonc" OPENCODE_PROVIDER_RUNTIME_PATH="$provider_runtime" OPENCODE_RAW_BINARY="$raw_binary" MOCK_NONO_ARG_LOG="$override_arg_log" MOCK_NONO_ENV_LOG="$env_log" MOCK_SUDO_LOG="$sudo_log" bash "$wrapper" --version >/dev/null 2>"$tmp_root/override.err" || fail "wrapper should launch with a valid model overrides file: $(cat "$tmp_root/override.err")"
+grep -F '"agent": {"maestro": {"model": "github-copilot/gpt-6.1-terra"}}' "$override_arg_log" >/dev/null || fail "wrapper should pass active model overrides in OPENCODE_CONFIG_CONTENT"
+grep -F 'model override: maestro -> github-copilot/gpt-6.1-terra (fixture switch)' "$tmp_root/override.err" >/dev/null || fail "wrapper should announce active model overrides on stderr"
+
+printf '{ "agents": { "maestr": { "model": "github-copilot/gpt-6.1-terra", "reason": "typo" } } }\n' >"$tmp_root/model-overrides-invalid.json"
+invalid_override_sudo_log="$tmp_root/invalid-override-sudo.log"
+if HUB_OPENCODE_MODEL_OVERRIDES_PATH="$tmp_root/model-overrides-invalid.json" PATH="$mock_bin:$PATH" HUB_INSTALL_BRANCH_DIR="$install_root" HUB_NONO_PROVIDER_SECRET_DIR="$secret_root" HUB_NONO_SECRET_HELPER_SUDO='sudo -n' HUB_NONO_AGENT_USER='agent' HUB_NONO_BINARY="$mock_bin/nono" HUB_NONO_SET_PRIV_BINARY="$setpriv_binary" HUB_NONO_PROFILE_TEMPLATE_PATH="$profile_root/devspace-opencode-secure.jsonc" OPENCODE_PROVIDER_RUNTIME_PATH="$provider_runtime" OPENCODE_RAW_BINARY="$raw_binary" MOCK_NONO_ARG_LOG="$override_arg_log" MOCK_NONO_ENV_LOG="$env_log" MOCK_SUDO_LOG="$invalid_override_sudo_log" bash "$wrapper" --version >/dev/null 2>"$tmp_root/override-invalid.err"; then
+  fail "wrapper should refuse to launch with an invalid model overrides file"
+fi
+grep -F 'unknown agent: maestr' "$tmp_root/override-invalid.err" >/dev/null || fail "wrapper should explain the invalid model override"
+[ ! -s "$invalid_override_sudo_log" ] || fail "wrapper should refuse invalid model overrides before calling sudo"
+
 
 cat >"$tmp_root/provider-runtime-invalid.json" <<'JSON'
 {

@@ -111,6 +111,8 @@ case "$context" in
       tests/pod-inside-nono/test_nono_secret_boundary_contract.sh
       tests/pod-inside-nono/test_opencode_secure_wrapper_contract.sh
       tests/pod-inside-nono/test_provider_enablement_sync_contract.sh
+      tests/pod-inside-nono/test_opencode_model_overrides_helper_contract.sh
+      tests/pod-inside-nono/test_opencode_config_precedence_regression.sh
       tests/pod-inside-nono/test_new_worktree.sh
       tests/pod-inside-nono/test_retire_worktree.sh
       tests/pod-inside-nono/test_managed_lane_registry.sh

@@ -9,6 +9,8 @@ secret_dir="${HUB_NONO_PROVIDER_SECRET_DIR:-/var/run/secrets/nono/providers}"
 secret_helper_sudo="${HUB_NONO_SECRET_HELPER_SUDO:-}"
 agent_user="${HUB_NONO_AGENT_USER:-}"
 provider_runtime_path="${OPENCODE_PROVIDER_RUNTIME_PATH:-$source_root/.config/opencode/provider-runtime.json}"
+model_overrides_path="${HUB_OPENCODE_MODEL_OVERRIDES_PATH:-/workspaces/dotfiles/state/hub/etc/model-overrides.json}"
+config_content_helper="$source_root/scripts/lib/opencode-config-content.py"
 raw_opencode_binary="${OPENCODE_RAW_BINARY:-/usr/local/bin/opencode-raw}"
 nono_binary="${HUB_NONO_BINARY:-/usr/local/bin/nono}"
 setpriv_binary="${HUB_NONO_SET_PRIV_BINARY:-/usr/bin/setpriv}"
@@ -67,6 +69,9 @@ if [ ! -r "$provider_runtime_path" ]; then
   printf 'refused: generated provider runtime output not found at %s\n' "$provider_runtime_path" >&2
   exit 1
 fi
+
+# Provider config plus host-local model overrides; refuses before any sudo call.
+opencode_config_content="$(python3 "$config_content_helper" --runtime "$provider_runtime_path" --overrides "$model_overrides_path" --agents-dir "$source_root/.config/opencode/agents")" || exit 1
 
 required_secret_keys="$({
   python3 - "$provider_runtime_path" <<'PY'
@@ -171,43 +176,5 @@ if [ ! -r "$profile_path" ]; then
   exit 1
 fi
 
-opencode_provider_runtime_json="$(python3 - "$provider_runtime_path" <<'PY'
-import json
-import sys
 
-runtime_path = sys.argv[1]
-
-with open(runtime_path, 'r', encoding='utf-8') as fh:
-    runtime = json.load(fh)
-
-if not isinstance(runtime, dict):
-    raise SystemExit('refused: generated provider runtime output must be a JSON object')
-
-allowed_keys = {'enabled_providers', 'provider'}
-runtime_keys = set(runtime.keys())
-if runtime_keys != allowed_keys:
-    raise SystemExit('refused: generated provider runtime output contains unsupported keys')
-
-enabled = runtime.get('enabled_providers')
-if not isinstance(enabled, list):
-    raise SystemExit('refused: generated provider runtime output must define enabled_providers as a list')
-
-for provider in enabled:
-    if not isinstance(provider, str) or not provider.strip():
-        raise SystemExit('refused: generated provider runtime output has invalid enabled_providers entry')
-
-provider_payload = runtime.get('provider')
-if not isinstance(provider_payload, dict):
-    raise SystemExit('refused: generated provider runtime output must define provider as an object')
-
-for provider_name, provider_config in provider_payload.items():
-    if not isinstance(provider_name, str) or not provider_name.strip():
-        raise SystemExit('refused: generated provider runtime output has invalid provider key')
-    if not isinstance(provider_config, dict):
-        raise SystemExit('refused: generated provider runtime output provider entries must be objects')
-
-print(json.dumps({'enabled_providers': enabled, 'provider': provider_payload}))
-PY
-)"
-
-exec sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-binary "$nono_binary" --profile "$profile_path" --agent-uid "$agent_uid" --agent-gid "$agent_gid" --runtime-home "$runtime_home" --runtime-xdg-config-home "$runtime_xdg_config_home" --runtime-xdg-cache-home "$runtime_xdg_cache_home" --runtime-xdg-data-home "$runtime_xdg_data_home" --runtime-xdg-state-home "$runtime_xdg_state_home" --opencode-xdg-state-home "$opencode_xdg_state_home" --runtime-path "$runtime_path" --runtime-bash-env "$runtime_bash_env" --opencode-config-content "$opencode_provider_runtime_json" --raw-opencode-binary "$raw_opencode_binary" -- "$@"
+exec sudo -n -- "$launch_helper" --setpriv-binary "$setpriv_binary" --nono-binary "$nono_binary" --profile "$profile_path" --agent-uid "$agent_uid" --agent-gid "$agent_gid" --runtime-home "$runtime_home" --runtime-xdg-config-home "$runtime_xdg_config_home" --runtime-xdg-cache-home "$runtime_xdg_cache_home" --runtime-xdg-data-home "$runtime_xdg_data_home" --runtime-xdg-state-home "$runtime_xdg_state_home" --opencode-xdg-state-home "$opencode_xdg_state_home" --runtime-path "$runtime_path" --runtime-bash-env "$runtime_bash_env" --opencode-config-content "$opencode_config_content" --raw-opencode-binary "$raw_opencode_binary" -- "$@"
