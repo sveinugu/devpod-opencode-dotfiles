@@ -105,7 +105,7 @@ The planned OpenCode upgrade may change this. Acceptance test 3 guards it.
 
 ## Tasks
 
-The wrapper runs live from the install-branch checkout (`/workspaces/dotfiles/main`), so edits there affect the next launch even before they are committed. Tasks 1, 2 and 4 are done in a managed worktree created with `bin/new-worktree`, and reach `main` only by merge.
+The wrapper runs live from the install-branch checkout (`$HUB_INSTALL_BRANCH_DIR`, currently `/workspaces/dotfiles/main`), so edits there affect the next launch even before they are committed. Tasks 1, 2 and 4 are done in a managed worktree created with `bin/new-worktree`, and reach `main` only by merge.
 
 1. Write failing tests 1, 2 and 3.
 2. Implement the merge helper and wrapper change; make tests 1, 2 and 3 pass.
