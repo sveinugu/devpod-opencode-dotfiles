@@ -8,7 +8,8 @@
  *
  * This plugin intercepts chat.params and patches the outgoing options for
  * affected models: remove `max_tokens`, copy token limit into
- * `max_completion_tokens`, and drop `reasoningSummary`.
+ * `max_completion_tokens`, drop `reasoningSummary`, and drop `temperature`
+ * (reasoning models reject a custom temperature).
  */
 
 const REASONING_MODEL_PREFIXES = ["gpt-5", "gpt-6", "o1", "o3", "o4"]
@@ -130,6 +131,12 @@ export const OpenAICompatibleFix = async () => {
 
       if (Object.hasOwn(options, "reasoningSummary")) changed.push("reasoningSummary")
       delete options.reasoningSummary
+
+      // Reasoning models reject a custom temperature ("Unsupported parameter").
+      if (output && output.temperature !== undefined) {
+        changed.push("temperature")
+        output.temperature = undefined
+      }
 
       // Tool calls on chat/completions are rejected by reasoning models unless
       // reasoning_effort is exactly "none"; absence of the param means "high".

@@ -127,6 +127,23 @@ async function withDebugEnv(value, run) {
     assert(!("max_tokens" in output.options), "max_tokens should be removed after fallback mapping")
   }
 
+  // Reasoning models reject temperature; it must be dropped (Copilot and UiO ids).
+  {
+    const output = { temperature: 0.15, maxOutputTokens: 64, options: {} }
+    await hook({ model: { providerID: "github-copilot", modelID: "gpt-6.1-terra" } }, output)
+    assert(output.temperature === undefined, "temperature should be dropped for Copilot reasoning model")
+  }
+  {
+    const output = { temperature: 0.2, maxOutputTokens: 64, options: {} }
+    await hook({ model: { modelID: "gpt-uio-yellow/gpt-5.4" } }, output)
+    assert(output.temperature === undefined, "temperature should be dropped for UiO reasoning model")
+  }
+  {
+    const output = { temperature: 0.3, maxOutputTokens: 64, options: {} }
+    await hook({ model: { modelID: "moonshotai/Kimi-K2.6" } }, output)
+    assert(output.temperature === 0.3, "non-reasoning model should keep temperature")
+  }
+
   // Non-reasoning model should not be patched.
   {
     const output = {
