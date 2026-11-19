@@ -96,6 +96,8 @@ for provider_name in ('gpt-uio-red', 'gpt-uio-yellow'):
         }
         if 'provider' in model:
             entry['provider'] = model['provider']
+        if 'limit' in model:
+            entry['limit'] = model['limit']
         provider_payload[provider_name]['models'][model_id] = entry
 
 copilot_policy = providers.get('github-copilot', {})
@@ -240,6 +242,46 @@ for forbidden in ('gpt-uio-red', 'gpt-uio-yellow', 'github-copilot'):
     if forbidden in provider_payload:
         raise SystemExit(f'{forbidden} should be absent from runtime provider payload when disabled in manifest')
 PY
+
+limit_policy="$tmp_root/provider-policy-limits.json"
+cat >"$limit_policy" <<'JSON'
+{
+  "supported_providers": {
+    "gpt-uio-yellow": {
+      "mode": "full-current-list",
+      "models": [
+        { "name": "GLM 5.3", "id": "Inferact/GLM-5.3-NVFP4", "limit": { "context": 1000000, "output": 32768 } },
+        { "name": "Gemma 4", "id": "google/gemma-4-31B-it" }
+      ]
+    }
+  }
+}
+JSON
+limit_manifest="$tmp_root/provider-enablement-limits.json"
+printf '{ "enabled_providers": ["gpt-uio-yellow"] }\n' >"$limit_manifest"
+
+"$sync_cmd" --manifest "$limit_manifest" --policy "$limit_policy" --runtime-output "$runtime_output" --verification-output "$verification_output" >/dev/null
+
+python3 - "$runtime_output" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], 'r', encoding='utf-8') as fh:
+    models = json.load(fh)['provider']['gpt-uio-yellow']['models']
+
+if models['Inferact/GLM-5.3-NVFP4'].get('limit') != {'context': 1000000, 'output': 32768}:
+    raise SystemExit('model limit must be passed through to the runtime provider payload')
+if 'limit' in models['google/gemma-4-31B-it']:
+    raise SystemExit('models without a policy limit must not get one')
+PY
+
+for bad_limit in '{ "context": 1000000 }' '{ "context": 0, "output": 32768 }' '{ "context": 1000, "output": 2000 }' '"1M"'; do
+  sed "s|\"limit\": { \"context\": 1000000, \"output\": 32768 }|\"limit\": $bad_limit|" "$limit_policy" >"$tmp_root/provider-policy-bad-limit.json"
+  if "$sync_cmd" --manifest "$limit_manifest" --policy "$tmp_root/provider-policy-bad-limit.json" --runtime-output "$runtime_output" --verification-output "$verification_output" >"$tmp_root/bad-limit.out" 2>&1; then
+    fail "sync command should refuse invalid model limit: $bad_limit"
+  fi
+  grep -F 'invalid model limit' "$tmp_root/bad-limit.out" >/dev/null || fail "sync command should explain invalid model limit: $bad_limit"
+done
 
 chmod 0400 "$runtime_output" "$verification_output"
 

@@ -94,6 +94,19 @@ def model_entries(name):
         raise SystemExit(f'refused: provider policy models must be an array: {name}')
     return models
 
+def model_limit(provider_name, model):
+    limit = model['limit']
+    valid = (
+        isinstance(limit, dict)
+        and set(limit) <= {'context', 'input', 'output'}
+        and {'context', 'output'} <= set(limit)
+        and all(isinstance(v, int) and not isinstance(v, bool) and v > 0 for v in limit.values())
+        and limit['output'] <= limit['context']
+    )
+    if not valid:
+        raise SystemExit(f'refused: invalid model limit for {provider_name}/{model.get("id")}: limit needs positive integer context and output (output <= context)')
+    return limit
+
 enabled = manifest.get('enabled_providers')
 if not isinstance(enabled, list):
     raise SystemExit('refused: provider enablement manifest must define enabled_providers as a list')
@@ -133,6 +146,8 @@ if provider_enabled('gpt-uio-red'):
         }
         if 'provider' in model:
             red_entry['provider'] = model['provider']
+        if 'limit' in model:
+            red_entry['limit'] = model_limit('gpt-uio-red', model)
         red_models[model_id] = red_entry
     provider_payload['gpt-uio-red'] = {
         'api': 'openai',
@@ -158,6 +173,8 @@ if provider_enabled('gpt-uio-yellow'):
         }
         if 'provider' in model:
             yellow_entry['provider'] = model['provider']
+        if 'limit' in model:
+            yellow_entry['limit'] = model_limit('gpt-uio-yellow', model)
         yellow_models[model_id] = yellow_entry
     provider_payload['gpt-uio-yellow'] = {
         'api': 'openai',
