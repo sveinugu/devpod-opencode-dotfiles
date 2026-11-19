@@ -3,7 +3,7 @@ name: managed-worktrees
 description: Resolve a managed bare-hub lane before dispatch, editing or branch operations.
 ---
 
-Resolve or create a dedicated checkout before dispatching scoped authoring. `/workspaces/dotfiles/main` is the hub's default checkout. Child checkouts use `repos/<repo>/<default-branch>` and `repos/<repo>/work/<branch>`. Use `bin/clone-repo` and `bin/new-worktree` — do not substitute raw Git commands to avoid helper requirements. Consult `state/hub/etc/install.env` for the install branch. In the secured DevPod, the user applies host-side changes.
+Resolve or create a dedicated checkout before dispatching scoped authoring. `/workspaces/dotfiles/main` is the hub's default checkout. Child checkouts use `repos/<repo>/<default-branch>` and `repos/<repo>/work/<branch>`. Use `bin/clone-repo` and `bin/new-worktree` to create checkouts, and `bin/retire-worktree` to safely remove them — do not substitute raw Git commands to avoid helper requirements. Consult `state/hub/etc/install.env` for the install branch. In the secured DevPod, the user applies host-side changes.
 
 Resolve intent in order from validated lane-qualified session, artifact paths, distinguishing user text, then explicit lane/branch/worktree names. Sibling lanes sharing an artifact are separate targets. Ask if ambiguous.
 

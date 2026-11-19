@@ -181,8 +181,12 @@ managed_cleanup_collect_commit_divergence_risk() {
   fi
 
   if [ "$upstream_available_value" != 'yes' ]; then
-    risk_found='yes'
-    printf 'loss check: unable to prove upstream safety\n'
+    if [ -n "$comparison_ref_value" ]; then
+      printf 'note: upstream branch not found, but using %s for safety check\n' "$comparison_ref_value"
+    else
+      risk_found='yes'
+      printf 'loss check: unable to prove upstream safety\n'
+    fi
   fi
 
   if [ -n "$comparison_ref_value" ]; then
