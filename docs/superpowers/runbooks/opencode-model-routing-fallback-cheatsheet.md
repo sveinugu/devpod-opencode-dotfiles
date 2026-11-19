@@ -4,7 +4,7 @@ This runbook is a fast operational guide for choosing agent models and switching
 
 ## Scope
 
-Paths are relative to the repository root; the install branch is linked to `~/.config/opencode`.
+Paths are relative to the repository root; the install branch's `.config/opencode` is linked to `~/.config/opencode`.
 
 - Target routing (committed): `.config/opencode/agents/*.md` and `.config/opencode/opencode.jsonc`.
 - UiO model list and context/output limits (committed): `.config/opencode/provider-policy.jsonc`, generated into `provider-runtime.json` by `bin/sync-provider-enablement`.
@@ -37,7 +37,7 @@ Paths are relative to the repository root; the install branch is linked to `~/.c
 
 ### UiO availability and locality
 
-- **Local** (educloud or NTNU servers; preferred for high-volume and utility traffic): `Gemma 4`, `Qwen 3.8` (educloud); `GPT-OSS 120B`, `Kimi K2.6`, `Mistral Medium 3.5`, `GLM 5.3`, `NorwAI Magistral` (NTNU).
+- **Local** (educloud or NTNU servers; preferred for high-volume and utility traffic): `Gemma 4`, `Qwen 3.8` (educloud); `GPT-OSS 120B`, `Kimi K2.6`, `Mistral Medium 3.5`, `GLM 5.3`, `NorwAI Magistral` (NTNU). `NorMistral 11B` and the E5 embedding model are UiO models with no stated location.
 - **Hosted OpenAI** (`gpt-5`, `gpt-5-mini`, `gpt-5.1`, `gpt-5.4`, `gpt-6-luna`, `gpt-6.1-sol`, `gpt-6.1-terra`): not local. Whenever a GPT model is the right choice, prefer the UiO GPT model over the Copilot GPT equivalent. Which family to use (Claude, GPT or other) is a separate per-role choice.
 - Each UiO model has its own monthly pool. Current depletion is recorded only in the host-local overrides file (see "Temporary switches").
 - `MiniMax M3` is no longer available; do not reference it.
@@ -48,11 +48,12 @@ Paths are relative to the repository root; the install branch is linked to `~/.c
 > Uses GitHub AI credits (1 credit = $0.01), billed per token, not UiO token pools. There are no per-request multipliers on the usage-based plans.
 > Prices are USD per 1M tokens, from GitHub's "Models and pricing for GitHub Copilot" page (fetched 2026-11-19); re-check it before relying on them, especially after promo end dates.
 > Anthropic models also have a cache-write cost: Haiku 5.5 0.125, Sonnet 5.5 2.50, Opus 5.5 5.00.
+> Context and max output are the Copilot defaults as observed; several models offer an extended context of up to about 1M tokens at long-context prices. The 265,536 context for Gemini 3.8 Flash and Gemini 4 Argon is unverified.
 > The provider policy allows all Copilot models (`mode: all` in `provider-policy.jsonc`); the table below reflects the observed catalog, not a repo-enforced allowlist. Your org may enable a subset.
 
 | Model ID | Friendly name | AA Index | Context (tokens) | Max output (tokens) | Input $ | Cached in $ | Output $ | Notes |
 |----------|---------------|----------|------------------|---------------------|---------|-------------|----------|-------|
-| github-copilot/claude-haiku-5.5 | Claude Haiku 5.5 | 36 | 200,000 | 100,000 | 0.10 | 0.01 | 0.50 | Anthropic; lightweight; >100K input tier is 0.50 / 0.05 / 2.50 |
+| github-copilot/claude-haiku-5.5 | Claude Haiku 5.5 | 36 | 200,000 | 100,000 | 0.10 | 0.01 | 0.50 | Anthropic; lightweight; >100K input tier is 0.50 / 0.05 / 2.50, cache write 0.625 |
 | github-copilot/claude-sonnet-5.5 | Claude Sonnet 5.5 | 55 | 328,000 | 128,000 | 2.00 | 0.10 | 10.00 | Anthropic; versatile; adaptive thinking |
 | github-copilot/claude-sonnet-5 | Claude Sonnet 5 | n/a | 264,000 | 64,000 | 2.00 | 0.20 | 10.00 | Anthropic; versatile; max thinking budget 32,000 |
 | github-copilot/claude-opus-5.5 | Claude Opus 5.5 | 59 | 328,000 | 128,000 | 4.00 | 0.20 | 20.00 | Anthropic; powerful; adaptive thinking |
@@ -83,7 +84,7 @@ Documented by GitHub but not seen in the observed catalog (verify availability b
 - `claude-fable-5`, `claude-fable-5.1`, `claude-fable-5.2` 8.00-10.00 / 0.20-1.00 / 40.00-50.00 (Anthropic retains data by default; do not use for sensitive work)
 - `gemini-4-neon` 3.00 / 0.15 / 15.00; `grok-4.5` 2.00 / 0.50 / 6.00; `kimi-k3` 3.00 / 0.30 / 15.00; `gpt-5.4-nano` 0.20 / 0.02 / 1.25
 
-Cost tiers (input / output per 1M): **cheap** `gpt-6-luna`, `claude-haiku-5.5`, `mai-code-2-flash` (<= 0.10 / 0.50); **mid** `gpt-6.1-terra`, `claude-sonnet-5.5`, `gpt-6.1-sol`, `gpt-6.2-sol`, `gemini-4-hydrogen` (1-2 / 5-10); **premium** `claude-opus-5.5`, `gpt-5.6-sol` (4 / 20); **avoid** the Astra models (8-10 / 40-50).
+Cost tiers, examples only (input / output per 1M): **cheap** `gpt-6-luna`, `claude-haiku-5.5`, `mai-code-2-flash` (<= 0.10 / 0.50); **mid** `gpt-6.1-terra`, `claude-sonnet-5.5`, `gpt-6.1-sol`, `gpt-6.2-sol`, `gemini-4-hydrogen` (1-2 / 5-10); **premium** `claude-opus-5.5`, `gpt-5.6-sol` (4 / 20); **avoid** the Astra models (8-10 / 40-50).
 
 ## Important runtime note
 
@@ -91,7 +92,12 @@ OpenCode loads config, agent files and model overrides once, at launch. Restart 
 
 There is no automatic model fallback. Each agent has one active `model:`; the `#2` / `#3` comments document the fallback chain.
 
-Check the effective model of an agent with `opencode debug agent <name>`.
+Check effective models:
+
+- **Your shell (as `vscode`):** `opencode debug agent <name>` goes through the wrapper, reads the current overrides file and prints the `model override:` lines.
+- **Inside an agent session (nono):** `opencode` is not on PATH. `opencode-raw debug agent <name> --pure` shows only the config that session started with, not the current overrides file. To preview what the next launch will apply, run:
+  `python3 scripts/lib/opencode-config-content.py --runtime .config/opencode/provider-runtime.json --overrides /workspaces/dotfiles/state/hub/etc/model-overrides.json --agents-dir .config/opencode/agents`
+  from the install-branch checkout.
 
 ---
 
@@ -116,22 +122,24 @@ File: `/workspaces/dotfiles/state/hub/etc/model-overrides.json` (outside every c
 }
 ```
 
-- `agents` keys: an agent file name (without `.md`) or a built-in (`build`, `plan`, `general`, `explore`, `title`, `summary`, `compaction`).
+A depleted pool needs an override for **every** role whose `#1` is that model; see "UiO pool distribution" below. For example, Gemma 4 needs `title`, `summary` and `defaults.small_model`; GLM 5.3 needs `general`, `compaction` and `defaults.model`. The example above covers only part of the Gemma case.
+
+- `agents` keys: an agent file in the install-branch checkout's `.config/opencode/agents/` (name without `.md`; a new agent must be merged into the install branch before it can be overridden) or a built-in (`build`, `plan`, `general`, `explore`, `title`, `summary`, `compaction`).
 - `defaults` keys: `model` and `small_model` (the top-level defaults in `opencode.jsonc`).
 - Each entry needs `model` and `reason`; `until` (`YYYY-MM-DD`, UTC) is optional. On or after `until`, the entry is ignored with a warning.
 - Pick the replacement from the role's `#2` / `#3` comments.
 - At launch the wrapper prints one `model override:` line per active entry on stderr. The TUI may hide it; use `opencode debug agent <name>`.
-- The wrapper refuses to launch on invalid JSON, unknown keys, unknown agent names, a provider that is not enabled, or a UiO model that is not in the provider list. Copilot model names are not checked; a typo fails on first use.
+- The wrapper refuses to launch on invalid JSON, duplicate or unknown keys, unknown agent names, a malformed entry (missing `model` or `reason`, bad `until`, non-literal `provider/model`), a provider that is not enabled, or a UiO model that is not in the provider list. Copilot model names are not checked; a typo fails on first use.
 - Agents can write this file. Review it if routing looks unexpected.
 
 ---
 
 ## Design rules
 
-1. **Fallbacks keep the quality tier and switch quota pool.** Quality-critical roles fall back within the strong group (AA Index 51-59 at maximum reasoning) and alternate between a UiO pool and the shared Copilot pool. Local UiO models (AA Index 32 or lower, or unscored) serve high-volume and utility roles.
+1. **Fallbacks keep the quality tier and switch quota pool.** Quality-critical roles (`planner`, `senior-implementer`, `code-reviewer`, `docs-writer`, both docs reviewers) fall back within the strong group (AA Index 51-59 at maximum reasoning) and alternate between a UiO pool and the shared Copilot pool. Local UiO models (AA Index 32 or lower, or unscored) serve high-volume and utility roles. `brainstormer`, `policy-implementer` and `maestro` start on unscored or mid-tier UiO GPT to spread quota. At the configured `high`/`medium` settings scores are lower and the order can change: Sonnet 5.5 at `high` scores 41.5, below `gpt-6.2-sol` at `high` (54.9).
 2. **Distribute UiO pools.** Each UiO pool is #1 for different roles, so no single pool drains first. `plan` and `build` are rarely used and are not counted when spreading UiO quota; they mirror `planner` and `senior-implementer`.
 3. **Claude for coding.** `senior-implementer` defaults to Sonnet 5.5. Opus 5.5 is a manual escalation for hard tasks (2x Sonnet's price). `junior-implementer` uses Haiku 5.5 (AA Index 36, cheap).
-4. **Review always uses the opposite model family from the author.** Claude-written code is reviewed by `code-reviewer` (GPT). Specs, plans and docs go to `docs-reviewer-gpt` when the author ran on Claude and to `docs-reviewer-claude` when the author ran on GPT or another family. If `senior-implementer` ran on a GPT fallback, switch `code-reviewer` to Copilot `claude-sonnet-5.5` (or `claude-opus-5.5`) for that review.
+4. **Review always uses the opposite model family from the author.** Claude-written code is reviewed by `code-reviewer` (GPT). Specs, plans and docs go to `docs-reviewer-gpt` when the author ran on Claude and to `docs-reviewer-claude` when the author ran on GPT or another family. If `senior-implementer` ran on a GPT fallback, switch `code-reviewer` to Copilot `claude-sonnet-5.5` (or `claude-opus-5.5`) for that review with an override and a restart.
 5. **UiO GPT is preferred over the same GPT model on Copilot.** Copilot GPT is a cross-pool fallback. At the top of the range, `gpt-6.2-sol` (57) costs half of Opus (59); `gpt-6.1-sol` and Sonnet 5.5 cost the same.
 6. **Copilot is #1 only where quality matters more than volume:** `planner`, `senior-implementer`, `junior-implementer` (Haiku), `docs-writer`, `docs-reviewer-claude`.
 
@@ -141,11 +149,11 @@ File: `/workspaces/dotfiles/state/hub/etc/model-overrides.json` (outside every c
 
 ### Hard coding task (senior)
 - Symptoms: repeated failed edits, weak refactor strategy, brittle debug loops.
-- Action: override `senior-implementer` with `github-copilot/claude-opus-5.5`, then remove the override when the task is done.
+- Action: override `senior-implementer` with `github-copilot/claude-opus-5.5`, then remove the override when the task is done. Overrides apply only at launch, so this restarts OpenCode and ends the coordinating session; plan the switch between tasks.
 
 ### A quota pool is depleted or rate-limited
-- Action: add an override for each affected role, using its `#2` (always a different pool from `#1`). If `#2` is also depleted, use `#3`.
-- Lowest RPM limits: `gpt-6.1-sol` (100), Kimi K2.6 (120), `gpt-6.1-terra` (120), GLM 5.3 (200). Parallel agents saturate these first.
+- Action: add an override for each affected role, using its `#2` (a different pool from `#1`, except `docs-reviewer-claude`, where both are Copilot). If `#2` is also depleted, use `#3`.
+- Lowest RPM limits: `gpt-6.1-sol` (100), Kimi K2.6, `gpt-6.1-terra`, GPT-OSS 120B and NorwAI Magistral (120), `gpt-6-luna` (150), GLM 5.3 (200), `gpt-5.4` (250). Parallel agents saturate these first.
 
 ### Copilot credit pressure
 - Action: override Copilot-first roles with their UiO `#2` where that pool has quota; otherwise use a local model (GLM 5.3, Kimi K2.6).
