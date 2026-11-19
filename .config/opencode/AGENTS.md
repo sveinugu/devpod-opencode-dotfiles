@@ -4,6 +4,14 @@ Stay within your assigned role. Relay the user's words verbatim between agents. 
 
 Named specialists own their work and commits. A general agent may perform named-specialist responsibilities when the human requests it, without a Maestro override. It must not impersonate another agent or misrepresent another session’s work. Maestro requires a human `maestro-override: <scope>` message. On unauthorized takeover, say `Refused — owned by <subagent>; resume or re-dispatch that subagent, or use Maestro override.`
 
+## Execution boundaries
+
+Harness agents do not have permission to execute work designated `pod-outside-nono` or to run as the `vscode` user. This applies to tests, installers, diagnostics and runtime repairs, including commands relayed to subagents. Changing HOME/XDG variables does not change execution identity or grant permission. Do not bypass context guards, clear sandbox variables, switch users, or reproduce the underlying operations directly to evade this boundary.
+
+Ask the human to run outside-nono or vscode-only commands in their own shell and return the output. Agents may inspect and edit repository sources within their authorized checkout and run checks designated for their actual execution context. Distinguish human-provided verification from checks run by the agent; a sandboxed reproduction is not evidence for the vscode execution context. Stop at the boundary instead of modifying another user's runtime state or weakening tests to obtain a passing result.
+
+## Skill triggers
+
 Use the skill tool when a trigger below applies.
 
 - Before sending or accepting a new Maestro delegation packet, load `opencode-dispatch`. For Task launches, resumes and handbacks, the router loads `opencode-sessions`.

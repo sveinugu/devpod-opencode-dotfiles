@@ -21,6 +21,8 @@ bash tests/run.sh pod-inside-nono
 
 - Host-only bootstrap tests fail fast with a clear message if run inside nono.
 - `pod-outside-nono/test_nono_blocking_matrix_contract.sh` fails fast when run inside nono by design.
+- Harness agents must not execute `pod-outside-nono` tests or commands as `vscode`; ask the human to run them in their own outside-nono shell and return the output. Changing HOME/XDG, bypassing guards or running the underlying commands directly does not authorize that execution context. Canonical policy: `.config/opencode/AGENTS.md`.
+- The Nono blocking matrix requires an installed, verified `nolabs-ai/opencode-v1` pack in the human's runtime. Pack installation and ownership repairs are operator prerequisites, not test-side self-healing.
 - Wrapper-specific behavior remains covered in dedicated wrapper tests (`test_opencode_secure_wrapper_contract.sh`, `test_nono_identity_integration_contract.sh`).
 
 - `host/test_resolve_git_identity.sh` remains host-context because it validates interactive global git identity prompts using pseudo-TTY flows and isolated HOME state.

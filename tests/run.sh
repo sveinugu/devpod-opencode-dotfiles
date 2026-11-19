@@ -84,6 +84,7 @@ case "$context" in
       tests/pod-inside-nono/test_maestro_intent_preservation_policy.sh
       tests/pod-inside-nono/test_p1_docs_orientation.sh
       tests/pod-inside-nono/test_clean_code_policy_contract.sh
+      tests/pod-inside-nono/test_execution_boundary_policy_contract.sh
       tests/pod-inside-nono/test_multi_question_interaction_policy.sh
       tests/pod-inside-nono/test_devspace_credential_phasing_security_contract.sh
       tests/pod-inside-nono/test_devspace_full_plan_consistency.sh
