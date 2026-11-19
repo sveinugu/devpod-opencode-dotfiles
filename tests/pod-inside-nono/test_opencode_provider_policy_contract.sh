@@ -84,6 +84,39 @@ def assert_provider(name, expected_mode, expected_models):
     if actual != expected_models:
         raise SystemExit(f'{name} model list mismatch: {actual!r}')
 
+# Context = UiO-served context; output = min(vendor max output, 32768, context // 4).
+# Vendor output limits from models.dev (2026-11-19); NorMistral and NorwAI are unlisted.
+expected_limits = {
+    'google/gemma-4-31B-it': (131072, 32768),
+    'gpt-5': (64000, 16000),
+    'gpt-5-mini': (64000, 16000),
+    'gpt-5.1': (400000, 32768),
+    'gpt-5.4': (128000, 32000),
+    'gpt-oss-120b': (64000, 16000),
+    'Inferact/GLM-5.3-NVFP4': (1000000, 32768),
+    'moonshotai/Kimi-K2.6': (160000, 32768),
+    'mistralai/Mistral-Medium-3.5-128B': (256000, 32768),
+    'norallm/normistral-11b-thinking': (65536, 16384),
+    'NorwAI/NorwAI-Magistral-24B-reasoning': (40960, 10240),
+    'Qwen/Qwen3.8-27B-FP8': (262144, 32768),
+    'gpt-6-luna': (1050000, 32768),
+    'gpt-6.1-sol': (1050000, 32768),
+    'gpt-6.1-terra': (1050000, 32768),
+}
+embedding_models = {'intfloat/multilingual-e5-large-instruct'}
+
+for provider_name in ('gpt-uio-red', 'gpt-uio-yellow'):
+    for m in providers[provider_name].get('models', []):
+        limit = m.get('limit')
+        if m['id'] in embedding_models:
+            if limit is not None:
+                raise SystemExit(f'{provider_name}/{m["id"]}: embedding model must not declare a chat limit')
+            continue
+        expected = expected_limits.get(m['id'])
+        actual = (limit or {}).get('context'), (limit or {}).get('output')
+        if expected is None or actual != expected:
+            raise SystemExit(f'{provider_name}/{m["id"]}: limit mismatch: {actual!r} != {expected!r}')
+
 assert_provider('gpt-uio-red', 'full-current-list', red_expected)
 assert_provider('gpt-uio-yellow', 'full-current-list', yellow_expected)
 assert_provider('github-copilot', 'all', copilot_expected)
