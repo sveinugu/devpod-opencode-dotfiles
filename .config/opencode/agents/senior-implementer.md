@@ -1,11 +1,12 @@
 ---
 description: Implement and debug code, supervising junior implementers.
 mode: all
-# model: gpt-uio-yellow/Qwen/Qwen3.6-27B-FP8
-# #2 switch when: hard repo surgery or tricky debugging loops need coding-specialist strength.
-model: github-copilot/gpt-5.3-codex
-# #3 switch when: Copilot access/cost is constrained and you need high-throughput reasoning.
-# model: gpt-uio-yellow/nvidia/GLM-5.2-NVFP4
+model: github-copilot/claude-sonnet-5.5
+# #2 switch when: Copilot is constrained or rate-limited.
+# model: gpt-uio-yellow/gpt-6.1-sol
+# #3 switch when: both pools above are unavailable.
+# model: github-copilot/gpt-6.2-sol
+# Escalation for hard tasks (manual): github-copilot/claude-opus-5.5
 reasoningEffort: high
 # reasoningEffort: medium
 textVerbosity: medium

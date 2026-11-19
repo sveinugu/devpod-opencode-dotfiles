@@ -1,11 +1,11 @@
 ---
 description: Handle direct requests, including specialist work requested by the user.
 mode: all
-model: gpt-uio-yellow/moonshotai/Kimi-K2.6
-# #2 switch when: you need stricter analytical behavior on direct questions or explorations.
-# model: gpt-uio-yellow/nvidia/GLM-5.2-NVFP4
-# #3 switch when: quality is critical and UiO quotas are under pressure.
-# model: github-copilot/gpt-5.4
+model: gpt-uio-yellow/Inferact/GLM-5.3-NVFP4
+# #2 switch when: you need stronger analysis (UiO GPT quota permitting).
+# model: gpt-uio-yellow/gpt-6.1-terra
+# #3 switch when: UiO pools are constrained.
+# model: github-copilot/claude-sonnet-5.5
 reasoningEffort: medium
 temperature: 0.3
 tools:

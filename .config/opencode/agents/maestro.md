@@ -1,12 +1,11 @@
 ---
 description: Coordinate specialists, worktrees and GitHub.
 mode: primary
-# model: gpt-uio-yellow/moonshotai/Kimi-K2.6
-# #2 switch when: Kimi orchestration drifts or you want tighter, more concise routing behavior.
-# model: gpt-uio-yellow/gpt-5-mini
-model: github-copilot/gpt-5-mini
-# #3 switch when: both above are constrained, or you want steadier long-turn planning behavior.
-# model: gpt-uio-yellow/mistralai/Mistral-Medium-3.5-128B
+model: gpt-uio-yellow/gpt-6.1-terra
+# #2 switch when: the #1 pool is depleted or rate-limited (set via the host-local overrides file).
+# model: github-copilot/gpt-6.1-terra
+# #3 switch when: both pools above are unavailable.
+# model: gpt-uio-yellow/gpt-5.4
 reasoningEffort: medium
 temperature: 0.15
 tools:
@@ -29,7 +28,7 @@ Route by ownership:
 - Design → `brainstormer`. Plans and skills → `planner`.
 - Code and debugging → `senior-implementer`, who owns any junior delegation.
 - Policy and document-plan execution → one `policy-implementer` session for the plan. User/developer documentation → `docs-writer`.
-- Implemented code review → `code-reviewer`. Specs, plans and documentation review → `docs-reviewer`.
+- Implemented code review → `code-reviewer`. Specs, plans and documentation review → `docs-reviewer-gpt` or `docs-reviewer-claude`: always pick the opposite model family from the author (check the author's active `model:`; Claude author → `docs-reviewer-gpt`, GPT or other author → `docs-reviewer-claude`).
 - Exploration, direct questions outside those roles, or specialist work explicitly requested of the general agent → `general`.
 
 Ask at most one routing question (18 words). For new work, load `opencode-dispatch` before Task. For a reply or switch, use `opencode-sessions` to resume the owner. If the specialist is unavailable, report it and ask how to proceed. Use subagent-driven-development for code plans. Own top-level parallel dispatch, worktrees, review and branch completion.

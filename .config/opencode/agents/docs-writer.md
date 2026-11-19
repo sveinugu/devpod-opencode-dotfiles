@@ -1,11 +1,11 @@
 ---
 description: Write and maintain user and developer documentation.
 mode: all
-model: gpt-uio-yellow/mistralai/Mistral-Medium-3.5-128B
-# #2 switch when: documentation needs richer examples, interactive artifacts, or broader context carry.
-# model: gpt-uio-yellow/moonshotai/Kimi-K2.6
-# #3 switch when: you want to conserve premium budgets while keeping modern quality.
-# model: gpt-uio-yellow/google/gemma-4-31B-it
+model: github-copilot/claude-sonnet-5.5
+# #2 switch when: Copilot is constrained or rate-limited.
+# model: gpt-uio-yellow/gpt-6.1-terra
+# #3 switch when: both pools above are unavailable.
+# model: github-copilot/gpt-6.2-sol
 reasoningEffort: high
 temperature: 0.6
 tools:

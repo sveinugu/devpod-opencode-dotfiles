@@ -1,12 +1,11 @@
 ---
 description: Author implementation plans and skills.
 mode: all
-# model: gpt-uio-yellow/gpt-5.1
-# #2 switch when: GPT-5.1 quota or latency is tight.
-# model: gpt-uio-yellow/gpt-5.4
-model: github-copilot/gpt-5.4
-# #3 switch when: UiO GPT budgets are nearly depleted but you still need top planning quality.
-# model: github-copilot/gpt-5.4
+model: github-copilot/claude-opus-5.5
+# #2 switch when: Copilot is constrained or rate-limited.
+# model: gpt-uio-yellow/gpt-6.1-sol
+# #3 switch when: both pools above are unavailable.
+# model: github-copilot/gpt-6.2-sol
 reasoningEffort: high
 temperature: 0.2
 tools:

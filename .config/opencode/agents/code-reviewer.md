@@ -1,11 +1,12 @@
 ---
 description: Review implemented code.
 mode: subagent
-model: gpt-uio-yellow/Qwen/Qwen3.6-27B-FP8
-# #2 switch when: review needs stronger long-context analytical consistency.
-# model: gpt-uio-yellow/nvidia/GLM-5.2-NVFP4
-# #3 switch when: review requires advanced coding-specific diagnosis.
-# model: github-copilot/gpt-5.3-codex
+model: gpt-uio-yellow/gpt-6.1-sol
+# #2 switch when: the #1 pool is depleted or rate-limited (set via the host-local overrides file).
+# model: github-copilot/gpt-6.2-sol
+# #3 switch when: both pools above are unavailable.
+# model: gpt-uio-yellow/gpt-6.1-terra
+# Opposite family: when the author ran on a GPT fallback, review with github-copilot/claude-sonnet-5.5 (or claude-opus-5.5).
 reasoningEffort: high
 temperature: 0.1
 tools:

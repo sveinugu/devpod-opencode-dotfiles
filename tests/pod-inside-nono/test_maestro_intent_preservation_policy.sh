@@ -11,10 +11,12 @@ router="$policy/agents/maestro.md"
 sessions="$policy/skills/opencode-sessions/SKILL.md"
 override="$policy/skills/maestro-override/SKILL.md"
 
-for role in brainstormer planner senior-implementer policy-implementer docs-writer code-reviewer docs-reviewer general; do
+for role in brainstormer planner senior-implementer policy-implementer docs-writer code-reviewer docs-reviewer-gpt docs-reviewer-claude general; do
   test -s "$policy/agents/$role.md"
   rg -qF -- "\`$role\`" "$router" || { echo "Missing route to $role" >&2; exit 1; }
 done
+test ! -e "$policy/agents/docs-reviewer.md" || { echo 'Obsolete docs-reviewer agent still present' >&2; exit 1; }
+rg -qF 'opposite model family from the author' "$router" || { echo 'Missing opposite-family review routing' >&2; exit 1; }
 for skill in opencode-dispatch opencode-sessions maestro-override; do
   rg -qF -- "\`$skill\`" "$router"
   rg -qxF "name: $skill" "$policy/skills/$skill/SKILL.md"

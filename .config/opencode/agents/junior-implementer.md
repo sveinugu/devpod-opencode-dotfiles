@@ -1,11 +1,11 @@
 ---
 description: Implement a task assigned by a senior implementer.
 mode: subagent
-model: gpt-uio-yellow/gpt-oss-120b
-# #2 switch when: GPT-OSS output quality is uneven on the task.
-# model: gpt-uio-yellow/nvidia/GLM-5.2-NVFP4
-# #3 switch when: you want cleaner implementation style and stronger correctness.
-# model: gpt-uio-yellow/Qwen/Qwen3.6-27B-FP8
+model: github-copilot/claude-haiku-5.5
+# #2 switch when: Copilot is constrained or Haiku quality is uneven on the task.
+# model: gpt-uio-yellow/moonshotai/Kimi-K2.6
+# #3 switch when: Kimi is rate-limited (120 RPM).
+# model: gpt-uio-yellow/Inferact/GLM-5.3-NVFP4
 reasoningEffort: medium
 temperature: 0.25
 tools:

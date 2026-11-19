@@ -1,11 +1,11 @@
 ---
-description: Review specs, plans and documentation.
+description: Review specs, plans and documentation written by a Claude-backed author (GPT reviewer).
 mode: subagent
-model: gpt-uio-yellow/gpt-oss-120b
-# #2 switch when: very long diff/context windows dominate and you need stronger long-context analytical consistency.
-# model: gpt-uio-yellow/nvidia/GLM-5.2-NVFP4
-# #3 switch when: precision and consistency outweigh budget concerns.
-# model: github-copilot/gpt-5.4
+model: gpt-uio-yellow/gpt-6.1-sol
+# #2 switch when: the #1 pool is depleted or rate-limited (set via the host-local overrides file).
+# model: github-copilot/gpt-6.2-sol
+# #3 switch when: both pools above are unavailable.
+# model: gpt-uio-yellow/gpt-6.1-terra
 reasoningEffort: high
 temperature: 0.1
 tools:
