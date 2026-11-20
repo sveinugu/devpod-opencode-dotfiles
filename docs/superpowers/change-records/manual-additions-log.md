@@ -492,6 +492,12 @@ Coverage: the 50 commits in `b540e1c..07f048d`, reviewed against the resulting s
 - change: remove 15 recurring prose/historical-artifact tests and trim prose assertions from mixed tests. Add a read-only `static` suite for harness discovery and permissions; keep executable behavior/configuration tests and their runtime guards. Prose changes use semantic review and relevant structural checks rather than exact sentences, headings or table rows and a manufactured red/green cycle.
 - rationale: reduce duplicate policy maintenance while retaining useful automated verification. `bash tests/run.sh static` runs on host or pod; runtime suites retain their existing context requirements.
 
+### 2026-11-20 · `b22988d` — Committed-work log maintenance responsibility
+
+- scope: `.config/opencode/AGENTS.md`, `docs/superpowers/AGENTS.md`, `CLAUDE.md`, this log
+- change: require authors to assess and document qualifying committed operational, security, harness/workflow and verification-strategy additions after the implementation commit and before handoff. Entries require actual commit references; uncommitted work and pending placeholders are excluded. Use a follow-up docs-only update to reference the implementation hash.
+- rationale: keep changes traceable without logging routine wording fixes, behavior-preserving repairs or log-only updates. The requirement applies to this dotfiles repository, not managed child repositories.
+
 ## Operator reminder
 
 After updates affecting `Dockerfile` or deployment manifests:
