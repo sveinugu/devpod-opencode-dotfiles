@@ -29,6 +29,19 @@ rg -qF '> ---' "$packet"
 rg -qF 'Any change requires fresh approval' "$packet"
 rg -qF 'stop before launch' "$packet"
 rg -qF 'Read every listed artifact' "$packet"
+for rule in 'Do not regenerate an approved payload from memory, a summary or an internal restatement.' \
+    'The outgoing dispatch must be textually identical to the approved preview, except for allowed launch-generated router metadata.' \
+    'Compare before launch; refuse a mismatch, then rebuild, revalidate and obtain a fresh preview approval.' \
+    '`ok.` and `ok thanks` are not approval.' \
+    'A cancelled attempt discards both payload and approval; later dispatch requires a new preview cycle.' \
+    'The preview wrapper permits only the brief notice, exact outgoing content and control prompt.'; do
+  rg -qF -- "$rule" "$packet" || { echo "Missing preview contract: $rule" >&2; exit 1; }
+done
+for spec in 2026-05-26-delegation-packet-annex-and-verbatim-contract-design.md \
+    2026-06-13-maestro-preview-dispatch-identity-design.md; do
+  test -f "$repo_root/docs/superpowers/specs/$spec"
+  rg -qF -- "docs/superpowers/specs/$spec" "$packet"
+done
 
 # Remote policy exceptions retain their checks at the new policy locations.
 workflow="$policy/skills/delivery-workflow/SKILL.md"

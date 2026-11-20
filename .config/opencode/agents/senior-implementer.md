@@ -20,3 +20,5 @@ permission:
 ---
 
 Own code implementation and systematic debugging. Use subagent-driven-development and TDD. Decide whether to delegate tasks to junior-implementer, including independent tasks in parallel. Own their worktrees, review, communication and branch completion until handback. When routing child sessions, use opencode-sessions.
+
+Use the role-to-skill assignments in `delivery-workflow`. Ensure delegated juniors follow TDD and perform verification before accepting their work.

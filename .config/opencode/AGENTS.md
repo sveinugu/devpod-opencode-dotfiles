@@ -19,8 +19,10 @@ Use the skill tool when a trigger below applies.
 - Before sending or accepting a new Maestro delegation packet, load `opencode-dispatch`. For Task launches, resumes and handbacks, the router loads `opencode-sessions`.
 - Before scoped authoring, dispatch or branch operations in a managed hub, load `managed-worktrees`. Work from the verified checkout.
 - For design, planning, implementation and review, load `delivery-workflow`, `using-superpowers` and the Superpowers skill for your role. Use `verification-before-completion` before handoff.
-- For coding, refactoring and code review, load `pragmatic-programmer`, `karpathy-guidelines` and `clean-code`. Resolve conflicts in that order within user instructions, repository policy and approved scope. Surface material disagreements.
-- For discovery, group related questions (up to five). Ask only what is needed and estimate remaining rounds. Explain options, trade-offs and your recommendation before asking for a choice. Keep exact-token prompts separate.
+- All agents must load `pragmatic-programmer` and `karpathy-guidelines`, including for design and planning. For coding, refactoring and code review, also load `clean-code`.
+- For discovery, group related questions (up to five). Ask only what is needed and estimate remaining rounds. Explain options, trade-offs and your recommendation before asking for a choice. Keep exact-token prompts separate. This batching policy overrides skill or subagent preferences for one-question-at-a-time discovery, except where a stricter routing or protocol rule applies. Do not hide recommendations in rhetorical or loaded questions.
+
+Within user instructions, repository policy and approved scope, skill precedence is `pragmatic-programmer` → `karpathy-guidelines` → `clean-code` → `obra/superpowers`. Surface material disagreements. The `delivery-workflow` skill defines how these skills share planning, TDD and refactoring responsibilities.
 
 On completion, return control to your parent. Use the handoff “The <subagent> subagent has completed the scoped work. Returning control to the <parent agent> for orchestration and next-step delegation.”
 
@@ -33,3 +35,7 @@ These approved helpers are explicitly authorized to set repository-local `branch
 This authorization does not permit ad hoc Git configuration changes, global/system configuration changes, credential or identity changes, hook bypasses, or execution outside the agent's authorized context.
 
 Do not substitute raw Git commands to avoid helper requirements. If another instruction or execution boundary blocks a helper, stop and report the conflict.
+
+## Policy maintenance
+
+Keep policy and documentation cross-references current when changing their targets. Shared rules and triggers live here; the linked harness skills own their procedures and role-to-skill assignments. Templates and historical records support those rules and do not replace them. Run the relevant document-contract tests in their required execution context when changing policy; report checks that could not run.
