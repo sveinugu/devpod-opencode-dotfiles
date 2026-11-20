@@ -18,4 +18,6 @@ permission:
     git add*: allow
 ---
 
-Write, commit and revise user and developer documentation, including docstrings. Verify against behavior and tests, automate doctests and reuse shared documentation through macros where appropriate. Limit production edits to doctests.
+Write, commit and revise user and developer documentation, including docstrings. Verify it against behavior and tests. Automate doctests and reuse shared documentation through macros where appropriate.
+
+Limit production edits to doctests.

@@ -1,6 +1,6 @@
 # nono Policy
 
-This document is canonical policy summary; profile JSON + tests are enforcing artifacts.
+This document is the canonical policy summary. The profile JSON and tests enforce the policy.
 
 Primary enforcing artifacts:
 
@@ -12,7 +12,7 @@ Primary enforcing artifacts:
 
 `nono` is a kernel-enforced sandbox for running commands with explicit filesystem, environment, and network permissions.
 
-This runbook explains the repo-supported secure `opencode` path for readers who need the practical policy before they dive into the spec, profile JSON, wrapper, or tests.
+Use this runbook to understand the practical policy for the repo-supported secure `opencode` path. Consult the spec, profile JSON, wrapper and tests for details.
 
 ## Supported path at a glance
 
@@ -28,8 +28,9 @@ This runbook explains the repo-supported secure `opencode` path for readers who 
 
 ## Scope & authority
 
-This runbook is the first-read policy surface for the repo-supported secure `opencode` path under `nono`.
-It summarizes the binding contract, while the design spec, profile JSON, wrapper/helper scripts, Kubernetes deployment, and contract tests remain the enforcing artifacts.
+Start with this runbook for the repo-supported secure `opencode` path under `nono`. It summarizes the binding contract.
+
+The design spec, profile JSON, wrapper/helper scripts, Kubernetes deployment and contract tests remain the enforcing artifacts.
 
 Use this runbook to understand the supported path, then verify details against:
 
@@ -43,7 +44,7 @@ Build-time sudoers toggle (workspace image only):
 
 - `HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL=0` (default) removes broad `vscode` sudoers grants and keeps constrained sudoers rules only.
 - `HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL=1` installs explicit broad `vscode` debug sudo (`vscode ALL=(ALL) NOPASSWD:ALL`) for temporary local debugging.
-- This toggle changes operator convenience only; the supported secure launch path and its constrained wrapper contracts remain the canonical production-like target.
+- This toggle changes operator convenience only. The supported secure launch path and its constrained wrapper contracts remain the canonical production-like target.
 
 ## What nono does by default
 
@@ -61,7 +62,7 @@ Upstream `nono` defaults relevant here are:
 
 ### Stock profiles and groups
 
-Separately from the engine defaults, the stock `default` profile and stock tool profiles layer in built-in sensitive-path deny groups and `dangerous_commands`-style command blocking.
+The stock `default` profile and stock tool profiles add restrictions to the engine defaults. These include built-in sensitive-path deny groups and `dangerous_commands`-style command blocking.
 
 Examples of upstream-sensitive paths called out in the `nono` docs include:
 
@@ -78,7 +79,9 @@ This repo-specific profile does **not** assume those defaults are obvious. It ov
 - it sets `workdir.access` to `readwrite`
 - it defines exact filesystem grants instead of relying on the stock `opencode` profile
 - it filters inherited environment variables with an explicit allow-list plus provider-key deny-list
-- it excludes `dangerous_commands` and `dangerous_commands_linux` because the supported launch chain needs constrained pre-sandbox `sudo`; protection here comes from filesystem, environment, identity, and runtime-chain controls rather than a command denylist
+- it excludes `dangerous_commands` and `dangerous_commands_linux` because the supported launch chain needs constrained pre-sandbox `sudo`
+
+Protection here comes from filesystem, environment, identity and runtime-chain controls rather than a command denylist.
 
 Upstream reference docs:
 
@@ -95,8 +98,9 @@ Upstream reference docs:
 - explicit credential routing
 - reproducible startup chain
 
-Operationally, the goal is to keep real provider credentials out of ordinary agent bash scope while preserving normal `opencode` usability through the wrapped secure path.
-The supported path is practical hardening, not a claim of absolute isolation, and it does not prevent misuse of already-authorized proxy-routed provider access.
+Keep real provider credentials out of ordinary agent bash scope while preserving normal `opencode` usability through the wrapped secure path.
+
+The supported path provides practical hardening, not absolute isolation. It does not prevent misuse of already-authorized proxy-routed provider access.
 
 ## Filesystem policy
 
@@ -104,10 +108,11 @@ The supported path is practical hardening, not a claim of absolute isolation, an
 - explicit subdir grants only
 - precreate runtime dirs via init container
 
-Plain-language summary: the sandbox gets broad managed-workspace access through `/workspaces/dotfiles`, a narrow set of OpenCode runtime directories under `/home/agent`, `/tmp`, the direnv allow-list directory under `$XDG_DATA_HOME/direnv`, and the single raw binary path — nothing broader.
+The sandbox gets broad managed-workspace access through `/workspaces/dotfiles`. Other access is limited to a narrow set of OpenCode runtime directories under `/home/agent`, `/tmp`, the direnv allow-list directory under `$XDG_DATA_HOME/direnv`, and the single raw binary path.
 
 The reviewed profile allows only the runtime surfaces OpenCode needs, plus the fixed raw binary path `/usr/local/bin/opencode-raw` as `allow_file`.
-Runtime state is pinned under `/home/agent` with specific XDG paths, and the deployment precreates those directories via an init container before daily use.
+
+Runtime state is pinned under `/home/agent` with specific XDG paths. Before daily use, the deployment creates those directories through an init container.
 
 Default path-variable values in this launch chain are:
 
@@ -129,7 +134,7 @@ Fixed-path grants for the sandboxed agent are exactly:
 - `/home/agent/.opencode` (`$HOME/.opencode`) — read+write
 - `/home/agent/.gitconfig` (`$HOME/.gitconfig`) — read-only, so git `safe.directory` trust config is visible without granting write to home-level git config
 - `/etc/gitconfig` — read-only, so system-level git `safe.directory` trust config remains readable to sandboxed git processes
-- `/usr/local/bin/git`, `/usr/local/bin/git-upload-pack`, `/usr/local/bin/git-receive-pack`, and `/usr/local/bin/git-upload-archive` are allowed by explicit command policy with sandbox constraints pinned to stable absolute executable paths (not ephemeral `/tmp/nono-tool-sandbox-*` shim globs)
+- `/usr/local/bin/git`, `/usr/local/bin/git-upload-pack`, `/usr/local/bin/git-receive-pack`, and `/usr/local/bin/git-upload-archive` — allowed by explicit command policy. Sandbox constraints use these stable absolute executable paths, not ephemeral `/tmp/nono-tool-sandbox-*` shim globs.
 - `/tmp` — read+write temporary workspace
 - `/workspaces/dotfiles` — read+write, for broader hub filesystem access by the sandboxed agent
 - `/usr/local/bin/opencode-raw` (`allow_file`) — single-file read/execute target, not directory access
@@ -143,7 +148,7 @@ Workspace-scoped grants are:
 At runtime, the wrapper pins these paths under the `agent` identity, centered on `/home/agent` plus `/workspaces/dotfiles`.
 
 The sandboxed agent is not granted broad access to `/home/agent`, `/home/agent/.local/share`, `/usr/local/bin`, or `/var/run/secrets/nono/providers`.
-It also does not receive blanket exceptions for shell configs outside the managed workspace root: only `/workspaces/dotfiles/**/.zshrc` and `/workspaces/dotfiles/**/.zprofile` are exempted from the upstream shell-config deny group.
+It receives no blanket exceptions for shell configs outside the managed workspace root. Only `/workspaces/dotfiles/**/.zshrc` and `/workspaces/dotfiles/**/.zprofile` are exempted from the upstream shell-config deny group.
 
 Repo anchors for this contract:
 
@@ -158,18 +163,19 @@ Repo anchors for this contract:
 - nono launched with `--allow-cwd --no-rollback-prompt --silent` to suppress interactive prompts
 
 The supported launch path is implemented by `.config/opencode/bin/opencode`.
-That wrapper reads the generated provider runtime contract, generates a filtered runtime `nono` profile through `/usr/local/libexec/dotfiles-generate-nono-profile`, and then launches the pinned raw binary at `/usr/local/bin/opencode-raw` only after the setpriv drop to `agent`.
+The wrapper reads the generated provider runtime contract. It generates a filtered runtime `nono` profile through `/usr/local/libexec/dotfiles-generate-nono-profile`. Only after the setpriv drop to `agent` does it launch the pinned raw binary at `/usr/local/bin/opencode-raw`.
 
 The launch helper (`scripts/lib/launch-opencode-nono.sh`) appends three nono flags to every invocation:
 
 - `--allow-cwd` — allow the current working directory without interactive prompting, so the wrapped `opencode` launch does not pause for cwd confirmation
 - `--no-rollback-prompt` — skip the post-exit rollback review prompt that would otherwise require the user to press ESC to dismiss
-- `--silent` — suppress nono output (banner, session summary, status messages) so post-session breach reports are logged to the audit trail but not displayed interactively
+- `--silent` — suppress nono output: banner, session summary and status messages. Post-session breach reports go to the audit trail but are not displayed interactively.
 
 Raw `opencode` remains available only by explicit absolute path and is out-of-scope manual use.
 
-Important restriction detail: this profile intentionally does **not** rely on upstream dangerous-command blocking for the supported path.
-Instead, the security boundary is the documented wrapped launcher, constrained `sudo`, `setpriv` drop to `agent`, the fixed secret mount surface, the filtered environment, and the reviewed filesystem grants above.
+This profile intentionally does **not** rely on upstream dangerous-command blocking for the supported path.
+
+The security boundary consists of the documented wrapped launcher, constrained `sudo`, `setpriv` drop to `agent`, fixed secret mount surface, filtered environment and reviewed filesystem grants above.
 
 Repo anchors for this contract:
 
@@ -182,9 +188,9 @@ Repo anchors for this contract:
 - provider-secret source, env mapping, generated runtime profile filtering
 
 Provider secrets are sourced from the fixed Kubernetes mount `/var/run/secrets/nono/providers`.
-For the supported path, secret reads happen only through the constrained non-interactive `sudo -n` helper contract in `scripts/lib/nono-secret-env.sh`, which maps mounted secret files into the specific env vars needed for the wrapped launch path, such as `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, `GPT_UIO_YELLOW_API_KEY`, and `GPT_UIO_RED_API_KEY`.
+For the supported path, only the constrained non-interactive `sudo -n` helper contract in `scripts/lib/nono-secret-env.sh` reads secrets. It maps mounted secret files to the environment variables needed for the wrapped launch path. Examples include `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, `GPT_UIO_YELLOW_API_KEY`, and `GPT_UIO_RED_API_KEY`.
 
-The generated runtime profile is filtered to the enabled provider set before `nono` launch so disabled provider credential routes do not remain in the active runtime profile.
+Before `nono` launches, the generated runtime profile is filtered to the enabled provider set. Disabled provider credential routes do not remain in the active runtime profile.
 Interactive shell startup files, repo files, `.env` files, and agent-readable auth storage are not supported credential-bearing surfaces for this path.
 
 Allowed inherited environment variables in this profile are exactly:
@@ -193,15 +199,16 @@ Allowed inherited environment variables in this profile are exactly:
 - `XDG_*`, `HUB_*`, `OPENCODE_*`
 
 This profile explicitly strips `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, `GPT_UIO_YELLOW_API_KEY`, and `GPT_UIO_RED_API_KEY` from inherited sandbox environment state.
-Real provider secrets are loaded before sandbox entry by the constrained helper and are then consumed by the wrapped launch path, rather than being inherited from the caller shell.
+Before sandbox entry, the constrained helper loads real provider secrets. The wrapped launch path then consumes them. It does not inherit them from the caller shell.
 
-The important handoff detail is that these secrets are not ordinary interactive-shell environment variables.
-They are read from `/var/run/secrets/nono/providers` during the constrained pre-sandbox helper step, preserved only across the one documented `sudo` handoff, and then consumed by the wrapped launch path for proxy setup and launch.
+These secrets are not ordinary interactive-shell environment variables.
+
+During the constrained pre-sandbox step, the helper reads them from `/var/run/secrets/nono/providers`. They persist only across the one documented `sudo` handoff. The wrapped launch path then consumes them for proxy setup and launch.
 The sudoers contract keeps only the launch-step provider variables needed for that handoff; it is not a general-purpose shell inheritance path.
 
-The constrained sudoers runtime launch rule now delegates to one root-owned launch helper (`/usr/local/libexec/dotfiles-launch-opencode-nono`) instead of matching the full wrapped launch command inline. This reduces drift risk while keeping argument validation and least-privilege boundaries explicit in one audited helper surface.
+The constrained sudoers runtime launch rule delegates to one root-owned launch helper (`/usr/local/libexec/dotfiles-launch-opencode-nono`). It does not match the full wrapped launch command inline. This reduces drift risk and keeps argument validation and least-privilege boundaries explicit in one audited helper.
 
-Because the wrapper always emits an end-of-options marker (`--`) before forwarding user args, the sudoers contract must allow both launch-helper forms: one with trailing argv (`-- *`) and one without trailing argv (`--`).
+The wrapper always emits an end-of-options marker (`--`) before forwarding user args. The sudoers contract must therefore allow both launch-helper forms: with trailing argv (`-- *`) and without trailing argv (`--`).
 
 Credential routes configured in this profile are exactly `openai`, `anthropic`, `github-copilot`, `gpt-uio-yellow`, and `gpt-uio-red`.
 Their configured upstreams are:
@@ -235,13 +242,13 @@ Repo anchors for this contract:
 - how to add a new writable path/provider safely
 - required tests to update
 
-When adding a new writable path, prefer the smallest explicit runtime subdirectory and update both the reviewed profile and the deployment/init-container contract if the path must exist before runtime.
+When adding a new writable path, prefer the smallest explicit runtime subdirectory. If the path must exist before runtime, update both the reviewed profile and the deployment/init-container contract.
 Do not add broad grants for `/home/agent`, `~/.local/share`, or unrelated parent directories.
 
-When adding or changing a provider, update the spec/plan contract first when the supported provider set changes, then keep the profile, generated runtime contract, helper mapping, and runbooks aligned.
-If a supported-provider verification fails, stop shipment for the slice until the route is fixed or the provider set is explicitly re-approved with updated docs and acceptance criteria.
+When adding or changing a provider, first update the spec/plan contract if the supported provider set changes. Then keep the profile, generated runtime contract, helper mapping and runbooks aligned.
+If a supported-provider verification fails, stop shipment for the slice. Resume shipment only after the route is fixed or the provider set is explicitly re-approved with updated docs and acceptance criteria.
 
-Update the enforcing runtime contracts affected by a behavior or configuration change. Review prose changes for meaning and consistency, and validate references where relevant; do not add exact-wording documentation tests.
+Update the enforcing runtime contracts affected by a behavior or configuration change. Review prose changes for meaning and consistency. Validate references where relevant. Do not add exact-wording documentation tests.
 
 If a change depends on a stock `nono` behavior, document that dependency explicitly instead of assuming readers know it.
 

@@ -16,4 +16,6 @@ permission:
   bash: allow
 ---
 
-Handle direct requests, including named-specialist responsibilities when the human requests it, without a Maestro override. Follow the shared policy and applicable skills. Do not impersonate another agent or misrepresent another session’s work.
+Handle direct requests. When the human requests named-specialist responsibilities, you may perform them without a Maestro override.
+
+Follow the shared policy and applicable skills. Do not impersonate another agent or misrepresent another session’s work.

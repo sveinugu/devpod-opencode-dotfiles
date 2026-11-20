@@ -1,10 +1,10 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Use this guide when working with code in this repository through Claude Code (claude.ai/code).
 
 ## What this repo is
 
-Dotfiles for a personal DevPod/OpenCode setup. The repo manages a bare-git workspace hub deployed on Kubernetes via DevSpace, providing zsh config, OpenCode agent configuration, and workspace lifecycle scripts.
+This repository contains dotfiles for a personal DevPod/OpenCode setup. It manages a bare-git workspace hub deployed on Kubernetes through DevSpace. It provides zsh config, OpenCode agent configuration and workspace lifecycle scripts.
 
 ## Repository layout (bare hub)
 
@@ -15,7 +15,7 @@ Dotfiles for a personal DevPod/OpenCode setup. The repo manages a bare-git works
 - `/workspaces/dotfiles/repos/<name>/` — managed child repos (same pattern)
 - `/workspaces/dotfiles/state/hub/etc/install.env` — active install-branch env vars
 
-Always use an explicit worktree path. The hub root is guarded: `install.sh` and provision scripts refuse execution from it.
+Always use an explicit worktree path. `install.sh` and provision scripts refuse execution from the hub root.
 
 ## Key commands
 
@@ -61,11 +61,11 @@ bash tests/run.sh pod-outside-nono
 bash tests/run.sh pod-inside-nono
 ```
 
-The runner selects tests by execution context; individual files can also run directly with `bash` in their required context.
+The runner selects tests by execution context. You can also run individual files directly with `bash` in their required context.
 
 ## Tests
 
-Tests live in `tests/` and are primarily organized by execution context under `tests/`:
+Tests live in `tests/`, primarily organized by execution context:
 
 - `tests/host/` — host-shell tests outside workspace/nono
 - `tests/static/` — read-only repository structure/configuration checks, runnable on host or pod
@@ -74,7 +74,9 @@ Tests live in `tests/` and are primarily organized by execution context under `t
 
 The additional `tests/devspace/` scripts are not included in the context runner. Active suite membership is defined in `tests/run.sh`.
 
-Documentation and policy prose need semantic review and relevant structural validation, not exact-wording tests or a manufactured TDD cycle. Do not add recurring checks for prose headings, sentences, Markdown rows or historical artifacts. Preserve tests of executable behavior and machine-consumed configuration. See `.config/opencode/skills/delivery-workflow/SKILL.md` for testing scope and `tests/README.md` for execution contexts.
+For documentation and policy prose, use semantic review and relevant structural validation. Do not use exact-wording tests or manufacture a TDD cycle. Do not add recurring checks for prose headings, sentences, Markdown rows or historical artifacts.
+
+Preserve tests of executable behavior and machine-consumed configuration. See `.config/opencode/skills/delivery-workflow/SKILL.md` for testing scope and `tests/README.md` for execution contexts.
 
 ## OpenCode agent system
 
@@ -91,19 +93,25 @@ Harness-wide procedures live in `.config/opencode/skills/`. Project-local skills
 
 ## Architecture constraints worth knowing
 
-**Delegation**: Maestro may only write code or perform subagent work when the human activates the Maestro override with one message (`maestro-override: <scope>`), which authorizes that scope immediately. Without that, Maestro delegates implementation, planning, and doc-writing through Task. The general agent may perform specialist work when the human requests it, without an override. Explicitly agreed pre-implementation checkpoint waivers are defined in `.config/opencode/skills/delivery-workflow/SKILL.md`.
+**Delegation**: Maestro may write code or perform subagent work only when the human activates the Maestro override. One message (`maestro-override: <scope>`) authorizes that scope immediately. Otherwise, Maestro delegates implementation, planning and doc-writing through Task.
 
-**Delegation Packet**: Maestro → subagent handoffs use a closed-schema block. The canonical schema is in `.config/opencode/skills/opencode-dispatch/SKILL.md`. Forbidden fields include `Instructions:`, `Notes:`, `Deliverables:`, and any interpretive text outside the packet/Annex structure.
+When the human requests specialist work from the general agent, it may perform that work without an override. Explicitly agreed pre-implementation checkpoint waivers are defined in `.config/opencode/skills/delivery-workflow/SKILL.md`.
 
-**TDD level**: Tests are written at the integration/contract level for cross-layer behavior changes. Unit tests are used for isolated logic. Prose-only changes use review criteria and structural validation instead; changes to executable behavior still require applicable TDD.
+**Delegation Packet**: Maestro → subagent handoffs use a closed-schema block. The canonical schema is in `.config/opencode/skills/opencode-dispatch/SKILL.md`. Do not add `Instructions:`, `Notes:` or `Deliverables:` fields. Do not add interpretive text outside the packet/Annex structure.
 
-**Prototypes**: Must live in `git worktree` or a branch named `prototype/*`. Must be deleted or converted to tests+design before merging to main.
+**TDD level**: Use integration/contract tests for cross-layer behavior changes and unit tests for isolated logic. For prose-only changes, use review criteria and structural validation. Changes to executable behavior still require applicable TDD.
 
-**Install branch tracking**: `state/hub/etc/install.env` exports `HUB_INSTALL_BRANCH` and `HUB_INSTALL_BRANCH_DIR`. Scripts and navigation helpers read this to locate the active checkout.
+**Prototypes**: Keep prototypes in `git worktree` or a branch named `prototype/*`. Before merging to main, delete them or convert them to tests and design.
+
+**Install branch tracking**: `state/hub/etc/install.env` exports `HUB_INSTALL_BRANCH` and `HUB_INSTALL_BRANCH_DIR`. Scripts and navigation helpers read this file to locate the active checkout.
 
 ## docs/ structure
 
-After an implementation commit and before handoff, assess whether the committed changes to this dotfiles repository need an entry in `docs/superpowers/change-records/manual-additions-log.md`. The change author maintains entries for still-current operational, security, harness/workflow and verification-strategy additions outside full spec/plan cycles, following the organizing principles in that log and `docs/superpowers/AGENTS.md`. Use actual commit references; never log uncommitted work or pending placeholders. Omit routine wording fixes and behavior-preserving repairs. This is documentation maintenance, not a reason to create prose tests or make an unrequested commit.
+After an implementation commit and before handoff, assess whether the committed changes to this dotfiles repository need a manual-additions entry. The log is `docs/superpowers/change-records/manual-additions-log.md`.
+
+The change author maintains entries for still-current operational, security, harness/workflow and verification-strategy additions outside full spec/plan cycles. Follow the organizing principles in that log and `docs/superpowers/AGENTS.md`.
+
+Use actual commit references. Never log uncommitted work or pending placeholders. Omit routine wording fixes and behavior-preserving repairs. This maintenance does not authorize new prose tests or an unrequested commit.
 
 - `docs/superpowers/plans/` — approved implementation plans
 - `docs/superpowers/specs/` — design specs (binding requirements sources when referenced in a Delegation Packet)

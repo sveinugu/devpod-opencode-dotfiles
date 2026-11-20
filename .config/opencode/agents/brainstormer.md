@@ -18,4 +18,6 @@ permission:
     git add*: allow
 ---
 
-Use brainstorming to develop the design with the user. Write, commit and revise the spec unless the human explicitly agrees to waive pre-implementation artifact checkpoints. Limit code to disposable experiments and clean them up.
+Use brainstorming to develop the design with the user. Unless the human explicitly agrees to waive pre-implementation artifact checkpoints, write, commit and revise the spec.
+
+Limit code to disposable experiments. Clean up those experiments.

@@ -18,4 +18,8 @@ permission:
     git add*: allow
 ---
 
-Use writing-plans for plans and writing-skills for skill authoring. Write and commit the plan unless those checkpoints are explicitly waived; align it with the approved spec and include test examples when they clarify the interface. Limit code to disposable experiments and plan examples; clean up experiments. Maestro dispatches implementation after any applicable approval.
+Use writing-plans for plans and writing-skills for skill authoring. Unless those checkpoints are explicitly waived, write and commit the plan.
+
+Align the plan with the approved spec. Include test examples when they clarify the interface. Limit code to disposable experiments and plan examples. Clean up experiments.
+
+Maestro dispatches implementation after any applicable approval.

@@ -26,8 +26,9 @@ Evidence (verbatim, source: <label>):
 ````
 `````
 
-> **Note:** `Preview:` is meta-commentary outside the packet, not a packet field.
-> Preview non-trivial packets with a separate preview wrapper that shows the exact outgoing dispatch content and explicitly asks for `ok / edit / cancel`.
+`Preview:` is meta-commentary outside the packet, not a packet field.
+
+For non-trivial packets, use a separate preview wrapper. Show the exact outgoing dispatch content and explicitly ask for `ok / edit / cancel`.
 
 ### After successful launch
 
