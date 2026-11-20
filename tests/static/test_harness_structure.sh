@@ -42,7 +42,7 @@ for role in roles:
 if (policy / 'agents/docs-reviewer.md').exists():
     raise SystemExit('Obsolete single docs-reviewer agent is still installed')
 
-for name in ('delivery-workflow', 'managed-worktrees', 'opencode-dispatch',
+for name in ('asd-ste100', 'delivery-workflow', 'managed-worktrees', 'opencode-dispatch',
              'opencode-sessions', 'maestro-override'):
     path = policy / 'skills' / name / 'SKILL.md'
     if metadata(path).get('name') != name:

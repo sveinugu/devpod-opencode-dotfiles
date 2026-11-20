@@ -44,6 +44,17 @@ Load the listed skills when performing their assigned responsibilities, alongsid
 
 Maestro, senior-implementer and junior-implementer must not use `executing-plans`; policy-implementer uses it for policy and document plans. All roles use `using-superpowers` and `verification-before-completion` as required by the shared triggers. General follows the skills for the work the human requests. Maestro communicates relevant skill usage to the user and subagents.
 
+### Technical writing and review outputs
+
+Apply `asd-ste100` according to the shared triggers and the responsibility being performed:
+
+- Docs-writer and policy-implementer use it for documentation, instructions and policy.
+- Brainstormer and planner use it when drafting specifications, plans and acceptance criteria. Preserve open questions, alternatives and unresolved decisions.
+- Code-reviewer, docs-reviewer-gpt and docs-reviewer-claude use it for their findings, summaries and verdicts. Authors use it for responses to review.
+- Maestro, code implementers and general use it for those same writing and review responsibilities when applicable. Routine coding, routing and brief conversation do not require loading it solely for style.
+
+The skill provides flexible writing guidance and a small vocabulary reference. It does not replace role ownership or the existing skill precedence. Review outputs must retain evidence, locations, severity, confidence, verification limits and approval status. Clearer wording must not strengthen an uncertain finding, weaken a requirement, or turn a suggestion into a blocker. Report style preferences separately from defects; style alone does not block approval unless an applicable requirement makes it an acceptance criterion.
+
 ## Implementation
 
 Apply the TDD and refactor cycle below to executable behavior. For prose-only changes, use the semantic review and structural validation described under Testing scope.
