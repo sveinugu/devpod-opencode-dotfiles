@@ -12,12 +12,8 @@ source "$repo_root/tests/lib/context-guards.sh"
 require_host_test 'test_devspace_provision_branch_default'
 
 cfg="$repo_root/devspace.yaml"
-runbook_bare_hub="$repo_root/docs/superpowers/runbooks/devspace-bare-hub-usage.md"
-runbook_lifecycle="$repo_root/docs/superpowers/runbooks/devspace-workspace-lifecycle.md"
 
 [ -f "$cfg" ] || fail "devspace.yaml not found"
-[ -f "$runbook_bare_hub" ] || fail "bare-hub runbook not found"
-[ -f "$runbook_lifecycle" ] || fail "workspace lifecycle runbook not found"
 
 grep -F 'HUB_INSTALL_BRANCH="${HUB_INSTALL_BRANCH:-main}"' "$cfg"  >/dev/null || fail "provision pipeline must default HUB_INSTALL_BRANCH to main"
 
@@ -67,12 +63,5 @@ HUB_PROVISION_SOURCE="$source_repo" \
 [ -f "$workspace_root/work/feature/env-override/BRANCH_MARKER" ] || fail "env-based HUB_INSTALL_BRANCH override did not provision requested branch worktree"
 [ "$(git -C "$workspace_root/main" rev-parse --abbrev-ref HEAD)" = "main" ] || fail "main worktree must remain on main under HUB_INSTALL_BRANCH override"
 
-grep -F "HUB_INSTALL_BRANCH=feature/env-override devspace run-pipeline provision" "$runbook_lifecycle" >/dev/null || fail "lifecycle runbook must document HUB_INSTALL_BRANCH env override usage"
-grep -F "devspace run-pipeline verify-ssh" "$runbook_lifecycle" >/dev/null || fail "lifecycle runbook must document verify-ssh helper guidance"
-grep -F "devspace run-pipeline provision --refresh-tools" "$runbook_lifecycle" >/dev/null || fail "lifecycle runbook must document public refresh-tools flag usage"
-grep -F "HUB_PROVISION_ARGS='--refresh-tools' devspace run-pipeline provision" "$runbook_lifecycle" >/dev/null || fail "lifecycle runbook must document HUB_PROVISION_ARGS passthrough guidance"
-grep -F "OpenCode is now image-installed as a pinned root-owned binary" "$runbook_lifecycle" >/dev/null || fail "lifecycle runbook must document pinned image-installed OpenCode binary contract"
-grep -F "bin/update-opencode-version --latest" "$runbook_lifecycle" >/dev/null || fail "lifecycle runbook must document latest pinned OpenCode update command"
-grep -F "bin/update-opencode-version --version v1.18.5" "$runbook_lifecycle" >/dev/null || fail "lifecycle runbook must document explicit pinned OpenCode version update command"
 
 printf 'PASS test_devspace_provision_branch_default\n'

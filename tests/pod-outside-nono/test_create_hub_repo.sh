@@ -7,7 +7,6 @@ source "$repo_root/tests/lib/context-guards.sh"
 require_pod_outside_nono_test 'test_create_hub_repo'
 
 script="$repo_root/bin/clone-repo"
-runbook="$repo_root/docs/superpowers/runbooks/devspace-bare-hub-usage.md"
 
 fail() {
   printf 'FAIL test_create_hub_repo: %s\n' "$1" >&2
@@ -15,7 +14,6 @@ fail() {
 }
 
 [ -f "$script" ] || fail 'bin/clone-repo not found'
-[ -f "$runbook" ] || fail 'runbook missing: docs/superpowers/runbooks/devspace-bare-hub-usage.md'
 
 temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_create_hub_repo')"
 tmpdir="$(context_make_test_tmpdir "$temp_root" 'test_create_hub_repo')"
@@ -191,6 +189,5 @@ set -e
 [ "$public_only_local_rc" = "1" ] || fail "v1 should refuse non-public local-path child sources"
 grep -F 'refused: public repo source is required in v1' "$tmpdir/public-only-local.out" >/dev/null || fail "missing local-path public-only refusal"
 
-grep -F 'bin/clone-repo' "$runbook" >/dev/null || fail "runbook should document child repo onboarding usage"
 
 printf 'PASS test_create_hub_repo\n'

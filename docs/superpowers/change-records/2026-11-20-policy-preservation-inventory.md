@@ -92,23 +92,21 @@ Statuses: **Retained** means the obligation survived compaction; **Restored** me
 | Opposite-model-family document review | Intentional change | Preserve the subsequent current configuration using docs-reviewer-gpt and docs-reviewer-claude; do not resurrect the former single docs-reviewer. |
 | Managed lifecycle helpers and execution boundaries are stricter in current policy | Intentional change | Preserve subsequent policy; do not regress to the old helper preference or remove sandbox/context guards. |
 | Shared AGENTS as the sole procedure source | Intentional change | Keep the compact shared triggers and canonical skill procedures, with role mappings centralized in the delivery skill. |
+| Automatic TDD and exact-wording contracts for prose changes | Intentional change | Subsequent user-approved testing scope uses semantic review and relevant structural validation for prose. Applicable TDD remains for executable behavior, including permissions and runtime configuration. |
 | Duplicate packet sections, repeated session instructions and repeated bare-hub guidance | Removed | Canonical skill procedures now cover these requirements; duplication is not needed for preservation. |
 | Mandatory planner authorship of specs despite brainstormer owning design specs | Removed | Resolve the old internal inconsistency using named author ownership: brainstormer authors design specs, planner authors plans, subject to existing exceptions. |
 | Historical hardware example, introductory team branding and bootstrap change banner | Removed | These are context, not delivery obligations; operational workspace rules remain. |
 | Suggested introductory subagent greeting and repetitive troubleshooting examples | Removed | Optional wording is unnecessary; actual launch, failure handling, ownership and required handoff rules remain. |
 | Links to obsolete tests/docs paths | Removed | Policy maintenance points to relevant current contract tests in their designated contexts. |
 
-## Contract coverage and validation
+## Validation after test cleanup
 
-The changed contracts protect delivery semantics, explicit role assignments, supervision, session continuity, interaction overrides and preview identity. They are static document contracts, not live-agent behavioral tests, and do not prove that an agent follows the instructions.
+The earlier exact-wording contracts were removed by user-approved test cleanup. They duplicated policy sentences without establishing policy meaning or actual agent behavior. This inventory remains a review aid for retained, changed and removed obligations; it is not an executable specification. Historical plans and review records retain their original command references as historical evidence, not current test instructions.
 
-Run these in the required DevPod/nono context:
+Run the read-only configuration and harness discovery checks on host or pod:
 
 ```sh
-bash tests/pod-inside-nono/test_clean_code_policy_contract.sh
-bash tests/pod-inside-nono/test_maestro_intent_preservation_policy.sh
-bash tests/pod-inside-nono/test_multi_question_interaction_policy.sh
-bash tests/pod-inside-nono/test_delegation_packet_policy_contract.sh
+bash tests/run.sh static
 ```
 
-Host validation is limited to shell syntax, diff whitespace and documentation link inspection. The contract tests and live OpenCode skill loading still require their actual runtime context; guards must not be bypassed to claim validation.
+Behavioral and runtime configuration tests retain their execution contexts and guards in `tests/run.sh`. Review policy meaning and references separately. Static checks do not prove live OpenCode skill loading or adherence to instructions; evaluate actual agent behavior selectively when needed.

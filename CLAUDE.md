@@ -50,12 +50,13 @@ bin/clone-repo <github-repo>
 **Run a single test:**
 ```bash
 bash tests/pod-inside-nono/test_nono_profile_layout.sh
-bash tests/pod-inside-nono/test_delegation_packet_policy_contract.sh
+bash tests/static/test_harness_structure.sh
 ```
 
 **Run by execution context (preferred):**
 ```bash
 bash tests/run.sh host
+bash tests/run.sh static
 bash tests/run.sh pod-outside-nono
 bash tests/run.sh pod-inside-nono
 ```
@@ -67,12 +68,13 @@ The runner selects tests by execution context; individual files can also run dir
 Tests live in `tests/` and are primarily organized by execution context under `tests/`:
 
 - `tests/host/` — host-shell tests outside workspace/nono
+- `tests/static/` — read-only repository structure/configuration checks, runnable on host or pod
 - `tests/pod-outside-nono/` — workspace pod tests outside nono sandbox
 - `tests/pod-inside-nono/` — workspace pod tests inside nono sandbox
 
-Legacy domain folders still exist (`tests/devspace/`, `tests/install/`, `tests/bootstrap/`, `tests/docs/`) but active contract suites are context-routed via `tests/run.sh`.
+The additional `tests/devspace/` scripts are not included in the context runner. Active suite membership is defined in `tests/run.sh`.
 
-Doc-contract tests use `rg` (ripgrep) to assert that required text patterns exist in canonical files. When updating policy, run these tests to confirm the anchors are still present.
+Documentation and policy prose need semantic review and relevant structural validation, not exact-wording tests or a manufactured TDD cycle. Do not add recurring checks for prose headings, sentences, Markdown rows or historical artifacts. Preserve tests of executable behavior and machine-consumed configuration. See `.config/opencode/skills/delivery-workflow/SKILL.md` for testing scope and `tests/README.md` for execution contexts.
 
 ## OpenCode agent system
 
@@ -93,7 +95,7 @@ Harness-wide procedures live in `.config/opencode/skills/`. Project-local skills
 
 **Delegation Packet**: Maestro → subagent handoffs use a closed-schema block. The canonical schema is in `.config/opencode/skills/opencode-dispatch/SKILL.md`. Forbidden fields include `Instructions:`, `Notes:`, `Deliverables:`, and any interpretive text outside the packet/Annex structure.
 
-**TDD level**: Tests are written at the integration/contract level for cross-layer changes. Unit tests are used only for isolated logic. Tests in `tests/docs/` are contract tests that verify policy documents — they are not unit tests.
+**TDD level**: Tests are written at the integration/contract level for cross-layer behavior changes. Unit tests are used for isolated logic. Prose-only changes use review criteria and structural validation instead; changes to executable behavior still require applicable TDD.
 
 **Prototypes**: Must live in `git worktree` or a branch named `prototype/*`. Must be deleted or converted to tests+design before merging to main.
 

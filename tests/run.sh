@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: bash tests/run.sh <host|pod-outside-nono|pod-inside-nono>
+Usage: bash tests/run.sh <static|host|pod-outside-nono|pod-inside-nono>
 
 Runs bash contract tests by execution context.
 EOF
@@ -39,6 +39,14 @@ run_test_list() {
 }
 
 case "$context" in
+  static)
+    # Read-only repository checks; safe on host and in either pod context.
+    tests=(
+      tests/static/test_harness_structure.sh
+      tests/static/test_general_agent_permissions_contract.sh
+    )
+    run_test_list "${tests[@]}"
+    ;;
   host)
     tests=(
       tests/host/test_setup_host_bare_hub.sh
@@ -80,21 +88,6 @@ case "$context" in
     ;;
   pod-inside-nono)
     tests=(
-      tests/pod-inside-nono/test_devspace_enablement_manifest_contract.sh
-      tests/pod-inside-nono/test_maestro_intent_preservation_policy.sh
-      tests/pod-inside-nono/test_p1_docs_orientation.sh
-      tests/pod-inside-nono/test_clean_code_policy_contract.sh
-      tests/pod-inside-nono/test_execution_boundary_policy_contract.sh
-      tests/pod-inside-nono/test_general_agent_permissions_contract.sh
-      tests/pod-inside-nono/test_multi_question_interaction_policy.sh
-      tests/pod-inside-nono/test_devspace_credential_phasing_security_contract.sh
-      tests/pod-inside-nono/test_devspace_full_plan_consistency.sh
-      tests/pod-inside-nono/test_delegation_packet_policy_contract.sh
-      tests/pod-inside-nono/test_repo_documentation_refactor_audit.sh
-      tests/pod-inside-nono/test_p2_runbook_consolidation.sh
-      tests/pod-inside-nono/test_nono_policy_runbook_contract.sh
-      tests/pod-inside-nono/test_managed_worktree_lane_safety_policy.sh
-      tests/pod-inside-nono/test_devspace_credential_phasing_identity_separation_contract.sh
       tests/pod-inside-nono/test_workspace_manifest_contract.sh
       tests/pod-inside-nono/test_workspace_preinstalled_tools_contract.sh
       tests/pod-inside-nono/test_devspace_command_surface.sh
@@ -117,7 +110,6 @@ case "$context" in
       tests/pod-inside-nono/test_retire_worktree.sh
       tests/pod-inside-nono/test_managed_lane_registry.sh
       tests/pod-inside-nono/test_public_repo_clone_behavior_core.sh
-      tests/pod-inside-nono/test_bare_hub_guardrails.sh
       tests/pod-inside-nono/test_cleanup_round_contracts.sh
       tests/pod-inside-nono/test_provision_hub_repo_core_tar_contract.sh
       tests/pod-inside-nono/test_resolve_install_target.sh

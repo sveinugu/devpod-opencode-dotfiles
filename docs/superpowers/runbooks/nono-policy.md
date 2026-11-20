@@ -241,13 +241,13 @@ Do not add broad grants for `/home/agent`, `~/.local/share`, or unrelated parent
 When adding or changing a provider, update the spec/plan contract first when the supported provider set changes, then keep the profile, generated runtime contract, helper mapping, and runbooks aligned.
 If a supported-provider verification fails, stop shipment for the slice until the route is fixed or the provider set is explicitly re-approved with updated docs and acceptance criteria.
 
-Required tests to update are the relevant docs contracts plus the enforcing runtime contracts affected by the change.
+Update the enforcing runtime contracts affected by a behavior or configuration change. Review prose changes for meaning and consistency, and validate references where relevant; do not add exact-wording documentation tests.
 
 If a change depends on a stock `nono` behavior, document that dependency explicitly instead of assuming readers know it.
 
 ## Verification checklist
 
-Minimal checks after policy-affecting changes:
+Minimal runtime checks after changes to the secure launch behavior or configuration (run in their required context):
 
 ```bash
 command -v opencode
@@ -255,14 +255,13 @@ type -a opencode
 bash tests/pod-inside-nono/test_nono_profile_layout.sh
 bash tests/pod-inside-nono/test_opencode_secure_wrapper_contract.sh
 bash tests/pod-inside-nono/test_nono_identity_integration_contract.sh
-bash tests/pod-inside-nono/test_nono_policy_runbook_contract.sh
 ```
 
 Expected shape:
 
 - `command -v opencode` resolves to the wrapped launcher first
 - `type -a opencode` shows the wrapped path before the raw binary path
-- the three DevSpace contract tests and the docs contract stay green
+- the three runtime contract tests stay green
 
 For broader secure-path validation, also use the design-spec verification matrix in `docs/superpowers/specs/2026-07-14-devspace-model-credential-phasing-design.md`.
 
