@@ -1,16 +1,18 @@
 # Manual Additions Log (Outside Full Spec/Plan Round)
 
-Purpose: track operational/security changes implemented between full spec/plan cycles so runbooks and implementation remain auditable.
+Purpose: track operational, security, harness/workflow and verification-strategy changes implemented between full spec/plan cycles so runbooks and implementation remain auditable.
 
 ## Organizing principles
 
 - Primary ordering is chronological by **commit date** (oldest first).
 - Each entry header includes **date + commit(s)** and summarizes one stable addition.
-- Prefer concrete commit hash(es) in each entry header; avoid `pending` unless no commit exists yet.
-- If an implementation change needs a log update, prefer a follow-up docs-only commit so the log can reference the implementation commit hash explicitly.
+- Log only committed work. Each entry must reference actual implementation commit hash(es); do not include uncommitted changes or pending placeholders.
+- The change author assesses and updates this log after the implementation commit and before handoff. A follow-up docs-only update can reference that commit explicitly. This does not independently authorize an additional commit.
 - Entries record only **still-valid additions at current `HEAD`**.
 - Do not list implementation-only fixes that merely align existing approved behavior.
 - Do not list reverted experiments or superseded states.
+- Link existing specs, runbooks or change records instead of duplicating their detail. For work covered by a full spec/plan cycle, add a short pointer only when needed to explain a transition from an earlier logged addition.
+- Record implementation facts supported by commits and current files. Do not infer deployment, operator actions or successful runtime validation from source changes alone.
 - Use thematic section headers only as optional grouping; they do not override date ordering.
 
 ## Security/runtime boundary additions (ordered by commit date)
@@ -166,7 +168,7 @@ Purpose: track operational/security changes implemented between full spec/plan c
 
 ## Commit-range review notes
 
-Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current `HEAD`.
+Earlier review scope (as recorded before the backfill below): commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` through the August 24 log update.
 
 - Included above: additions that change user/operator-visible behavior and remain valid at `HEAD`.
 - Not included: implementation-only fixes/refactors that align existing approved behavior without introducing new functionality.
@@ -366,12 +368,6 @@ Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current
   - add recursion guard in `bash_env.sh` (`BASH_ENV` self-unset around `direnv export bash` + sentinel) to prevent process storms/fork loops
 - rationale: keep env values dynamic when cwd/worktree changes while preserving secure launch boundaries and preventing recursive bash spawn failures.
 
-### 2026-08-24 · `bec9f42` — `opencode-loop-local` agent now hidden subagent-only shim
-
-- scope: `.config/opencode/agents/opencode-loop-local.md`
-- change: switch from primary exposure to hidden subagent mode while preserving deny-all + fixed acknowledgment behavior.
-- rationale: keep loop-ack handling internal to orchestration flow and avoid accidental direct user routing to a no-tools shim agent.
-
 ### 2026-08-24 · `56a7d8b` — Provision/repair now refresh managed direnv trust through one shared helper
 
 - scope: `scripts/lib/refresh-managed-direnv-trust.sh`, `scripts/provision-workspace.sh`, `bin/repair-workspace`, host/pod contract tests
@@ -389,6 +385,112 @@ Review scope: commits from `97c721e3296d5a6d20fbce680f9eeafc6373de4c` to current
   - keep clone behavior non-enforcing (no automatic `pre-commit install`)
   - document the same guidance in the bare-hub usage runbook and lock it with contract assertions
 - rationale: provide timely onboarding guidance without assuming repo-specific virtualenv/bootstrap workflows.
+
+## August to November backfill
+
+Coverage: the 50 commits in `b540e1c..07f048d`, reviewed against the resulting source tree. Entries below group still-current changes by commit date; they do not assert deployment or live runtime verification. Temporary network experiments, merge commits, review-only iterations and test expectation repairs are not separate additions. `d31ae91` completes the already-logged provision/repair direnv helper staging rather than adding another workflow.
+
+### 2026-08-25 → 2026-09-04 · `f893071`, `5dcfe58`, `ae4d2cb` — Inherited OpenCode sandbox profile and resolver access
+
+- scope: `.config/nono/profiles/devspace-opencode-secure.jsonc`
+- change: use an inherited OpenCode profile with repository-specific overlays instead of repeating upstream runtime groups and grants; retain explicit resolver-file reads and git helper paths. The current namespaced base is recorded in the November 18 entry below.
+- rationale: reduce duplicated upstream policy while keeping workspace/runtime access explicit. The temporary broad socket allowances and later rate-limit override are not retained as current policy.
+
+### 2026-09-08 · `51ab2ab`, `3d80147`, `0fddaa5` — Locale support and name-service workaround
+
+- scope: `Dockerfile`, `.config/nono/profiles/devspace-opencode-secure.jsonc`
+- change: install `locales-all` and `nscd`, add an image-build `service nscd start` step, and grant access to the `/run/nscd` socket subtree. The profile uses `allow_domain: ["*"]` with the full open-port range; temporary `no_proxy`, `open_urls` and rate-limit overrides were removed.
+- rationale: support locale and name-service lookups inside the sandbox while simplifying the network overlay. The build step alone is not evidence that a deployed container has a running daemon.
+
+### 2026-11-18 · `a0f100a`, `99d5423`, `5f048aa` — Provider catalog and UiO Responses routing
+
+- scope: `.config/opencode/provider-policy.jsonc`, `.config/opencode/opencode.jsonc`, `bin/sync-provider-enablement`, reasoning compatibility plugin
+- change: refresh the UiO catalog, enable GitHub Copilot in `all` mode, and route designated UiO Responses models through `@ai-sdk/openai`. Generated UiO provider configuration declares the corresponding API-key environment variables. The compatibility plugin recognizes GPT-6 reasoning models and normalizes tool-call reasoning effort for its OpenAI-compatible chat path.
+- rationale: align generated provider configuration and request handling with the configured model endpoints; avoid treating the intermediate adapter choice as the final state.
+
+### 2026-11-18 · `30f3ff0` — OpenCode Loop v0.5 installer outputs
+
+- scope: `harness-installs.jsonc`, generated Loop command/plugin surfaces
+- change: installer output expectations include `plugins/opencode-loop.ts` and `commands/loop.md`, `loop-help.md` and `loop-goal.md`. Remove the obsolete `opencode-loop-local` acknowledgment agent.
+- rationale: keep installer authority aligned with the newer Loop layout. This supersedes the former August entry describing the hidden acknowledgment shim.
+
+### 2026-11-18 · `a3fdd7a`, `ab6eb90` — Nono OpenCode v1 pack inheritance and generated artifacts
+
+- scope: `.config/nono/profiles/devspace-opencode-secure.jsonc`, `.config/opencode/.gitignore`
+- change: the profile now extends `nolabs-ai/opencode-v1`. Generated Nono plugin, skill and pack-marker artifacts remain outside tracked source.
+- rationale: use the installed pack as the inherited runtime authority instead of maintaining copied runtime artifacts. Later resolved-manifest tests (`9417ac7`, `86aaf5e`) verify effective access rather than demanding duplicated local grants.
+
+### 2026-11-18 · `46f94a3`, `77fbe49` — Conditional harness skills and explicit workflow exceptions
+
+- scope: `.config/opencode/AGENTS.md`, agent prompts, five harness skills, handoff template
+- change: move dispatch, sessions, worktrees, delivery and override procedures into skills loaded by shared triggers. A human-requested general agent may perform specialist work without a Maestro override. Explicit agreements may waive pre-implementation approval/artifact checkpoints. Maestro's scoped override takes one human message, retaining scope limits and explicit exit.
+- rationale: reduce always-loaded prompt size while preserving role ownership and explicit human control. See [prompt compaction recovery](2026-11-18-prompt-compaction.md); missing pragmatic safeguards were restored on November 20 below.
+
+### 2026-11-19 · `1d4197b`, `e26f11a`, `5cb0544` — Global coding skills and Loop dependency installation
+
+- scope: `scripts/lib/install/materialize.sh`, `scripts/lib/install/install-project-skills.sh`, skill lock/ignore files, OpenCode package dependencies and harness manifest
+- change: installation fetches `pragmatic-programmer` and `clean-code` into the global OpenCode skills directory as generated artifacts. Empty project skill locks skip reconstruction. Restore the repo-local Loop dependency and align the generated plugin output with `.ts`.
+- rationale: make coding skills available across managed repositories while retaining repo-root authority for project-local skill installation and installer ownership of Loop outputs.
+
+### 2026-11-19 · `8adb747`, `1d147e8` — Explicit execution boundaries and general-agent tool permissions
+
+- scope: shared OpenCode policy, general-agent configuration, test guidance
+- change: general receives the same Bash permission configuration as senior implementer. Agents remain prohibited from running outside-nono/operator-only work, switching to `vscode`, or bypassing execution-context guards; operator-only verification must be requested from the human and identified as such.
+- rationale: enable authorized general-agent implementation without confusing tool availability with operator identity or permission to evade sandbox boundaries.
+
+### 2026-11-19 · `f884b29`, `bc26d2a` — Secret selection follows enabled providers
+
+- scope: `.config/opencode/bin/opencode`, launch configuration helper
+- change: select required secret keys from `enabled_providers`, including providers such as Copilot in `all` mode that need no custom provider block. Reuse the already-validated launch payload when selecting secrets.
+- rationale: keep required credentials consistent with enabled provider access and avoid deriving them from an incomplete custom-provider map.
+
+### 2026-11-19 · `9a1a3b8`, `10c4074` — Managed helper authority and retirement without upstream
+
+- scope: shared policy, `managed-worktrees` skill, `scripts/lib/managed-worktree-cleanup-risk.sh`
+- change: require managed clone/worktree/retirement helpers and explicitly authorize their documented repository-local branch tracking configuration. When an upstream branch is unavailable, retirement can use an available comparison reference to assess commit safety instead of treating the missing upstream alone as loss risk.
+- rationale: keep repository lifecycle operations consistent while allowing already-merged work to retire safely. This does not authorize arbitrary Git configuration changes or bypass the remaining loss checks.
+
+### 2026-11-19 · `e8cde53`, `77c9b59` — Environment-owned temporary paths
+
+- scope: shared agent policy, `scripts/lib/worktree-env.sh`
+- change: agents use the environment's temporary directory variables rather than tool-suggested defaults; generated managed-worktree environments export `BUN_TMPDIR` alongside `TMPDIR`, `TMP` and `TEMP` to the worktree temporary directory.
+- rationale: keep temporary runtime files on the intended writable workspace surface.
+
+### 2026-11-19 · `3d29ab2`, `2a90eb2` — Validated model limits in generated provider configuration
+
+- scope: `bin/sync-provider-enablement`, `.config/opencode/provider-policy.jsonc`
+- change: declare UiO model context/output limits and pass validated optional limits into generated runtime configuration. Validation requires positive integer context/output values, permits an optional input limit, and refuses output limits exceeding context.
+- rationale: give runtime model metadata explicit bounds while rejecting malformed policy values.
+
+### 2026-11-19 · `bd27a17`, `9c82da0`, `0b3250a` — Quota-aware model routing and document review by model family
+
+- scope: `.config/opencode/agents/`, `.config/opencode/opencode.jsonc`, [model routing runbook](../runbooks/opencode-model-routing-fallback-cheatsheet.md)
+- change: refresh committed role/default routes and fallback guidance; split document review into `docs-reviewer-gpt` and `docs-reviewer-claude`. Maestro selects the opposite family from the model the author session actually ran, asking if that model is unknown. Senior implementer and built-in build use Claude Opus 5.5 in the current committed configuration.
+- rationale: make routing deliberate across quota pools and give document reviews a different model family without assuming a configured default was the author's actual model.
+
+### 2026-11-19 · `587818c`, `bc26d2a`, `97df9a1` — Pointer to host-local model overrides
+
+- scope: `.config/opencode/bin/opencode`, `scripts/lib/opencode-config-content.py`, [model overrides design](../specs/2026-11-19-opencode-host-local-model-overrides-design.md), [routing runbook](../runbooks/opencode-model-routing-fallback-cheatsheet.md)
+- change: launch-time model overrides now live in optional `/workspaces/dotfiles/state/hub/etc/model-overrides.json`, selected by `HUB_OPENCODE_MODEL_OVERRIDES_PATH`, rather than temporary edits to tracked routing files. Entries include a reason and optional UTC expiry; invalid configuration is refused before sudo. Overrides apply to subsequent launches, not existing sessions.
+- rationale: this spec-backed addition changes the earlier logged model-routing workflow, so the log records the transition and links the design rather than duplicating its acceptance criteria. It does not imply that an operator has created an overrides file or verified a live launch.
+
+### 2026-11-19 · `643bcb7`, `8de93d1` — OpenCode 1.19.6 and reasoning-temperature compatibility
+
+- scope: `Dockerfile`, OpenCode package manifests, `.config/opencode/plugins/openai-compatible-fix.ts`
+- change: pin the image-installed OpenCode binary and plugin dependency to 1.19.6 with updated binary checksums. The reasoning-model compatibility hook clears custom temperature in addition to its existing token and reasoning-option adjustments.
+- rationale: advance the pinned runtime and avoid unsupported temperature parameters on the plugin's affected reasoning-model path. The source pin requires image rebuild/deployment to change an installed binary.
+
+### 2026-11-20 · `fa9748e` — Pragmatic Superpowers policy preservation
+
+- scope: shared policy, delivery/dispatch/session skills, Maestro and senior prompts, [preservation inventory](2026-11-20-policy-preservation-inventory.md)
+- change: restore all-agent pragmatic skill loading, test definitions, high-level planning, complete skill precedence, explicit skill responsibilities, per-slice refactoring, user-first review, completion diagnostics, delegated verification and session continuity after completion. Retain the intentional single-message override and newer document-review routing.
+- rationale: recover obligations lost or weakened during prompt compaction and make retained, changed and removed requirements reviewable.
+
+### 2026-11-20 · `07f048d` — Proportional verification for policy and documentation
+
+- scope: delivery testing policy, `tests/run.sh`, `tests/static/`, test guidance and runbooks
+- change: remove 15 recurring prose/historical-artifact tests and trim prose assertions from mixed tests. Add a read-only `static` suite for harness discovery and permissions; keep executable behavior/configuration tests and their runtime guards. Prose changes use semantic review and relevant structural checks rather than exact sentences, headings or table rows and a manufactured red/green cycle.
+- rationale: reduce duplicate policy maintenance while retaining useful automated verification. `bash tests/run.sh static` runs on host or pod; runtime suites retain their existing context requirements.
 
 ## Operator reminder
 

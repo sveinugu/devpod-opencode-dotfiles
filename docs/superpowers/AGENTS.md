@@ -36,3 +36,7 @@ Purpose: define what each `docs/superpowers/` subdirectory is for, so new artifa
 - Put artifacts in the **smallest correct semantic home** (do not overload `runbooks/` with non-procedural records).
 - If no existing subdirectory fits, add a new one only when it has a distinct, reusable purpose.
 - Keep naming date-prefixed where history/auditability matters (`YYYY-MM-DD-...`).
+
+## Manual additions maintenance
+
+For this dotfiles repository, the author of an operational, security, harness/workflow or verification-strategy change outside a full spec/plan cycle must update `change-records/manual-additions-log.md` after the implementation commit and before handoff. Log only committed work with actual commit references, never uncommitted work or pending placeholders. Follow the log's organizing principles, including what to omit. A full spec/plan cycle normally needs only a pointer when it changes an earlier logged addition; do not duplicate its design or acceptance criteria. Review the entry for current behavior, chronological commit dates and traceable references. Do not add exact-wording tests for the log.

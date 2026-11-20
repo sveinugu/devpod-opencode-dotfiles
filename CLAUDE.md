@@ -103,6 +103,8 @@ Harness-wide procedures live in `.config/opencode/skills/`. Project-local skills
 
 ## docs/ structure
 
+After an implementation commit and before handoff, assess whether the committed changes to this dotfiles repository need an entry in `docs/superpowers/change-records/manual-additions-log.md`. The change author maintains entries for still-current operational, security, harness/workflow and verification-strategy additions outside full spec/plan cycles, following the organizing principles in that log and `docs/superpowers/AGENTS.md`. Use actual commit references; never log uncommitted work or pending placeholders. Omit routine wording fixes and behavior-preserving repairs. This is documentation maintenance, not a reason to create prose tests or make an unrequested commit.
+
 - `docs/superpowers/plans/` — approved implementation plans
 - `docs/superpowers/specs/` — design specs (binding requirements sources when referenced in a Delegation Packet)
 - `docs/superpowers/runbooks/` — operational how-tos
