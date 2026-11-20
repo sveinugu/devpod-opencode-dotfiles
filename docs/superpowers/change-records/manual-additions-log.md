@@ -498,6 +498,12 @@ Coverage: the 50 commits in `b540e1c..07f048d`, reviewed against the resulting s
 - change: require authors to assess and document qualifying committed operational, security, harness/workflow and verification-strategy additions after the implementation commit and before handoff. Entries require actual commit references; uncommitted work and pending placeholders are excluded. Use a follow-up docs-only update to reference the implementation hash.
 - rationale: keep changes traceable without logging routine wording fixes, behavior-preserving repairs or log-only updates. The requirement applies to this dotfiles repository, not managed child repositories.
 
+### 2026-11-20 · `88205a1` — STE-inspired writing and review guidance
+
+- scope: `.config/opencode/AGENTS.md`, `delivery-workflow`, `asd-ste100` skill and vocabulary reference, static harness discovery check
+- change: add a maintained adaptation of `danyuchn/asd-ste100-skill` at revision `65c8ab6ef5fcb3619c8e6daca43e68627f3d7b4a`, with its MIT license. The shared harness loads it for technical documentation, policy, specifications, plans, agent instructions, review outputs and responses to review. Guidance preserves obligations, exceptions, uncertainty, evidence, severity and approval status. The skill uses flexible writing targets and project terminology without the official dictionary or mandatory prose linting.
+- rationale: improve clarity without changing workflow authority or losing policy meaning. The tracked skill uses the existing shared OpenCode directory; no installer change was needed. Skill validation, both static checks, local reference checks and whitespace checks passed. These checks do not establish runtime agent compliance.
+
 ## Operator reminder
 
 After updates affecting `Dockerfile` or deployment manifests:
