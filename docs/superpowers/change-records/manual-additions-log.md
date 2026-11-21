@@ -504,6 +504,12 @@ Coverage: the 50 commits in `b540e1c..07f048d`, reviewed against the resulting s
 - change: add a maintained adaptation of `danyuchn/asd-ste100-skill` at revision `65c8ab6ef5fcb3619c8e6daca43e68627f3d7b4a`, with its MIT license. The shared harness loads it for technical documentation, policy, specifications, plans, agent instructions, review outputs and responses to review. Guidance preserves obligations, exceptions, uncertainty, evidence, severity and approval status. The skill uses flexible writing targets and project terminology without the official dictionary or mandatory prose linting.
 - rationale: improve clarity without changing workflow authority or losing policy meaning. The tracked skill uses the existing shared OpenCode directory; no installer change was needed. Skill validation, both static checks, local reference checks and whitespace checks passed. These checks do not establish runtime agent compliance.
 
+### 2026-11-21 · `e65d6de` — Policy loading by repository, role and phase
+
+- scope: shared policy, `CLAUDE.md`, agent role prompts, delivery/STE skill references, repository authoring guide and [repository reference](../runbooks/repository-reference.md)
+- change: keep repository-only logging duties in the authoring guide and move command/layout reference material out of startup instructions. Each role prompt now owns its skill assignments. Delivery and STE entry points require supporting references before the relevant authoring, review, supervision or completion work. Full current instructions already visible in context satisfy loading; names, summaries and prior sessions do not. Reload required guidance after compaction removes it.
+- rationale: reduce irrelevant and duplicate context while retaining policy obligations. Static checks, skill validation, reference/anchor checks and assignment-preservation checks passed. Source-content estimates with `o200k_base` reduced startup instructions from 2,695 to 1,419 tokens and a modeled README review from 6,339 to 3,920 tokens. These estimates exclude external skills, tool wrappers and conversation; they are not live runtime measurements. The pod's installed Superpowers revision and injection behavior remain unverified, so loading does not assume plugin injection.
+
 ## Operator reminder
 
 After updates affecting `Dockerfile` or deployment manifests:
