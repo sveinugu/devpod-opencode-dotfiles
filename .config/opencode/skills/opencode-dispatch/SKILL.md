@@ -12,7 +12,7 @@ Send the user's request to the named specialist through Task. Use this packet on
 - Under `Verbatim user request:`, quote the whole user message by default. Prefix each nonempty line with `>`. Separate multiple messages chronologically with `> ---`.
 - Omit empty fields. Optional `Warnings:` contains brief factual flags only.
 
-Keep interpretations, steering, inferred deliverables and extra prose out of the payload.
+Keep interpretations, steering, inferred deliverables and extra prose out of the payload. Do not add `Instructions:`, `Notes:` or `Deliverables:` fields, or interpretive text outside the packet/Annex structure.
 
 ### Supporting context
 

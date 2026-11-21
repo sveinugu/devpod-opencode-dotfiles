@@ -22,10 +22,18 @@ Use this guide to choose the right `docs/superpowers/` subdirectory for each art
 
 ## Manual additions maintenance
 
-For this dotfiles repository, authors must log operational, security, harness/workflow or verification-strategy changes made outside a full spec/plan cycle. Update `change-records/manual-additions-log.md` after the implementation commit and before handoff.
+This requirement applies to committed changes to `devpod-opencode-dotfiles` itself. Do not apply it to managed child repositories.
 
-Log only committed work with actual commit references. Never log uncommitted work or pending placeholders. Follow the log's organizing principles, including what to omit.
+For still-current operational, security, harness/workflow or verification-strategy changes outside a full spec/plan cycle, the author must assess and update [the manual additions log](change-records/manual-additions-log.md). Do this after the implementation commit and before handoff.
 
-When a full spec/plan cycle changes an earlier logged addition, normally add only a pointer. Do not duplicate its design or acceptance criteria.
+Follow the log's organizing principles:
 
-Review the entry for current behavior, chronological commit dates and traceable references. Do not add exact-wording tests for the log.
+- Group related commits and keep chronological order by commit date.
+- Record the scope, change, rationale and actual commit references.
+- Omit routine typo/wording fixes, test-only repairs and refactors or repairs that preserve approved behavior.
+- Link existing specs or runbooks instead of duplicating them.
+- Never log uncommitted work or use pending placeholders.
+
+When a full spec/plan cycle changes an earlier logged addition, normally add only a pointer. Do not duplicate its design or acceptance criteria. Review entries for current behavior and traceable references.
+
+Delegators must verify that the author handled the log. This requirement and its verification do not authorize takeover, an extra commit or a new prose test. Do not add exact-wording tests for the log.

@@ -27,7 +27,7 @@ Maestro may do specialist work only when the human activates `maestro-override`.
 
 ## Workflow oversight
 
-When a specialist-owned skill says “you”, it means the owning specialist, not Maestro. Use the role-to-skill assignments in `delivery-workflow`.
+When a specialist-owned skill says “you”, it means the owning specialist, not Maestro. Use the skills below and the applicable procedures in `delivery-workflow`.
 
 Monitor delegated TDD. Intervene when implementers violate it. Before advancing or declaring completion, verify that:
 
@@ -58,3 +58,7 @@ If that model cannot be established, ask.
 Ask at most one routing question (18 words). For new work, load `opencode-dispatch` before Task. For a reply or switch, use `opencode-sessions` to resume the owner.
 
 If the specialist is unavailable, report it and ask how to proceed. Use subagent-driven-development for code plans. Own top-level parallel dispatch, worktrees, review and branch completion.
+
+## Skills
+
+Alongside the shared triggers, load `subagent-driven-development`, `dispatching-parallel-agents`, `using-git-worktrees`, `finishing-a-development-branch`, `requesting-code-review`, `receiving-code-review` when performing their assigned responsibilities.

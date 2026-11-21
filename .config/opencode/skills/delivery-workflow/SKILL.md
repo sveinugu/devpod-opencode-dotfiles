@@ -3,6 +3,20 @@ name: delivery-workflow
 description: Apply local phase approvals, behavioral TDD and review rules to a delivery task.
 ---
 
+Read this core for design, planning, implementation and review. Read the references below before performing, reviewing or supervising the corresponding work. They are binding procedures, not optional background. Apply every matching trigger; load a later phase before entering it.
+
+## Required references
+
+- [Planning](references/planning.md): before designing or planning, or reviewing/supervising specs, plans or acceptance criteria.
+- [Implementation](references/implementation.md): before implementing, debugging or refactoring executable behavior, or planning, reviewing or supervising that work. This includes executable examples in plans or documentation.
+- [Review and completion](references/review-completion.md): before arranging or performing review, responding to review, accepting delegated work, declaring completion, handing back work or completing a branch. Planners also read it when defining acceptance or completion criteria.
+
+## Approval boundaries
+
+Plan before implementation. An approved spec, plan or acceptance document defining the work is sufficient implementation authority. Pre-implementation checkpoints may be waived only by explicit human-agent agreement. A waiver does not waive planning, workspace safety, applicable TDD/refactoring or verification. Other check-ins remain mandatory.
+
+Before dependent work or the next phase, wait for approval unless already authorized or that pre-implementation checkpoint was explicitly waived. Follow the detailed phase procedures above.
+
 ## What tests mean
 
 TDD does not mean unit testing. Tests must describe specific behavior and functionality that matter to the human partner. Choose the test level that best drives the current goal.
@@ -23,63 +37,7 @@ Do not freeze policy sentences, prose headings, Markdown table rows or formattin
 
 Put read-only repository checks in the `static` suite. They can run on host or in the pod. Tests that exercise a runtime must keep their required environment and guards. This distinction does not authorize bypassing guards or moving runtime operations into the static suite.
 
-## Design and planning
-
-Brainstorm before planning where useful. Plan before implementation.
-
-Unless explicitly waived below, authors must write and commit specs and plans, then present the path and commit for user approval. An approved spec, plan or acceptance document that defines the work is sufficient implementation authority.
-
-Describe goals, constraints, risks and behavioral acceptance tests. Include mandatory pause points as `User Check-in` in plans and specs only.
-
-For changes to executable behavior, tests are primary plan deliverables. They define behavior, interfaces and scope for discussion with the user. For documentation and policy prose, define review criteria and relevant structural validation instead.
-
-Keep plans and specs high-level. Do not prescribe detailed implementation steps unless the user explicitly requests them, even when `writing-plans` says otherwise.
-
-### Checkpoint waivers
-
-The human and agent may explicitly agree to waive pre-implementation approval checkpoints, including written or committed planning artifacts. This agreement does not waive planning, workspace safety, applicable TDD and refactoring, or verification.
-
-The testing scope above determines applicability. Prose-only work does not require inventing tests. The agreement may cover pre-implementation `User Check-in` markers. Other check-ins remain mandatory.
-
-## Role and skill assignments
-
-Load the listed skills when performing their assigned responsibilities, alongside the shared skill triggers. These assignments preserve the general-agent exception and scoped human Maestro overrides. A skill does not authorize taking over another role.
-
-| Role | Superpowers skills | Responsibility |
-| --- | --- | --- |
-| Maestro | `subagent-driven-development`, `dispatching-parallel-agents`, `using-git-worktrees`, `finishing-a-development-branch`, `requesting-code-review`, `receiving-code-review` | Top-level orchestration, worktrees, review routing and branch completion; relay feedback to the author. |
-| senior-implementer | `subagent-driven-development`, `dispatching-parallel-agents`, `using-git-worktrees`, `finishing-a-development-branch`, `requesting-code-review`, `receiving-code-review`, `systematic-debugging`, `test-driven-development` | Code execution and model selection; own junior workflows, worktrees, reviews and branch completion until handback. |
-| junior-implementer | `test-driven-development`, `receiving-code-review`, `systematic-debugging` (only for assigned debugging) | Implement the assigned slice under the senior; do not delegate further. |
-| policy-implementer | `executing-plans`, `subagent-driven-development`, `finishing-a-development-branch`, `receiving-code-review`, `test-driven-development` | Own policy/document plan execution, applicable TDD, reviews and scoped branch completion in one session. |
-| brainstormer | `brainstorming`, `receiving-code-review` | Design with the user, author specifications and respond to their reviews. |
-| planner | `writing-plans`, `writing-skills`, `test-driven-development`, `receiving-code-review` | Author plans and skills; ensure plans support TDD and verification against the spec. |
-| docs-writer | `receiving-code-review` | Author documentation and respond to reviews. |
-| code-reviewer, docs-reviewer-gpt, docs-reviewer-claude | `requesting-code-review`, `test-driven-development` | Carry out the dispatched review; understand TDD and report noncompliance, without implementing the reviewed work. |
-
-Maestro, senior-implementer and junior-implementer must not use `executing-plans`. Policy-implementer uses it for policy and document plans.
-
-All roles use `using-superpowers` and `verification-before-completion` as required by the shared triggers. General follows the skills for the work the human requests. Maestro communicates relevant skill usage to the user and subagents.
-
-### Technical writing and review outputs
-
-Apply `asd-ste100` according to the shared triggers and the responsibility being performed:
-
-- Docs-writer and policy-implementer use it for documentation, instructions and policy.
-- Brainstormer and planner use it when drafting specifications, plans and acceptance criteria. Preserve open questions, alternatives and unresolved decisions.
-- Code-reviewer, docs-reviewer-gpt and docs-reviewer-claude use it for their findings, summaries and verdicts. Authors use it for responses to review.
-- Maestro, code implementers and general use it for those same writing and review responsibilities when applicable. Routine coding, routing and brief conversation do not require loading it solely for style.
-
-The skill provides flexible writing guidance and a small vocabulary reference. It does not replace role ownership or the existing skill precedence.
-
-Review outputs must retain evidence, locations, severity, confidence, verification limits and approval status. Clearer wording must not strengthen an uncertain finding, weaken a requirement, or turn a suggestion into a blocker.
-
-Report style preferences separately from defects. Style alone does not block approval unless an applicable requirement makes it an acceptance criterion.
-
-## Implementation
-
-Apply the TDD and refactor cycle below to executable behavior. For prose-only changes, use the semantic review and structural validation described under Testing scope.
-
-### Skill responsibilities
+## Skill responsibilities
 
 Repository policy and `pragmatic-programmer` govern test-level selection, tracer-bullet scope and design trade-offs. `karpathy-guidelines` supports simplicity, ambiguity handling and surgical changes within that policy. `obra/superpowers` governs tests-first execution discipline.
 
@@ -87,45 +45,16 @@ Repository policy and `pragmatic-programmer` govern test-level selection, tracer
 
 `clean-code` must not override user instructions, repository policy, approved artifacts, the chosen test level or test protection of behavior.
 
-### Tests and prototypes
+## Role and skill assignments
 
-Before implementation, offer the user review of interface-defining tests. Use a failing integration/contract test for cross-layer slices and a focused unit test for isolated logic. Prefer real interactions. Justify unavoidable mocks in the test header.
+Each [agent role prompt](../../agents/) owns its skills and responsibilities. Load those skills when performing the assigned responsibilities, alongside the shared triggers. Before delegating or supervising a role, read that role's skills and responsibilities. This preserves the general-agent exception and scoped human Maestro overrides; it does not authorize takeover or changing identity or tool permissions.
 
-Keep prototypes isolated in a worktree or `prototype/*` branch. Before merge, remove them or convert them to tests and design.
+Maestro, senior-implementer and junior-implementer must not use `executing-plans`. Policy-implementer uses it for policy and document plans. All roles use `using-superpowers` and `verification-before-completion` under the shared triggers. General follows the skills for the work the human requests. Maestro communicates relevant skill usage to the user and subagents.
 
-### TDD and refactoring
+## Implementation
 
-Follow red → verify red → green → verify green → refactor → verify green.
+The [implementation procedure](references/implementation.md) owns TDD, prototypes, refactoring and scope-change pauses. The shared testing scope above determines applicability.
 
-For every TDD slice, perform a standalone refactor checkpoint after reaching green, even when no changes seem necessary. Review the changed slice and nearby connected code for naming, duplication, boundaries, readability and small behavior-preserving cleanups.
+## Technical writing and review outputs
 
-At the checkpoint, record the cleanup or why none was needed. Record follow-up cleanup items and rerun the relevant tests after refactoring. Before a refactor changes behavior or makes a hard-to-reverse architectural change outside the approved slice, pause for human approval.
-
-Pause for material plan divergence, gaps exposed by tests, unclear irreversible choices and every unwaived `User Check-in`. When scope changes, update the design or plan. Obtain any applicable approval before dependent work.
-
-## Review and completion
-
-### Review ownership and order
-
-Offer the user first review and manual testing. Unless the user has instructed otherwise, wait until the user is content before dispatching automated review. Facilitate direct user-author discussion when needed or requested.
-
-Route committed work to the appropriate reviewer. Return feedback to the original author. The author commits revisions and may explain disagreements to the reviewer.
-
-Continue until the reviewer approves or the review exceeds ten iterations. The iteration limit is not approval.
-
-Keep feedback conversational. Create a review record only when requested or required by the plan/spec. The reviewer owns it unless explicitly reassigned. GitHub review history suffices for PR review.
-
-### Completion evidence
-
-Before marking a feature done, run the pragmatic-programmer diagnostic and clean-code review. Report their results in the PR, review summary or handoff.
-
-- For a pragmatic-programmer score below 8, list 1–3 remediation tasks.
-- For material clean-code issues, list 1–3 cleanup/remediation tasks or explicit reasons for deferral.
-
-The OpenCode PR template is optional. Use relevant sections or N/A. Honor the user's preferred format while retaining the evidence. Record policy deviations in the PR with a one-line justification and explicit human approval.
-
-### Next steps and branch completion
-
-Before dependent work or the next phase, wait for user approval unless the user already authorized it or explicitly waived that pre-implementation checkpoint.
-
-Maestro owns GitHub and top-level branch completion. Rebase onto main/master before local merge unless directed otherwise.
+Follow the shared `asd-ste100` triggers for documentation, policy, specs, plans, agent instructions, review outputs and responses. Routine coding, routing and brief conversation do not require loading it solely for style. It supports wording within the existing precedence and does not change role ownership.

@@ -19,3 +19,5 @@ permission:
 Handle direct requests. When the human requests named-specialist responsibilities, you may perform them without a Maestro override.
 
 Follow the shared policy and applicable skills. Do not impersonate another agent or misrepresent another session’s work.
+
+For human-requested specialist work, read the relevant [role prompt](./) for its skills and responsibilities. Follow them without adopting its identity, model configuration or tool permissions. Follow the matching phase references in `delivery-workflow`.

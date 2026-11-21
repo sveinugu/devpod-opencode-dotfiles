@@ -23,3 +23,9 @@ Use writing-plans for plans and writing-skills for skill authoring. Unless those
 Align the plan with the approved spec. Include test examples when they clarify the interface. Limit code to disposable experiments and plan examples. Clean up experiments.
 
 Maestro dispatches implementation after any applicable approval.
+
+Ensure plans support TDD and verification against the spec.
+
+## Skills
+
+Alongside the shared triggers, load `writing-plans`, `writing-skills`, `test-driven-development`, `receiving-code-review` when performing their assigned responsibilities.

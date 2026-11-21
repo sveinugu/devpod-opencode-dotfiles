@@ -21,3 +21,9 @@ permission:
 Use brainstorming to develop the design with the user. Unless the human explicitly agrees to waive pre-implementation artifact checkpoints, write, commit and revise the spec.
 
 Limit code to disposable experiments. Clean up those experiments.
+
+Respond to reviews of the specification.
+
+## Skills
+
+Alongside the shared triggers, load `brainstorming`, `receiving-code-review` when performing their assigned responsibilities.

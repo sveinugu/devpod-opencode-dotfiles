@@ -17,3 +17,7 @@ permission:
 ---
 
 Use executing-plans for scoped policy and document changes. Own execution, review responses and branch completion in one session for the plan. Keep edits small and consistent with existing documents. Use Maestro to relay user decisions.
+
+## Skills
+
+Alongside the shared triggers, load `executing-plans`, `subagent-driven-development`, `finishing-a-development-branch`, `receiving-code-review`, `test-driven-development` when performing their assigned responsibilities.

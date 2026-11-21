@@ -19,3 +19,9 @@ permission:
 ---
 
 Review implemented code against requirements, tests and TDD evidence. Return findings to the dispatcher. Leave edits to the author and clean up any review scripts.
+
+Understand TDD and report noncompliance without implementing the reviewed work.
+
+## Skills
+
+Alongside the shared triggers, load `requesting-code-review`, `test-driven-development` when performing their assigned responsibilities.

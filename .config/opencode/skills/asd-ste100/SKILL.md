@@ -11,7 +11,9 @@ metadata:
 
 Make instructions and explanations easy to understand on one reading. Apply this skill to the prose you author within the requested scope. Routine coding, routing and brief conversation do not require a separate style pass. Do not rewrite historical records or surrounding documents merely because you loaded this skill.
 
-This is a maintained adaptation of [danyuchn/asd-ste100-skill](https://github.com/danyuchn/asd-ste100-skill/tree/65c8ab6ef5fcb3619c8e6daca43e68627f3d7b4a), with its [MIT license](LICENSE). It uses flexible writing targets, preserves local workflow authority, and adds guidance for review outputs. It omits the upstream linter and strict mode. It does not fetch, bundle or use the official STE dictionary and does not establish formal STE compliance.
+This skill uses STE-inspired guidance without the official dictionary or formal compliance claims. Do not fetch, bundle or use that dictionary. See [source and adaptation notes](references/provenance.md) for provenance and licensing.
+
+Before writing review outputs or responses to review, read [review guidance](references/review-outputs.md). Preserve severity, confidence, evidence, locations, verification limits and approval status.
 
 ## Meaning comes first
 
@@ -33,18 +35,16 @@ Replace inflated wording only when the meaning stays the same: `utilize` can usu
 
 Use the same term for the same concept within a document. Keep established technical terms when they are more precise than a paraphrase. Explain unfamiliar terms for the intended audience. Never collapse distinct concepts merely because their names are synonyms in ordinary English.
 
-For harness policy, plans and reviews, read [references/vocabulary.md](references/vocabulary.md). Use a managed repository's own glossary for its domain terminology. Add or propose a glossary entry only when a recurring ambiguity warrants it; follow the task's edit permissions. The glossary explains terms and links to policy; it does not create workflow requirements.
+Preserve obligation (`must`), prohibition (`must not`), recommendation (`should`), permission, possibility and capability (`can`). Resolve ambiguous `may` only from established intent.
 
-## Review outputs
+For harness policy, plans and reviews, preserve these vocabulary distinctions:
 
-Apply this guidance to code, documentation, policy, specification and plan reviews, including short findings and responses to review.
+- Review examines work; approval is an authorized decision within a stated scope. Silence and iteration limits are not approval.
+- Tests are executable checks of specific behavior or functionality. Verification also includes other evidence. Structural validation does not prove that an agent follows policy.
+- A commit records a Git change. Completion fulfills the scoped task and applicable handoff requirements. Completing work does not discard session continuity.
+- Delegation assigns work within role boundaries. A handoff transfers results or control; it does not expand authority.
 
-- Lead with the finding or conclusion. For a defect, state the relevant condition, affected behavior and consequence. Include a precise location and supporting evidence when available.
-- Preserve the review's severity and confidence. Distinguish observed failures from inferred risks, open questions and optional suggestions. Do not turn an untested possibility into a confirmed defect.
-- Retain reproduction details, citations, commands, test results and limits needed to assess a finding. Quote source text accurately and explain it in your own prose.
-- Keep the required verdict, output schema, verification report and handoff. A request for simpler wording does not authorize removing them or changing approval status.
-- Do not manufacture findings to demonstrate this skill. Report style preferences separately from defects. Style alone is not a blocker unless an applicable requirement makes it an acceptance criterion.
-- In responses to review, state what changed, what evidence supports the response, and what remains unresolved. Disagreement or deferral must not sound like completed remediation.
+Before defining these terms or resolving a vocabulary ambiguity, read [the vocabulary reference](references/vocabulary.md). Use a managed repository's own glossary for its domain. Add or propose entries only for recurring ambiguity and within edit permissions. A glossary explains policy; it does not create workflow requirements.
 
 ## Check and deliver
 

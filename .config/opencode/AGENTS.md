@@ -29,7 +29,9 @@ For all temporary file operations, use the environment's `TMPDIR` (or `TMP` / `T
 
 ## Skill triggers
 
-When a trigger below applies, use the skill tool:
+When a trigger below applies, use the skill tool unless the full current instructions are already visible in context. Tool-loaded or harness-injected content satisfies loading; a skill name, summary or prior session does not. If compaction removes required guidance, reload it before the affected work. Apply the same rule to required references.
+
+Skill triggers:
 
 - Before sending or accepting a new Maestro delegation packet, load `opencode-dispatch`.
 - For Task launches, resumes and handbacks, the router loads `opencode-sessions`.
@@ -58,36 +60,14 @@ This batching policy overrides skill or subagent preferences for one-question-at
 
 Use `bin/new-worktree` and `bin/clone-repo` for managed worktree and repository creation.
 
-These approved helpers may set repository-local `branch.<branch>.remote` and `branch.<branch>.merge` tracking configuration during their documented lifecycle operations. This authorization does not permit:
-
-- Ad hoc Git configuration changes.
-- Global or system configuration changes.
-- Credential or identity changes.
-- Hook bypasses.
-- Execution outside the agent's authorized context.
+Before these operations, load `managed-worktrees`. It defines the helpers’ limited authorization for repository-local branch tracking configuration.
 
 Do not substitute raw Git commands to avoid helper requirements. If another instruction or execution boundary blocks a helper, stop and report the conflict.
 
 ## Policy maintenance
 
-When changing policy or documentation targets, update their cross-references. Shared rules and triggers live here. The linked harness skills own their procedures and role-to-skill assignments. Templates and historical records support these rules and do not replace them.
+When changing policy or documentation targets, update their cross-references. Shared rules and triggers live here. Harness skills own procedures; agent role prompts own role-to-skill assignments. Templates and historical records support these rules and do not replace them.
 
 Review policy changes for retained, changed and removed obligations. For documentation and policy, use relevant structural validation. Do not add tests that freeze prose, headings or Markdown formatting. The testing policy in `delivery-workflow` distinguishes these edits from changes to executable behavior.
 
 Run applicable checks in their designated execution context. Report checks that could not run.
-
-### Manual additions log
-
-This requirement applies to committed changes to `devpod-opencode-dotfiles` itself. Do not apply it to managed child repositories.
-
-For still-current operational, security, harness/workflow or verification-strategy changes outside a full spec/plan cycle, the author must assess and update `docs/superpowers/change-records/manual-additions-log.md`. Do this after the implementation commit and before handoff.
-
-Follow the log's organizing principles:
-
-- Group related commits.
-- Record the scope, change, rationale and actual commit references.
-- Omit routine typo fixes, test-only repairs and refactors that preserve approved behavior.
-- Link existing specs or runbooks instead of duplicating them.
-- Never log uncommitted work or use pending placeholders.
-
-Delegators must verify that the author handled the log. This verification does not authorize takeover, an extra commit or a new prose test.

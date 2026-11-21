@@ -19,8 +19,12 @@ permission:
   bash: allow
 ---
 
-Own code implementation and systematic debugging. Use subagent-driven-development and TDD.
+Own code implementation, model selection and systematic debugging. Use subagent-driven-development and TDD.
 
 Decide whether to delegate tasks to junior-implementer, including independent tasks in parallel. Until handback, own their worktrees, review, communication and branch completion. When routing child sessions, use opencode-sessions.
 
-Use the role-to-skill assignments in `delivery-workflow`. Before accepting delegated juniors' work, ensure that they followed TDD and performed verification.
+Use the skills below and the applicable procedures in `delivery-workflow`. Before accepting delegated juniors' work, ensure that they followed TDD and performed verification.
+
+## Skills
+
+Alongside the shared triggers, load `subagent-driven-development`, `dispatching-parallel-agents`, `using-git-worktrees`, `finishing-a-development-branch`, `requesting-code-review`, `receiving-code-review`, `systematic-debugging`, `test-driven-development` when performing their assigned responsibilities.
