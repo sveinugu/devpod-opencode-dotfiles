@@ -188,7 +188,7 @@ Repo anchors for this contract:
 - provider-secret source, env mapping, generated runtime profile filtering
 
 Provider secrets are sourced from the fixed Kubernetes mount `/var/run/secrets/nono/providers`.
-For the supported path, only the constrained non-interactive `sudo -n` helper contract in `scripts/lib/nono-secret-env.sh` reads secrets. It maps mounted secret files to the environment variables needed for the wrapped launch path. Examples include `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, `GPT_UIO_YELLOW_API_KEY`, and `GPT_UIO_RED_API_KEY`.
+For the supported path, only the constrained non-interactive `sudo -n` helper contract in `scripts/lib/nono-secret-env.sh` reads secrets. It maps mounted secret files to the environment variables needed for the wrapped launch path. Examples include `OPENAI_CHATGPT_SESSION`, `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, `GPT_UIO_YELLOW_API_KEY`, and `GPT_UIO_RED_API_KEY`.
 
 Before `nono` launches, the generated runtime profile is filtered to the enabled provider set. Disabled provider credential routes do not remain in the active runtime profile.
 Interactive shell startup files, repo files, `.env` files, and agent-readable auth storage are not supported credential-bearing surfaces for this path.
@@ -198,7 +198,7 @@ Allowed inherited environment variables in this profile are exactly:
 - `PATH`, `HOME`, `TERM`, `LANG`, `LC_ALL`, `USER`, `SHELL`, `PWD`
 - `XDG_*`, `HUB_*`, `OPENCODE_*`
 
-This profile explicitly strips `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, `GPT_UIO_YELLOW_API_KEY`, and `GPT_UIO_RED_API_KEY` from inherited sandbox environment state.
+This profile explicitly strips `OPENAI_API_KEY`, `OPENAI_CHATGPT_SESSION`, `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, `GPT_UIO_YELLOW_API_KEY`, and `GPT_UIO_RED_API_KEY` from inherited sandbox environment state.
 Before sandbox entry, the constrained helper loads real provider secrets. The wrapped launch path then consumes them. It does not inherit them from the caller shell.
 
 These secrets are not ordinary interactive-shell environment variables.
@@ -210,10 +210,10 @@ The constrained sudoers runtime launch rule delegates to one root-owned launch h
 
 The wrapper always emits an end-of-options marker (`--`) before forwarding user args. The sudoers contract must therefore allow both launch-helper forms: with trailing argv (`-- *`) and without trailing argv (`--`).
 
-Credential routes configured in this profile are exactly `openai`, `anthropic`, `github-copilot`, `gpt-uio-yellow`, and `gpt-uio-red`.
+Credential routes configured in this profile are exactly `openai-chatgpt`, `anthropic`, `github-copilot`, `gpt-uio-yellow`, and `gpt-uio-red`.
 Their configured upstreams are:
 
-- `openai` → `https://api.openai.com`
+- `openai-chatgpt` → `https://chatgpt.com/backend-api/codex` (headers from a `cmd://` helper, see below)
 - `anthropic` → `https://api.anthropic.com`
 - `github-copilot` → `https://api.githubcopilot.com` (Authorization: `Bearer <token>`)
 - `gpt-uio-yellow` → `https://gpt.uio.no/api/v1`
@@ -226,6 +226,8 @@ The reviewed template also limits TLS-intercept trust propagation to these CA en
 - `NODE_EXTRA_CA_CERTS`
 - `CURL_CA_BUNDLE`
 - `GIT_SSL_CAINFO`
+
+The `openai-chatgpt` route has no stored header value. nono runs the root-owned helper `/usr/local/libexec/dotfiles-chatgpt-headers` (`credential_capture`, no cache) for each request. The helper reads `OPENAI_CHATGPT_SESSION` from the nono supervisor environment and prints `Authorization`, `ChatGPT-Account-Id` and, when the session has one, the residency header. It prints nothing for an expired or invalid session. The wrapper passes the session only for a valid login, and the generator keeps the route only then. OpenCode gets a fixed, non-secret stub in `OPENCODE_AUTH_CONTENT`, which selects its ChatGPT transport. The sandbox does not get the session: `deny_vars` filters it, and nono makes the supervisor non-dumpable. A process running as `agent` outside nono could read the session from a running helper, so nothing runs as `agent` outside nono. Transport is HTTP only. See [the ChatGPT plan support spec](../specs/2026-11-19-openai-chatgpt-plan-support-design.md).
 
 At the template-file level, these credential routes and CA-propagation variables are the explicit network-related settings present in `.config/nono/profiles/devspace-opencode-secure.jsonc`.
 For broader upstream behavior and secure-path runtime semantics, use the wrapper contract, runtime tests, and the upstream networking / credential-injection docs linked above.

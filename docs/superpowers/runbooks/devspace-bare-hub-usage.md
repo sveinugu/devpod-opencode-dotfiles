@@ -21,7 +21,6 @@ Run in the same namespace as the workspace Deployment/Pod:
 
 ```bash
 kubectl create secret generic dotfiles-nono-provider-credentials \
-  --from-literal=openai_api_key='<openai_api_key>' \
   --from-literal=anthropic_api_key='<anthropic_api_key>' \
   --from-literal=github_token='<github_token>' \
   --from-literal=gpt_uio_yellow_api_key='<gpt_uio_yellow_api_key>' \
@@ -30,13 +29,14 @@ kubectl create secret generic dotfiles-nono-provider-credentials \
 
 Required keys:
 
-- `openai_api_key`
 - `anthropic_api_key`
 - `github_token`
 - `gpt_uio_yellow_api_key`
 - `gpt_uio_red_api_key`
 
 If the workspace was already deployed before the secret existed, the pod may need a restart or you may need to re-apply the deployment.
+
+The optional ChatGPT plan login uses the key `openai_chatgpt_session`, which `ops/provider-login` writes. See [ChatGPT plan login](devspace-workspace-lifecycle.md#chatgpt-plan-login-optional).
 
 Use `/workspaces/dotfiles/main` as the editable workspace checkout.
 
@@ -200,7 +200,7 @@ Bootstrap guardrail:
 
 Current policy note:
 
-- openai/anthropic with `all` mode
+- `openai-chatgpt`/`anthropic` with `all` mode
 - `github-copilot` with `all` mode
 - UiO providers (`gpt-uio-yellow`, `gpt-uio-red`) use full current model lists
 

@@ -4,6 +4,8 @@ Date: 2026-07-14
 Status: Proposed  
 Related: `docs/superpowers/specs/2026-05-23-devspace-bare-hub-workspace-design.md`, `docs/superpowers/explorations/2026-05-23-devpod-alternatives.md`, `https://github.com/nolabs-ai/nono`, `https://nono.sh/docs/introduction`
 
+> **Later change:** the `openai` API-key route is replaced by a ChatGPT plan login that nono injects through a `cmd://` header helper. See `docs/superpowers/specs/2026-11-19-openai-chatgpt-plan-support-design.md`.
+
 ## Executive Summary
 
 This design retires the earlier Phase 1/Phase 2 framing and replaces it with one direct-provider design path for OpenCode in the DevSpace workspace.

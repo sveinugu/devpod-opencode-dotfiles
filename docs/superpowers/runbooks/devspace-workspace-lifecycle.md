@@ -24,7 +24,6 @@ Run in the same namespace as the workspace Deployment/Pod:
 
 ```bash
 kubectl create secret generic dotfiles-nono-provider-credentials \
-  --from-literal=openai_api_key='<openai_api_key>' \
   --from-literal=anthropic_api_key='<anthropic_api_key>' \
   --from-literal=github_token='<github_token>' \
   --from-literal=gpt_uio_yellow_api_key='<gpt_uio_yellow_api_key>' \
@@ -33,13 +32,38 @@ kubectl create secret generic dotfiles-nono-provider-credentials \
 
 Required keys:
 
-- `openai_api_key`
 - `anthropic_api_key`
 - `github_token`
 - `gpt_uio_yellow_api_key`
 - `gpt_uio_red_api_key`
 
 If the workspace was already deployed before the secret existed, the pod may need a restart or you may need to re-apply the deployment.
+
+## ChatGPT plan login (optional)
+
+ChatGPT Plus/Pro models are available when `openai-chatgpt` is in `/workspaces/dotfiles/state/hub/etc/provider-enablement.json` and a login is stored in the provider Secret. The seed does not enable it. The design is in [the ChatGPT plan support spec](../specs/2026-11-19-openai-chatgpt-plan-support-design.md).
+
+Log in from the host, in the namespace of the workspace:
+
+```bash
+DEVSPACE_NAMESPACE=<namespace> ops/provider-login chatgpt
+```
+
+The command runs OpenCode's login in the pod, outside nono. In the login, choose OpenAI, then the ChatGPT Plus/Pro headless method. The command stores only the session in the Secret key `openai_chatgpt_session` and prints the expiry date. It does not keep the refresh token, so log in again before the login expires (about every 10 days). Provisioning does not log in.
+
+New sessions use the login after the kubelet updates the Secret mount, usually within a minute. Running sessions keep the login they started with. Restart them to use a new login.
+
+Launch behavior when `openai-chatgpt` is enabled:
+
+- Valid login: OpenCode gets the ChatGPT models through nono.
+- Login expires within 24 hours: as above, with a warning.
+- No login, or an expired or invalid login: OpenCode starts without ChatGPT and prints the login command.
+- An `openai/*` model selected with `--model` or as the top-level `model`, without a valid login: the launch is refused.
+- An agent role that uses an `openai/*` model without a valid login fails when that role is first used.
+
+To disconnect, run `ops/provider-login chatgpt --reset` and stop running sessions. This does not revoke the login at OpenAI; do that in the ChatGPT account settings. Logging out inside OpenCode does not disconnect ChatGPT.
+
+The `openai` API-key provider and its `openai_api_key` Secret key are removed. A manifest that lists `openai` is refused.
 
 ## Provision
 

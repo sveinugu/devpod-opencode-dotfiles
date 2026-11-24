@@ -66,6 +66,8 @@ The header helper runs as `agent`, and the Secret mount is root-only. The helper
 
 `ops/provider-login <provider>` runs on the host that has `kubectl` access. The pod gets no permission to change Secrets.
 
+Its pod-side steps are in `scripts/lib/provider-login-remote.sh`, which runs from the pod's `main` checkout. The command therefore works only after this change reaches `main`.
+
 For every provider, the command must:
 
 - run OpenCode's device login in a `vscode`-only temporary directory in the pod, with the pinned OpenCode version;
