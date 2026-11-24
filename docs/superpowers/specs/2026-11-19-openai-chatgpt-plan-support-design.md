@@ -166,7 +166,7 @@ The nono-policy, bare-hub and lifecycle runbooks describe the login command, Sec
 
 ## Evidence
 
-The human ran these checks on 2026-11-23 with OpenCode 1.19.6 and nono 0.82.0.
+The human ran these checks on 2026-11-23 and 2026-11-24 with OpenCode 1.19.6 and nono 0.82.0.
 
 | Check | Credential | Result |
 | --- | --- | --- |
@@ -174,13 +174,16 @@ The human ran these checks on 2026-11-23 with OpenCode 1.19.6 and nono 0.82.0.
 | OpenCode transport with stub | Synthetic | Pass |
 | Isolation under the production profile and privilege drop | Synthetic | Pass |
 | Login, injected headers and one OpenCode prompt to `chatgpt.com` | Real Plus/Pro login, plan not recorded | Pass with `gpt-6-luna` |
+| Session in the supervisor environment, `deny_vars`, header helper reads it, expired session refused, stub through `OPENCODE_AUTH_CONTENT` with no `auth.json` | Synthetic | Pass |
 
 The backend rejected `gpt-5.5` for this account with HTTP 400.
 
+The environment-path check used the production profile with only the `deny_vars` entry and a synthetic route added. The sandbox did not find the session in its environment, the supervisor environment or any readable process data, also while a helper held it. nono makes the supervisor non-dumpable, so its environment was denied even to its own UID outside the sandbox. A positive control showed that the same UID outside the sandbox could read the session from a running helper. OpenCode created no `auth.json` and attempted no refresh.
+
 Limits of this evidence:
 
-- The tested helper read a file in `/run`. The environment-based session path in this design is not tested.
-- The tested stub was in `auth.json`. Stub delivery through `OPENCODE_AUTH_CONTENT` is not tested.
+- The environment-path check used a synthetic launch, not the production launch helper or wrapper. Gates S1 and S3 test the deployed path.
+- A process running as `agent` outside nono can read the session from a header helper while that helper runs.
 - The real-account check narrowed outbound access to the ChatGPT route. It did not test production's `allow_domain: ["*"]` together with other provider routes.
 - The real-account check sent one short prompt. It did not cover tool use, long sessions or real token expiry.
 - The sandbox can signal processes of the same UID on this kernel (6.8), so a sandboxed agent can probably stop a nono supervisor. This is existing behavior and is an availability risk, not a credential exposure.
@@ -232,7 +235,7 @@ Work happens in a managed worktree and reaches `main` only by merge.
 ## Risks
 
 - **A sandboxed agent can use the credential through the route** while a session is valid. It cannot read the token. This is inherent to proxy injection.
-- **The sandbox is the barrier around the supervisor environment.** The supervisor and child share a UID. Gate S1 tests this path.
+- **The sandbox is the barrier around the supervisor environment.** The supervisor and child share a UID. nono makes the supervisor non-dumpable, but a header helper is readable by its UID while it runs. Nothing may run as `agent` outside nono. Gate S1 tests this path.
 - **Token lifetime can change.** The 10-day value comes from two logins on one account. Launch-time expiry checks do not depend on that value.
 - **A running session keeps its snapshot** after re-login or reset. The login command and runbook state this.
 - **Backend behavior can change.** The route depends on OpenCode's ChatGPT transport and an unversioned backend. Pin versions and rerun the gates at each OpenCode or nono upgrade.
