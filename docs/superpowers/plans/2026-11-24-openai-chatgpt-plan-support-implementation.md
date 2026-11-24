@@ -65,7 +65,7 @@ A8's host part is run by the human.
 7. Runbooks and the credential-phasing pointer. Semantic review only, no prose tests.
 8. Each task ends with a refactor checkpoint and a run of the related pod-inside-nono tests. After task 7, run `bash tests/run.sh static` and the full pod-inside-nono suite.
    **User Check-in:** the human reviews the branch and does manual testing before automated review.
-9. **User Check-in:** the human builds and deploys the image and runs synthetic gates S1 to S4 from the spec. Agents supply the gate scripts. If a gate fails, stop and re-plan.
+9. **User Check-in:** the human builds and deploys the image and runs synthetic gates S1 to S4 from the spec. Agents supply the S1 and S3 tests and the S2 and S4 handover checks. If a gate fails, stop and re-plan.
 10. **User Check-in:** the human runs real-account gates R1 to R6.
 11. Completion evidence: pragmatic-programmer diagnostic and clean-code review in the PR or handoff.
 
@@ -77,6 +77,6 @@ The Copilot adapter follows in a separate plan after task 10.
 - **Login output format.** Extraction depends on how OpenCode 1.19.6 writes its temporary login. A7 uses a synthetic file in that format. Gate R1 confirms it against a real login.
 - **Agents cannot run the deployed path.** Tasks 9 and 10 depend on the human. Any failure there returns to planning.
 
-## Open questions
+## Gate tests
 
-- Do the gate scripts for S1 to S4 belong in the repository as `pod-outside-nono` tests, or stay as handover scripts? The proof scripts suggest that S1 and S3 are worth keeping as tests.
+Gates S1 and S3 become `pod-outside-nono` tests, so they can be rerun at each OpenCode or nono upgrade. Only the human runs them. Gates S2 and S4 are one-off handover checks.
