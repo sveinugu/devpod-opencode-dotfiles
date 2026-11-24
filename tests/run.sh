@@ -68,6 +68,8 @@ case "$context" in
       tests/pod-outside-nono/test_nono_blocking_matrix_contract.sh
       tests/pod-outside-nono/test_nono_proxy_toy_contract.sh
       tests/pod-outside-nono/test_nono_secret_helper_contract.sh
+      tests/pod-outside-nono/test_chatgpt_session_isolation_gate.sh
+      tests/pod-outside-nono/test_chatgpt_opencode_stub_gate.sh
       tests/pod-outside-nono/test_workspace_navigation_shell.sh
       tests/pod-outside-nono/test_create_hub_repo.sh
       tests/pod-outside-nono/test_provision_sync_contract.sh
