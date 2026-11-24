@@ -34,19 +34,23 @@ def main() -> None:
             _fail('refused: generated provider runtime output has invalid enabled_providers entry')
 
     provider_to_credential = {
-        'openai': 'openai',
+        'openai-chatgpt': 'openai-chatgpt',
         'anthropic': 'anthropic',
         'github-copilot': 'github-copilot',
         'gpt-uio-yellow': 'gpt-uio-yellow',
         'gpt-uio-red': 'gpt-uio-red',
     }
 
+    unknown = sorted(provider for provider in enabled if provider not in provider_to_credential)
+    if unknown:
+        _fail(f'refused: unknown providers in generated provider runtime output: {", ".join(unknown)}')
+
     managed_credential_names = set(provider_to_credential.values())
-    enabled_credential_names = {
-        provider_to_credential[provider]
-        for provider in enabled
-        if provider in provider_to_credential
-    }
+    enabled_credential_names = {provider_to_credential[provider] for provider in enabled}
+    # The ChatGPT route needs a session in the supervisor environment; the wrapper
+    # passes OPENAI_CHATGPT_SESSION only for a valid login.
+    if not os.environ.get('OPENAI_CHATGPT_SESSION'):
+        enabled_credential_names.discard('openai-chatgpt')
 
     network = profile.get('network')
     if not isinstance(network, dict):
@@ -76,6 +80,19 @@ def main() -> None:
 
     network['credentials'] = filtered_credentials
     network['custom_credentials'] = filtered_custom_credentials
+
+    capture = profile.get('credential_capture', {})
+    if not isinstance(capture, dict):
+        _fail('refused: secure nono profile template has invalid credential_capture object')
+    capture = {
+        name: entry
+        for name, entry in capture.items()
+        if name not in managed_credential_names or name in enabled_credential_names
+    }
+    if capture:
+        profile['credential_capture'] = capture
+    else:
+        profile.pop('credential_capture', None)
 
     if not os.path.isdir(args.output_dir):
         _fail(f'refused: generated nono profile directory not found at {args.output_dir}')

@@ -79,6 +79,7 @@ RUN sudo chsh -s /usr/bin/zsh vscode
 COPY .config/nono/profiles/devspace-opencode-secure.jsonc /tmp/devspace-opencode-secure.jsonc
 COPY scripts/lib/generate-nono-profile.py /tmp/generate-nono-profile.py
 COPY scripts/lib/launch-opencode-nono.sh /tmp/launch-opencode-nono.sh
+COPY scripts/lib/chatgpt-headers.py /tmp/chatgpt-headers.py
 
 # Install nono at image build time (slow step; isolated for caching)
 RUN curl -fsSL https://nono.sh/install.sh -o /tmp/install-nono.sh \
@@ -97,6 +98,11 @@ RUN sudo install -m 0755 /tmp/launch-opencode-nono.sh /usr/local/libexec/dotfile
     && sudo chown root:root /usr/local/libexec/dotfiles-launch-opencode-nono \
     && sudo rm -f /tmp/launch-opencode-nono.sh
 
+# Install root-owned ChatGPT header helper that nono runs as a cmd:// credential
+RUN sudo install -m 0755 /tmp/chatgpt-headers.py /usr/local/libexec/dotfiles-chatgpt-headers \
+    && sudo chown root:root /usr/local/libexec/dotfiles-chatgpt-headers \
+    && sudo rm -f /tmp/chatgpt-headers.py
+
 # Install root-owned nono profile template and runtime profile directory
 RUN sudo mkdir -p /etc/nono/profiles \
     && sudo cp /tmp/devspace-opencode-secure.jsonc /etc/nono/profiles/devspace-opencode-secure.jsonc \
@@ -114,7 +120,7 @@ RUN sudo mkdir -p /var/lib/nono/state /var/lib/nono/cache \
 
 # Constrained sudoers contract for secure non-interactive nono/opencode launch path
 RUN printf '%s\n' \
-    'Defaults:vscode env_keep += "OPENAI_API_KEY ANTHROPIC_API_KEY GITHUB_TOKEN GPT_UIO_YELLOW_API_KEY GPT_UIO_RED_API_KEY"' \
+    'Defaults:vscode env_keep += "OPENAI_CHATGPT_SESSION ANTHROPIC_API_KEY GITHUB_TOKEN GPT_UIO_YELLOW_API_KEY GPT_UIO_RED_API_KEY"' \
     'vscode ALL=(root) NOPASSWD: /bin/cat /var/run/secrets/nono/providers/*' \
     'vscode ALL=(agent) NOPASSWD: /usr/bin/mkdir -p /home/agent/.config' \
     'vscode ALL=(agent) NOPASSWD: /usr/bin/rm -rf /home/agent/.config/opencode' \

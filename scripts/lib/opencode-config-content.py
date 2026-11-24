@@ -5,6 +5,13 @@ Combines the generated provider runtime with the optional host-local model
 overrides file (see docs/superpowers/specs/2026-11-19-opencode-host-local-model-overrides-design.md).
 Prints the JSON payload on stdout and override notices on stderr. Exits with a
 "refused: ..." message when either input is invalid.
+
+With --chatgpt-state, it instead takes an earlier payload and applies the
+ChatGPT connection state (see
+docs/superpowers/specs/2026-11-19-openai-chatgpt-plan-support-design.md).
+The repository token openai-chatgpt becomes OpenCode's openai provider when
+connected and is removed when not. An explicitly selected openai/* model
+without a connection refuses the launch.
 """
 
 import argparse
@@ -20,6 +27,9 @@ ENTRY_KEYS = {'model', 'reason', 'until'}
 DATE_PATTERN = re.compile(r'^\d{4}-\d{2}-\d{2}$')
 # Literal provider/model id; model ids may contain namespace slashes. No whitespace or {env:}/{file:} placeholders.
 MODEL_PATTERN = re.compile(r'^[A-Za-z0-9._-]+/[^\s{}]+$')
+CHATGPT_TOKEN = 'openai-chatgpt'
+CHATGPT_PROVIDER = 'openai'
+LOGIN_HINT = 'run ops/provider-login chatgpt on the host'
 
 
 def refuse(message):
@@ -86,7 +96,10 @@ def check_entry(label, entry, runtime, fail):
     if not MODEL_PATTERN.fullmatch(entry["model"]):
         fail(f'{label}: model must be a literal provider/model id')
     provider, _, model_id = entry['model'].partition('/')
-    if provider not in runtime['enabled_providers']:
+    enabled = runtime['enabled_providers']
+    if provider == CHATGPT_PROVIDER and CHATGPT_TOKEN in enabled:
+        return
+    if provider not in enabled:
         fail(f'{label}: provider not enabled: {provider}')
     listed = runtime['provider'].get(provider, {}).get('models')
     if isinstance(listed, dict) and model_id not in listed:
@@ -157,13 +170,77 @@ def apply_overrides(payload, overrides_path, runtime, agents_dir, today):
     return payload
 
 
+def strip_jsonc(text):
+    """Removes // and /* */ comments outside strings, and trailing commas."""
+    out, i, n = [], 0, len(text)
+    while i < n:
+        ch = text[i]
+        if ch == '"':
+            j = i + 1
+            while j < n and text[j] != '"':
+                j += 2 if text[j] == '\\' else 1
+            out.append(text[i:j + 1])
+            i = j + 1
+        elif text.startswith('//', i):
+            while i < n and text[i] != '\n':
+                i += 1
+        elif text.startswith('/*', i):
+            end = text.find('*/', i + 2)
+            i = n if end < 0 else end + 2
+        else:
+            out.append(ch)
+            i += 1
+    return re.sub(r',(\s*[}\]])', r'\1', ''.join(out))
+
+
+def base_model(path):
+    if not path or not os.path.exists(path):
+        return None
+    try:
+        with open(path, 'r', encoding='utf-8') as fh:
+            config = json.loads(strip_jsonc(fh.read()))
+    except ValueError:
+        refuse(f'base OpenCode config is not valid JSONC: {path}')
+    model = config.get('model') if isinstance(config, dict) else None
+    return model if isinstance(model, str) else None
+
+
+def apply_chatgpt_state(payload, state, base_config, launch_model):
+    enabled = payload.get('enabled_providers', [])
+    if CHATGPT_TOKEN not in enabled:
+        return payload
+    if state == 'connected':
+        payload['enabled_providers'] = [CHATGPT_PROVIDER if p == CHATGPT_TOKEN else p for p in enabled]
+        return payload
+    payload['enabled_providers'] = [p for p in enabled if p != CHATGPT_TOKEN]
+    # The effective top-level model: launch argument, then override default, then base config.
+    selected = launch_model or payload.get('model') or base_model(base_config)
+    if isinstance(selected, str) and selected.startswith(CHATGPT_PROVIDER + '/'):
+        refuse(f'model {selected} needs ChatGPT, which is not connected; {LOGIN_HINT}')
+    return payload
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--runtime', required=True)
-    parser.add_argument('--overrides', required=True)
-    parser.add_argument('--agents-dir', required=True)
+    parser.add_argument('--runtime')
+    parser.add_argument('--overrides')
+    parser.add_argument('--agents-dir')
     parser.add_argument('--today', help='UTC date override for tests (YYYY-MM-DD)')
+    parser.add_argument('--chatgpt-state', choices=('connected', 'disconnected'))
+    parser.add_argument('--payload', help='payload from an earlier run (with --chatgpt-state)')
+    parser.add_argument('--base-config', help='base opencode.jsonc (with --chatgpt-state)')
+    parser.add_argument('--launch-model', default='', help='model from the launch arguments (with --chatgpt-state)')
     args = parser.parse_args()
+
+    if args.chatgpt_state:
+        if args.payload is None:
+            parser.error('--chatgpt-state needs --payload')
+        payload = json.loads(args.payload)
+        print(json.dumps(apply_chatgpt_state(payload, args.chatgpt_state, args.base_config, args.launch_model)))
+        return
+    for name in ('runtime', 'overrides', 'agents_dir'):
+        if getattr(args, name) is None:
+            parser.error(f'--{name.replace("_", "-")} is required')
 
     today = args.today or datetime.datetime.now(datetime.timezone.utc).date().isoformat()
     runtime = load_runtime(args.runtime)

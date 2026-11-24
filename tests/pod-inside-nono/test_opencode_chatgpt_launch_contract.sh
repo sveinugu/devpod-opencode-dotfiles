@@ -32,7 +32,7 @@ logs="$tmp_root/logs"
 profiles="$tmp_root/profiles"
 mkdir -p "$install_root/scripts/lib" "$install_root/.config/opencode/agents" "$mock_bin" "$secret_root" "$logs" "$profiles"
 
-cp "$repo_root/scripts/lib/nono-secret-env.sh" "$repo_root/scripts/lib/opencode-config-content.py" "$install_root/scripts/lib/"
+cp "$repo_root/scripts/lib/nono-secret-env.sh" "$repo_root/scripts/lib/opencode-config-content.py" "$repo_root/scripts/lib/chatgpt-headers.py" "$install_root/scripts/lib/"
 cp "$repo_root/scripts/lib/launch-opencode-nono.sh" "$tmp_root/launch-helper"
 cp "$repo_root/scripts/lib/generate-nono-profile.py" "$tmp_root/profile-writer"
 chmod +x "$tmp_root/launch-helper" "$tmp_root/profile-writer"

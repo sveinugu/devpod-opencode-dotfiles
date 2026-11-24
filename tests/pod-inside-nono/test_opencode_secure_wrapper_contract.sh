@@ -103,7 +103,7 @@ chmod +x "$raw_binary"
 
 printf 'gpt_uio_red_api_key-value\n' >"$secret_root/gpt_uio_red_api_key"
 printf 'gpt_uio_yellow_api_key-value\n' >"$secret_root/gpt_uio_yellow_api_key"
-printf 'openai_api_key-value\n' >"$secret_root/openai_api_key"
+printf 'anthropic_api_key-value\n' >"$secret_root/anthropic_api_key"
 printf 'github_token-value\n' >"$secret_root/github_token"
 
 cat >"$provider_runtime" <<'JSON'
@@ -408,7 +408,7 @@ grep -F -- ' run --profile ' "$setpriv_log" >/dev/null || fail "launch helper sh
 if grep -F -- '--silent' "$setpriv_log" >/dev/null; then
   fail "launch helper should not pass --silent to nono"
 fi
-grep -F -- '-- /usr/bin/env HOME=/home/agent XDG_CONFIG_HOME=/home/agent/.config XDG_CACHE_HOME=/home/agent/.cache XDG_DATA_HOME=/home/agent/.local/share XDG_STATE_HOME=/home/agent/.local/state BASH_ENV=' "$arg_log" >/dev/null || fail "wrapper should inject pinned runtime HOME/XDG and BASH_ENV into opencode process"
+grep -F -- '-- /usr/bin/env -u OPENAI_CHATGPT_SESSION HOME=/home/agent XDG_CONFIG_HOME=/home/agent/.config XDG_CACHE_HOME=/home/agent/.cache XDG_DATA_HOME=/home/agent/.local/share XDG_STATE_HOME=/home/agent/.local/state BASH_ENV=' "$arg_log" >/dev/null || fail "wrapper should inject pinned runtime HOME/XDG and BASH_ENV into opencode process"
 grep -F -- ' OPENCODE_CONFIG_CONTENT=' "$arg_log" >/dev/null || fail "wrapper should inject provider config into opencode process"
 grep -F -- "$raw_binary --version" "$arg_log" >/dev/null || fail "wrapper should launch configured raw opencode binary through nono"
 grep -F 'sudo-user=root' "$sudo_log" >/dev/null || fail "wrapper should run sudo as root only for setpriv handoff"
@@ -457,7 +457,7 @@ grep -F 'unknown agent: maestr' "$tmp_root/override-invalid.err" >/dev/null || f
 
 cat >"$tmp_root/provider-runtime-invalid.json" <<'JSON'
 {
-  "enabled_providers": ["openai"],
+  "enabled_providers": ["anthropic"],
   "provider": "invalid"
 }
 JSON
@@ -470,7 +470,7 @@ grep -F 'refused: generated provider runtime output must define provider as an o
 
 cat >"$tmp_root/provider-runtime-invalid-key.json" <<'JSON'
 {
-  "enabled_providers": ["openai"],
+  "enabled_providers": ["anthropic"],
   "provider": {},
   "unexpected": true
 }
@@ -489,7 +489,7 @@ fi
 grep -F 'refused: raw opencode binary not executable at' "$tmp_root/raw-binary.err" >/dev/null || fail "wrapper should explain raw opencode binary executable contract failure"
 
 grep -F 'GPT_UIO_RED_API_KEY=gpt_uio_red_api_key-value' "$env_log" >/dev/null || fail "wrapper should export red key from mounted secret when gpt-uio-red is enabled"
-grep -Fx 'OPENAI_API_KEY=' "$env_log" >/dev/null || fail "wrapper should not load openai key when openai provider is disabled"
+grep -Fx 'ANTHROPIC_API_KEY=' "$env_log" >/dev/null || fail "wrapper should not load anthropic key when anthropic provider is disabled"
 grep -F 'ANTHROPIC_API_KEY=' "$env_log" >/dev/null || fail "wrapper should not require anthropic key when anthropic provider is disabled"
 grep -Fx 'GITHUB_TOKEN=github_token-value' "$env_log" >/dev/null || fail "wrapper should export github token when Copilot has no runtime provider payload entry"
 grep -F 'GPT_UIO_YELLOW_API_KEY=' "$env_log" >/dev/null || fail "wrapper should not require yellow key when gpt-uio-yellow provider is disabled"
@@ -498,7 +498,7 @@ cat >"$tmp_root/provider-runtime-yellow-only.json" <<'JSON'
 {
   "enabled_providers": [
     "gpt-uio-yellow",
-    "openai"
+    "anthropic"
   ],
   "provider": {
     "gpt-uio-yellow": {
@@ -573,7 +573,7 @@ if grep -F '"gpt-uio-red"' "$profile_used" >/dev/null; then
 fi
 
 grep -F 'GPT_UIO_YELLOW_API_KEY=gpt_uio_yellow_api_key-value' "$env_log" >/dev/null || fail "wrapper should export yellow key from mounted secret when gpt-uio-yellow is enabled"
-grep -Fx 'OPENAI_API_KEY=openai_api_key-value' "$env_log" >/dev/null || fail "wrapper should export openai key when enabled without a runtime provider payload entry"
+grep -Fx 'ANTHROPIC_API_KEY=anthropic_api_key-value' "$env_log" >/dev/null || fail "wrapper should export anthropic key when enabled without a runtime provider payload entry"
 grep -F 'GPT_UIO_RED_API_KEY=' "$env_log" >/dev/null || fail "wrapper should not require red key when gpt-uio-red provider is disabled"
 
 cat >"$tmp_root/provider-runtime-copilot-all.json" <<'JSON'
@@ -605,7 +605,7 @@ run_copilot_all_wrapper() {
 run_copilot_all_wrapper >"$tmp_root/copilot-all.out" 2>&1 || fail "wrapper should execute with Copilot enabled in all mode"
 grep -Fx 'GITHUB_TOKEN=github_token-value' "$env_log" >/dev/null || fail "wrapper should export github token when Copilot has no runtime provider payload entry"
 grep -Fx 'GPT_UIO_YELLOW_API_KEY=gpt_uio_yellow_api_key-value' "$env_log" >/dev/null || fail "wrapper should retain yellow credential selection alongside Copilot"
-grep -Fx 'OPENAI_API_KEY=' "$env_log" >/dev/null || fail "wrapper should not load a disabled provider credential even when its secret exists"
+grep -Fx 'ANTHROPIC_API_KEY=' "$env_log" >/dev/null || fail "wrapper should not load a disabled provider credential even when its secret exists"
 
 rm -f "$secret_root/github_token"
 if run_copilot_all_wrapper >"$tmp_root/missing-copilot-secret.err" 2>&1; then

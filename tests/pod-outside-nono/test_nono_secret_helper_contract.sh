@@ -23,9 +23,6 @@ trap 'sudo rm -rf "$tmp_root" >/dev/null 2>&1 || rm -rf "$tmp_root"' EXIT
 secret_dir="$tmp_root/secrets"
 mkdir -p "$secret_dir"
 
-cat >"$secret_dir/openai_api_key" <<'EOF'
-openai-real
-EOF
 cat >"$secret_dir/anthropic_api_key" <<'EOF'
 anthropic-real
 EOF
@@ -43,7 +40,6 @@ out_exports="$tmp_root/exports.out"
 HUB_NONO_SECRET_HELPER_SUDO='sudo -n' bash -c "source '$helper'; nono_secret_env_emit_exports '$secret_dir'" >"$out_exports" 2>&1 || fail "helper should emit exports when all secret files are present"
 
 for expected in \
-  'export OPENAI_API_KEY=' \
   'export ANTHROPIC_API_KEY=' \
   'export GITHUB_TOKEN=' \
   'export GPT_UIO_YELLOW_API_KEY=' \
@@ -67,7 +63,6 @@ out_with_sudo="$tmp_root/exports-with-sudo.out"
 HUB_NONO_SECRET_HELPER_SUDO='sudo -n' bash -c "source '$helper'; nono_secret_env_emit_exports '$secret_dir'" >"$out_with_sudo" 2>&1 || fail "helper should emit exports when HUB_NONO_SECRET_HELPER_SUDO is set"
 
 for expected in \
-  'export OPENAI_API_KEY=' \
   'export ANTHROPIC_API_KEY=' \
   'export GITHUB_TOKEN=' \
   'export GPT_UIO_YELLOW_API_KEY=' \
@@ -78,8 +73,8 @@ done
 real_root_secret_dir="$tmp_root/root-only-secrets"
 mkdir -p "$real_root_secret_dir"
 
-cat >"$real_root_secret_dir/openai_api_key" <<'EOF'
-openai-root-only
+cat >"$real_root_secret_dir/openai_chatgpt_session" <<'EOF'
+{"synthetic":"session-root-only"}
 EOF
 cat >"$real_root_secret_dir/anthropic_api_key" <<'EOF'
 anthropic-root-only
@@ -97,14 +92,26 @@ EOF
 sudo chown root:root "$real_root_secret_dir"/*
 sudo chmod 0400 "$real_root_secret_dir"/*
 
-if cat "$real_root_secret_dir/openai_api_key" >/dev/null 2>&1; then
+if cat "$real_root_secret_dir/github_token" >/dev/null 2>&1; then
   fail "test setup invalid: direct non-root read must fail on root-owned 0400 secret files"
 fi
 
 out_root_only="$tmp_root/exports-root-only.out"
 HUB_NONO_SECRET_HELPER_SUDO='sudo -n' bash -c "source '$helper'; nono_secret_env_emit_exports '$real_root_secret_dir'" >"$out_root_only" 2>&1 || fail "helper must read root-owned 0400 files via constrained sudo path"
 
-grep -F 'export OPENAI_API_KEY=openai-root-only' "$out_root_only" >/dev/null || fail "helper must export OPENAI_API_KEY from root-owned 0400 secret file"
+if grep -F 'OPENAI_CHATGPT_SESSION' "$out_root_only" >/dev/null; then
+  fail "helper must not export the optional ChatGPT session unless asked for it"
+fi
+
+out_optional="$tmp_root/exports-optional.out"
+HUB_NONO_SECRET_HELPER_SUDO='sudo -n' bash -c "source '$helper'; nono_secret_env_emit_exports '$real_root_secret_dir' --keys github_token --optional-keys openai_chatgpt_session" >"$out_optional" 2>&1 || fail "helper must read an optional root-owned key"
+grep -F 'export OPENAI_CHATGPT_SESSION=' "$out_optional" >/dev/null || fail "helper must export OPENAI_CHATGPT_SESSION from the optional root-owned key"
+
+out_optional_missing="$tmp_root/exports-optional-missing.out"
+HUB_NONO_SECRET_HELPER_SUDO='sudo -n' bash -c "source '$helper'; nono_secret_env_emit_exports '$secret_dir' --keys github_token --optional-keys openai_chatgpt_session" >"$out_optional_missing" 2>&1 || fail "a missing optional key must not stop the export"
+if grep -F 'OPENAI_CHATGPT_SESSION' "$out_optional_missing" >/dev/null; then
+  fail "a missing optional key must not be exported"
+fi
 grep -F 'export GITHUB_TOKEN=github-root-only' "$out_root_only" >/dev/null || fail "helper must export GITHUB_TOKEN from root-owned 0400 secret file"
 
 rm -f "$secret_dir/gpt_uio_red_api_key"

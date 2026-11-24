@@ -33,7 +33,7 @@
       "mode": "all",
       "models": []
     },
-    "openai": {
+    "openai-chatgpt": {
       "mode": "all",
       "models": []
     },

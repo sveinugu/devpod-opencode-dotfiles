@@ -382,7 +382,8 @@ EOF
     rm -f "$out_file"
   }
 
-  run_provider_route_probe "openai" "OPENAI_API_KEY" "openai" "REAL_OPENAI_TOKEN_SHOULD_NEVER_LEAK"
+  # The ChatGPT session is a JSON value; a valid synthetic one keeps the header helper usable.
+  run_provider_route_probe "openai-chatgpt" "OPENAI_CHATGPT_SESSION" "openai-chatgpt" "{\"access\":\"REAL_CHATGPT_TOKEN_SHOULD_NEVER_LEAK\",\"account_id\":\"synthetic\",\"expires_at\":4102444800}"
   run_provider_route_probe "anthropic" "ANTHROPIC_API_KEY" "anthropic" "REAL_ANTHROPIC_TOKEN_SHOULD_NEVER_LEAK"
   run_provider_route_probe "github-copilot" "GITHUB_TOKEN" "github-copilot" "REAL_GITHUB_TOKEN_SHOULD_NEVER_LEAK_PROVIDER_ROW"
   run_provider_route_probe "gpt-uio-yellow" "GPT_UIO_YELLOW_API_KEY" "gpt-uio-yellow" "REAL_UIO_YELLOW_TOKEN_SHOULD_NEVER_LEAK_PROVIDER_ROW"

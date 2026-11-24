@@ -19,15 +19,15 @@ opencode_cfg="$repo_root/.config/opencode/opencode.jsonc"
 [ -f "$profile" ] || fail "secure nono profile not found"
 [ -f "$opencode_cfg" ] || fail "opencode config not found"
 
-for required_provider in 'gpt-uio-red' 'gpt-uio-yellow' 'github-copilot' 'openai' 'anthropic'; do
+for required_provider in 'gpt-uio-red' 'gpt-uio-yellow' 'github-copilot' 'openai-chatgpt' 'anthropic'; do
   grep -F "\"$required_provider\"" "$policy" >/dev/null || fail "provider policy missing $required_provider"
 done
 
-for required_credential in '"openai"' '"anthropic"' '"github-copilot"' '"gpt-uio-yellow"' '"gpt-uio-red"'; do
+for required_credential in '"openai-chatgpt"' '"anthropic"' '"github-copilot"' '"gpt-uio-yellow"' '"gpt-uio-red"'; do
   grep -F "$required_credential" "$profile" >/dev/null || fail "nono profile missing credential route for $required_credential"
 done
 
-for required_env in '"credential_key": "env://OPENAI_API_KEY"' '"credential_key": "env://ANTHROPIC_API_KEY"' '"credential_key": "env://GITHUB_TOKEN"' '"credential_key": "env://GPT_UIO_YELLOW_API_KEY"' '"credential_key": "env://GPT_UIO_RED_API_KEY"'; do
+for required_env in '"credential_key": "cmd://openai-chatgpt"' '"credential_key": "env://ANTHROPIC_API_KEY"' '"credential_key": "env://GITHUB_TOKEN"' '"credential_key": "env://GPT_UIO_YELLOW_API_KEY"' '"credential_key": "env://GPT_UIO_RED_API_KEY"'; do
   grep -F "$required_env" "$profile" >/dev/null || fail "nono profile missing env credential route contract: $required_env"
 done
 

@@ -120,6 +120,9 @@ for provider in enabled:
 if len(set(normalized)) != len(normalized):
     raise SystemExit('refused: enabled_providers must not contain duplicates')
 
+if 'openai' in normalized:
+    raise SystemExit('refused: provider token openai was removed; use openai-chatgpt for the ChatGPT plan login')
+
 unsupported = sorted([provider for provider in normalized if provider not in supported])
 if unsupported:
     raise SystemExit(f'refused: unknown providers in enablement manifest: {", ".join(unsupported)}')

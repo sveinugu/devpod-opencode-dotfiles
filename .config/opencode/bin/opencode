@@ -11,6 +11,8 @@ agent_user="${HUB_NONO_AGENT_USER:-}"
 provider_runtime_path="${OPENCODE_PROVIDER_RUNTIME_PATH:-$source_root/.config/opencode/provider-runtime.json}"
 model_overrides_path="${HUB_OPENCODE_MODEL_OVERRIDES_PATH:-/workspaces/dotfiles/state/hub/etc/model-overrides.json}"
 config_content_helper="$source_root/scripts/lib/opencode-config-content.py"
+chatgpt_headers_helper="$source_root/scripts/lib/chatgpt-headers.py"
+base_opencode_config="$source_root/.config/opencode/opencode.jsonc"
 raw_opencode_binary="${OPENCODE_RAW_BINARY:-/usr/local/bin/opencode-raw}"
 nono_binary="${HUB_NONO_BINARY:-/usr/local/bin/nono}"
 setpriv_binary="${HUB_NONO_SET_PRIV_BINARY:-/usr/bin/setpriv}"
@@ -73,35 +75,78 @@ fi
 # Provider config plus host-local model overrides; refuses before any sudo call.
 opencode_config_content="$(python3 "$config_content_helper" --runtime "$provider_runtime_path" --overrides "$model_overrides_path" --agents-dir "$source_root/.config/opencode/agents")" || exit 1
 
+# Values a caller could set to change ChatGPT state; only this script decides them.
+unset OPENAI_CHATGPT_SESSION OPENCODE_AUTH_CONTENT OPENCODE_EXPERIMENTAL_WEBSOCKETS
+
 # Secrets for the enabled providers, taken from the payload the helper already validated.
-required_secret_keys="$({
+# The ChatGPT session is optional: without it, other providers still launch.
+provider_secrets="$({
   python3 -c '
 import json
 import sys
 
 secret_key_by_provider = {
-    "openai": "openai_api_key",
     "anthropic": "anthropic_api_key",
     "github-copilot": "github_token",
     "gpt-uio-yellow": "gpt_uio_yellow_api_key",
     "gpt-uio-red": "gpt_uio_red_api_key",
 }
 
-required = []
-for provider in json.loads(sys.argv[1])["enabled_providers"]:
+enabled = json.loads(sys.argv[1])["enabled_providers"]
+for provider in enabled:
     key = secret_key_by_provider.get(provider)
-    if key and key not in required:
-        required.append(key)
-
-for key in required:
-    print(key)
+    if key:
+        print("required", key)
+if "openai-chatgpt" in enabled:
+    print("optional", "openai_chatgpt_session")
 ' "$opencode_config_content"
 } || exit 1)"
 
-if [ -n "$required_secret_keys" ]; then
-  mapfile -t required_secret_key_list <<<"$required_secret_keys"
-  exports_payload="$(nono_secret_env_emit_exports "$secret_dir" --keys "${required_secret_key_list[@]}")"
+required_secret_key_list=()
+optional_secret_key_list=()
+while read -r kind key; do
+  case "$kind" in
+    required) required_secret_key_list+=("$key") ;;
+    optional) optional_secret_key_list+=("$key") ;;
+  esac
+done <<<"$provider_secrets"
+
+if [ "${#required_secret_key_list[@]}" -gt 0 ] || [ "${#optional_secret_key_list[@]}" -gt 0 ]; then
+  exports_payload="$(nono_secret_env_emit_exports "$secret_dir" --keys "${required_secret_key_list[@]}" --optional-keys "${optional_secret_key_list[@]}")"
   eval "$exports_payload"
+fi
+
+if [ "${#optional_secret_key_list[@]}" -gt 0 ]; then
+  chatgpt_session_state="$(python3 -I "$chatgpt_headers_helper" --state)" || chatgpt_session_state='invalid'
+  case "$chatgpt_session_state" in
+    valid)
+      chatgpt_state='connected'
+      ;;
+    expiring)
+      chatgpt_state='connected'
+      printf 'warning: the ChatGPT login expires within 24 hours; run ops/provider-login chatgpt on the host\n' >&2
+      ;;
+    missing)
+      chatgpt_state='disconnected'
+      printf 'notice: ChatGPT is enabled but not connected; run ops/provider-login chatgpt on the host. Launching without ChatGPT.\n' >&2
+      ;;
+    *)
+      chatgpt_state='disconnected'
+      printf 'notice: the ChatGPT login is %s; run ops/provider-login chatgpt on the host. Launching without ChatGPT.\n' "$chatgpt_session_state" >&2
+      ;;
+  esac
+  [ "$chatgpt_state" = connected ] || unset OPENAI_CHATGPT_SESSION
+
+  # The model chosen on the command line, for the explicit-selection check.
+  launch_model=''
+  previous_arg=''
+  for arg in "$@"; do
+    case "$previous_arg" in --model|-m) launch_model="$arg" ;; esac
+    case "$arg" in --model=*) launch_model="${arg#--model=}" ;; esac
+    previous_arg="$arg"
+  done
+
+  opencode_config_content="$(python3 "$config_content_helper" --chatgpt-state "$chatgpt_state" --payload "$opencode_config_content" --base-config "$base_opencode_config" --launch-model "$launch_model")" || exit 1
 fi
 
 if [ ! -x "$raw_opencode_binary" ]; then
