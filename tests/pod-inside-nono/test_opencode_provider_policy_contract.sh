@@ -32,7 +32,7 @@ expected_keys = {
     'gpt-uio-red',
     'gpt-uio-yellow',
     'github-copilot',
-    'openai',
+    'openai-chatgpt',
     'anthropic',
 }
 
@@ -120,7 +120,7 @@ for provider_name in ('gpt-uio-red', 'gpt-uio-yellow'):
 assert_provider('gpt-uio-red', 'full-current-list', red_expected)
 assert_provider('gpt-uio-yellow', 'full-current-list', yellow_expected)
 assert_provider('github-copilot', 'all', copilot_expected)
-assert_provider('openai', 'all', None)
+assert_provider('openai-chatgpt', 'all', None)
 assert_provider('anthropic', 'all', None)
 PY
 

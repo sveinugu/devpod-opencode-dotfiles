@@ -28,7 +28,7 @@ grep -F '"bypass_protection"' "$profile" >/dev/null || fail "profile should use 
 grep -F '"/workspaces/dotfiles/**/.zshrc"' "$profile" >/dev/null || fail "profile should declare explicit recursive .zshrc path exception under workspace root"
 grep -F '"/workspaces/dotfiles/**/.zprofile"' "$profile" >/dev/null || fail "profile should declare explicit recursive .zprofile path exception under workspace root"
 
-for credential in '"openai"' '"anthropic"' '"github-copilot"' '"gpt-uio-yellow"' '"gpt-uio-red"'; do
+for credential in '"openai-chatgpt"' '"anthropic"' '"github-copilot"' '"gpt-uio-yellow"' '"gpt-uio-red"'; do
   grep -F "$credential" "$profile" >/dev/null || fail "profile missing required credential route $credential"
 done
 

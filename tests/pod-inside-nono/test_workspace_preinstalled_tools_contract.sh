@@ -83,6 +83,18 @@ grep -F '/etc/sudoers.d/99-dotfiles-vscode-debug' "$dockerfile" >/dev/null || fa
 grep -F '/usr/local/bin/nono' "$dockerfile" >/dev/null || fail "Dockerfile must manage root-owned /usr/local/bin/nono"
 grep -F '/usr/local/libexec/dotfiles-generate-nono-profile' "$dockerfile" >/dev/null || fail "Dockerfile must install root-owned generated profile writer helper"
 grep -F '/usr/local/libexec/dotfiles-launch-opencode-nono' "$dockerfile" >/dev/null || fail "Dockerfile must install root-owned launch helper for constrained runtime handoff"
+python3 - "$dockerfile" <<'PY' || fail "Dockerfile must install the ChatGPT header helper root-owned at /usr/local/libexec/dotfiles-chatgpt-headers"
+import re
+import sys
+text = open(sys.argv[1], encoding='utf-8').read()
+target = '/usr/local/libexec/dotfiles-chatgpt-headers'
+if not re.search(r'COPY scripts/lib/chatgpt-headers\.py \S+', text):
+    raise SystemExit(1)
+if not re.search(r'install -m 0755 \S+ ' + re.escape(target), text):
+    raise SystemExit(1)
+if not re.search(r'chown root:root ' + re.escape(target), text):
+    raise SystemExit(1)
+PY
 grep -F 'https://nono.sh/install.sh' "$dockerfile" >/dev/null || fail "Dockerfile must install nono at image build time"
 grep -F 'COPY .config/nono/profiles/devspace-opencode-secure.jsonc /tmp/devspace-opencode-secure.jsonc' "$dockerfile" >/dev/null || fail "Dockerfile must copy secure nono profile from build context"
 grep -F 'COPY scripts/lib/generate-nono-profile.py /tmp/generate-nono-profile.py' "$dockerfile" >/dev/null || fail "Dockerfile must copy generated profile writer from build context"
@@ -93,7 +105,15 @@ grep -F 'sudo rm -f /tmp/devspace-opencode-secure.jsonc' "$dockerfile" >/dev/nul
 if grep -F '/workspaces/dotfiles/main/.config/nono/profiles/devspace-opencode-secure.jsonc' "$dockerfile" >/dev/null; then
   fail "Dockerfile must not read secure nono profile from runtime-only /workspaces path during build"
 fi
-grep -F 'Defaults:vscode env_keep += "OPENAI_API_KEY ANTHROPIC_API_KEY GITHUB_TOKEN GPT_UIO_YELLOW_API_KEY GPT_UIO_RED_API_KEY"' "$dockerfile" >/dev/null || fail "Dockerfile sudoers contract must preserve provider secret env vars for constrained agent launch path"
+python3 - "$dockerfile" <<'PY' || fail "Dockerfile sudoers contract must preserve provider secret env vars for constrained agent launch path"
+import re
+import sys
+# The constrained sudo path keeps exactly the provider credentials the wrapper loads.
+lines = re.findall(r'Defaults:vscode env_keep \+= "([^"]*)"', open(sys.argv[1], encoding='utf-8').read())
+expected = {'OPENAI_CHATGPT_SESSION', 'ANTHROPIC_API_KEY', 'GITHUB_TOKEN', 'GPT_UIO_YELLOW_API_KEY', 'GPT_UIO_RED_API_KEY'}
+if len(lines) != 1 or set(lines[0].split()) != expected:
+    raise SystemExit(1)
+PY
 grep -F '/bin/cat /var/run/secrets/nono/providers/' "$dockerfile" >/dev/null || fail "Dockerfile sudoers contract must constrain provider secret reads to fixed mount path"
 grep -F 'vscode ALL=(agent) NOPASSWD: /usr/bin/mkdir -p /home/agent/.config' "$dockerfile" >/dev/null || fail "Dockerfile sudoers contract must allow agent-home config dir bootstrap"
 grep -F 'vscode ALL=(agent) NOPASSWD: /usr/bin/rm -rf /home/agent/.config/opencode' "$dockerfile" >/dev/null || fail "Dockerfile sudoers contract must allow replacing stale agent opencode config target"

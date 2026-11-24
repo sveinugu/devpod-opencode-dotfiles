@@ -51,6 +51,10 @@ supported = set(policy.get('supported_providers', {}).keys())
 for provider in enabled:
     if provider not in supported:
         raise SystemExit(f'seed manifest provider is not supported: {provider}')
+
+# ChatGPT is opt-in per host; the seed must not connect anyone by default.
+if 'openai-chatgpt' in enabled:
+    raise SystemExit('seed manifest must not enable openai-chatgpt')
 PY
 
 temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_provider_enablement_sync_contract')"
@@ -128,7 +132,7 @@ cat >"$manifest" <<'JSON'
   "enabled_providers": [
     "gpt-uio-red",
     "github-copilot",
-    "openai",
+    "openai-chatgpt",
     "gpt-uio-yellow"
   ]
 }
@@ -206,7 +210,7 @@ invalid_manifest="$tmp_root/provider-enablement-invalid.json"
 cat >"$invalid_manifest" <<'JSON'
 {
   "enabled_providers": [
-    "openai",
+    "openai-chatgpt",
     "does-not-exist"
   ]
 }
@@ -218,11 +222,21 @@ fi
 
 grep -F 'unknown providers in enablement manifest' "$tmp_root/invalid.out" >/dev/null || fail "sync command should explain unknown provider failure"
 
+# The retired API-key token is refused with a pointer to its replacement.
+retired_manifest="$tmp_root/provider-enablement-retired-openai.json"
+printf '{ "enabled_providers": ["gpt-uio-yellow", "openai"] }\n' >"$retired_manifest"
+rm -f "$runtime_output" "$verification_output"
+if "$sync_cmd" --manifest "$retired_manifest" --policy "$policy" --runtime-output "$runtime_output" --verification-output "$verification_output" >"$tmp_root/retired.out" 2>&1; then
+  fail "sync command should refuse the retired openai token"
+fi
+grep -F 'openai-chatgpt' "$tmp_root/retired.out" >/dev/null || fail "refusal of the openai token should name openai-chatgpt"
+[ ! -e "$runtime_output" ] || fail "refused sync must not write runtime output"
+
 disabled_manifest="$tmp_root/provider-enablement-disabled-uio.json"
 cat >"$disabled_manifest" <<'JSON'
 {
   "enabled_providers": [
-    "openai"
+    "openai-chatgpt"
   ]
 }
 JSON

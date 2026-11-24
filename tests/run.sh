@@ -100,6 +100,10 @@ case "$context" in
       tests/pod-inside-nono/test_openai_compatible_fix_plugin_contract.sh
       tests/pod-inside-nono/test_openai_compatible_fix_plugin_runtime_guard.sh
       tests/pod-inside-nono/test_nono_profile_layout.sh
+      tests/pod-inside-nono/test_nono_profile_generator_contract.sh
+      tests/pod-inside-nono/test_chatgpt_header_helper_contract.sh
+      tests/pod-inside-nono/test_opencode_chatgpt_launch_contract.sh
+      tests/pod-inside-nono/test_provider_login_contract.sh
       tests/pod-inside-nono/test_nono_identity_integration_contract.sh
       tests/pod-inside-nono/test_nono_secret_boundary_contract.sh
       tests/pod-inside-nono/test_opencode_secure_wrapper_contract.sh

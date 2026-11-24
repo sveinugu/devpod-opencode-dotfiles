@@ -25,10 +25,12 @@ Implement the ChatGPT slice of the design: external login into the existing Kube
 | Secret mapping and wrapper | `scripts/lib/nono-secret-env.sh`, `.config/opencode/bin/opencode` |
 | Profile and generator | `.config/nono/profiles/devspace-opencode-secure.jsonc`, `scripts/lib/generate-nono-profile.py` |
 | Launch | `scripts/lib/launch-opencode-nono.sh` |
-| Header helper (new) | A root-owned helper installed by the image |
+| Header helper (new) | `scripts/lib/chatgpt-headers.py`, installed root-owned as `/usr/local/libexec/dotfiles-chatgpt-headers` |
 | Image | `Dockerfile` (helper install, sudo `env_keep`) |
-| Login command (new) | `scripts/provider-login` |
+| Login command (new) | `scripts/provider-login` (host) and `scripts/lib/provider-login-remote.sh` (pod side, run through `kubectl exec`) |
 | Documentation | `nono-policy`, `devspace-bare-hub-usage` and `devspace-workspace-lifecycle` runbooks, pointer in the credential-phasing spec |
+
+The connection signal is the presence of `OPENAI_CHATGPT_SESSION`: the wrapper exports it only for a valid session, and the generator and launch helper act on it. This keeps the existing sudo argument rules unchanged.
 
 The sudo `env_keep` list replaces `OPENAI_API_KEY` with `OPENAI_CHATGPT_SESSION`, because the API-key mapping is removed. `OPENAI_API_KEY` stays in the profile's `deny_vars`.
 

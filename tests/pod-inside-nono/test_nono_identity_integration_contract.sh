@@ -29,7 +29,15 @@ grep -F 'NOPASSWD: /usr/bin/ln -sfn /workspaces/dotfiles/main/.config/opencode /
 grep -F 'NOPASSWD: /usr/bin/ln -sfn /workspaces/dotfiles/work/*/.config/opencode /home/agent/.config/opencode' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for worktree install-branch agent config symlink"
 grep -F 'NOPASSWD: /usr/local/libexec/dotfiles-launch-opencode-nono --setpriv-binary * --nono-binary * --profile * --agent-uid * --agent-gid * --runtime-home * --runtime-xdg-config-home * --runtime-xdg-cache-home * --runtime-xdg-data-home * --runtime-xdg-state-home * --opencode-xdg-state-home * --runtime-path * --runtime-bash-env * --opencode-config-content * --raw-opencode-binary * -- *' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for launch-helper runtime chain"
 grep -F 'NOPASSWD: /usr/local/libexec/dotfiles-launch-opencode-nono --setpriv-binary * --nono-binary * --profile * --agent-uid * --agent-gid * --runtime-home * --runtime-xdg-config-home * --runtime-xdg-cache-home * --runtime-xdg-data-home * --runtime-xdg-state-home * --opencode-xdg-state-home * --runtime-path * --runtime-bash-env * --opencode-config-content * --raw-opencode-binary * --' "$dockerfile" >/dev/null || fail "Dockerfile must include constrained sudoers rule for launch-helper invocations without trailing argv"
-grep -F 'Defaults:vscode env_keep += "OPENAI_API_KEY ANTHROPIC_API_KEY GITHUB_TOKEN GPT_UIO_YELLOW_API_KEY GPT_UIO_RED_API_KEY"' "$dockerfile" >/dev/null || fail "Dockerfile must preserve provider secret env vars across constrained sudo user switch"
+python3 - "$dockerfile" <<'PY' || fail "Dockerfile must preserve provider secret env vars across constrained sudo user switch"
+import re
+import sys
+# The constrained sudo path keeps exactly the provider credentials the wrapper loads.
+lines = re.findall(r'Defaults:vscode env_keep \+= "([^"]*)"', open(sys.argv[1], encoding='utf-8').read())
+expected = {'OPENAI_CHATGPT_SESSION', 'ANTHROPIC_API_KEY', 'GITHUB_TOKEN', 'GPT_UIO_YELLOW_API_KEY', 'GPT_UIO_RED_API_KEY'}
+if len(lines) != 1 or set(lines[0].split()) != expected:
+    raise SystemExit(1)
+PY
 grep -F 'if [ "${HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL:-0}" = "1" ]; then' "$dockerfile" >/dev/null || fail "Dockerfile must branch on HUB_ALLOW_VSCODE_SUDO_NOPASSWD_ALL for debug sudo mode"
 grep -F "'vscode ALL=(ALL) NOPASSWD:ALL'" "$dockerfile" >/dev/null || fail "Dockerfile debug sudo mode must install explicit broad vscode sudoers contract"
 grep -F 'sudo install -o root -g root -m 0440 /tmp/99-dotfiles-vscode-debug /etc/sudoers.d/99-dotfiles-vscode-debug' "$dockerfile" >/dev/null || fail "Dockerfile debug sudo mode must install root-owned debug sudoers file"
