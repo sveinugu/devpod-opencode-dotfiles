@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Connect a provider login to the workspace's provider Secret, from the host.
+# See docs/superpowers/specs/2026-11-19-openai-chatgpt-plan-support-design.md.
+#
+# The login runs in the workspace pod, outside nono, in a temporary directory.
+# Only the validated session value reaches the Secret, through standard input
+# of one kubectl patch that changes only the provider's key.
+
+usage() {
+  cat <<'USAGE'
+usage: provider-login chatgpt [--reset]
+
+  chatgpt          log in with a ChatGPT Plus/Pro plan and store the session
+  chatgpt --reset  remove the stored ChatGPT session (does not revoke it at OpenAI)
+
+Environment: KUBECTL_BIN, DEVSPACE_NAMESPACE, HUB_WORKSPACE_DEPLOYMENT.
+USAGE
+}
+
+provider="${1:-}"
+mode="${2:-login}"
+case "$provider:$mode:$#" in
+  chatgpt:login:1|chatgpt:--reset:2) ;;
+  -h:*|--help:*) usage; exit 0 ;;
+  *) usage >&2; exit 2 ;;
+esac
+
+kubectl_bin="${KUBECTL_BIN:-kubectl}"
+namespace="${DEVSPACE_NAMESPACE:-default}"
+deployment="${HUB_WORKSPACE_DEPLOYMENT:-dotfiles-workspace}"
+container='workspace'
+secret_name='dotfiles-nono-provider-credentials'
+secret_key='openai_chatgpt_session'
+remote="${HUB_PROVIDER_LOGIN_REMOTE:-/workspaces/dotfiles/main/scripts/lib/provider-login-remote.sh}"
+
+pod_exec() {
+  "$kubectl_bin" exec -n "$namespace" "deploy/$deployment" -c "$container" "$@"
+}
+
+# The patch document comes on stdin, so no value appears in process arguments.
+patch_secret() {
+  "$kubectl_bin" patch secret "$secret_name" -n "$namespace" --type merge --patch-file /dev/stdin
+}
+
+if [ "$mode" = --reset ]; then
+  printf '{"data":{"%s":null}}' "$secret_key" | patch_secret >/dev/null
+  printf 'ChatGPT session removed from %s/%s.\n' "$namespace" "$secret_name"
+  printf 'Running sessions keep their copy until they stop; stop them now. This does not revoke the login at OpenAI.\n'
+  exit 0
+fi
+
+login_dir=''
+cleanup() {
+  if [ -n "$login_dir" ]; then
+    pod_exec -- "$remote" cleanup "$login_dir" </dev/null >/dev/null 2>&1 || printf 'warning: could not remove %s in the pod; remove it by hand\n' "$login_dir" >&2
+    login_dir=''
+  fi
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
+
+login_dir="$(pod_exec -- "$remote" prepare </dev/null)"
+
+tty_flags=(-i)
+if [ -t 0 ] && [ -t 1 ]; then
+  tty_flags=(-i -t)
+fi
+pod_exec "${tty_flags[@]}" -- "$remote" login chatgpt "$login_dir" || {
+  printf 'refused: the OpenCode login did not finish; the Secret is unchanged\n' >&2
+  exit 1
+}
+
+session="$(pod_exec -- "$remote" extract chatgpt "$login_dir" </dev/null)" || {
+  printf 'refused: no usable ChatGPT session; the Secret is unchanged\n' >&2
+  exit 1
+}
+cleanup
+
+# Check the value again on the host before it changes the Secret; print only the expiry.
+expiry="$(printf '%s' "$session" | python3 -I -c '
+import datetime, json, sys, time
+s = json.load(sys.stdin)
+ok = (isinstance(s, dict) and set(s) == {"access", "account_id", "expires_at"}
+      and all(isinstance(s[k], str) and s[k] for k in ("access", "account_id"))
+      and isinstance(s["expires_at"], int) and not isinstance(s["expires_at"], bool)
+      and s["expires_at"] > time.time())
+if not ok:
+    sys.exit(1)
+print(datetime.datetime.fromtimestamp(s["expires_at"], datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"))
+')" || {
+  printf 'refused: the session value is not valid; the Secret is unchanged\n' >&2
+  exit 1
+}
+
+encoded="$(printf '%s' "$session" | base64 | tr -d '\n')"
+unset session
+printf '{"data":{"%s":"%s"}}' "$secret_key" "$encoded" | patch_secret >/dev/null
+unset encoded
+
+printf 'ChatGPT connected in %s/%s. The login expires %s; log in again before then.\n' "$namespace" "$secret_name" "$expiry"
+printf 'New sessions use it after the kubelet updates the Secret mount (usually within a minute). Restart running sessions to use it.\n'
