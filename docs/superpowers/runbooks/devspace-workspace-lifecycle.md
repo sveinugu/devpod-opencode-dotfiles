@@ -49,7 +49,7 @@ Log in from the host, in the namespace of the workspace:
 DEVSPACE_NAMESPACE=<namespace> ops/provider-login chatgpt
 ```
 
-The command runs OpenCode's login in the pod, outside nono. In the login, choose OpenAI, then the ChatGPT Plus/Pro headless method. The command stores only the session in the Secret key `openai_chatgpt_session` and prints the expiry date. It does not keep the refresh token, so log in again before the login expires (about every 10 days). Provisioning does not log in.
+The command runs OpenCode's login in the pod, outside nono, using the pod's install branch checkout (`HUB_INSTALL_BRANCH_DIR`). In the login, choose OpenAI, then the ChatGPT Plus/Pro headless method. The command stores only the session in the Secret key `openai_chatgpt_session` and prints the expiry date. It does not keep the refresh token, so log in again before the login expires (about every 10 days). Provisioning does not log in.
 
 New sessions use the login after the kubelet updates the Secret mount, usually within a minute. Running sessions keep the login they started with. Restart them to use a new login.
 

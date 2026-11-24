@@ -66,7 +66,7 @@ The header helper runs as `agent`, and the Secret mount is root-only. The helper
 
 `ops/provider-login <provider>` runs on the host that has `kubectl` access. The pod gets no permission to change Secrets.
 
-Its pod-side steps are in `scripts/lib/provider-login-remote.sh`, which runs from the pod's `main` checkout. The command therefore works only after this change reaches `main`.
+Its pod-side steps are in `scripts/lib/provider-login-remote.sh`. The command runs them from the pod's install branch, which `HUB_INSTALL_BRANCH_DIR` in `state/hub/etc/install.env` records. The secure wrapper loads its helpers from the same checkout. Only `main` or a `work/` checkout is accepted, and `main` is the default when the file is missing. A branch can therefore be tested in the pod before it reaches `main`.
 
 For every provider, the command must:
 

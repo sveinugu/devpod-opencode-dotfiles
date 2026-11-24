@@ -41,6 +41,13 @@ printf '%s\n' "$@" >"$call.args"
 if [ "${1:-}" = exec ]; then
   while [ "$#" -gt 0 ] && [ "$1" != -- ]; do shift; done
   shift
+  # A pod checkout's pod-side script runs as the repository copy; the requested path is recorded.
+  case "$1" in
+    /workspaces/dotfiles/*/scripts/lib/provider-login-remote.sh)
+      printf '%s\n' "$1" >>"$MOCK_LOGS/remote_path"
+      set -- "$MOCK_REPO_REMOTE" "${@:2}"
+      ;;
+  esac
   exec "$@"
 fi
 cat >"$call.stdin"
@@ -83,6 +90,7 @@ run_env=(
   KUBECTL_BIN=kubectl
   DEVSPACE_NAMESPACE=testing
   OPENCODE_RAW_BINARY="$mock_bin/opencode-raw"
+  MOCK_REPO_REMOTE="$repo_root/scripts/lib/provider-login-remote.sh"
   HUB_PROVIDER_LOGIN_REMOTE="$repo_root/scripts/lib/provider-login-remote.sh"
 )
 
@@ -192,6 +200,27 @@ done
 [ "$(login ok chatgpt --reset)" = 0 ] || fail "reset should succeed: $(cat "$tmp_root/out")"
 check_patch null || fail "reset should remove only the session key"
 [ ! -e "$logs/login_data_home" ] || fail "reset must not start a login"
+
+# Without an override, the pod-side steps come from the pod's install branch.
+install_env="$tmp_root/install.env"
+run_env+=(HUB_PROVIDER_LOGIN_REMOTE= HUB_PROVIDER_LOGIN_INSTALL_ENV="$install_env")
+remote_used() { sort -u "$logs/remote_path" 2>/dev/null; }
+
+printf 'export HUB_INSTALL_BRANCH=feature/x\nexport HUB_INSTALL_BRANCH_DIR=/workspaces/dotfiles/work/feature/x\n' >"$install_env"
+[ "$(login ok chatgpt)" = 0 ] || fail "work checkout: login should succeed: $(cat "$tmp_root/out")"
+[ "$(remote_used)" = /workspaces/dotfiles/work/feature/x/scripts/lib/provider-login-remote.sh ] || fail "work checkout: pod-side steps must come from the install branch"
+check_patch session || fail "work checkout: login should patch the session key"
+
+rm -f "$install_env"
+[ "$(login ok chatgpt)" = 0 ] || fail "no install.env: login should succeed"
+[ "$(remote_used)" = /workspaces/dotfiles/main/scripts/lib/provider-login-remote.sh ] || fail "no install.env: pod-side steps must come from main"
+
+for bad in /tmp/evil /workspaces/dotfiles/work/../../tmp/evil /workspaces/dotfiles/repos/other '/workspaces/dotfiles/work/x;y'; do
+  printf 'HUB_INSTALL_BRANCH_DIR=%s\n' "$bad" >"$install_env"
+  [ "$(login ok chatgpt)" != 0 ] || fail "install branch $bad must be refused"
+  [ -z "$(remote_used)" ] || fail "install branch $bad: no pod-side step may run"
+  [ -z "$(patches)" ] || fail "install branch $bad: the Secret must not change"
+done
 
 # Unknown providers are refused before any cluster call.
 [ "$(login ok does-not-exist)" != 0 ] || fail "unknown provider must be refused"

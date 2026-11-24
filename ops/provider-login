@@ -33,10 +33,29 @@ deployment="${HUB_WORKSPACE_DEPLOYMENT:-dotfiles-workspace}"
 container='workspace'
 secret_name='dotfiles-nono-provider-credentials'
 secret_key='openai_chatgpt_session'
-remote="${HUB_PROVIDER_LOGIN_REMOTE:-/workspaces/dotfiles/main/scripts/lib/provider-login-remote.sh}"
+install_env="${HUB_PROVIDER_LOGIN_INSTALL_ENV:-/workspaces/dotfiles/state/hub/etc/install.env}"
 
 pod_exec() {
   "$kubectl_bin" exec -n "$namespace" "deploy/$deployment" -c "$container" "$@"
+}
+
+# The pod-side steps come from the pod's install branch, the same checkout the
+# secure wrapper loads its helpers from. Only main or a work/ checkout is accepted.
+resolve_remote() {
+  local branch_dir
+  branch_dir="$(pod_exec -- sed -n 's/^\(export[[:space:]]\{1,\}\)\{0,1\}HUB_INSTALL_BRANCH_DIR=//p' "$install_env" </dev/null 2>/dev/null | head -n1 || true)"
+  branch_dir="${branch_dir:-/workspaces/dotfiles/main}"
+  case "$branch_dir" in
+    *..*|*//*|*/) ;;
+    /workspaces/dotfiles/main|/workspaces/dotfiles/work/[A-Za-z0-9._-]*)
+      case "${branch_dir#/workspaces/dotfiles/}" in
+        *[!A-Za-z0-9._/-]*) ;;
+        *) printf '%s/scripts/lib/provider-login-remote.sh\n' "$branch_dir"; return 0 ;;
+      esac
+      ;;
+  esac
+  printf 'refused: install branch directory in the pod is not main or a work/ checkout\n' >&2
+  return 1
 }
 
 # The patch document comes on stdin, so no value appears in process arguments.
@@ -49,6 +68,12 @@ if [ "$mode" = --reset ]; then
   printf 'ChatGPT session removed from %s/%s.\n' "$namespace" "$secret_name"
   printf 'Running sessions keep their copy until they stop; stop them now. This does not revoke the login at OpenAI.\n'
   exit 0
+fi
+
+remote="${HUB_PROVIDER_LOGIN_REMOTE:-}"
+if [ -z "$remote" ]; then
+  remote="$(resolve_remote)" || exit 1
+  printf 'Using the pod checkout %s.\n' "${remote%/scripts/lib/provider-login-remote.sh}"
 fi
 
 login_dir=''
