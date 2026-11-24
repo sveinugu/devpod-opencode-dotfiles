@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# scripts/provider-login with the ChatGPT adapter, using synthetic logins.
+# ops/provider-login with the ChatGPT adapter, using synthetic logins.
 # Doubles, and why:
 # - kubectl: a real Secret patch and pod exec are out of scope for automated
 #   tests. The fake runs `exec ... -- <command>` locally, so the real pod-side
@@ -20,8 +20,8 @@ repo_root="$(git rev-parse --show-toplevel)"
 source "$repo_root/tests/lib/context-guards.sh"
 require_pod_inside_nono_test 'test_provider_login_contract'
 
-command="$repo_root/scripts/provider-login"
-[ -f "$command" ] || fail "scripts/provider-login not found"
+command="$repo_root/ops/provider-login"
+[ -f "$command" ] || fail "ops/provider-login not found"
 
 temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_provider_login_contract')"
 tmp_root="$(context_make_test_tmpdir "$temp_root" 'test_provider_login_contract')"

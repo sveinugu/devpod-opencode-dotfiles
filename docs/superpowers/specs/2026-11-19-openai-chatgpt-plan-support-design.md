@@ -43,7 +43,7 @@ OpenCode's native ChatGPT login stores OAuth tokens in `auth.json`, where a sand
 ### Credential flow
 
 ```text
-scripts/provider-login chatgpt (host)
+ops/provider-login chatgpt (host)
   -> kubectl exec: headless OpenCode login in a temporary directory in the pod
   -> extract session JSON and remove the temporary login
   -> kubectl patch: only openai_chatgpt_session
@@ -64,7 +64,7 @@ The header helper runs as `agent`, and the Secret mount is root-only. The helper
 
 ### Provider login command
 
-`scripts/provider-login <provider>` runs on the host that has `kubectl` access. The pod gets no permission to change Secrets.
+`ops/provider-login <provider>` runs on the host that has `kubectl` access. The pod gets no permission to change Secrets.
 
 For every provider, the command must:
 
@@ -151,7 +151,7 @@ The stable parts are the Secret, header helper, nono route and injected headers.
 
 ### GitHub Copilot follow-up
 
-`scripts/provider-login copilot` reuses the same command with a Copilot adapter:
+`ops/provider-login copilot` reuses the same command with a Copilot adapter:
 
 - It writes OpenCode's Copilot OAuth token to the existing `github_token` key.
 - It reuses the existing `env://GITHUB_TOKEN` route, with no header helper and no sandbox change.
@@ -201,7 +201,7 @@ Synthetic gates must pass before any real-account gate:
 
 Real-account gates:
 
-- **R1.** `scripts/provider-login chatgpt` connects a clean workspace.
+- **R1.** `ops/provider-login chatgpt` connects a clean workspace.
 - **R2.** A prompt and a tool-using task run through the wrapper with no real credential in the sandbox.
 - **R3.** The login survives a pod restart.
 - **R4.** A re-login reaches new sessions after the mount update, and a restart moves a running session to the new login.
@@ -226,7 +226,7 @@ Work happens in a managed worktree and reaches `main` only by merge.
 
 1. Write failing acceptance tests. **User Check-in:** the human reviews the interface-defining tests.
 2. Implement enablement, wrapper, generator, profile, helpers and image changes.
-3. Implement `scripts/provider-login` with the ChatGPT adapter.
+3. Implement `ops/provider-login` with the ChatGPT adapter.
 4. Update runbooks and the credential-phasing pointer.
 5. **User Check-in:** the human deploys the image and runs gates S1 to S4. If a gate fails, stop and re-plan.
 6. **User Check-in:** the human runs gates R1 to R6.

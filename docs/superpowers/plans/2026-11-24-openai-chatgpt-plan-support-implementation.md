@@ -27,7 +27,7 @@ Implement the ChatGPT slice of the design: external login into the existing Kube
 | Launch | `scripts/lib/launch-opencode-nono.sh` |
 | Header helper (new) | `scripts/lib/chatgpt-headers.py`, installed root-owned as `/usr/local/libexec/dotfiles-chatgpt-headers` |
 | Image | `Dockerfile` (helper install, sudo `env_keep`) |
-| Login command (new) | `scripts/provider-login` (host) and `scripts/lib/provider-login-remote.sh` (pod side, run through `kubectl exec`) |
+| Login command (new) | `ops/provider-login` (host) and `scripts/lib/provider-login-remote.sh` (pod side, run through `kubectl exec`) |
 | Documentation | `nono-policy`, `devspace-bare-hub-usage` and `devspace-workspace-lifecycle` runbooks, pointer in the credential-phasing spec |
 
 The connection signal is the presence of `OPENAI_CHATGPT_SESSION`: the wrapper exports it only for a valid session, and the generator and launch helper act on it. This keeps the existing sudo argument rules unchanged.
@@ -79,5 +79,4 @@ The Copilot adapter follows in a separate plan after task 10.
 
 ## Open questions
 
-- Should `provider-login` live in `ops/` with the other host-side operator scripts instead of `scripts/` as the spec names it? The plan keeps the spec's path unless the human decides otherwise at the task 1 check-in.
 - Do the gate scripts for S1 to S4 belong in the repository as `pod-outside-nono` tests, or stay as handover scripts? The proof scripts suggest that S1 and S3 are worth keeping as tests.
