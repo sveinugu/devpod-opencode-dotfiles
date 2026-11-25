@@ -522,6 +522,12 @@ Coverage: the 50 commits in `b540e1c..07f048d`, reviewed against the resulting s
 - change: the new `chatgpt-login` pipeline (`--reset` flag) runs `ops/provider-login`, as `destroy` runs `ops/destroy-workspace.sh`. Both scripts read only `DEVSPACE_NAMESPACE`, which devspace exports from `-n` in `DEVSPACE_FLAGS`, and refuse without it instead of using the `default` namespace.
 - rationale: one namespace setting for all host operations. A direct `ops/provider-login` run looked in `default` and could not find the workspace Deployment.
 
+### 2026-11-25 · `ae26dac` — Enabled providers set only in the host `.env`
+
+- scope: `devspace.yaml` provision pipeline, `bin/sync-provider-enablement`, `.env.example`, [lifecycle runbook](../runbooks/devspace-workspace-lifecycle.md#provider-enablement-host-env)
+- change: `HUB_ENABLED_PROVIDERS` in the host `.env` is the only provider enablement setting; unset or empty enables none. Provision passes it to `sync-provider-enablement --enabled`, which validates it and writes the pod manifest and generated outputs read-only on every run. The repo seed file and the seed-once step are removed, and the pod manifest is no longer edited in place.
+- rationale: credentials and other workspace settings are already host-side. A pod file edited in place, seeded once, was a second place to configure and drifted from the seed.
+
 ## Operator reminder
 
 After updates affecting `Dockerfile` or deployment manifests:
