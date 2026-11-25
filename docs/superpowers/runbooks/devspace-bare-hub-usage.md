@@ -201,6 +201,9 @@ Retire lane worktrees with the managed command instead of manual `git worktree r
 
 Use `--dry-run` first to inspect potential loss evidence and the force-token retry command when applicable.
 
+- A commit is safe when the branch's upstream (`origin/<branch>`) or the local default branch reaches it. A branch merged into local `main` can therefore be retired even if its upstream is behind. Other commits are reported as local-only and need the force token.
+- The hub's install branch checkout (`HUB_INSTALL_BRANCH_DIR` in `state/hub/etc/install.env`) is always refused, even with `--force`, because the wrapped OpenCode runs from it. Install another branch first.
+
 remote branch deletion remains out of scope for v1
 
 ## Child repo branch behavior

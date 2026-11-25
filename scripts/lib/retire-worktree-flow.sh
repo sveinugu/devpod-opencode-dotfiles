@@ -81,6 +81,33 @@ retire_worktree_print_target_summary() {
   printf 'worktree: %s\n' "$retire_worktree_worktree_path"
 }
 
+# The pod runs the wrapped OpenCode and its helpers from the install branch
+# checkout (HUB_INSTALL_BRANCH_DIR in install.env). Retiring it would break
+# launches, so this is refused outright; --force covers only data loss.
+retire_worktree_refuse_install_branch() {
+  local workspace_root="$1"
+  local install_env="$workspace_root/state/hub/etc/install.env"
+  local install_dir=''
+
+  require_non_empty 'retire_worktree_refuse_install_branch' 'workspace_root' "$workspace_root"
+  require_non_empty 'retire_worktree_refuse_install_branch' 'retire_worktree_repo_identity' "${retire_worktree_repo_identity:-}"
+  require_non_empty 'retire_worktree_refuse_install_branch' 'retire_worktree_worktree_path' "${retire_worktree_worktree_path:-}"
+
+  [ "$retire_worktree_repo_identity" = 'hub' ] || return 0
+  [ -f "$install_env" ] || return 0
+
+  install_dir="$(sed -n 's/^export[[:space:]]\{1,\}HUB_INSTALL_BRANCH_DIR=//p; s/^HUB_INSTALL_BRANCH_DIR=//p' "$install_env" | head -n1)"
+  install_dir="${install_dir#[\"\']}"
+  install_dir="${install_dir%[\"\']}"
+  [ -n "$install_dir" ] || return 0
+
+  if [ "$(realpath -m -- "$install_dir")" = "$(realpath -m -- "$retire_worktree_worktree_path")" ]; then
+    printf 'refused: %s is the install branch checkout (HUB_INSTALL_BRANCH_DIR in %s); install another branch first (set HUB_INSTALL_BRANCH in the host .env and run devspace run-pipeline provision, or run bash install.sh in another checkout)\n' \
+      "$retire_worktree_worktree_path" "$install_env" >&2
+    exit 1
+  fi
+}
+
 retire_worktree_assess_risk_and_maybe_refuse() {
   local workspace_root="$1"
   local command_path="$2"

@@ -290,4 +290,44 @@ set -e
 [ "$untracked_stale_token_refusal_rc" = '1' ] || fail 'retire-worktree should reject stale force token after untracked content changes'
 grep -F 'refused: stale force-token for current risk report' "$tmpdir/untracked-stale-token-refusal.out" >/dev/null || fail 'retire-worktree should explain stale force-token refusal for untracked content changes'
 
+# A branch merged into the local default branch is safe even when its upstream
+# is behind: the commits stay reachable from main after retirement.
+HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" MANAGED_LANE_ID='lane-hub-merged' bash "$new_worktree_script" --repo hub feature/hub-merged >/dev/null
+hub_merged_worktree="$workspace_root/work/feature/hub-merged"
+git --git-dir="$workspace_root/.bare" update-ref refs/remotes/origin/feature/hub-merged "$(git -C "$hub_merged_worktree" rev-parse HEAD)"
+printf 'merged change\n' >> "$hub_merged_worktree/README.md"
+git -C "$hub_merged_worktree" -c user.name='Test User' -c user.email='test@example.com' commit -qam 'merged change'
+git -C "$workspace_root/main" merge -q --ff-only feature/hub-merged
+
+HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$retire_script" --repo hub --dry-run lane-hub-merged >"$tmpdir/merged-dry-run.out" 2>&1 || fail "retire-worktree should accept a branch merged into main when its upstream is behind: $(cat "$tmpdir/merged-dry-run.out")"
+if grep -F 'loss check: local-only commits would become unreachable' "$tmpdir/merged-dry-run.out" >/dev/null; then
+  fail 'commits reachable from main must not be reported as local-only'
+fi
+
+# A commit on neither the upstream nor main is still reported.
+printf 'unmerged change\n' >> "$hub_merged_worktree/README.md"
+git -C "$hub_merged_worktree" -c user.name='Test User' -c user.email='test@example.com' commit -qam 'unmerged change'
+set +e
+HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$retire_script" --repo hub --dry-run lane-hub-merged >"$tmpdir/unmerged-refusal.out" 2>&1
+unmerged_refusal_rc="$?"
+set -e
+[ "$unmerged_refusal_rc" = '1' ] || fail 'retire-worktree should refuse a commit that neither upstream nor main has'
+grep -F 'unmerged change' "$tmpdir/unmerged-refusal.out" >/dev/null || fail 'retire-worktree should list the unmerged commit as local-only'
+if grep -F 'merged change' "$tmpdir/unmerged-refusal.out" | grep -vF 'unmerged change' >/dev/null; then
+  fail 'retire-worktree must not list the merged commit as local-only'
+fi
+
+# The install branch checkout is refused outright, even with a matching force token.
+unmerged_token="$(sed -n 's/^force-token: //p' "$tmpdir/unmerged-refusal.out" | head -n1)"
+cp "$workspace_root/state/hub/etc/install.env" "$tmpdir/install.env.saved"
+printf 'export HUB_INSTALL_BRANCH=feature/hub-merged\nexport HUB_INSTALL_BRANCH_DIR=%s\n' "$hub_merged_worktree" > "$workspace_root/state/hub/etc/install.env"
+set +e
+HUB_WORKSPACE_ROOT="$workspace_root" HOME="$home_dir" bash "$retire_script" --repo hub --force --force-token "$unmerged_token" lane-hub-merged >"$tmpdir/install-branch-refusal.out" 2>&1
+install_branch_refusal_rc="$?"
+set -e
+cp "$tmpdir/install.env.saved" "$workspace_root/state/hub/etc/install.env"
+[ "$install_branch_refusal_rc" = '1' ] || fail 'retire-worktree should refuse the install branch checkout even with --force'
+grep -F 'is the install branch checkout' "$tmpdir/install-branch-refusal.out" >/dev/null || fail 'retire-worktree should explain the install branch refusal'
+[ -d "$hub_merged_worktree" ] || fail 'refused install branch retirement must keep the worktree'
+
 printf 'PASS test_retire_worktree\n'
