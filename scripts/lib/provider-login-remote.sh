@@ -49,9 +49,11 @@ case "$step" in
     require_login_dir "${2:-}"
     dir="$2"
     mkdir -p "$dir/data" "$dir/config" "$dir/cache" "$dir/state"
-    printf 'In the OpenCode login, choose OpenAI, then the ChatGPT Plus/Pro headless method.\n' >&2
+    # Provider and method are fixed, so the login asks no questions: it prints a
+    # URL and code to open in a browser and waits. Method labels are OpenCode's own.
+    printf 'Open the URL below in a browser and enter the code to log in with ChatGPT Plus/Pro.\n' >&2
     XDG_DATA_HOME="$dir/data" XDG_CONFIG_HOME="$dir/config" XDG_CACHE_HOME="$dir/cache" XDG_STATE_HOME="$dir/state" \
-      "$raw_opencode_binary" auth login
+      "$raw_opencode_binary" auth login --provider openai --method 'ChatGPT Pro/Plus (headless)'
     ;;
   extract)
     require_provider "${1:-}"

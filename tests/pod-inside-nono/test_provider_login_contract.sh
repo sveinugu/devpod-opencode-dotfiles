@@ -64,7 +64,7 @@ EOF
 cat >"$mock_bin/opencode-raw" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-[ "${1:-}" = auth ] && [ "${2:-}" = login ] || { printf 'mock opencode: unexpected %s\n' "$*" >&2; exit 98; }
+[ "$*" = 'auth login --provider openai --method ChatGPT Pro/Plus (headless)' ] || { printf 'mock opencode: unexpected %s\n' "$*" >&2; exit 98; }
 printf '%s' "${XDG_DATA_HOME:-unset}" >"$MOCK_LOGS/login_data_home"
 store="${XDG_DATA_HOME:?}/opencode"
 mkdir -p "$store"
