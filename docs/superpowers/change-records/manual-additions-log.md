@@ -516,6 +516,12 @@ Coverage: the 50 commits in `b540e1c..07f048d`, reviewed against the resulting s
 - change: install and uninstall use `@bybrawe/opencode-loop@0.6.10`; install passes `--legacy-v1`. Declared outputs are `plugins/opencode-loop.ts`, `commands/loop.md`, `commands/loop-help.md` and `agents/opencode-loop-local.md`. Loop no longer provides `/loop-goal*` commands; Goal is the separate `@bybrawe/opencode-goal` package and is not installed. This supersedes the output expectations in the `30f3ff0` and `5cb0544` entries.
 - rationale: the unpinned `npx` spec reused a stale cached 0.5.1 that writes `opencode-loop.js`. The 0.6.10 default install registers the package in `opencode.jsonc` instead of writing local files, which conflicts with installer ownership of Loop outputs. The human verified `install.sh` and the harness install contract tests in the pod.
 
+### 2026-11-25 · `00e4122` — Host ops scripts take the namespace only from devspace
+
+- scope: `devspace.yaml`, `ops/provider-login`, `ops/destroy-workspace.sh`, [lifecycle runbook](../runbooks/devspace-workspace-lifecycle.md)
+- change: the new `chatgpt-login` pipeline (`--reset` flag) runs `ops/provider-login`, as `destroy` runs `ops/destroy-workspace.sh`. Both scripts read only `DEVSPACE_NAMESPACE`, which devspace exports from `-n` in `DEVSPACE_FLAGS`, and refuse without it instead of using the `default` namespace.
+- rationale: one namespace setting for all host operations. A direct `ops/provider-login` run looked in `default` and could not find the workspace Deployment.
+
 ## Operator reminder
 
 After updates affecting `Dockerfile` or deployment manifests:
