@@ -180,6 +180,10 @@ A depleted pool needs an override for **every** role whose `#1` is that model; s
 - Action: add an override for each affected role, using its `#2` (a different pool from `#1`, except `docs-reviewer-claude`, where both are Copilot). If `#2` is also depleted, use `#3`.
 - Lowest RPM limits: `gpt-6.1-sol` (100), Kimi K2.6, `gpt-6.1-terra`, GPT-OSS 120B and NorwAI Magistral (120), `gpt-6-luna` (150), GLM 5.3 (200), `gpt-5.4` (250). Parallel agents saturate these first.
 
+### UiO and Copilot both depleted
+- Action: override each affected role with its ChatGPT column entry (`openai/<model>`), with `until` set to the reset date. Check first that `/models` in OpenCode lists the model.
+- `docs-reviewer-claude` has no ChatGPT option; keep GLM 5.3 (`#3`) while that UiO pool has quota. With every implementer on GPT, `code-reviewer` (GPT) reviews GPT-written code; record that in the review if it matters.
+
 ### Copilot credit pressure
 - Action: override Copilot-first roles with their UiO `#2` where that pool has quota; otherwise use a local model (GLM 5.3, Kimi K2.6).
 - Avoid Astra models (8-10 / 40-50).
@@ -194,35 +198,37 @@ A depleted pool needs an override for **every** role whose `#1` is that model; s
 
 Target routing as committed. Temporary switches live in the overrides file, not here.
 
+The **ChatGPT** column is the fallback when both the UiO and Copilot pools are depleted. Write it as `openai/<model>` in an override. It needs `openai-chatgpt` in `HUB_ENABLED_PROVIDERS` and a ChatGPT login (`devspace run-pipeline login --provider chatgpt`). ChatGPT offers only GPT models, so it cannot keep the opposite-family review rule (design rule 4); see "UiO and Copilot both depleted" below.
+
 ### Team/specialist agents
 
-| Agent | #1 | #2 | #3 | Notes |
-|---|---|---|---|---|
-| `planner` | Copilot `claude-opus-5.5` (59) | UiO `gpt-6.1-sol` (55) | Copilot `gpt-6.2-sol` (57) | |
-| `senior-implementer` | Copilot `claude-opus-5.5` (59) | UiO `gpt-6.1-sol` (55) | Copilot `gpt-6.2-sol` (57) | Cheaper Claude when credits are tight: Copilot `claude-sonnet-5.5` (55) |
-| `junior-implementer` | Copilot `claude-haiku-5.5` (36) | UiO `Kimi-K2.6` (n/a) | UiO `GLM-5.3-NVFP4` (32) | |
-| `code-reviewer` | UiO `gpt-6.1-sol` (55) | Copilot `gpt-6.2-sol` (57) | UiO `gpt-6.1-terra` (51) | GPT reviews Claude-written code |
-| `docs-writer` | Copilot `claude-sonnet-5.5` (55) | UiO `gpt-6.1-terra` (51) | Copilot `gpt-6.2-sol` (57) | |
-| `docs-reviewer-gpt` | UiO `gpt-6.1-sol` (55) | Copilot `gpt-6.2-sol` (57) | UiO `gpt-6.1-terra` (51) | Reviews Claude-authored specs, plans and docs |
-| `docs-reviewer-claude` | Copilot `claude-opus-5.5` (59) | Copilot `claude-sonnet-5.5` (55) | UiO `GLM-5.3-NVFP4` (32) | Reviews GPT- or other-authored docs; no UiO Claude exists, so `#2` shares the Copilot pool |
-| `maestro` | UiO `gpt-6.1-terra` (51) | Copilot `gpt-6.1-terra` (51) | UiO `gpt-5.4` (n/a) | |
-| `brainstormer` | UiO `gpt-5.4` (n/a) | Copilot `claude-sonnet-5.5` (55) | UiO `gpt-5.1` (n/a) | |
-| `policy-implementer` | UiO `gpt-5.4` (n/a) | Copilot `claude-sonnet-5.5` (55) | UiO `gpt-5.1` (n/a) | |
-| `general` | UiO `GLM-5.3-NVFP4` (32) | UiO `gpt-6.1-terra` (51) | Copilot `claude-sonnet-5.5` (55) | Also defined under `agent.general` in `opencode.jsonc`; edit both together |
+| Agent | #1 | #2 | #3 | ChatGPT | Notes |
+|---|---|---|---|---|---|
+| `planner` | Copilot `claude-opus-5.5` (59) | UiO `gpt-6.1-sol` (55) | Copilot `gpt-6.2-sol` (57) | `gpt-6.2-sol` (57) | |
+| `senior-implementer` | Copilot `claude-opus-5.5` (59) | UiO `gpt-6.1-sol` (55) | Copilot `gpt-6.2-sol` (57) | `gpt-6.2-sol` (57) | Cheaper Claude when credits are tight: Copilot `claude-sonnet-5.5` (55) |
+| `junior-implementer` | Copilot `claude-haiku-5.5` (36) | UiO `Kimi-K2.6` (n/a) | UiO `GLM-5.3-NVFP4` (32) | `gpt-6-luna` (28) | |
+| `code-reviewer` | UiO `gpt-6.1-sol` (55) | Copilot `gpt-6.2-sol` (57) | UiO `gpt-6.1-terra` (51) | `gpt-6.1-sol` (55) | GPT reviews Claude-written code |
+| `docs-writer` | Copilot `claude-sonnet-5.5` (55) | UiO `gpt-6.1-terra` (51) | Copilot `gpt-6.2-sol` (57) | `gpt-6.1-sol` (55) | |
+| `docs-reviewer-gpt` | UiO `gpt-6.1-sol` (55) | Copilot `gpt-6.2-sol` (57) | UiO `gpt-6.1-terra` (51) | `gpt-6.1-sol` (55) | Reviews Claude-authored specs, plans and docs |
+| `docs-reviewer-claude` | Copilot `claude-opus-5.5` (59) | Copilot `claude-sonnet-5.5` (55) | UiO `GLM-5.3-NVFP4` (32) | none; use `#3` (GLM) to keep a non-GPT reviewer | Reviews GPT- or other-authored docs; no UiO Claude exists, so `#2` shares the Copilot pool |
+| `maestro` | UiO `gpt-6.1-terra` (51) | Copilot `gpt-6.1-terra` (51) | UiO `gpt-5.4` (n/a) | `gpt-6.1-terra` (51) | |
+| `brainstormer` | UiO `gpt-5.4` (n/a) | Copilot `claude-sonnet-5.5` (55) | UiO `gpt-5.1` (n/a) | `gpt-6.1-terra` (51) | |
+| `policy-implementer` | UiO `gpt-5.4` (n/a) | Copilot `claude-sonnet-5.5` (55) | UiO `gpt-5.1` (n/a) | `gpt-6.1-terra` (51) | |
+| `general` | UiO `GLM-5.3-NVFP4` (32) | UiO `gpt-6.1-terra` (51) | Copilot `claude-sonnet-5.5` (55) | `gpt-6.1-terra` (51) | Also defined under `agent.general` in `opencode.jsonc`; edit both together |
 
 ### OpenCode built-ins and defaults (`opencode.jsonc`)
 
-| Role | #1 | #2 | #3 | Notes |
-|---|---|---|---|---|
-| top-level `model` | UiO `GLM-5.3-NVFP4` (32) | UiO `gpt-6.1-terra` (51) | Copilot `claude-sonnet-5.5` (55) | Default for any agent without its own `model` |
-| top-level `small_model` | UiO `gemma-4-31B-it` (4) | UiO `Qwen3.8-27B-FP8` (20) | UiO `gpt-oss-120b` (4) | Default for light tasks when a role sets no model |
-| `build` | same chain as `senior-implementer` | | | Not counted for UiO quota spread |
-| `plan` | same chain as `planner` | | | Not counted for UiO quota spread |
-| `general` | same chain as the `general` agent | | | |
-| `explore` | UiO `gpt-6-luna` (28) | Copilot `claude-haiku-5.5` (36) | UiO `gpt-5-mini` (n/a) | |
-| `title` | UiO `gemma-4-31B-it` (4) | UiO `Qwen3.8-27B-FP8` (20) | UiO `gpt-oss-120b` (4) | |
-| `summary` | UiO `gemma-4-31B-it` (4) | UiO `Qwen3.8-27B-FP8` (20) | UiO `gpt-oss-120b` (4) | |
-| `compaction` | UiO `GLM-5.3-NVFP4` (32) | UiO `Mistral-Medium-3.5-128B` (5) | UiO `Qwen3.8-27B-FP8` (20) | |
+| Role | #1 | #2 | #3 | ChatGPT | Notes |
+|---|---|---|---|---|---|
+| top-level `model` | UiO `GLM-5.3-NVFP4` (32) | UiO `gpt-6.1-terra` (51) | Copilot `claude-sonnet-5.5` (55) | `gpt-6.1-terra` (51) | Default for any agent without its own `model` |
+| top-level `small_model` | UiO `gemma-4-31B-it` (4) | UiO `Qwen3.8-27B-FP8` (20) | UiO `gpt-oss-120b` (4) | `gpt-6-luna` (28) | Default for light tasks when a role sets no model |
+| `build` | same chain as `senior-implementer` | | | | Not counted for UiO quota spread |
+| `plan` | same chain as `planner` | | | | Not counted for UiO quota spread |
+| `general` | same chain as the `general` agent | | | | |
+| `explore` | UiO `gpt-6-luna` (28) | Copilot `claude-haiku-5.5` (36) | UiO `gpt-5-mini` (n/a) | `gpt-6-luna` (28) | |
+| `title` | UiO `gemma-4-31B-it` (4) | UiO `Qwen3.8-27B-FP8` (20) | UiO `gpt-oss-120b` (4) | `gpt-6-luna` (28) | |
+| `summary` | UiO `gemma-4-31B-it` (4) | UiO `Qwen3.8-27B-FP8` (20) | UiO `gpt-oss-120b` (4) | `gpt-6-luna` (28) | |
+| `compaction` | UiO `GLM-5.3-NVFP4` (32) | UiO `Mistral-Medium-3.5-128B` (5) | UiO `Qwen3.8-27B-FP8` (20) | `gpt-6.1-terra` (51) | |
 
 Claude-backed roles keep their `temperature` and `reasoningEffort` settings. If a Claude role errors on a request setting, remove that setting for the agent first.
 
