@@ -57,6 +57,7 @@ if not skills_dir.is_symlink() and skills_dir.is_dir():
     entries = sorted(path.name for path in skills_dir.iterdir())
     allowed_entries = {
         "nono-sandbox",
+        "asd-ste100",
         "clean-code",
         "delivery-workflow",
         "maestro-override",
