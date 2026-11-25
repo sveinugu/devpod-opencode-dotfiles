@@ -540,6 +540,12 @@ Coverage: the 50 commits in `b540e1c..07f048d`, reviewed against the resulting s
 - change: packets use a fixed preamble to identify the recipient as a subagent and explain that Maestro relays the user's words. The receiving guidance explains the handoff. The recipient and assigned-work fields added in `a4bd15d` were removed in `64dc2dc`.
 - rationale: clarify the recipient's situation without letting the delegator paraphrase the work as a packet requirement.
 
+### 2026-11-25 · `fb93673`, `8094d3b` — Retirement safety for merged branches and the install branch
+
+- scope: `bin/retire-worktree`, `scripts/lib/managed-worktree-cleanup-risk.sh`, `scripts/lib/retire-worktree-flow.sh`, [bare hub usage runbook](../runbooks/devspace-bare-hub-usage.md#managed-local-retirement)
+- change: the loss check treats a commit as safe when the upstream or the local default branch reaches it, also when an upstream exists. This completes `10c4074`, which used the default branch only without an upstream. Retiring the hub install branch checkout is refused outright, even with `--force`.
+- rationale: a branch merged into local `main` with an upstream that was behind was reported as losing commits. Retiring the install branch checkout left the wrapped OpenCode without its helpers and runtime files.
+
 ## Operator reminder
 
 After updates affecting `Dockerfile` or deployment manifests:
