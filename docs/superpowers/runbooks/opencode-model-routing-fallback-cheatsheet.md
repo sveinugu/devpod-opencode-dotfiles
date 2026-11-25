@@ -8,6 +8,7 @@ Paths are relative to the repository root; the install branch's `.config/opencod
 
 - Target routing (committed): `.config/opencode/agents/*.md` and `.config/opencode/opencode.jsonc`.
 - UiO model list and context/output limits (committed): `.config/opencode/provider-policy.jsonc`, generated into `provider-runtime.json` by `bin/sync-provider-enablement`.
+- ChatGPT plan access: `openai-chatgpt` enables OpenCode's `openai` provider; see [provider setup](devspace-workspace-lifecycle.md#provider-enablement-host-env).
 - Temporary switches and quota status (host-local, never committed): `/workspaces/dotfiles/state/hub/etc/model-overrides.json`.
 
 ## UiO / primary models and quotas
@@ -42,6 +43,30 @@ Paths are relative to the repository root; the install branch's `.config/opencod
 - Each UiO model has its own monthly pool. Current depletion is recorded only in the host-local overrides file (see "Temporary switches").
 - `MiniMax M3` is no longer available; do not reference it.
 - `github-copilot/gpt-5.4` and `github-copilot/gpt-5-mini` do not exist. Those IDs are UiO-only.
+
+## ChatGPT plan / OpenAI models
+
+The `openai-chatgpt` enablement token selects OpenCode's `openai` provider, so model references use `openai/<model-id>`. A valid ChatGPT login is required. The provider policy uses `mode: all`, not a fixed model allowlist.
+
+The table lists the models that OpenCode offered under `openai/` for this ChatGPT plan login on 2026-11-25 (the `/models` picker). Prefix each ID with `openai/`. The plan and OpenCode can change the list; check `/models` before relying on a model. Catalog context is from the [models.dev OpenAI catalog](https://models.dev/providers/openai) and is not a verified ChatGPT transport limit; all listed models have 128,000 catalog output. AA Index values are from the Artificial Analysis leaderboard (Intelligence Index v5.0.2, max reasoning setting), checked 2026-11-25; `n/a` = no score on the leaderboard. `gpt-6.1-sol` was not on the leaderboard on 2026-11-25; its value is the 2026-11-19 score used in the tables above. ChatGPT plan usage and credits differ from API pricing; see [Codex pricing](https://developers.openai.com/codex/pricing).
+
+OpenCode also lists `-fast`, `-flex` and, for some models, `-ultrafast` variants of each ID (for example `openai/gpt-6.2-sol-fast`). Their effect on speed and plan limits is not recorded here; use the plain ID unless you have checked a variant.
+
+| Model ID | AA Index | Catalog context | Variants | Notes |
+|---|---|---:|---|---|
+| `gpt-6.2-astra` | 62 | 1,050,000 | fast, ultrafast | Strongest; likely uses plan limits fastest |
+| `gpt-6.2-sol` | 57 | 1,050,000 | fast, ultrafast | Powerful |
+| `gpt-6.1-sol` | 55 (2026-11-19) | 1,050,000 | fast, flex, ultrafast | Powerful |
+| `gpt-6.1-terra` | 51 | 1,050,000 | fast, flex | Balanced |
+| `gpt-6-astra` | n/a | 1,050,000 | fast, flex, ultrafast |  |
+| `gpt-6-sol` | n/a | 1,050,000 | fast, flex |  |
+| `gpt-6-luna` | 28 | 1,050,000 | fast, flex | Lightweight |
+| `gpt-5.6-sol` | n/a | 1,050,000 | fast, flex |  |
+| `gpt-5.6-terra` | n/a | 1,050,000 | fast, flex |  |
+| `gpt-5.6-luna` | n/a | 1,050,000 | fast, flex |  |
+| `gpt-5.5` | n/a | 1,050,000 | fast, flex |  |
+| `gpt-5.4` | n/a | 1,050,000 | fast, flex |  |
+| `gpt-5.4-mini` | n/a | 400,000 | fast, flex |  |
 
 ## GitHub Copilot / fallback models
 
