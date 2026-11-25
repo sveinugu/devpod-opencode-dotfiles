@@ -29,7 +29,7 @@ DATE_PATTERN = re.compile(r'^\d{4}-\d{2}-\d{2}$')
 MODEL_PATTERN = re.compile(r'^[A-Za-z0-9._-]+/[^\s{}]+$')
 CHATGPT_TOKEN = 'openai-chatgpt'
 CHATGPT_PROVIDER = 'openai'
-LOGIN_HINT = 'run ops/provider-login chatgpt on the host'
+LOGIN_HINT = 'run devspace run-pipeline chatgpt-login on the host'
 
 
 def refuse(message):
