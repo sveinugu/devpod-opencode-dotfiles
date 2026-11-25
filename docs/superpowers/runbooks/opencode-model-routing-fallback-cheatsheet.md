@@ -48,9 +48,9 @@ Paths are relative to the repository root; the install branch's `.config/opencod
 
 The `openai-chatgpt` enablement token selects OpenCode's `openai` provider, so model references use `openai/<model-id>`. A valid ChatGPT login is required. The provider policy uses `mode: all`, not a fixed model allowlist.
 
-The table lists the models that OpenCode offered under `openai/` for this ChatGPT plan login on 2026-11-25 (the `/models` picker). Prefix each ID with `openai/`. The plan and OpenCode can change the list; check `/models` before relying on a model. Catalog context is from the [models.dev OpenAI catalog](https://models.dev/providers/openai) and is not a verified ChatGPT transport limit; all listed models have 128,000 catalog output. AA Index values are from the Artificial Analysis leaderboard (Intelligence Index v5.0.2, max reasoning setting), checked 2026-11-25; `n/a` = no score on the leaderboard. `gpt-6.1-sol` was not on the leaderboard on 2026-11-25; its value is the 2026-11-19 score used in the tables above. ChatGPT plan usage and credits differ from API pricing; see [Codex pricing](https://learn.chatgpt.com/docs/pricing).
+The table lists the models that OpenCode offered under `openai/` for this ChatGPT plan login on 2026-11-25 (the `/models` picker). Prefix each ID with `openai/`. The plan and OpenCode can change the list; check `/models` before relying on a model. OpenCode builds the list from the models.dev catalog, so it can include models the plan no longer serves (see the retired rows). Catalog context is from the [models.dev OpenAI catalog](https://models.dev/providers/openai) and is not a verified ChatGPT transport limit; all listed models have 128,000 catalog output. AA Index values are from the Artificial Analysis leaderboard (Intelligence Index v5.0.2, max reasoning setting), checked 2026-11-25; `n/a` = no score on the leaderboard. `gpt-6.1-sol` was not on the leaderboard on 2026-11-25; its value is the 2026-11-19 score used in the tables above. ChatGPT plan usage and credits differ from API pricing; see [Codex pricing](https://learn.chatgpt.com/docs/pricing).
 
-**Plan cost.** This workspace uses the **Plus** plan, which limits messages per five-hour period, and weekly limits may also apply. Pro has no five-hour limit. Credits and Plus message ranges below are from the Codex pricing page, read on 2026-11-25 through a summary, not verbatim; re-check before relying on exact values. `—` = not stated. Within a role's quality tier, pick the cheapest model: Luna costs one tenth of Terra and one twentieth of Sol per token. Sol is for low-volume, quality-critical roles (planning, review); high-volume roles use Terra or Luna.
+**Plan cost.** This workspace uses the **Plus** plan, which limits messages per five-hour period, and weekly limits may also apply. Pro has no five-hour limit. Plus message ranges and the GPT-5.6 credit rows below were read verbatim from the Codex pricing page on 2026-11-25; the GPT-6.x credit rows came from a summary of the same page. `—` = not stated. Within a role's quality tier, pick the cheapest model: Luna costs one tenth of Terra and one twentieth of Sol per token. Sol is for low-volume, quality-critical roles (planning, review); high-volume roles use Terra or Luna.
 
 OpenCode also lists `-fast`, `-flex` and, for some models, `-ultrafast` variants of each ID (for example `openai/gpt-6.2-sol-fast`). `-fast` uses 2-2.5x the included usage and `-ultrafast` 6-8x (Pro $500 and above only); the cost of `-flex` is not stated. Use the plain ID.
 
@@ -63,12 +63,12 @@ OpenCode also lists `-fast`, `-flex` and, for some models, `-ultrafast` variants
 | `gpt-6-astra` | n/a | 250 / 1,250 | 5-45 | 1,050,000 | fast, flex, ultrafast | Avoid on Plus |
 | `gpt-6-sol` | n/a | 50 / 250 | 15-150 | 1,050,000 | fast, flex |  |
 | `gpt-6-luna` | 28 | 2.5 / 12.5 | 350-3,000 | 1,050,000 | fast, flex | Lightweight; cheapest |
-| `gpt-5.6-sol` | n/a | 100 / 500 | — | 1,050,000 | fast, flex |  |
-| `gpt-5.6-terra` | n/a | 50 / 300 | — | 1,050,000 | fast, flex |  |
-| `gpt-5.6-luna` | n/a | 5 / 30 | — | 1,050,000 | fast, flex |  |
-| `gpt-5.5` | n/a | — | — | 1,050,000 | fast, flex |  |
-| `gpt-5.4` | n/a | — | — | 1,050,000 | fast, flex |  |
-| `gpt-5.4-mini` | n/a | — | — | 400,000 | fast, flex |  |
+| `gpt-5.6-sol` | n/a | 100 / 500 | — | 1,050,000 | fast, flex | Costs twice GPT-6.1/6.2 Sol per token |
+| `gpt-5.6-terra` | n/a | 50 / 300 | — | 1,050,000 | fast, flex | Costs 2-2.4x GPT-6.1 Terra per token |
+| `gpt-5.6-luna` | n/a | 5 / 30 | — | 1,050,000 | fast, flex | Costs 2-2.4x GPT-6 Luna per token |
+| `gpt-5.5` | n/a | — | — | 1,050,000 | fast, flex | Retired from Codex with ChatGPT sign-in on 2026-10-14 (replacement: GPT-6.1 Sol); do not use |
+| `gpt-5.4` | n/a | — | — | 1,050,000 | fast, flex | Retired from Codex with ChatGPT sign-in on 2026-08-31 (replacement: GPT-5.6 Terra); do not use |
+| `gpt-5.4-mini` | n/a | — | — | 400,000 | fast, flex | Retired from Codex with ChatGPT sign-in on 2026-08-31 (replacement: GPT-5.6 Luna); do not use |
 
 ## GitHub Copilot / fallback models
 
