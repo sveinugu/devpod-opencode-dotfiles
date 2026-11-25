@@ -534,6 +534,12 @@ Coverage: the 50 commits in `b540e1c..07f048d`, reviewed against the resulting s
 - change: `model-overrides.json` and the provider manifest stay shared by all checkouts. Each checkout applies what it can: a model override for an unknown agent, a provider that is not enabled or an unlisted UiO model is skipped with a warning, and a manifest provider that the checkout's policy does not support is skipped with a warning and recorded under `skipped_providers`. Schema errors in the overrides file and invalid values in `HUB_ENABLED_PROVIDERS` still refuse.
 - rationale: quota switches and provider selection are workspace-wide, but agents, models and providers can differ between branches. A strict per-branch check made a value that was valid on one branch block launches or installs on another.
 
+### 2026-11-25 · `a4bd15d`, `64dc2dc` — Delegation recipient context
+
+- scope: `opencode-dispatch` skill and subagent handoff template
+- change: packets use a fixed preamble to identify the recipient as a subagent and explain that Maestro relays the user's words. The receiving guidance explains the handoff. The recipient and assigned-work fields added in `a4bd15d` were removed in `64dc2dc`.
+- rationale: clarify the recipient's situation without letting the delegator paraphrase the work as a packet requirement.
+
 ## Operator reminder
 
 After updates affecting `Dockerfile` or deployment manifests:
