@@ -4,7 +4,7 @@
 
 ## Choose your environment
 
-- **HOST:** Stay in this runbook for `devspace run-pipeline provision`, `doctor`, `repair`, `destroy`, `verify-ssh`, and `chatgpt-login`.
+- **HOST:** Stay in this runbook for `devspace run-pipeline provision`, `doctor`, `repair`, `destroy`, `verify-ssh`, and `provider-login`.
 - **HOST, first-time setup:** If the bare-hub layout does not exist yet, start with [Host Bare-Hub Bootstrap](host-bare-hub-bootstrap.md).
 - **POD:** Switch to [DevSpace Bare Hub Usage](devspace-bare-hub-usage.md) for `bash install.sh`, `dhub`, `dre`, `dwt`, `bin/new-worktree`, `bin/clone-repo`, and `bin/retire-worktree`.
 
@@ -35,14 +35,28 @@ The Secret must exist, because the Deployment mounts it. It needs a key only for
 | Provider | Secret key |
 | --- | --- |
 | `anthropic` | `anthropic_api_key` |
-| `github-copilot` | `github_token` |
-| `gpt-uio-yellow` | `gpt_uio_yellow_api_key` |
-| `gpt-uio-red` | `gpt_uio_red_api_key` |
-| `openai-chatgpt` | `openai_chatgpt_session`, written by `devspace run-pipeline chatgpt-login` |
+| `github-copilot` | `github_token`, written by `devspace run-pipeline provider-login --provider copilot` |
+| `gpt-uio-yellow` | `gpt_uio_yellow_api_key`, written by `devspace run-pipeline provider-login --provider uio-yellow` |
+| `gpt-uio-red` | `gpt_uio_red_api_key`, written by `devspace run-pipeline provider-login --provider uio-red` |
+| `openai-chatgpt` | `openai_chatgpt_session`, written by `devspace run-pipeline provider-login --provider chatgpt` |
 
 OpenCode refuses to launch when a key for an enabled provider is missing. A missing ChatGPT session only leaves ChatGPT out.
 
 If the workspace was already deployed before the secret existed, the pod may need a restart or you may need to re-apply the deployment.
+
+## Provider logins and API keys
+
+`devspace run-pipeline provider-login --provider <provider>` stores or replaces one key in the Secret, from the host, in the namespace devspace uses. `--reset` removes the key instead; it does not revoke the credential at the provider. Every value is checked before it is stored, so a failed login or a rejected key leaves the Secret unchanged. The value reaches the cluster only through standard input of one `kubectl patch` that changes only that key.
+
+| `--provider` | Secret key | How the value is obtained | Check before storing |
+| --- | --- | --- | --- |
+| `chatgpt` | `openai_chatgpt_session` | OpenCode login in the pod (see below) | session shape and expiry |
+| `copilot` | `github_token` | OpenCode's GitHub Copilot login in the pod. It answers the deployment-type question with GitHub.com itself; open the printed URL and enter the code. GitHub Enterprise is refused. | test call to `https://api.githubcopilot.com/models` must return 200 |
+| `uio-yellow`, `uio-red` | `gpt_uio_yellow_api_key`, `gpt_uio_red_api_key` | Prompt on the host; input is hidden | test call to `https://gpt.uio.no/api/v1/models` must return 200 |
+
+For `copilot`, the stored value is the long-lived GitHub OAuth token from OpenCode's login; nono sends it as the bearer token to `api.githubcopilot.com`. After `--reset` of `github_token` or a UiO key, OpenCode refuses to launch while that provider is enabled, until a new value is stored.
+
+New sessions use a new value after the kubelet updates the Secret mount, usually within a minute. Restart running sessions to use it.
 
 ## ChatGPT plan login (optional)
 
@@ -51,7 +65,7 @@ ChatGPT Plus/Pro models are available when `openai-chatgpt` is in `HUB_ENABLED_P
 Log in from the host, in the namespace of the workspace:
 
 ```bash
-devspace run-pipeline chatgpt-login
+devspace run-pipeline provider-login --provider chatgpt
 ```
 
 The pipeline runs `ops/provider-login chatgpt` in the namespace devspace uses (`-n` in `DEVSPACE_FLAGS` in `.env`). The script refuses to run without the `DEVSPACE_NAMESPACE` value that devspace supplies. If it cannot reach the workspace Deployment, it stops before any login and does not change the Secret.
@@ -68,7 +82,7 @@ Launch behavior when `openai-chatgpt` is enabled:
 - An `openai/*` model selected with `--model` or as the top-level `model`, without a valid login: the launch is refused.
 - An agent role that uses an `openai/*` model without a valid login fails when that role is first used.
 
-To disconnect, run `devspace run-pipeline chatgpt-login --reset` and stop running sessions. This does not revoke the login at OpenAI; do that in the ChatGPT account settings. Logging out inside OpenCode does not disconnect ChatGPT.
+To disconnect, run `devspace run-pipeline provider-login --provider chatgpt --reset` and stop running sessions. This does not revoke the login at OpenAI; do that in the ChatGPT account settings. Logging out inside OpenCode does not disconnect ChatGPT.
 
 The `openai` API-key provider and its `openai_api_key` Secret key are removed. A manifest that lists `openai` is refused.
 

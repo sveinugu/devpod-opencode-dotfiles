@@ -1,22 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Connect a provider login to the workspace's provider Secret, from the host.
+# Store a provider credential in the workspace's provider Secret, from the host.
 # See docs/superpowers/specs/2026-11-19-openai-chatgpt-plan-support-design.md.
 #
-# The login runs in the workspace pod, outside nono, in a temporary directory.
-# Only the validated session value reaches the Secret, through standard input
-# of one kubectl patch that changes only the provider's key.
+# chatgpt and copilot: OpenCode's login runs in the workspace pod, outside nono,
+# in a temporary directory. uio-yellow and uio-red: the API key is read here,
+# without echo. Every value is checked before it is stored, and reaches the
+# Secret only through standard input of one kubectl patch that changes only
+# the provider's key.
 
 usage() {
   cat <<'USAGE'
-usage: provider-login chatgpt [--reset]
+usage: provider-login <provider> [--reset]
 
-  chatgpt          log in with a ChatGPT Plus/Pro plan and store the session
-  chatgpt --reset  remove the stored ChatGPT session (does not revoke it at OpenAI)
+  chatgpt      log in with a ChatGPT Plus/Pro plan (stored as openai_chatgpt_session)
+  copilot      log in with GitHub Copilot on GitHub.com (stored as github_token)
+  uio-yellow   enter a UiO yellow API key (stored as gpt_uio_yellow_api_key)
+  uio-red      enter a UiO red API key (stored as gpt_uio_red_api_key)
+  --reset      remove the stored value (does not revoke it at the provider)
 
 Run it through devspace, which sets DEVSPACE_NAMESPACE:
-  devspace run-pipeline chatgpt-login [--reset]
+  devspace run-pipeline provider-login --provider <provider> [--reset]
 
 Environment: DEVSPACE_NAMESPACE (required), KUBECTL_BIN, HUB_WORKSPACE_DEPLOYMENT.
 USAGE
@@ -25,8 +30,17 @@ USAGE
 provider="${1:-}"
 mode="${2:-login}"
 case "$provider:$mode:$#" in
-  chatgpt:login:1|chatgpt:--reset:2) ;;
   -h:*|--help:*) usage; exit 0 ;;
+  *:login:1|*:--reset:2) ;;
+  *) usage >&2; exit 2 ;;
+esac
+
+# provider -> Secret key, display name
+case "$provider" in
+  chatgpt)    secret_key='openai_chatgpt_session'; label='ChatGPT' ;;
+  copilot)    secret_key='github_token';           label='GitHub Copilot' ;;
+  uio-yellow) secret_key='gpt_uio_yellow_api_key'; label='UiO yellow' ;;
+  uio-red)    secret_key='gpt_uio_red_api_key';    label='UiO red' ;;
   *) usage >&2; exit 2 ;;
 esac
 
@@ -34,14 +48,15 @@ kubectl_bin="${KUBECTL_BIN:-kubectl}"
 # devspace exports the namespace it uses (-n in DEVSPACE_FLAGS) to pipelines.
 namespace="${DEVSPACE_NAMESPACE:-}"
 if [ -z "$namespace" ]; then
-  printf 'refused: DEVSPACE_NAMESPACE is not set; run devspace run-pipeline chatgpt-login [--reset]\n' >&2
+  printf 'refused: DEVSPACE_NAMESPACE is not set; run devspace run-pipeline provider-login --provider %s\n' "$provider" >&2
   exit 2
 fi
 deployment="${HUB_WORKSPACE_DEPLOYMENT:-dotfiles-workspace}"
 container='workspace'
 secret_name='dotfiles-nono-provider-credentials'
-secret_key='openai_chatgpt_session'
 install_env="${HUB_PROVIDER_LOGIN_INSTALL_ENV:-/workspaces/dotfiles/state/hub/etc/install.env}"
+copilot_check_url="${HUB_PROVIDER_LOGIN_COPILOT_CHECK_URL:-https://api.githubcopilot.com/models}"
+uio_check_url="${HUB_PROVIDER_LOGIN_UIO_CHECK_URL:-https://gpt.uio.no/api/v1/models}"
 
 pod_exec() {
   "$kubectl_bin" exec -n "$namespace" "deploy/$deployment" -c "$container" "$@"
@@ -77,50 +92,103 @@ patch_secret() {
   "$kubectl_bin" patch secret "$secret_name" -n "$namespace" --type merge --patch-file /dev/stdin
 }
 
+refuse_unchanged() {
+  printf 'refused: %s; the Secret is unchanged\n' "$1" >&2
+  exit 1
+}
+
+# check_bearer <url> [header...]: GET the URL with the value on stdin as a
+# bearer token. The token stays inside python; only the HTTP status is printed.
+check_bearer() {
+  python3 -I -c '
+import sys
+import urllib.error
+import urllib.request
+
+url, *headers = sys.argv[1:]
+request = urllib.request.Request(url, headers={"Authorization": "Bearer " + sys.stdin.read()})
+for header in headers:
+    name, _, value = header.partition(":")
+    request.add_header(name.strip(), value.strip())
+try:
+    with urllib.request.urlopen(request, timeout=30) as response:
+        status = response.status
+except urllib.error.HTTPError as error:
+    status = error.code
+except (urllib.error.URLError, OSError) as error:
+    sys.exit(f"could not reach {url}: {error}")
+if status != 200:
+    sys.exit(f"{url} answered HTTP {status}")
+' "$@"
+}
+
 if [ "$mode" = --reset ]; then
   printf '{"data":{"%s":null}}' "$secret_key" | patch_secret >/dev/null
-  printf 'ChatGPT session removed from %s/%s.\n' "$namespace" "$secret_name"
-  printf 'Running sessions keep their copy until they stop; stop them now. This does not revoke the login at OpenAI.\n'
+  printf '%s credential removed from %s/%s.\n' "$label" "$namespace" "$secret_name"
+  if [ "$provider" = chatgpt ]; then
+    printf 'Running sessions keep their copy until they stop; stop them now. This does not revoke the login at OpenAI.\n'
+  else
+    printf 'While %s is enabled, new OpenCode sessions refuse to launch until a new value is stored. Running sessions keep their copy. This does not revoke the credential at the provider.\n' "$label"
+  fi
   exit 0
 fi
 
-remote="${HUB_PROVIDER_LOGIN_REMOTE:-}"
-if [ -z "$remote" ]; then
-  remote="$(resolve_remote)" || exit 1
-  printf 'Using the pod checkout %s.\n' "${remote%/scripts/lib/provider-login-remote.sh}"
-fi
-
+# pod_login: run OpenCode's login in the pod and print the extracted value on stdout.
+# remote and login_dir are not local: the EXIT trap needs them after the function returns.
+remote=''
 login_dir=''
-cleanup() {
-  if [ -n "$login_dir" ]; then
-    pod_exec -- "$remote" cleanup "$login_dir" </dev/null >/dev/null 2>&1 || printf 'warning: could not remove %s in the pod; remove it by hand\n' "$login_dir" >&2
-    login_dir=''
+pod_login() {
+  local tty_flags=(-i)
+  remote="${HUB_PROVIDER_LOGIN_REMOTE:-}"
+  if [ -z "$remote" ]; then
+    remote="$(resolve_remote)" || exit 1
+    printf 'Using the pod checkout %s.\n' "${remote%/scripts/lib/provider-login-remote.sh}" >&2
   fi
+
+  cleanup() {
+    if [ -n "$login_dir" ]; then
+      pod_exec -- "$remote" cleanup "$login_dir" </dev/null >/dev/null 2>&1 || printf 'warning: could not remove %s in the pod; remove it by hand\n' "$login_dir" >&2
+      login_dir=''
+    fi
+  }
+  trap cleanup EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+  trap 'exit 129' HUP
+
+  login_dir="$(pod_exec -- "$remote" prepare </dev/null)"
+  if [ -t 0 ] && [ -t 2 ]; then
+    tty_flags=(-i -t)
+  fi
+  # The login's own output goes to the terminal; only extract writes to stdout.
+  pod_exec "${tty_flags[@]}" -- "$remote" login "$provider" "$login_dir" >&2 || refuse_unchanged 'the OpenCode login did not finish'
+  pod_exec -- "$remote" extract "$provider" "$login_dir" </dev/null || refuse_unchanged "no usable $label login"
+  cleanup
 }
-trap cleanup EXIT
-trap 'exit 130' INT
-trap 'exit 143' TERM
-trap 'exit 129' HUP
 
-login_dir="$(pod_exec -- "$remote" prepare </dev/null)"
-
-tty_flags=(-i)
-if [ -t 0 ] && [ -t 1 ]; then
-  tty_flags=(-i -t)
-fi
-pod_exec "${tty_flags[@]}" -- "$remote" login chatgpt "$login_dir" || {
-  printf 'refused: the OpenCode login did not finish; the Secret is unchanged\n' >&2
-  exit 1
+# prompt_key: read an API key without echo from the terminal, or from stdin.
+prompt_key() {
+  local key=''
+  if [ -t 0 ]; then
+    printf 'Paste the %s API key (input is hidden): ' "$label" >&2
+    IFS= read -rs key || true
+    printf '\n' >&2
+  else
+    IFS= read -r key || true
+  fi
+  key="${key#"${key%%[![:space:]]*}"}"
+  key="${key%"${key##*[![:space:]]}"}"
+  case "$key" in
+    ''|*[[:space:]]*) refuse_unchanged 'the API key is empty or contains spaces' ;;
+  esac
+  printf '%s' "$key"
 }
 
-session="$(pod_exec -- "$remote" extract chatgpt "$login_dir" </dev/null)" || {
-  printf 'refused: no usable ChatGPT session; the Secret is unchanged\n' >&2
-  exit 1
-}
-cleanup
-
-# Check the value again on the host before it changes the Secret; print only the expiry.
-expiry="$(printf '%s' "$session" | python3 -I -c '
+case "$provider" in
+  chatgpt)
+    value="$(pod_login)"
+    # Check the value again on the host; print only the expiry.
+    expiry="$(printf '%s' "$value" | python3 -I -c '
 import datetime, json, sys, time
 s = json.load(sys.stdin)
 ok = (isinstance(s, dict) and set(s) == {"access", "account_id", "expires_at"}
@@ -130,15 +198,27 @@ ok = (isinstance(s, dict) and set(s) == {"access", "account_id", "expires_at"}
 if not ok:
     sys.exit(1)
 print(datetime.datetime.fromtimestamp(s["expires_at"], datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"))
-')" || {
-  printf 'refused: the session value is not valid; the Secret is unchanged\n' >&2
-  exit 1
-}
+')" || refuse_unchanged 'the session value is not valid'
+    done_message="ChatGPT connected in $namespace/$secret_name. The login expires $expiry; log in again before then."
+    ;;
+  copilot)
+    value="$(pod_login)"
+    # Many agent roles use Copilot, so the new token must work before it replaces the old one.
+    printf '%s' "$value" | check_bearer "$copilot_check_url" 'Copilot-Integration-Id: vscode-chat' \
+      || refuse_unchanged 'the Copilot test call with the new token failed'
+    done_message="GitHub Copilot connected in $namespace/$secret_name."
+    ;;
+  uio-yellow|uio-red)
+    value="$(prompt_key)"
+    printf '%s' "$value" | check_bearer "$uio_check_url" || refuse_unchanged "the $label API key was not accepted"
+    done_message="$label API key stored in $namespace/$secret_name."
+    ;;
+esac
 
-encoded="$(printf '%s' "$session" | base64 | tr -d '\n')"
-unset session
+encoded="$(printf '%s' "$value" | base64 | tr -d '\n')"
+unset value
 printf '{"data":{"%s":"%s"}}' "$secret_key" "$encoded" | patch_secret >/dev/null
 unset encoded
 
-printf 'ChatGPT connected in %s/%s. The login expires %s; log in again before then.\n' "$namespace" "$secret_name" "$expiry"
+printf '%s\n' "$done_message"
 printf 'New sessions use it after the kubelet updates the Secret mount (usually within a minute). Restart running sessions to use it.\n'

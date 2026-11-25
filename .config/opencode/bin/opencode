@@ -124,15 +124,15 @@ if [ "${#optional_secret_key_list[@]}" -gt 0 ]; then
       ;;
     expiring)
       chatgpt_state='connected'
-      printf 'warning: the ChatGPT login expires within 24 hours; run devspace run-pipeline chatgpt-login on the host\n' >&2
+      printf 'warning: the ChatGPT login expires within 24 hours; run devspace run-pipeline provider-login --provider chatgpt on the host\n' >&2
       ;;
     missing)
       chatgpt_state='disconnected'
-      printf 'notice: ChatGPT is enabled but not connected; run devspace run-pipeline chatgpt-login on the host. Launching without ChatGPT.\n' >&2
+      printf 'notice: ChatGPT is enabled but not connected; run devspace run-pipeline provider-login --provider chatgpt on the host. Launching without ChatGPT.\n' >&2
       ;;
     *)
       chatgpt_state='disconnected'
-      printf 'notice: the ChatGPT login is %s; run devspace run-pipeline chatgpt-login on the host. Launching without ChatGPT.\n' "$chatgpt_session_state" >&2
+      printf 'notice: the ChatGPT login is %s; run devspace run-pipeline provider-login --provider chatgpt on the host. Launching without ChatGPT.\n' "$chatgpt_session_state" >&2
       ;;
   esac
   [ "$chatgpt_state" = connected ] || unset OPENAI_CHATGPT_SESSION

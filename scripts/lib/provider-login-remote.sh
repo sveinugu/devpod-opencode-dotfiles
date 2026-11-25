@@ -32,7 +32,56 @@ require_login_dir() {
 }
 
 require_provider() {
-  [ "${1:-}" = chatgpt ] || fail "unsupported provider: ${1:-}"
+  case "${1:-}" in
+    chatgpt|copilot) ;;
+    *) fail "unsupported provider: ${1:-}" ;;
+  esac
+}
+
+# Run OpenCode's Copilot login in a pseudo-terminal and answer its one question,
+# the GitHub deployment type, with the default (GitHub.com). The login then only
+# prints a URL and code and waits, so no keyboard input reaches it.
+copilot_login() {
+  python3 -I - "$raw_opencode_binary" <<'PY'
+import fcntl
+import os
+import pty
+import re
+import struct
+import sys
+import termios
+
+argv = [sys.argv[1], 'auth', 'login', '--provider', 'github-copilot', '--method', 'Login with GitHub Copilot']
+pid, fd = pty.fork()
+if pid == 0:
+    os.execv(argv[0], argv)
+# A new pseudo-terminal is 0x0, and the prompt draws nothing at that size.
+try:
+    size = fcntl.ioctl(sys.stdin.fileno(), termios.TIOCGWINSZ, b'\0' * 8)
+    if struct.unpack('HHHH', size)[1] == 0:
+        raise OSError
+except OSError:
+    size = struct.pack('HHHH', 24, 80, 0, 0)
+fcntl.ioctl(fd, termios.TIOCSWINSZ, size)
+
+seen, answered = '', False
+while True:
+    try:
+        data = os.read(fd, 4096)
+    except OSError:
+        break
+    if not data:
+        break
+    os.write(1, data)
+    if not answered:
+        # Spaces are drawn as cursor moves, so compare without escapes and whitespace.
+        seen = (seen + re.sub(r'\x1b\[[0-9;?]*[A-Za-z]|\s', '', data.decode('utf-8', 'replace')))[-4096:]
+        if 'SelectGitHubdeploymenttype' in seen:
+            os.write(fd, b'\r')
+            answered = True
+_, status = os.waitpid(pid, 0)
+sys.exit(os.waitstatus_to_exitcode(status))
+PY
 }
 
 step="${1:-}"
@@ -49,15 +98,46 @@ case "$step" in
     require_login_dir "${2:-}"
     dir="$2"
     mkdir -p "$dir/data" "$dir/config" "$dir/cache" "$dir/state"
+    export XDG_DATA_HOME="$dir/data" XDG_CONFIG_HOME="$dir/config" XDG_CACHE_HOME="$dir/cache" XDG_STATE_HOME="$dir/state"
     # Provider and method are fixed, so the login asks no questions: it prints a
     # URL and code to open in a browser and waits. Method labels are OpenCode's own.
-    printf 'Open the URL below in a browser and enter the code to log in with ChatGPT Plus/Pro.\n' >&2
-    XDG_DATA_HOME="$dir/data" XDG_CONFIG_HOME="$dir/config" XDG_CACHE_HOME="$dir/cache" XDG_STATE_HOME="$dir/state" \
+    if [ "$1" = copilot ]; then
+      printf 'Open the URL below in a browser and enter the code to log in with GitHub Copilot.\n' >&2
+      copilot_login
+    else
+      printf 'Open the URL below in a browser and enter the code to log in with ChatGPT Plus/Pro.\n' >&2
       "$raw_opencode_binary" auth login --provider openai --method 'ChatGPT Pro/Plus (headless)'
+    fi
     ;;
   extract)
     require_provider "${1:-}"
     require_login_dir "${2:-}"
+    if [ "$1" = copilot ]; then
+      python3 -I - "$2/data/opencode/auth.json" <<'PY'
+import json
+import sys
+
+def refuse(message):
+    print(f'refused: {message}', file=sys.stderr)
+    sys.exit(1)
+
+try:
+    with open(sys.argv[1], encoding='utf-8') as fh:
+        entry = json.load(fh).get('github-copilot')
+except (OSError, ValueError, AttributeError):
+    refuse('the login did not store a GitHub Copilot token')
+if not isinstance(entry, dict) or entry.get('type') != 'oauth':
+    refuse('the login did not store a GitHub Copilot OAuth token')
+if entry.get('enterpriseUrl'):
+    refuse('only GitHub.com is supported, not GitHub Enterprise')
+token = entry.get('refresh')
+if not isinstance(token, str) or not token or any(c.isspace() for c in token):
+    refuse('the GitHub Copilot login has no usable token')
+# The long-lived GitHub OAuth token; nono sends it as the Copilot bearer token.
+sys.stdout.write(token)
+PY
+      exit
+    fi
     python3 -I - "$2/data/opencode/auth.json" <<'PY'
 import json
 import sys

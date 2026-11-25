@@ -117,14 +117,18 @@ pipelines:
   destroy: |-
     bash ops/destroy-workspace.sh
 
-  chatgpt-login:
+  provider-login:
     flags:
+      - name: provider
+        type: string
+        description: "chatgpt, copilot, uio-yellow or uio-red"
       - name: reset
+        description: "remove the stored credential instead"
     run: |-
       if [ "$(get_flag reset)" = "true" ]; then
-        bash ops/provider-login chatgpt --reset
+        bash ops/provider-login "$(get_flag provider)" --reset
       else
-        bash ops/provider-login chatgpt
+        bash ops/provider-login "$(get_flag provider)"
       fi
 
   verify-ssh: |-

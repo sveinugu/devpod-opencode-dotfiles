@@ -146,7 +146,7 @@ launch() {
 # Run a copy of the repository wrapper, never the installed one.
 cp "$repo_root/.config/opencode/bin/opencode" "$tmp_root/wrapper"
 
-login_hint() { grep -F 'devspace run-pipeline chatgpt-login' "$tmp_root/stderr" >/dev/null; }
+login_hint() { grep -F 'devspace run-pipeline provider-login --provider chatgpt' "$tmp_root/stderr" >/dev/null; }
 launched() { [ -e "$logs/child_args" ]; }
 
 # Parsed view of one launch; prints "<route> <stub> <openai-enabled> <chatgpt-token-enabled>".
