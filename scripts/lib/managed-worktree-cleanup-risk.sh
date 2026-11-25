@@ -55,12 +55,15 @@ managed_cleanup_upstream_exists() {
   git -C "$worktree_path" rev-parse --verify --quiet "$upstream_ref" >/dev/null
 }
 
+# Commits on the branch that no comparison ref reaches. Each further argument
+# is a ref whose commits stay reachable after retirement.
 managed_cleanup_local_only_commits() {
   local worktree_path="${1:?worktree_path required}"
   local branch="${2:?branch required}"
-  local comparison_ref="${3:?comparison_ref required}"
+  shift 2
+  [ "$#" -gt 0 ] || { printf 'managed_cleanup_local_only_commits: comparison ref required\n' >&2; return 2; }
 
-  git -C "$worktree_path" rev-list --no-merges "$comparison_ref..$branch"
+  git -C "$worktree_path" rev-list --no-merges "$branch" --not "$@"
 }
 
 managed_cleanup_commit_summary() {
@@ -172,11 +175,21 @@ managed_cleanup_collect_commit_divergence_risk() {
   local comparison_ref_value=''
   local upstream_available_value='no'
   local risk_found='no'
+  local comparison_refs=()
 
+  # Commits stay reachable after retirement when the upstream branch or the
+  # local default branch has them, so a branch merged into the default branch
+  # is safe even when its upstream is behind.
   if managed_cleanup_upstream_exists "$worktree_path" "$branch"; then
     upstream_available_value='yes'
+    comparison_refs+=("origin/$branch")
+  fi
+  if git -C "$worktree_path" rev-parse --verify --quiet "refs/heads/$default_branch" >/dev/null; then
+    comparison_refs+=("refs/heads/$default_branch")
+  fi
+  if [ "$upstream_available_value" = 'yes' ]; then
     comparison_ref_value="origin/$branch"
-  elif git -C "$worktree_path" rev-parse --verify --quiet "refs/heads/$default_branch" >/dev/null; then
+  elif [ "${#comparison_refs[@]}" -gt 0 ]; then
     comparison_ref_value="$default_branch"
   fi
 
@@ -190,7 +203,7 @@ managed_cleanup_collect_commit_divergence_risk() {
   fi
 
   if [ -n "$comparison_ref_value" ]; then
-    managed_cleanup_local_only_commits "$worktree_path" "$branch" "$comparison_ref_value" > "$commit_ids_file"
+    managed_cleanup_local_only_commits "$worktree_path" "$branch" "${comparison_refs[@]}" > "$commit_ids_file"
     if [ -s "$commit_ids_file" ]; then
       risk_found='yes'
       printf 'loss check: local-only commits would become unreachable\n'
