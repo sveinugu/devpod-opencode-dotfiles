@@ -528,6 +528,12 @@ Coverage: the 50 commits in `b540e1c..07f048d`, reviewed against the resulting s
 - change: `HUB_ENABLED_PROVIDERS` in the host `.env` is the only provider enablement setting; unset or empty enables none. Provision passes it to `sync-provider-enablement --enabled`, which validates it and writes the pod manifest and generated outputs read-only on every run. The repo seed file and the seed-once step are removed, and the pod manifest is no longer edited in place. `install.sh` regenerates the installed checkout's runtime files from that manifest. The provider Secret needs keys only for enabled providers.
 - rationale: credentials and other workspace settings are already host-side. A pod file edited in place, seeded once, was a second place to configure and drifted from the seed.
 
+### 2026-11-25 · `7e54173`, `7bc97d9` — Shared pod settings applied per checkout
+
+- scope: `scripts/lib/opencode-config-content.py`, `bin/sync-provider-enablement`, [model overrides spec](../specs/2026-11-19-opencode-host-local-model-overrides-design.md), [lifecycle runbook](../runbooks/devspace-workspace-lifecycle.md#provider-enablement-host-env)
+- change: `model-overrides.json` and the provider manifest stay shared by all checkouts. Each checkout applies what it can: a model override for an unknown agent, a provider that is not enabled or an unlisted UiO model is skipped with a warning, and a manifest provider that the checkout's policy does not support is skipped with a warning and recorded under `skipped_providers`. Schema errors in the overrides file and invalid values in `HUB_ENABLED_PROVIDERS` still refuse.
+- rationale: quota switches and provider selection are workspace-wide, but agents, models and providers can differ between branches. A strict per-branch check made a value that was valid on one branch block launches or installs on another.
+
 ## Operator reminder
 
 After updates affecting `Dockerfile` or deployment manifests:
