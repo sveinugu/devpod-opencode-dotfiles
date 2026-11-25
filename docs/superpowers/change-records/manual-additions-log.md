@@ -546,6 +546,12 @@ Coverage: the 50 commits in `b540e1c..07f048d`, reviewed against the resulting s
 - change: the loss check treats a commit as safe when the upstream or the local default branch reaches it, also when an upstream exists. This completes `10c4074`, which used the default branch only without an upstream. Retiring the hub install branch checkout is refused outright, even with `--force`.
 - rationale: a branch merged into local `main` with an upstream that was behind was reported as losing commits. Retiring the install branch checkout left the wrapped OpenCode without its helpers and runtime files.
 
+### 2026-11-25 · `d751470` — Copilot login and UiO API keys in provider-login
+
+- scope: `ops/provider-login`, `scripts/lib/provider-login-remote.sh`, `devspace.yaml`, OpenCode wrapper login hints, [lifecycle runbook](../runbooks/devspace-workspace-lifecycle.md#provider-logins-and-api-keys)
+- change: `devspace run-pipeline provider-login --provider <chatgpt|copilot|uio-yellow|uio-red> [--reset]` replaces `chatgpt-login`. `copilot` runs OpenCode's GitHub Copilot login in the pod, answers its deployment-type question with GitHub.com through a pseudo-terminal, and stores the GitHub OAuth token in `github_token` after a Copilot API test call returns 200. The UiO variants read the key from a hidden host prompt and store it after a `gpt.uio.no` test call returns 200.
+- rationale: replace hand-run `kubectl` Secret edits for Copilot and UiO with the checked, single-key patch flow already used for ChatGPT. Implements the Copilot follow-up in the [ChatGPT plan support spec](../specs/2026-11-19-openai-chatgpt-plan-support-design.md#github-copilot-follow-up).
+
 ## Operator reminder
 
 After updates affecting `Dockerfile` or deployment manifests:
