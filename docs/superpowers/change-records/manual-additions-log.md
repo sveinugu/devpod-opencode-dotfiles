@@ -510,6 +510,12 @@ Coverage: the 50 commits in `b540e1c..07f048d`, reviewed against the resulting s
 - change: keep repository-only logging duties in the authoring guide and move command/layout reference material out of startup instructions. Each role prompt now owns its skill assignments. Delivery and STE entry points require supporting references before the relevant authoring, review, supervision or completion work. Full current instructions already visible in context satisfy loading; names, summaries and prior sessions do not. Reload required guidance after compaction removes it.
 - rationale: reduce irrelevant and duplicate context while retaining policy obligations. Static checks, skill validation, reference/anchor checks and assignment-preservation checks passed. Source-content estimates with `o200k_base` reduced startup instructions from 2,695 to 1,419 tokens and a modeled README review from 6,339 to 3,920 tokens. These estimates exclude external skills, tool wrappers and conversation; they are not live runtime measurements. The pod's installed Superpowers revision and injection behavior remain unverified, so loading does not assume plugin injection.
 
+### 2026-11-25 · `923df47` — OpenCode Loop pinned to 0.6.10 legacy-v1 install
+
+- scope: `harness-installs.jsonc`, `.config/opencode/package.json`, harness install contract tests
+- change: install and uninstall use `@bybrawe/opencode-loop@0.6.10`; install passes `--legacy-v1`. Declared outputs are `plugins/opencode-loop.ts`, `commands/loop.md`, `commands/loop-help.md` and `agents/opencode-loop-local.md`. Loop no longer provides `/loop-goal*` commands; Goal is the separate `@bybrawe/opencode-goal` package and is not installed. This supersedes the output expectations in the `30f3ff0` and `5cb0544` entries.
+- rationale: the unpinned `npx` spec reused a stale cached 0.5.1 that writes `opencode-loop.js`. The 0.6.10 default install registers the package in `opencode.jsonc` instead of writing local files, which conflicts with installer ownership of Loop outputs. The human verified `install.sh` and the harness install contract tests in the pod.
+
 ## Operator reminder
 
 After updates affecting `Dockerfile` or deployment manifests:
