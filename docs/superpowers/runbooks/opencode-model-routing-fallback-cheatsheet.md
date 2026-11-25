@@ -129,7 +129,8 @@ A depleted pool needs an override for **every** role whose `#1` is that model; s
 - Each entry needs `model` and `reason`; `until` (`YYYY-MM-DD`, UTC) is optional. On or after `until`, the entry is ignored with a warning.
 - Pick the replacement from the role's `#2` / `#3` comments.
 - At launch the wrapper prints one `model override:` line per active entry on stderr. The TUI may hide it; use `opencode debug agent <name>`.
-- The wrapper refuses to launch on invalid JSON, duplicate or unknown keys, unknown agent names, a malformed entry (missing `model` or `reason`, bad `until`, non-literal `provider/model`), a provider that is not enabled, or a UiO model that is not in the provider list. Copilot model names are not checked; a typo fails on first use.
+- The wrapper refuses to launch on invalid JSON, duplicate or unknown keys, or a malformed entry (missing `model` or `reason`, bad `until`, non-literal `provider/model`).
+- The file is shared by all checkouts. An entry for an agent the installed checkout does not have, a provider that is not enabled, or a UiO model that is not in that checkout's provider list is skipped with a `warning: model override … skipped on this checkout` line. Copilot model names are not checked; a typo fails on first use.
 - Agents can write this file. Review it if routing looks unexpected.
 
 ---

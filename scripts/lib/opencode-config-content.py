@@ -4,7 +4,9 @@
 Combines the generated provider runtime with the optional host-local model
 overrides file (see docs/superpowers/specs/2026-11-19-opencode-host-local-model-overrides-design.md).
 Prints the JSON payload on stdout and override notices on stderr. Exits with a
-"refused: ..." message when either input is invalid.
+"refused: ..." message when either input is invalid. The overrides file is shared
+by all checkouts, so an entry that this checkout cannot apply (unknown agent,
+provider not enabled, model not listed) is skipped with a warning instead.
 
 With --chatgpt-state, it instead takes an earlier payload and applies the
 ChatGPT connection state (see
@@ -74,7 +76,7 @@ def known_agents(agents_dir):
     return names
 
 
-def check_entry(label, entry, runtime, fail):
+def check_entry(label, entry, fail):
     if not isinstance(entry, dict):
         fail(f'{label}: entry must be an object')
     for key in entry:
@@ -95,15 +97,20 @@ def check_entry(label, entry, runtime, fail):
 
     if not MODEL_PATTERN.fullmatch(entry["model"]):
         fail(f'{label}: model must be a literal provider/model id')
-    provider, _, model_id = entry['model'].partition('/')
+
+
+def unavailable_model(model, runtime):
+    """Returns why this checkout's runtime cannot use the model, or None."""
+    provider, _, model_id = model.partition('/')
     enabled = runtime['enabled_providers']
     if provider == CHATGPT_PROVIDER and CHATGPT_TOKEN in enabled:
-        return
+        return None
     if provider not in enabled:
-        fail(f'{label}: provider not enabled: {provider}')
+        return f'provider not enabled: {provider}'
     listed = runtime['provider'].get(provider, {}).get('models')
     if isinstance(listed, dict) and model_id not in listed:
-        fail(f'{label}: model not listed for {provider}: {model_id}')
+        return f'model not listed for {provider}: {model_id}'
+    return None
 
 
 def active(name, entry, today):
@@ -151,15 +158,30 @@ def apply_overrides(payload, overrides_path, runtime, agents_dir, today):
     if not isinstance(defaults, dict):
         fail('defaults must be an object')
 
-    agent_names = known_agents(agents_dir)
+    # A broken file refuses the launch; check every entry before applying any.
     for name, entry in agents.items():
-        if name not in agent_names:
-            fail(f'unknown agent: {name}')
-        check_entry(f'agents.{name}', entry, runtime, fail)
+        check_entry(f'agents.{name}', entry, fail)
     for name, entry in defaults.items():
         if name not in DEFAULT_KEYS:
             fail(f'unknown default: {name}')
-        check_entry(f'defaults.{name}', entry, runtime, fail)
+        check_entry(f'defaults.{name}', entry, fail)
+
+    # A valid entry that this checkout cannot apply is skipped, not refused.
+    agent_names = known_agents(agents_dir)
+
+    def applicable(label, entry, agent=None):
+        reason = None
+        if agent is not None and agent not in agent_names:
+            reason = f'unknown agent: {agent}'
+        else:
+            reason = unavailable_model(entry['model'], runtime)
+        if reason:
+            print(f'warning: model override {label} skipped on this checkout: {reason}', file=sys.stderr)
+            return False
+        return True
+
+    agents = {name: e for name, e in agents.items() if applicable(f'agents.{name}', e, agent=name)}
+    defaults = {name: e for name, e in defaults.items() if applicable(f'defaults.{name}', e)}
 
     agent_models = {name: {'model': e['model']} for name, e in agents.items() if active(name, e, today)}
     if agent_models:

@@ -103,19 +103,37 @@ expect_refusal() {
 expect_refusal invalid-json '{ not json' 'not valid JSON'
 expect_refusal top-level-key '{ "agents": {}, "extra": {} }' 'unknown top-level key: extra'
 expect_refusal agents-type '{ "agents": [] }' 'agents must be an object'
-expect_refusal unknown-agent '{ "agents": { "maestr": { "model": "github-copilot/gpt-6.1-terra", "reason": "x" } } }' 'unknown agent: maestr'
 expect_refusal unknown-default '{ "defaults": { "large_model": { "model": "github-copilot/gpt-6.1-terra", "reason": "x" } } }' 'unknown default: large_model'
 expect_refusal missing-reason '{ "agents": { "maestro": { "model": "github-copilot/gpt-6.1-terra" } } }' 'agents.maestro: missing reason'
 expect_refusal unknown-entry-key '{ "agents": { "maestro": { "model": "github-copilot/gpt-6.1-terra", "reason": "x", "note": "y" } } }' 'agents.maestro: unknown key: note'
 expect_refusal bad-until '{ "agents": { "maestro": { "model": "github-copilot/gpt-6.1-terra", "reason": "x", "until": "1 Dec" } } }' 'agents.maestro: until must be YYYY-MM-DD'
-expect_refusal provider-disabled '{ "agents": { "maestro": { "model": "openai/gpt-6.1-terra", "reason": "x" } } }' 'agents.maestro: provider not enabled: openai'
-expect_refusal model-unlisted '{ "agents": { "maestro": { "model": "gpt-uio-yellow/gpt-6.1-terra", "reason": "x" } } }' 'agents.maestro: model not listed for gpt-uio-yellow: gpt-6.1-terra'
 
 expect_refusal null-until '{ "agents": { "maestro": { "model": "github-copilot/gpt-6.1-terra", "reason": "x", "until": null } } }' 'agents.maestro: until must be YYYY-MM-DD'
-expect_refusal directory-agent '{ "agents": { "phantom": { "model": "github-copilot/gpt-6.1-terra", "reason": "x" } } }' 'unknown agent: phantom'
 expect_refusal blank-model-id '{ "agents": { "maestro": { "model": "github-copilot/ ", "reason": "x" } } }' 'agents.maestro: model must be a literal provider/model id'
 expect_refusal placeholder-model '{ "agents": { "maestro": { "model": "github-copilot/{env:MODEL}", "reason": "x" } } }' 'agents.maestro: model must be a literal provider/model id'
 expect_refusal trailing-newline-model '{ "agents": { "maestro": { "model": "github-copilot/gpt-6.1-terra\n", "reason": "x" } } }' 'agents.maestro: model must be a literal provider/model id'
 expect_refusal duplicate-key '{ "agents": { "maestro": { "model": "openai/gpt-6.1-terra", "model": "github-copilot/gpt-6.1-terra", "reason": "x" } } }' 'duplicate key: model'
+
+# The file is shared by all checkouts: a valid entry that this checkout cannot
+# apply is skipped with a warning, and the other entries still apply.
+expect_skip() {
+  local name="$1" json="$2" message="$3"
+  printf '%s\n' "$json" >"$tmp_root/$name.json"
+  run_helper "$tmp_root/$name.json" || fail "$name: an entry this checkout cannot apply must not refuse launch: $(cat "$tmp_root/err.txt")"
+  grep -F "warning: model override $message" "$tmp_root/err.txt" >/dev/null || fail "$name: expected warning '$message', got: $(cat "$tmp_root/err.txt")"
+  python3 - "$tmp_root/out.json" <<'PY' || fail "$name: the skipped entry must not be applied and the valid one must"
+import json, sys
+out = json.load(open(sys.argv[1]))
+assert out.get('agent') == {'planner': {'model': 'github-copilot/gpt-6.2-sol'}}, out.get('agent')
+assert 'small_model' not in out, out
+PY
+}
+
+valid_planner='"planner": { "model": "github-copilot/gpt-6.2-sol", "reason": "kept" }'
+expect_skip unknown-agent "{ \"agents\": { \"maestr\": { \"model\": \"github-copilot/gpt-6.1-terra\", \"reason\": \"x\" }, $valid_planner } }" 'agents.maestr skipped on this checkout: unknown agent: maestr'
+expect_skip directory-agent "{ \"agents\": { \"phantom\": { \"model\": \"github-copilot/gpt-6.1-terra\", \"reason\": \"x\" }, $valid_planner } }" 'agents.phantom skipped on this checkout: unknown agent: phantom'
+expect_skip provider-disabled "{ \"agents\": { \"maestro\": { \"model\": \"openai/gpt-6.1-terra\", \"reason\": \"x\" }, $valid_planner } }" 'agents.maestro skipped on this checkout: provider not enabled: openai'
+expect_skip model-unlisted "{ \"agents\": { \"maestro\": { \"model\": \"gpt-uio-yellow/gpt-6.1-terra\", \"reason\": \"x\" }, $valid_planner } }" 'agents.maestro skipped on this checkout: model not listed for gpt-uio-yellow: gpt-6.1-terra'
+expect_skip default-unlisted "{ \"agents\": { $valid_planner }, \"defaults\": { \"small_model\": { \"model\": \"anthropic/claude\", \"reason\": \"x\" } } }" 'defaults.small_model skipped on this checkout: provider not enabled: anthropic'
 
 printf 'PASS test_opencode_model_overrides_helper_contract\n'
