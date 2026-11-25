@@ -6,6 +6,8 @@ model: gpt-uio-yellow/gpt-5.4
 # model: github-copilot/claude-sonnet-5.5
 # #3 switch when: both pools above are unavailable.
 # model: gpt-uio-yellow/gpt-5.1
+# #4 switch when: the UiO and Copilot pools are both depleted (ChatGPT plan; needs openai-chatgpt and a login).
+# model: openai/gpt-6.1-terra
 temperature: 0.75
 reasoningEffort: high
 tools:

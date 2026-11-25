@@ -6,6 +6,8 @@ model: gpt-uio-yellow/gpt-6.1-terra
 # model: github-copilot/gpt-6.1-terra
 # #3 switch when: both pools above are unavailable.
 # model: gpt-uio-yellow/gpt-5.4
+# #4 switch when: the UiO and Copilot pools are both depleted (ChatGPT plan; needs openai-chatgpt and a login).
+# model: openai/gpt-6.1-terra
 reasoningEffort: medium
 temperature: 0.15
 tools:

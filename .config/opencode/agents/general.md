@@ -6,6 +6,8 @@ model: gpt-uio-yellow/Inferact/GLM-5.3-NVFP4
 # model: gpt-uio-yellow/gpt-6.1-terra
 # #3 switch when: UiO pools are constrained.
 # model: github-copilot/claude-sonnet-5.5
+# #4 switch when: the UiO and Copilot pools are both depleted (ChatGPT plan; needs openai-chatgpt and a login).
+# model: openai/gpt-6.1-terra
 reasoningEffort: medium
 temperature: 0.3
 tools:

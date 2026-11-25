@@ -6,6 +6,7 @@ model: github-copilot/claude-opus-5.5
 # model: github-copilot/claude-sonnet-5.5
 # #3 switch when: Copilot is unavailable; GLM (Z.ai) is a third family, so it still differs from a GPT author.
 # model: gpt-uio-yellow/Inferact/GLM-5.3-NVFP4
+# No ChatGPT (#4) option: ChatGPT offers only GPT models; keep #3 so the reviewer stays non-GPT.
 reasoningEffort: high
 temperature: 0.1
 tools:

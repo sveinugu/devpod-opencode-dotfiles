@@ -6,6 +6,8 @@ model: github-copilot/claude-haiku-5.5
 # model: gpt-uio-yellow/moonshotai/Kimi-K2.6
 # #3 switch when: Kimi is rate-limited (120 RPM).
 # model: gpt-uio-yellow/Inferact/GLM-5.3-NVFP4
+# #4 switch when: the UiO and Copilot pools are both depleted (ChatGPT plan; needs openai-chatgpt and a login).
+# model: openai/gpt-6-luna
 reasoningEffort: medium
 temperature: 0.25
 tools:

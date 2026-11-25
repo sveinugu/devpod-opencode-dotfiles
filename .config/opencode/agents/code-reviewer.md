@@ -6,6 +6,8 @@ model: gpt-uio-yellow/gpt-6.1-sol
 # model: github-copilot/gpt-6.2-sol
 # #3 switch when: both pools above are unavailable.
 # model: gpt-uio-yellow/gpt-6.1-terra
+# #4 switch when: the UiO and Copilot pools are both depleted (ChatGPT plan; needs openai-chatgpt and a login).
+# model: openai/gpt-6.1-sol
 # Opposite family: when the author ran on a GPT fallback, review with github-copilot/claude-sonnet-5.5 (or claude-opus-5.5).
 reasoningEffort: high
 temperature: 0.1

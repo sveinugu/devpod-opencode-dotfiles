@@ -152,7 +152,7 @@ A depleted pool needs an override for **every** role whose `#1` is that model; s
 - `agents` keys: an agent file in the install-branch checkout's `.config/opencode/agents/` (name without `.md`; a new agent must be merged into the install branch before it can be overridden) or a built-in (`build`, `plan`, `general`, `explore`, `title`, `summary`, `compaction`).
 - `defaults` keys: `model` and `small_model` (the top-level defaults in `opencode.jsonc`).
 - Each entry needs `model` and `reason`; `until` (`YYYY-MM-DD`, UTC) is optional. On or after `until`, the entry is ignored with a warning.
-- Pick the replacement from the role's `#2` / `#3` comments.
+- Pick the replacement from the role's `#2` / `#3` comments, or `#4` (ChatGPT) when the UiO and Copilot pools are both depleted.
 - At launch the wrapper prints one `model override:` line per active entry on stderr. The TUI may hide it; use `opencode debug agent <name>`.
 - The wrapper refuses to launch on invalid JSON, duplicate or unknown keys, or a malformed entry (missing `model` or `reason`, bad `until`, non-literal `provider/model`).
 - The file is shared by all checkouts. An entry for an agent the installed checkout does not have, a provider that is not enabled, or a UiO model that is not in that checkout's provider list is skipped with a `warning: model override … skipped on this checkout` line. Copilot model names are not checked; a typo fails on first use.
@@ -181,7 +181,7 @@ A depleted pool needs an override for **every** role whose `#1` is that model; s
 - Lowest RPM limits: `gpt-6.1-sol` (100), Kimi K2.6, `gpt-6.1-terra`, GPT-OSS 120B and NorwAI Magistral (120), `gpt-6-luna` (150), GLM 5.3 (200), `gpt-5.4` (250). Parallel agents saturate these first.
 
 ### UiO and Copilot both depleted
-- Action: override each affected role with its ChatGPT column entry (`openai/<model>`), with `until` set to the reset date. Check first that `/models` in OpenCode lists the model.
+- Action: override each affected role with its `#4` (ChatGPT) entry (`openai/<model>`), with `until` set to the reset date. Check first that `/models` in OpenCode lists the model.
 - `docs-reviewer-claude` has no ChatGPT option; keep GLM 5.3 (`#3`) while that UiO pool has quota. With every implementer on GPT, `code-reviewer` (GPT) reviews GPT-written code; record that in the review if it matters.
 
 ### Copilot credit pressure
@@ -198,11 +198,11 @@ A depleted pool needs an override for **every** role whose `#1` is that model; s
 
 Target routing as committed. Temporary switches live in the overrides file, not here.
 
-The **ChatGPT** column is the fallback when both the UiO and Copilot pools are depleted. Write it as `openai/<model>` in an override. It needs `openai-chatgpt` in `HUB_ENABLED_PROVIDERS` and a ChatGPT login (`devspace run-pipeline login --provider chatgpt`). ChatGPT offers only GPT models, so it cannot keep the opposite-family review rule (design rule 4); see "UiO and Copilot both depleted" below.
+The **#4 ChatGPT** column (the `#4` comments in the agent files and `opencode.jsonc`) is the fallback when both the UiO and Copilot pools are depleted. Write it as `openai/<model>` in an override. It needs `openai-chatgpt` in `HUB_ENABLED_PROVIDERS` and a ChatGPT login (`devspace run-pipeline login --provider chatgpt`). ChatGPT offers only GPT models, so it cannot keep the opposite-family review rule (design rule 4); see "UiO and Copilot both depleted" below.
 
 ### Team/specialist agents
 
-| Agent | #1 | #2 | #3 | ChatGPT | Notes |
+| Agent | #1 | #2 | #3 | #4 ChatGPT | Notes |
 |---|---|---|---|---|---|
 | `planner` | Copilot `claude-opus-5.5` (59) | UiO `gpt-6.1-sol` (55) | Copilot `gpt-6.2-sol` (57) | `gpt-6.2-sol` (57) | |
 | `senior-implementer` | Copilot `claude-opus-5.5` (59) | UiO `gpt-6.1-sol` (55) | Copilot `gpt-6.2-sol` (57) | `gpt-6.2-sol` (57) | Cheaper Claude when credits are tight: Copilot `claude-sonnet-5.5` (55) |
@@ -210,7 +210,7 @@ The **ChatGPT** column is the fallback when both the UiO and Copilot pools are d
 | `code-reviewer` | UiO `gpt-6.1-sol` (55) | Copilot `gpt-6.2-sol` (57) | UiO `gpt-6.1-terra` (51) | `gpt-6.1-sol` (55) | GPT reviews Claude-written code |
 | `docs-writer` | Copilot `claude-sonnet-5.5` (55) | UiO `gpt-6.1-terra` (51) | Copilot `gpt-6.2-sol` (57) | `gpt-6.1-sol` (55) | |
 | `docs-reviewer-gpt` | UiO `gpt-6.1-sol` (55) | Copilot `gpt-6.2-sol` (57) | UiO `gpt-6.1-terra` (51) | `gpt-6.1-sol` (55) | Reviews Claude-authored specs, plans and docs |
-| `docs-reviewer-claude` | Copilot `claude-opus-5.5` (59) | Copilot `claude-sonnet-5.5` (55) | UiO `GLM-5.3-NVFP4` (32) | none; use `#3` (GLM) to keep a non-GPT reviewer | Reviews GPT- or other-authored docs; no UiO Claude exists, so `#2` shares the Copilot pool |
+| `docs-reviewer-claude` | Copilot `claude-opus-5.5` (59) | Copilot `claude-sonnet-5.5` (55) | UiO `GLM-5.3-NVFP4` (32) | none; keep `#3` (GLM) so the reviewer stays non-GPT | Reviews GPT- or other-authored docs; no UiO Claude exists, so `#2` shares the Copilot pool |
 | `maestro` | UiO `gpt-6.1-terra` (51) | Copilot `gpt-6.1-terra` (51) | UiO `gpt-5.4` (n/a) | `gpt-6.1-terra` (51) | |
 | `brainstormer` | UiO `gpt-5.4` (n/a) | Copilot `claude-sonnet-5.5` (55) | UiO `gpt-5.1` (n/a) | `gpt-6.1-terra` (51) | |
 | `policy-implementer` | UiO `gpt-5.4` (n/a) | Copilot `claude-sonnet-5.5` (55) | UiO `gpt-5.1` (n/a) | `gpt-6.1-terra` (51) | |
@@ -218,7 +218,7 @@ The **ChatGPT** column is the fallback when both the UiO and Copilot pools are d
 
 ### OpenCode built-ins and defaults (`opencode.jsonc`)
 
-| Role | #1 | #2 | #3 | ChatGPT | Notes |
+| Role | #1 | #2 | #3 | #4 ChatGPT | Notes |
 |---|---|---|---|---|---|
 | top-level `model` | UiO `GLM-5.3-NVFP4` (32) | UiO `gpt-6.1-terra` (51) | Copilot `claude-sonnet-5.5` (55) | `gpt-6.1-terra` (51) | Default for any agent without its own `model` |
 | top-level `small_model` | UiO `gemma-4-31B-it` (4) | UiO `Qwen3.8-27B-FP8` (20) | UiO `gpt-oss-120b` (4) | `gpt-6-luna` (28) | Default for light tasks when a role sets no model |

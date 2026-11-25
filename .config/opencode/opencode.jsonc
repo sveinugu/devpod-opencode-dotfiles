@@ -6,11 +6,15 @@
   // "model": "gpt-uio-yellow/gpt-6.1-terra",
   // #3 switch when: UiO pools are constrained.
   // "model": "github-copilot/claude-sonnet-5.5",
+  // #4 switch when: the UiO and Copilot pools are both depleted (ChatGPT plan; needs openai-chatgpt and a login).
+  // "model": "openai/gpt-6.1-terra",
   "small_model": "gpt-uio-yellow/google/gemma-4-31B-it",
   // #2 switch when: Gemma is unavailable (local).
   // "small_model": "gpt-uio-yellow/Qwen/Qwen3.8-27B-FP8",
   // #3 switch when: both local models above are unavailable (local).
   // "small_model": "gpt-uio-yellow/gpt-oss-120b",
+  // #4 switch when: the UiO and Copilot pools are both depleted (ChatGPT plan; needs openai-chatgpt and a login).
+  // "small_model": "openai/gpt-6-luna",
   "plugin": [
     "oc-plugin-karpathy-guidelines@latest",
     "superpowers@git+https://github.com/obra/superpowers.git"
@@ -76,6 +80,8 @@
       // "model": "gpt-uio-yellow/gpt-6.1-sol",
       // #3 switch when: both pools above are unavailable.
       // "model": "github-copilot/gpt-6.2-sol",
+      // #4 switch when: the UiO and Copilot pools are both depleted (ChatGPT plan; needs openai-chatgpt and a login).
+      // "model": "openai/gpt-6.2-sol",
       // Cheaper Claude for routine work when Copilot credits are tight: github-copilot/claude-sonnet-5.5
     },
     "plan": {
@@ -84,6 +90,8 @@
       // "model": "gpt-uio-yellow/gpt-6.1-sol",
       // #3 switch when: both pools above are unavailable.
       // "model": "github-copilot/gpt-6.2-sol",
+      // #4 switch when: the UiO and Copilot pools are both depleted (ChatGPT plan; needs openai-chatgpt and a login).
+      // "model": "openai/gpt-6.2-sol",
     },
     "general": {
       "model": "gpt-uio-yellow/Inferact/GLM-5.3-NVFP4",
@@ -91,6 +99,8 @@
       // "model": "gpt-uio-yellow/gpt-6.1-terra",
       // #3 switch when: UiO pools are constrained.
       // "model": "github-copilot/claude-sonnet-5.5",
+      // #4 switch when: the UiO and Copilot pools are both depleted (ChatGPT plan; needs openai-chatgpt and a login).
+      // "model": "openai/gpt-6.1-terra",
     },
     "explore": {
       "model": "gpt-uio-yellow/gpt-6-luna",
@@ -98,6 +108,8 @@
       // "model": "github-copilot/claude-haiku-5.5",
       // #3 switch when: both pools above are unavailable.
       // "model": "gpt-uio-yellow/gpt-5-mini",
+      // #4 switch when: the UiO and Copilot pools are both depleted (ChatGPT plan; needs openai-chatgpt and a login).
+      // "model": "openai/gpt-6-luna",
     },
     "title": {
       "model": "gpt-uio-yellow/google/gemma-4-31B-it",
@@ -105,6 +117,8 @@
       // "model": "gpt-uio-yellow/Qwen/Qwen3.8-27B-FP8",
       // #3 switch when: both local models above are unavailable (local).
       // "model": "gpt-uio-yellow/gpt-oss-120b",
+      // #4 switch when: the UiO and Copilot pools are both depleted (ChatGPT plan; needs openai-chatgpt and a login).
+      // "model": "openai/gpt-6-luna",
     },
     "summary": {
       "model": "gpt-uio-yellow/google/gemma-4-31B-it",
@@ -112,6 +126,8 @@
       // "model": "gpt-uio-yellow/Qwen/Qwen3.8-27B-FP8",
       // #3 switch when: both local models above are unavailable (local).
       // "model": "gpt-uio-yellow/gpt-oss-120b",
+      // #4 switch when: the UiO and Copilot pools are both depleted (ChatGPT plan; needs openai-chatgpt and a login).
+      // "model": "openai/gpt-6-luna",
     },
     "compaction": {
       "model": "gpt-uio-yellow/Inferact/GLM-5.3-NVFP4",
@@ -119,6 +135,8 @@
       // "model": "gpt-uio-yellow/mistralai/Mistral-Medium-3.5-128B",
       // #3 switch when: both local models above are unavailable; Qwen has a 262K context (local).
       // "model": "gpt-uio-yellow/Qwen/Qwen3.8-27B-FP8",
+      // #4 switch when: the UiO and Copilot pools are both depleted (ChatGPT plan; needs openai-chatgpt and a login).
+      // "model": "openai/gpt-6.1-terra",
     }
   },
   "lsp": true
