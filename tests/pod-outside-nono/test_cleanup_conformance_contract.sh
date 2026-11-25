@@ -102,7 +102,7 @@ declared_outputs = {
     '.config/opencode/plugins/opencode-loop.ts',
     '.config/opencode/commands/loop.md',
     '.config/opencode/commands/loop-help.md',
-    '.config/opencode/commands/loop-goal.md',
+    '.config/opencode/agents/opencode-loop-local.md',
 }
 
 if outputs != declared_outputs:

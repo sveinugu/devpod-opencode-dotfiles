@@ -41,17 +41,17 @@ if entry is None:
 if entry.get('workingDirectory') != '.config/opencode':
     raise SystemExit('workingDirectory must be .config/opencode for opencode-loop')
 
-if entry.get('install') != ['npx', '-y', '@bybrawe/opencode-loop']:
+if entry.get('install') != ['npx', '-y', '@bybrawe/opencode-loop@0.6.10', '--legacy-v1']:
     raise SystemExit('install command mismatch for opencode-loop')
 
-if entry.get('uninstall') != ['npx', '-y', '@bybrawe/opencode-loop', '--uninstall']:
+if entry.get('uninstall') != ['npx', '-y', '@bybrawe/opencode-loop@0.6.10', '--uninstall']:
     raise SystemExit('uninstall command mismatch for opencode-loop')
 
 expected_outputs = [
     '.config/opencode/plugins/opencode-loop.ts',
     '.config/opencode/commands/loop.md',
     '.config/opencode/commands/loop-help.md',
-    '.config/opencode/commands/loop-goal.md',
+    '.config/opencode/agents/opencode-loop-local.md',
 ]
 if entry.get('outputs') != expected_outputs:
     raise SystemExit('outputs mismatch for opencode-loop')
