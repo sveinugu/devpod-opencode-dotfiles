@@ -39,6 +39,10 @@ n="$(ls "$MOCK_LOGS" | grep -c '^call-' || true)"
 call="$MOCK_LOGS/call-$(printf '%03d' "$n")"
 printf '%s\n' "$@" >"$call.args"
 if [ "${1:-}" = exec ]; then
+  if [ -n "${MOCK_EXEC_FAIL:-}" ]; then
+    printf 'Error from server (NotFound): deployments.apps "dotfiles-workspace" not found\n' >&2
+    exit 1
+  fi
   while [ "$#" -gt 0 ] && [ "$1" != -- ]; do shift; done
   shift
   # A pod checkout's pod-side script runs as the repository copy; the requested path is recorded.
@@ -214,6 +218,23 @@ check_patch session || fail "work checkout: login should patch the session key"
 rm -f "$install_env"
 [ "$(login ok chatgpt)" = 0 ] || fail "no install.env: login should succeed"
 [ "$(remote_used)" = /workspaces/dotfiles/main/scripts/lib/provider-login-remote.sh ] || fail "no install.env: pod-side steps must come from main"
+
+rm -f "$install_env"
+[ "$(MOCK_EXEC_FAIL=1 login ok chatgpt)" != 0 ] || fail "failed pod exec must be refused, not treated as main"
+grep -F 'in namespace testing' "$tmp_root/out" >/dev/null || fail "failed pod exec must name the namespace"
+[ -z "$(remote_used)" ] || fail "failed pod exec: no pod-side step may run"
+[ -z "$(patches)" ] || fail "failed pod exec: the Secret must not change"
+
+# Without DEVSPACE_NAMESPACE (set by devspace pipelines), nothing reaches the cluster.
+saved_run_env=("${run_env[@]}")
+run_env+=(DEVSPACE_NAMESPACE=)
+for args in chatgpt 'chatgpt --reset'; do
+  # shellcheck disable=SC2086
+  [ "$(login ok $args)" != 0 ] || fail "no namespace ($args): must be refused"
+  grep -F 'devspace run-pipeline chatgpt-login' "$tmp_root/out" >/dev/null || fail "no namespace ($args): must name the pipeline"
+  [ -z "$(ls "$logs" | grep '^call-' || true)" ] || fail "no namespace ($args): kubectl must not be called"
+done
+run_env=("${saved_run_env[@]}")
 
 for bad in /tmp/evil /workspaces/dotfiles/work/../../tmp/evil /workspaces/dotfiles/repos/other '/workspaces/dotfiles/work/x;y'; do
   printf 'HUB_INSTALL_BRANCH_DIR=%s\n' "$bad" >"$install_env"

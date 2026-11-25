@@ -7,7 +7,11 @@ if [ "$#" -ne 0 ]; then
 fi
 
 kubectl_bin="${KUBECTL_BIN:-kubectl}"
-namespace="${DEVSPACE_NAMESPACE:-default}"
+namespace="${DEVSPACE_NAMESPACE:-}"
+if [ -z "$namespace" ]; then
+  printf 'refused: DEVSPACE_NAMESPACE is not set; run devspace run-pipeline destroy\n' >&2
+  exit 2
+fi
 deployment_name="${HUB_WORKSPACE_DEPLOYMENT:-dotfiles-workspace}"
 devspace_deployment_name="${HUB_DEVSPACE_DEPLOYMENT:-dotfiles-workspace-devspace}"
 pvc_name="${HUB_WORKSPACE_PVC:-dotfiles-workspace}"

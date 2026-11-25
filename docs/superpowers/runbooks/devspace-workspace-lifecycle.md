@@ -4,7 +4,7 @@
 
 ## Choose your environment
 
-- **HOST:** Stay in this runbook for `devspace run-pipeline provision`, `doctor`, `repair`, `destroy`, and `verify-ssh`.
+- **HOST:** Stay in this runbook for `devspace run-pipeline provision`, `doctor`, `repair`, `destroy`, `verify-ssh`, and `chatgpt-login`.
 - **HOST, first-time setup:** If the bare-hub layout does not exist yet, start with [Host Bare-Hub Bootstrap](host-bare-hub-bootstrap.md).
 - **POD:** Switch to [DevSpace Bare Hub Usage](devspace-bare-hub-usage.md) for `bash install.sh`, `dhub`, `dre`, `dwt`, `bin/new-worktree`, `bin/clone-repo`, and `bin/retire-worktree`.
 
@@ -46,8 +46,10 @@ ChatGPT Plus/Pro models are available when `openai-chatgpt` is in `/workspaces/d
 Log in from the host, in the namespace of the workspace:
 
 ```bash
-DEVSPACE_NAMESPACE=<namespace> ops/provider-login chatgpt
+devspace run-pipeline chatgpt-login
 ```
+
+The pipeline runs `ops/provider-login chatgpt` in the namespace devspace uses (`-n` in `DEVSPACE_FLAGS` in `.env`). The script refuses to run without the `DEVSPACE_NAMESPACE` value that devspace supplies. If it cannot reach the workspace Deployment, it stops before any login and does not change the Secret.
 
 The command runs OpenCode's login in the pod, outside nono, using the pod's install branch checkout (`HUB_INSTALL_BRANCH_DIR`). In the login, choose OpenAI, then the ChatGPT Plus/Pro headless method. The command stores only the session in the Secret key `openai_chatgpt_session` and prints the expiry date. It does not keep the refresh token, so log in again before the login expires (about every 10 days). Provisioning does not log in.
 
@@ -61,7 +63,7 @@ Launch behavior when `openai-chatgpt` is enabled:
 - An `openai/*` model selected with `--model` or as the top-level `model`, without a valid login: the launch is refused.
 - An agent role that uses an `openai/*` model without a valid login fails when that role is first used.
 
-To disconnect, run `ops/provider-login chatgpt --reset` and stop running sessions. This does not revoke the login at OpenAI; do that in the ChatGPT account settings. Logging out inside OpenCode does not disconnect ChatGPT.
+To disconnect, run `devspace run-pipeline chatgpt-login --reset` and stop running sessions. This does not revoke the login at OpenAI; do that in the ChatGPT account settings. Logging out inside OpenCode does not disconnect ChatGPT.
 
 The `openai` API-key provider and its `openai_api_key` Secret key are removed. A manifest that lists `openai` is refused.
 

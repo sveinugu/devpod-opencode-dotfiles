@@ -64,7 +64,7 @@ The header helper runs as `agent`, and the Secret mount is root-only. The helper
 
 ### Provider login command
 
-`ops/provider-login <provider>` runs on the host that has `kubectl` access. The pod gets no permission to change Secrets.
+`ops/provider-login <provider>` runs on the host that has `kubectl` access. The pod gets no permission to change Secrets. The `chatgpt-login` devspace pipeline runs it, so it uses the namespace devspace uses (`DEVSPACE_NAMESPACE`). Without that value the command refuses to run.
 
 Its pod-side steps are in `scripts/lib/provider-login-remote.sh`. The command runs them from the pod's install branch, which `HUB_INSTALL_BRANCH_DIR` in `state/hub/etc/install.env` records. The secure wrapper loads its helpers from the same checkout. Only `main` or a `work/` checkout is accepted, and `main` is the default when the file is missing. A branch can therefore be tested in the pod before it reaches `main`.
 

@@ -42,6 +42,12 @@ grep -F 'delete pvc dotfiles-workspace --ignore-not-found=true -n testing' "$kub
 
 PATH="$mock_bin:$PATH" KUBECTL_BIN=kubectl KUBECTL_LOG="$kubectl_log" DEVSPACE_NAMESPACE=testing bash "$script" >/dev/null 2>&1 || fail "destroy should also succeed when resources are already absent"
 
+unset_log="$tmpdir/kubectl-unset.log"
+if PATH="$mock_bin:$PATH" KUBECTL_BIN=kubectl KUBECTL_LOG="$unset_log" DEVSPACE_NAMESPACE= bash "$script" >/dev/null 2>&1; then
+  fail "destroy must refuse without DEVSPACE_NAMESPACE"
+fi
+[ ! -e "$unset_log" ] || fail "destroy without DEVSPACE_NAMESPACE must not call kubectl"
+
 grep -Eq '^\s{2}destroy:\s*\|-\s*$' "$cfg" || fail "devspace destroy pipeline must be present"
 grep -F 'ops/destroy-workspace.sh' "$cfg" >/dev/null || fail "destroy pipeline should invoke ops/destroy-workspace.sh"
 

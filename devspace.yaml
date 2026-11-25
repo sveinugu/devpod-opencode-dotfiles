@@ -117,6 +117,16 @@ pipelines:
   destroy: |-
     bash ops/destroy-workspace.sh
 
+  chatgpt-login:
+    flags:
+      - name: reset
+    run: |-
+      if [ "$(get_flag reset)" = "true" ]; then
+        bash ops/provider-login chatgpt --reset
+      else
+        bash ops/provider-login chatgpt
+      fi
+
   verify-ssh: |-
     ssh -o BatchMode=yes workspace.dotfiles.devspace 'pwd'
     ssh -o BatchMode=yes workspace.dotfiles.devspace 'test -d /workspaces/dotfiles/main && printf ok\n'
