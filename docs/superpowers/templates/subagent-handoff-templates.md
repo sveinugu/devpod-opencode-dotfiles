@@ -4,6 +4,8 @@ Use the packet rules in `.config/opencode/skills/opencode-dispatch/SKILL.md`.
 
 `````text
 Delegation Packet
+Recipient: <selected subagent role>
+Assigned work: <work for this recipient, within the user's request and binding artifacts>
 Artifact path: <exact approved plan/spec path; omit when not applicable>
 Worktree path: <explicit absolute path to editable checkout; omit when not applicable>
 Verbatim user request:
