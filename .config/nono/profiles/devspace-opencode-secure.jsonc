@@ -93,7 +93,7 @@
     "custom_credentials": {
       "openai-chatgpt": {
         "upstream": "https://chatgpt.com/backend-api/codex",
-        "credential_key": "cmd://openai-chatgpt",
+        "credential_key": "cmd://openai_chatgpt",
         "env_var": "OPENAI_CHATGPT_ROUTE_TOKEN"
       },
       "anthropic": {
@@ -127,7 +127,7 @@
     }
   },
   "credential_capture": {
-    "openai-chatgpt": {
+    "openai_chatgpt": {
       "command": ["/usr/local/libexec/dotfiles-chatgpt-headers"],
       "timeout_secs": 5,
       "cache_ttl_secs": 0,

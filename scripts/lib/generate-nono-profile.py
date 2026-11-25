@@ -84,10 +84,22 @@ def main() -> None:
     capture = profile.get('credential_capture', {})
     if not isinstance(capture, dict):
         _fail('refused: secure nono profile template has invalid credential_capture object')
+    # A capture entry belongs to the route whose cmd:// key names it. nono
+    # requires that name to use only letters, digits and underscores, so it
+    # cannot reuse a hyphenated route name. Drop entries of removed routes.
+    def cmd_names(routes):
+        return {
+            config['credential_key'][len('cmd://'):]
+            for config in routes.values()
+            if isinstance(config, dict) and str(config.get('credential_key', '')).startswith('cmd://')
+        }
+
+    template_cmd_names = cmd_names(custom_credentials)
+    kept_cmd_names = cmd_names(filtered_custom_credentials)
     capture = {
         name: entry
         for name, entry in capture.items()
-        if name not in managed_credential_names or name in enabled_credential_names
+        if name not in template_cmd_names or name in kept_cmd_names
     }
     if capture:
         profile['credential_capture'] = capture

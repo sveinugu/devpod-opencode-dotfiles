@@ -27,7 +27,7 @@ for required_credential in '"openai-chatgpt"' '"anthropic"' '"github-copilot"' '
   grep -F "$required_credential" "$profile" >/dev/null || fail "nono profile missing credential route for $required_credential"
 done
 
-for required_env in '"credential_key": "cmd://openai-chatgpt"' '"credential_key": "env://ANTHROPIC_API_KEY"' '"credential_key": "env://GITHUB_TOKEN"' '"credential_key": "env://GPT_UIO_YELLOW_API_KEY"' '"credential_key": "env://GPT_UIO_RED_API_KEY"'; do
+for required_env in '"credential_key": "cmd://openai_chatgpt"' '"credential_key": "env://ANTHROPIC_API_KEY"' '"credential_key": "env://GITHUB_TOKEN"' '"credential_key": "env://GPT_UIO_YELLOW_API_KEY"' '"credential_key": "env://GPT_UIO_RED_API_KEY"'; do
   grep -F "$required_env" "$profile" >/dev/null || fail "nono profile missing env credential route contract: $required_env"
 done
 

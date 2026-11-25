@@ -95,7 +95,7 @@ route = profile['network']['custom_credentials']['openai-chatgpt']
 route['upstream'] = base
 route['tls_ca'] = ca
 if float(hold) > 0:
-    profile['credential_capture']['openai-chatgpt']['command'] = ['/bin/sh', '-c', f'sleep {hold}; exec {helper}']
+    profile['credential_capture']['openai_chatgpt']['command'] = ['/bin/sh', '-c', f'sleep {hold}; exec {helper}']
 with open(output, 'w', encoding='utf-8') as fh:
     json.dump(profile, fh, indent=2)
 PY

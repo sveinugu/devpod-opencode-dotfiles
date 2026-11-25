@@ -86,7 +86,7 @@ Provisioning does not run a login. It only reports when an enabled provider is n
 The profile replaces the `openai` API-key route with an `openai-chatgpt` custom credential route:
 
 - upstream `https://chatgpt.com/backend-api/codex`;
-- `credential_key` `cmd://openai-chatgpt`;
+- `credential_key` `cmd://openai_chatgpt` (nono allows only letters, digits and underscores in a `cmd://` name);
 - a route variable that does not produce `OPENAI_BASE_URL`, because that would change OpenCode's request path;
 - a `credential_capture` entry that runs the root-owned header helper, with `cache_ttl_secs: 0`;
 - `allow_headers` for `Authorization`, `ChatGPT-Account-Id` and `x-openai-internal-codex-residency`.

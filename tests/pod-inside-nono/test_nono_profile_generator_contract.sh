@@ -74,16 +74,16 @@ for name, route in routes.items():
 
 has_chatgpt = 'openai-chatgpt' in routes
 need(has_chatgpt == ('openai-chatgpt' in listed), 'openai-chatgpt must be listed exactly when its route exists')
-need(has_chatgpt == ('openai-chatgpt' in capture), 'openai-chatgpt capture entry must exist exactly when its route exists')
+need(has_chatgpt == ('openai_chatgpt' in capture), 'openai-chatgpt capture entry must exist exactly when its route exists')
 need(has_chatgpt == (expect_chatgpt == 'yes'), f'openai-chatgpt route present={has_chatgpt}, expected {expect_chatgpt}')
 need(('github-copilot' in routes) == (expect_copilot == 'yes'), 'github-copilot route must follow its own enablement')
 
 if has_chatgpt:
     route = routes['openai-chatgpt']
     need(route.get('upstream') == 'https://chatgpt.com/backend-api/codex', 'ChatGPT route upstream mismatch')
-    need(route.get('credential_key') == 'cmd://openai-chatgpt', 'ChatGPT route must use the cmd:// header helper')
+    need(route.get('credential_key') == 'cmd://openai_chatgpt', 'ChatGPT route must use the cmd:// header helper')
     need(route.get('env_var') not in (None, 'OPENAI_API_KEY'), 'ChatGPT route needs its own route variable')
-    entry = capture['openai-chatgpt']
+    entry = capture['openai_chatgpt']
     need(entry.get('cache_ttl_secs') == 0, 'ChatGPT headers must not be cached')
     need(entry.get('command', [None])[0] == '/usr/local/libexec/dotfiles-chatgpt-headers', 'capture must run the root-owned header helper')
     output = entry.get('output', {})
