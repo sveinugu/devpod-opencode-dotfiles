@@ -21,7 +21,7 @@ usage: provider-login <provider> [--reset]
   --reset      remove the stored value (does not revoke it at the provider)
 
 Run it through devspace, which sets DEVSPACE_NAMESPACE:
-  devspace run-pipeline provider-login --provider <provider> [--reset]
+  devspace run-pipeline login -p <provider> [--reset]
 
 Environment: DEVSPACE_NAMESPACE (required), KUBECTL_BIN, HUB_WORKSPACE_DEPLOYMENT.
 USAGE
@@ -48,7 +48,7 @@ kubectl_bin="${KUBECTL_BIN:-kubectl}"
 # devspace exports the namespace it uses (-n in DEVSPACE_FLAGS) to pipelines.
 namespace="${DEVSPACE_NAMESPACE:-}"
 if [ -z "$namespace" ]; then
-  printf 'refused: DEVSPACE_NAMESPACE is not set; run devspace run-pipeline provider-login --provider %s\n' "$provider" >&2
+  printf 'refused: DEVSPACE_NAMESPACE is not set; run devspace run-pipeline login -p %s\n' "$provider" >&2
   exit 2
 fi
 deployment="${HUB_WORKSPACE_DEPLOYMENT:-dotfiles-workspace}"

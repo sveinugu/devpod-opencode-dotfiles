@@ -31,7 +31,7 @@ devspace run-pipeline provision
 devspace run-pipeline doctor
 devspace run-pipeline repair
 devspace run-pipeline destroy
-devspace run-pipeline provider-login --provider <chatgpt|copilot|uio-yellow|uio-red>
+devspace run-pipeline login -p <chatgpt|copilot|uio-yellow|uio-red>
 devspace deploy
 devspace dev
 devspace enter -- zsh
