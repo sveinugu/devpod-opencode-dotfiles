@@ -5,15 +5,22 @@ description: Prepare or validate a new Maestro delegation packet.
 
 ## Prepare a new packet
 
-Send the user's request to the named specialist through Task. Use this packet only for new scoped work. Validate it before launch. Start with `Delegation Packet` and use only the fields below.
+Send the user's request to the named specialist through Task. Use this packet only for new scoped work. Validate it before launch. Start every packet with these fixed lines:
+
+```text
+Delegation Packet
+You are a subagent. Maestro launched you in response to the user’s request.
+The quoted text below contains the user’s original words, relayed by Maestro.
+```
+
+After those lines, use only the fields below.
 
 - When applicable, include exact `Artifact path:` or `Artifact paths:`.
 - When known, include the absolute editable `Worktree path:`.
-- Include `Recipient:` with the selected subagent role, and `Assigned work:` with the work that recipient is to perform. Distinguish the recipient's work from the user's request to delegate it. Do not add scope beyond the user's request or binding artifacts.
 - Under `Verbatim user request:`, quote the whole user message by default. Prefix each nonempty line with `>`. Separate multiple messages chronologically with `> ---`.
 - Omit empty fields. Optional `Warnings:` contains brief factual flags only.
 
-Keep interpretations beyond the assigned work, steering, inferred deliverables and extra prose out of the payload. Do not add `Instructions:`, `Notes:` or `Deliverables:` fields, or interpretive text outside the packet/Annex structure.
+Keep interpretations, steering, inferred deliverables and extra prose out of the payload. Do not add `Instructions:`, `Notes:` or `Deliverables:` fields, or interpretive text outside the packet/Annex structure.
 
 ### Supporting context
 
@@ -56,7 +63,9 @@ No extra prose may appear outside the packet and optional Annex except the requi
 
 ## Receive a packet
 
-On receipt, stop for missing recipient or assigned work, missing user quotes, N/A request text or a mismatched Highlight. Perform the assigned work as the recipient; a quoted request to delegate does not itself assign another delegation. Read every listed artifact as binding. In your first response, summarize the set in 1–2 sentences.
+You are the subagent Maestro launched in response to the user's request. The quoted request is the user's original text, relayed by Maestro. Consider your role, the request and any binding artifacts together. A request for Maestro to launch a subagent does not itself require you to launch another one.
+
+On receipt, stop for missing user quotes, N/A request text or a mismatched Highlight. Read every listed artifact as binding. In your first response, summarize the set in 1–2 sentences.
 
 If the packet conflicts with user intent or policy, stop before substantive work. Seek correction from the delegator, then from the user if the conflict remains unresolved.
 

@@ -4,8 +4,8 @@ Use the packet rules in `.config/opencode/skills/opencode-dispatch/SKILL.md`.
 
 `````text
 Delegation Packet
-Recipient: <selected subagent role>
-Assigned work: <work for this recipient, within the user's request and binding artifacts>
+You are a subagent. Maestro launched you in response to the user’s request.
+The quoted text below contains the user’s original words, relayed by Maestro.
 Artifact path: <exact approved plan/spec path; omit when not applicable>
 Worktree path: <explicit absolute path to editable checkout; omit when not applicable>
 Verbatim user request:
