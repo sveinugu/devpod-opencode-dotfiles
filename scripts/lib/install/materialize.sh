@@ -122,6 +122,30 @@ install_refresh_harness_installs() {
   bash "$helper" "$source_root"
 }
 
+# Regenerate this checkout's provider runtime files from the read-only manifest
+# that provision writes from HUB_ENABLED_PROVIDERS in the host .env. Installing
+# another branch in the pod then keeps the host's provider selection.
+install_sync_provider_runtime() {
+  local manifest="$install_env_dir/provider-enablement.json"
+  local sync_cmd="$source_root/bin/sync-provider-enablement"
+  local opencode_dir="$source_root/.config/opencode"
+
+  if [ ! -f "$manifest" ]; then
+    printf 'warning: no provider enablement at %s; run devspace run-pipeline provision on the host\n' "$manifest" >&2
+    return 0
+  fi
+
+  if [ "$dry_run" = true ]; then
+    printf 'DRY-RUN %s --manifest %s --policy %s/provider-policy.jsonc --runtime-output %s/provider-runtime.json --verification-output %s/provider-verification.json\n' \
+      "$sync_cmd" "$manifest" "$opencode_dir" "$opencode_dir" "$opencode_dir"
+    return 0
+  fi
+
+  printf 'generating provider runtime from %s...\n' "$manifest"
+  (cd "$source_root" && "$sync_cmd" --manifest "$manifest" --policy "$opencode_dir/provider-policy.jsonc" \
+    --runtime-output "$opencode_dir/provider-runtime.json" --verification-output "$opencode_dir/provider-verification.json") >/dev/null
+}
+
 install_ensure_oh_my_zsh() {
   if [ ! -f "$oh_my_zsh_dir/oh-my-zsh.sh" ]; then
     if [ -d "$oh_my_zsh_dir" ]; then rm -rf "$oh_my_zsh_dir"; fi
@@ -171,6 +195,7 @@ install_materialize() {
   install_rebuild_project_skills
   install_global_opencode_skills
   install_refresh_harness_installs
+  install_sync_provider_runtime
 
   printf 'ok: dotfiles applied from %s\n' "$source_root"
 }

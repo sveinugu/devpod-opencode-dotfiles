@@ -169,7 +169,7 @@ Provider model policy is repo-owned at:
 
 Enabled providers are set only on the host, in `HUB_ENABLED_PROVIDERS` in `.env`; unset or empty means none. `devspace run-pipeline provision` applies the setting. See [Provider enablement](devspace-workspace-lifecycle.md#provider-enablement-host-env).
 
-In the pod, provision writes these read-only generated files. Do not edit them; the next provision replaces them:
+In the pod, provision writes these read-only generated files. `bash install.sh` regenerates the runtime and verification files for the checkout it installs, from the same manifest, so installing another branch keeps the host's selection. Do not edit them; the next provision replaces them:
 
 - `/workspaces/dotfiles/state/hub/etc/provider-enablement.json`
 - `<install branch>/.config/opencode/provider-runtime.json`

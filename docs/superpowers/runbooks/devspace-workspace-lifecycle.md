@@ -30,12 +30,17 @@ kubectl create secret generic dotfiles-nono-provider-credentials \
   --from-literal=gpt_uio_red_api_key='<gpt_uio_red_api_key>'
 ```
 
-Required keys:
+The Secret must exist, because the Deployment mounts it. It needs a key only for each provider in `HUB_ENABLED_PROVIDERS` (see [Provider enablement](#provider-enablement-host-env)); leave out the others:
 
-- `anthropic_api_key`
-- `github_token`
-- `gpt_uio_yellow_api_key`
-- `gpt_uio_red_api_key`
+| Provider | Secret key |
+| --- | --- |
+| `anthropic` | `anthropic_api_key` |
+| `github-copilot` | `github_token` |
+| `gpt-uio-yellow` | `gpt_uio_yellow_api_key` |
+| `gpt-uio-red` | `gpt_uio_red_api_key` |
+| `openai-chatgpt` | `openai_chatgpt_session`, written by `devspace run-pipeline chatgpt-login` |
+
+OpenCode refuses to launch when a key for an enabled provider is missing. A missing ChatGPT session only leaves ChatGPT out.
 
 If the workspace was already deployed before the secret existed, the pod may need a restart or you may need to re-apply the deployment.
 
