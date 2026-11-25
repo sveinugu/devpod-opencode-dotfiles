@@ -8,8 +8,10 @@ usage: sync-provider-enablement [--enabled <providers>] [--manifest <path>] [--p
 Generate the provider runtime and verification outputs from the enabled providers.
 
 --enabled takes the host setting HUB_ENABLED_PROVIDERS (providers separated by
-spaces or commas; empty means none). It is validated, then written to the
-manifest. Without --enabled, the existing manifest is read. The manifest and the
+spaces or commas; empty means none). It is validated strictly, then written to
+the manifest. Without --enabled, the existing manifest is read; it is shared by
+all checkouts, so a provider this checkout's policy does not support is skipped
+with a warning instead of refused. The manifest and the
 outputs are written read-only: change providers in the host .env, not in the pod.
 USAGE
 }
@@ -137,14 +139,21 @@ for provider in enabled:
 if len(set(normalized)) != len(normalized):
     raise SystemExit('refused: enabled_providers must not contain duplicates')
 
+strict = enabled_set == '1'
+
 if 'openai' in normalized:
-    raise SystemExit('refused: provider token openai was removed; use openai-chatgpt for the ChatGPT plan login')
+    if strict:
+        raise SystemExit('refused: provider token openai was removed; use openai-chatgpt for the ChatGPT plan login')
+    print('warning: provider token openai was removed; skipped', file=sys.stderr)
+    normalized = [provider for provider in normalized if provider != 'openai']
 
-unsupported = sorted([provider for provider in normalized if provider not in supported])
-if unsupported:
-    raise SystemExit(f'refused: unknown providers in enablement manifest: {", ".join(unsupported)}')
+unsupported = [provider for provider in normalized if provider not in supported]
+if unsupported and strict:
+    raise SystemExit(f'refused: unknown providers in enablement manifest: {", ".join(sorted(unsupported))}')
+for provider in unsupported:
+    print(f'warning: provider {provider} is not supported by this checkout; skipped', file=sys.stderr)
 
-manifest_order_enabled = normalized
+manifest_order_enabled = [provider for provider in normalized if provider in supported]
 
 def provider_enabled(name):
     return name in manifest_order_enabled
@@ -237,6 +246,10 @@ verification_payload = {
     'enabled_providers': manifest_order_enabled,
     'status': 'match',
 }
+skipped = [provider for provider in enabled if provider not in manifest_order_enabled]
+if skipped:
+    verification_payload['status'] = 'partial'
+    verification_payload['skipped_providers'] = skipped
 
 outputs = [
     (runtime_output_path, runtime_payload),

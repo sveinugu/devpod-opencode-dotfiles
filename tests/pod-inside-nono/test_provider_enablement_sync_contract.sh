@@ -196,31 +196,34 @@ if run_enabled 'gpt-uio-yellow bogus' >/dev/null 2>&1; then
 fi
 [ -z "$(manifest_list)" ] || fail "refused --enabled must leave the manifest unchanged"
 
-invalid_manifest="$tmp_root/provider-enablement-invalid.json"
-cat >"$invalid_manifest" <<'JSON'
-{
-  "enabled_providers": [
-    "openai-chatgpt",
-    "does-not-exist"
-  ]
-}
-JSON
-
-if "$sync_cmd" --manifest "$invalid_manifest" --policy "$policy" --runtime-output "$runtime_output" --verification-output "$verification_output" >"$tmp_root/invalid.out" 2>&1; then
-  fail "sync command should fail for unknown provider entries"
-fi
-
-grep -F 'unknown providers in enablement manifest' "$tmp_root/invalid.out" >/dev/null || fail "sync command should explain unknown provider failure"
-
-# The retired API-key token is refused with a pointer to its replacement.
-retired_manifest="$tmp_root/provider-enablement-retired-openai.json"
-printf '{ "enabled_providers": ["gpt-uio-yellow", "openai"] }\n' >"$retired_manifest"
+# The host setting (--enabled) is strict: unknown providers and the retired
+# openai token are refused, and nothing is written.
 rm -f "$runtime_output" "$verification_output"
-if "$sync_cmd" --manifest "$retired_manifest" --policy "$policy" --runtime-output "$runtime_output" --verification-output "$verification_output" >"$tmp_root/retired.out" 2>&1; then
-  fail "sync command should refuse the retired openai token"
+if "$sync_cmd" --enabled 'openai-chatgpt does-not-exist' --manifest "$tmp_root/strict-manifest.json" --policy "$policy" --runtime-output "$runtime_output" --verification-output "$verification_output" >"$tmp_root/invalid.out" 2>&1; then
+  fail "sync --enabled should fail for unknown provider entries"
+fi
+grep -F 'unknown providers in enablement manifest' "$tmp_root/invalid.out" >/dev/null || fail "sync command should explain unknown provider failure"
+if "$sync_cmd" --enabled 'gpt-uio-yellow openai' --manifest "$tmp_root/strict-manifest.json" --policy "$policy" --runtime-output "$runtime_output" --verification-output "$verification_output" >"$tmp_root/retired.out" 2>&1; then
+  fail "sync --enabled should refuse the retired openai token"
 fi
 grep -F 'openai-chatgpt' "$tmp_root/retired.out" >/dev/null || fail "refusal of the openai token should name openai-chatgpt"
-[ ! -e "$runtime_output" ] || fail "refused sync must not write runtime output"
+[ ! -e "$runtime_output" ] && [ ! -e "$tmp_root/strict-manifest.json" ] || fail "refused sync must not write the manifest or runtime output"
+
+# The shared manifest is read leniently: a checkout skips, with a warning, a
+# provider its policy does not support (for example one added on another branch).
+shared_manifest="$tmp_root/provider-enablement-shared.json"
+printf '{ "enabled_providers": ["gpt-uio-yellow", "does-not-exist", "openai", "github-copilot"] }\n' >"$shared_manifest"
+"$sync_cmd" --manifest "$shared_manifest" --policy "$policy" --runtime-output "$runtime_output" --verification-output "$verification_output" >"$tmp_root/shared.out" 2>"$tmp_root/shared.err" || fail "sync from the shared manifest should skip unsupported providers: $(cat "$tmp_root/shared.err")"
+grep -F 'warning: provider does-not-exist is not supported by this checkout; skipped' "$tmp_root/shared.err" >/dev/null || fail "skipped provider must be warned about"
+grep -F 'warning: provider token openai was removed; skipped' "$tmp_root/shared.err" >/dev/null || fail "retired openai token must be skipped with a warning"
+python3 - "$runtime_output" "$verification_output" <<'PY' || fail "skipped providers must be left out of the runtime and recorded in verification"
+import json, sys
+runtime = json.load(open(sys.argv[1]))
+verification = json.load(open(sys.argv[2]))
+assert runtime['enabled_providers'] == ['gpt-uio-yellow', 'github-copilot'], runtime['enabled_providers']
+assert verification['status'] == 'partial', verification
+assert verification['skipped_providers'] == ['does-not-exist', 'openai'], verification
+PY
 
 disabled_manifest="$tmp_root/provider-enablement-disabled-uio.json"
 cat >"$disabled_manifest" <<'JSON'

@@ -141,6 +141,8 @@ Provision passes the value to `bin/sync-provider-enablement --enabled` from the 
 
 Do not edit them in the pod; the next provision replaces them. The wrapped `opencode` reads the install-branch runtime file.
 
+`bash install.sh` regenerates the runtime files of the checkout it installs from the same manifest. That checkout's policy may not support every provider in the manifest, for example one added on another branch. Such a provider is skipped with a warning and listed under `skipped_providers` in `provider-verification.json`; the strict check applies only to the `.env` value in provision.
+
 ## Rebuild workspace image
 
 ```bash
