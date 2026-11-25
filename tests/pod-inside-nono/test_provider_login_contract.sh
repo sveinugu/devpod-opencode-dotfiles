@@ -326,7 +326,7 @@ run_env+=(DEVSPACE_NAMESPACE=)
 for args in chatgpt 'chatgpt --reset'; do
   # shellcheck disable=SC2086
   [ "$(login ok $args)" != 0 ] || fail "no namespace ($args): must be refused"
-  grep -F 'devspace run-pipeline login -p chatgpt' "$tmp_root/out" >/dev/null || fail "no namespace ($args): must name the pipeline"
+  grep -F 'devspace run-pipeline login --provider chatgpt' "$tmp_root/out" >/dev/null || fail "no namespace ($args): must name the pipeline"
   [ -z "$(ls "$logs" | grep '^call-' || true)" ] || fail "no namespace ($args): kubectl must not be called"
 done
 run_env=("${saved_run_env[@]}")

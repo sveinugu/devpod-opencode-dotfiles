@@ -35,10 +35,10 @@ The Secret must exist, because the Deployment mounts it. It needs a key only for
 | Provider | Secret key |
 | --- | --- |
 | `anthropic` | `anthropic_api_key` |
-| `github-copilot` | `github_token`, written by `devspace run-pipeline login -p copilot` |
-| `gpt-uio-yellow` | `gpt_uio_yellow_api_key`, written by `devspace run-pipeline login -p uio-yellow` |
-| `gpt-uio-red` | `gpt_uio_red_api_key`, written by `devspace run-pipeline login -p uio-red` |
-| `openai-chatgpt` | `openai_chatgpt_session`, written by `devspace run-pipeline login -p chatgpt` |
+| `github-copilot` | `github_token`, written by `devspace run-pipeline login --provider copilot` |
+| `gpt-uio-yellow` | `gpt_uio_yellow_api_key`, written by `devspace run-pipeline login --provider uio-yellow` |
+| `gpt-uio-red` | `gpt_uio_red_api_key`, written by `devspace run-pipeline login --provider uio-red` |
+| `openai-chatgpt` | `openai_chatgpt_session`, written by `devspace run-pipeline login --provider chatgpt` |
 
 OpenCode refuses to launch when a key for an enabled provider is missing. A missing ChatGPT session only leaves ChatGPT out.
 
@@ -46,9 +46,9 @@ If the workspace was already deployed before the secret existed, the pod may nee
 
 ## Provider logins and API keys
 
-`devspace run-pipeline login -p <provider>` stores or replaces one key in the Secret, from the host, in the namespace devspace uses. `--reset` removes the key instead; it does not revoke the credential at the provider. Every value is checked before it is stored, so a failed login or a rejected key leaves the Secret unchanged. The value reaches the cluster only through standard input of one `kubectl patch` that changes only that key.
+`devspace run-pipeline login --provider <provider>` stores or replaces one key in the Secret, from the host, in the namespace devspace uses. `--reset` removes the key instead; it does not revoke the credential at the provider. Every value is checked before it is stored, so a failed login or a rejected key leaves the Secret unchanged. The value reaches the cluster only through standard input of one `kubectl patch` that changes only that key.
 
-| `-p` (`--provider`) | Secret key | How the value is obtained | Check before storing |
+| `--provider` | Secret key | How the value is obtained | Check before storing |
 | --- | --- | --- | --- |
 | `chatgpt` | `openai_chatgpt_session` | OpenCode login in the pod (see below) | session shape and expiry |
 | `copilot` | `github_token` | OpenCode's GitHub Copilot login in the pod. It answers the deployment-type question with GitHub.com itself; open the printed URL and enter the code. GitHub Enterprise is refused. | test call to `https://api.githubcopilot.com/models` must return 200 |
@@ -65,7 +65,7 @@ ChatGPT Plus/Pro models are available when `openai-chatgpt` is in `HUB_ENABLED_P
 Log in from the host, in the namespace of the workspace:
 
 ```bash
-devspace run-pipeline login -p chatgpt
+devspace run-pipeline login --provider chatgpt
 ```
 
 The pipeline runs `ops/provider-login chatgpt` in the namespace devspace uses (`-n` in `DEVSPACE_FLAGS` in `.env`). The script refuses to run without the `DEVSPACE_NAMESPACE` value that devspace supplies. If it cannot reach the workspace Deployment, it stops before any login and does not change the Secret.
@@ -82,7 +82,7 @@ Launch behavior when `openai-chatgpt` is enabled:
 - An `openai/*` model selected with `--model` or as the top-level `model`, without a valid login: the launch is refused.
 - An agent role that uses an `openai/*` model without a valid login fails when that role is first used.
 
-To disconnect, run `devspace run-pipeline login -p chatgpt --reset` and stop running sessions. This does not revoke the login at OpenAI; do that in the ChatGPT account settings. Logging out inside OpenCode does not disconnect ChatGPT.
+To disconnect, run `devspace run-pipeline login --provider chatgpt --reset` and stop running sessions. This does not revoke the login at OpenAI; do that in the ChatGPT account settings. Logging out inside OpenCode does not disconnect ChatGPT.
 
 The `openai` API-key provider and its `openai_api_key` Secret key are removed. A manifest that lists `openai` is refused.
 

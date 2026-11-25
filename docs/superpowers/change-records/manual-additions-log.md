@@ -549,7 +549,7 @@ Coverage: the 50 commits in `b540e1c..07f048d`, reviewed against the resulting s
 ### 2026-11-25 · `d751470`, `4e162ca` — Copilot login and UiO API keys in provider-login
 
 - scope: `ops/provider-login`, `scripts/lib/provider-login-remote.sh`, `devspace.yaml`, OpenCode wrapper login hints, [lifecycle runbook](../runbooks/devspace-workspace-lifecycle.md#provider-logins-and-api-keys)
-- change: `devspace run-pipeline login -p <chatgpt|copilot|uio-yellow|uio-red> [--reset]` replaces `chatgpt-login`; `-p` is short for `--provider`. `copilot` runs OpenCode's GitHub Copilot login in the pod, answers its deployment-type question with GitHub.com through a pseudo-terminal, and stores the GitHub OAuth token in `github_token` after a Copilot API test call returns 200. The UiO variants read the key from a hidden host prompt and store it after a `gpt.uio.no` test call returns 200.
+- change: `devspace run-pipeline login --provider <chatgpt|copilot|uio-yellow|uio-red> [--reset]` replaces `chatgpt-login`. devspace reserves `-p` for `--profile`, so there is no short form. `copilot` runs OpenCode's GitHub Copilot login in the pod, answers its deployment-type question with GitHub.com through a pseudo-terminal, and stores the GitHub OAuth token in `github_token` after a Copilot API test call returns 200. The UiO variants read the key from a hidden host prompt and store it after a `gpt.uio.no` test call returns 200.
 - rationale: replace hand-run `kubectl` Secret edits for Copilot and UiO with the checked, single-key patch flow already used for ChatGPT. Implements the Copilot follow-up in the [ChatGPT plan support spec](../specs/2026-11-19-openai-chatgpt-plan-support-design.md#github-copilot-follow-up).
 
 ## Operator reminder

@@ -120,7 +120,6 @@ pipelines:
   login:
     flags:
       - name: provider
-        short: p
         type: string
         description: "chatgpt, copilot, uio-yellow or uio-red"
       - name: reset
