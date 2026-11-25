@@ -33,7 +33,7 @@ OpenCode's native ChatGPT login stores OAuth tokens in `auth.json`, where a sand
 1. **External login, sandboxed use.** OpenCode's headless login runs outside the sandbox. nono's `cmd://` credential route injects the resulting headers. This reuses the built-in OpenCode ChatGPT transport.
 2. **The existing Kubernetes Secret stores the credential.** `dotfiles-nono-provider-credentials` gets one optional key, `openai_chatgpt_session`. Its value is one JSON object with the access token, account ID, optional residency value and expiry, so these fields change together.
 3. **The first version discards the refresh token.** The operator logs in again when the access token expires. Two observed logins on one account had a 240-hour (10-day) token lifetime.
-4. **One enablement token.** `openai-chatgpt` replaces `openai` in the repo's enablement manifest, seed and policy. It maps to OpenCode's `openai` provider. The seed does not enable it, so ChatGPT stays opt-in per host.
+4. **One enablement token.** `openai-chatgpt` replaces `openai` in the provider enablement and policy. It maps to OpenCode's `openai` provider. ChatGPT stays opt-in: it is enabled only when the host `.env` lists it in `HUB_ENABLED_PROVIDERS`, which defaults to no providers.
 5. **HTTP only.** The launcher does not enable OpenCode's WebSocket transport.
 6. **The auth stub is an environment value.** On OpenCode 1.19.6, the launch helper passes the stub through `OPENCODE_AUTH_CONTENT`. The design does not write `auth.json`.
 7. **Image artifacts.** The profile template, generator, launch helper and header helper are root-owned image artifacts. This change therefore needs an image rebuild and redeploy.

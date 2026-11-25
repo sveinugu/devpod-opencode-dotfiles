@@ -41,7 +41,7 @@ If the workspace was already deployed before the secret existed, the pod may nee
 
 ## ChatGPT plan login (optional)
 
-ChatGPT Plus/Pro models are available when `openai-chatgpt` is in `/workspaces/dotfiles/state/hub/etc/provider-enablement.json` and a login is stored in the provider Secret. The seed does not enable it. The design is in [the ChatGPT plan support spec](../specs/2026-11-19-openai-chatgpt-plan-support-design.md).
+ChatGPT Plus/Pro models are available when `openai-chatgpt` is in `HUB_ENABLED_PROVIDERS` in the host `.env` (see [Provider enablement](#provider-enablement-host-env)) and a login is stored in the provider Secret. The design is in [the ChatGPT plan support spec](../specs/2026-11-19-openai-chatgpt-plan-support-design.md).
 
 Log in from the host, in the namespace of the workspace:
 
@@ -114,48 +114,27 @@ devspace build
 devspace deploy
 ```
 
-## Provider enablement manifest (single source of truth)
+## Provider enablement (host `.env`)
 
 For the secure-path policy summary and verification checklist behind this workflow, see [nono Policy](nono-policy.md).
 
-Canonical host-local enablement manifest path:
+Set the enabled providers in the host `.env`, next to `HUB_INSTALL_BRANCH`. Separate providers with spaces or commas:
+
+```bash
+HUB_ENABLED_PROVIDERS="gpt-uio-yellow github-copilot openai-chatgpt"
+```
+
+This is the only provider enablement setting. If it is unset or empty, no provider is enabled. Supported providers are the keys of `supported_providers` in `.config/opencode/provider-policy.jsonc`. To apply a change, run `devspace run-pipeline provision`. Start new OpenCode sessions after it; running sessions keep their configuration.
+
+Provision passes the value to `bin/sync-provider-enablement --enabled` from the install branch. The command refuses unknown providers, duplicates and the removed `openai` token, and then changes nothing. Otherwise it writes these read-only generated files in the pod:
 
 ```text
 /workspaces/dotfiles/state/hub/etc/provider-enablement.json
+<install branch>/.config/opencode/provider-runtime.json
+<install branch>/.config/opencode/provider-verification.json
 ```
 
-This file is the single source of truth for provider enablement in the repo-supported secure path.
-
-Contract:
-
-- generated runtime configuration and verification output must both match this manifest exactly
-- provider policy updates (for example `.config/opencode/provider-policy.jsonc`) and enablement selections must stay consistent
-- if manifest, generated runtime config, and verification output drift, pause and correct before treating the slice as complete
-
-Generated artifacts for this contract:
-
-```text
-/workspaces/dotfiles/state/hub/etc/provider-runtime.json
-/workspaces/dotfiles/state/hub/etc/provider-verification.json
-```
-
-Install-branch generated runtime artifacts (used by wrapped `opencode`):
-
-```text
-/workspaces/dotfiles/main/.config/opencode/provider-runtime.json
-/workspaces/dotfiles/main/.config/opencode/provider-verification.json
-```
-
-Canonical sync command:
-
-```bash
-/workspaces/dotfiles/main/bin/sync-provider-enablement
-```
-
-Bootstrap guardrail for first-time provision:
-
-- if `/workspaces/dotfiles/state/hub/etc/provider-enablement.json` is missing, provision seeds it from `/workspaces/dotfiles/main/.config/opencode/provider-enablement.seed.json`
-- if both are missing, provision must fail closed before runtime-provider sync
+Do not edit them in the pod; the next provision replaces them. The wrapped `opencode` reads the install-branch runtime file.
 
 ## Rebuild workspace image
 

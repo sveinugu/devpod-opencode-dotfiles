@@ -3,21 +3,34 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-usage: sync-provider-enablement [--manifest <path>] [--policy <path>] [--runtime-output <path>] [--verification-output <path>]
+usage: sync-provider-enablement [--enabled <providers>] [--manifest <path>] [--policy <path>] [--runtime-output <path>] [--verification-output <path>]
 
-Synchronize provider enablement from host-local manifest to generated runtime and verification outputs.
+Generate the provider runtime and verification outputs from the enabled providers.
+
+--enabled takes the host setting HUB_ENABLED_PROVIDERS (providers separated by
+spaces or commas; empty means none). It is validated, then written to the
+manifest. Without --enabled, the existing manifest is read. The manifest and the
+outputs are written read-only: change providers in the host .env, not in the pod.
 USAGE
 }
 
 repo_root="$(git rev-parse --show-toplevel)"
 
 manifest_path="/workspaces/dotfiles/state/hub/etc/provider-enablement.json"
+enabled_set=0
+enabled_value=''
 policy_path="$repo_root/.config/opencode/provider-policy.jsonc"
 runtime_output_path="$repo_root/.config/opencode/provider-runtime.json"
 verification_output_path="$repo_root/.config/opencode/provider-verification.json"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
+    --enabled)
+      [ "$#" -ge 2 ] || { usage >&2; exit 2; }
+      enabled_set=1
+      enabled_value="$2"
+      shift 2
+      ;;
     --manifest)
       [ "$#" -ge 2 ] || { usage >&2; exit 2; }
       manifest_path="$2"
@@ -49,7 +62,7 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-[ -f "$manifest_path" ] || {
+[ "$enabled_set" = 1 ] || [ -f "$manifest_path" ] || {
   printf 'refused: provider enablement manifest not found: %s\n' "$manifest_path" >&2
   exit 1
 }
@@ -59,16 +72,20 @@ done
   exit 1
 }
 
-python3 - "$manifest_path" "$policy_path" "$runtime_output_path" "$verification_output_path" <<'PY'
+python3 - "$manifest_path" "$policy_path" "$runtime_output_path" "$verification_output_path" "$enabled_set" "$enabled_value" <<'PY'
 import json
 import os
+import re
 import sys
 import tempfile
 
-manifest_path, policy_path, runtime_output_path, verification_output_path = sys.argv[1:]
+manifest_path, policy_path, runtime_output_path, verification_output_path, enabled_set, enabled_value = sys.argv[1:]
 
-with open(manifest_path, 'r', encoding='utf-8') as fh:
-    manifest = json.load(fh)
+if enabled_set == '1':
+    manifest = {'enabled_providers': [name for name in re.split(r'[\s,]+', enabled_value) if name]}
+else:
+    with open(manifest_path, 'r', encoding='utf-8') as fh:
+        manifest = json.load(fh)
 
 with open(policy_path, 'r', encoding='utf-8') as fh:
     policy = json.load(fh)
@@ -221,10 +238,15 @@ verification_payload = {
     'status': 'match',
 }
 
-for output_path, payload in (
+outputs = [
     (runtime_output_path, runtime_payload),
     (verification_output_path, verification_payload),
-):
+]
+# The manifest is written only after validation, so a refused value leaves it unchanged.
+if enabled_set == '1':
+    outputs.insert(0, (manifest_path, {'enabled_providers': manifest_order_enabled}))
+
+for output_path, payload in outputs:
     parent_dir = os.path.dirname(output_path)
     os.makedirs(parent_dir, exist_ok=True)
 
@@ -233,7 +255,8 @@ for output_path, payload in (
         with os.fdopen(fd, 'w', encoding='utf-8') as fh:
             json.dump(payload, fh, indent=2)
             fh.write('\n')
-        os.chmod(temp_path, 0o644)
+        # Read-only: these files are generated; the host .env is the only setting.
+        os.chmod(temp_path, 0o444)
         os.replace(temp_path, output_path)
     finally:
         if os.path.exists(temp_path):

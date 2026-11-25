@@ -167,36 +167,13 @@ Provider model policy is repo-owned at:
 /workspaces/dotfiles/main/.config/opencode/provider-policy.jsonc
 ```
 
-Provider enablement manifest is host-local at:
+Enabled providers are set only on the host, in `HUB_ENABLED_PROVIDERS` in `.env`; unset or empty means none. `devspace run-pipeline provision` applies the setting. See [Provider enablement](devspace-workspace-lifecycle.md#provider-enablement-host-env).
 
-```text
-/workspaces/dotfiles/state/hub/etc/provider-enablement.json
-```
+In the pod, provision writes these read-only generated files. Do not edit them; the next provision replaces them:
 
-Workflow contract:
-
-- `provider-policy.jsonc` defines supported-provider model policy
-- `provider-enablement.json` is the single source of truth for which supported providers are enabled in this workspace
-- generated runtime configuration and verification output must both match `provider-enablement.json` exactly
-
-Generated outputs:
-
-- `/workspaces/dotfiles/state/hub/etc/provider-runtime.json`
-- `/workspaces/dotfiles/state/hub/etc/provider-verification.json`
-- `/workspaces/dotfiles/main/.config/opencode/provider-runtime.json`
-- `/workspaces/dotfiles/main/.config/opencode/provider-verification.json`
-
-Sync command:
-
-```bash
-/workspaces/dotfiles/main/bin/sync-provider-enablement
-```
-
-Bootstrap guardrail:
-
-- initial enablement seed file: `/workspaces/dotfiles/main/.config/opencode/provider-enablement.seed.json`
-- provision seeds `/workspaces/dotfiles/state/hub/etc/provider-enablement.json` from the seed when missing
-- if both manifest and seed are missing, provision fails closed
+- `/workspaces/dotfiles/state/hub/etc/provider-enablement.json`
+- `<install branch>/.config/opencode/provider-runtime.json`
+- `<install branch>/.config/opencode/provider-verification.json`
 
 Current policy note:
 

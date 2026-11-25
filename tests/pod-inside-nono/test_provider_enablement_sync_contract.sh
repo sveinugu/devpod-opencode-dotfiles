@@ -27,35 +27,7 @@ if ! grep -F 'OPENCODE_CONFIG_CONTENT' "$wrapper" >/dev/null && ! grep -F -- '--
 fi
 grep -F '$source_root/.config/opencode/provider-runtime.json' "$wrapper" >/dev/null || fail "secure opencode wrapper must default to install-branch generated runtime output path"
 
-seed_manifest="$repo_root/.config/opencode/provider-enablement.seed.json"
-[ -f "$seed_manifest" ] || fail "provider enablement seed manifest must exist for bootstrap guardrail"
-
-python3 - "$seed_manifest" "$policy" <<'PY'
-import json
-import sys
-
-seed_path, policy_path = sys.argv[1:]
-
-with open(seed_path, 'r', encoding='utf-8') as fh:
-    seed = json.load(fh)
-
-with open(policy_path, 'r', encoding='utf-8') as fh:
-    policy = json.load(fh)
-
-enabled = seed.get('enabled_providers')
-if not isinstance(enabled, list):
-    raise SystemExit('seed manifest must define enabled_providers list')
-
-supported = set(policy.get('supported_providers', {}).keys())
-
-for provider in enabled:
-    if provider not in supported:
-        raise SystemExit(f'seed manifest provider is not supported: {provider}')
-
-# ChatGPT is opt-in per host; the seed must not connect anyone by default.
-if 'openai-chatgpt' in enabled:
-    raise SystemExit('seed manifest must not enable openai-chatgpt')
-PY
+[ ! -e "$repo_root/.config/opencode/provider-enablement.seed.json" ] || fail "provider enablement seed must not exist; the host .env is the only setting"
 
 temp_root="$(context_resolve_temp_root_workspace_or_fail 'test_provider_enablement_sync_contract')"
 tmp_root="$(context_make_test_tmpdir "$temp_root" 'test_provider_enablement_sync_contract')"
@@ -205,6 +177,24 @@ with open(expected_path, 'r', encoding='utf-8') as fh:
 if runtime.get('provider') != expected:
     raise SystemExit('runtime provider payload does not match policy-derived expected payload')
 PY
+
+# --enabled carries HUB_ENABLED_PROVIDERS from the host .env: it writes the manifest
+# read-only, accepts spaces or commas, treats empty as none, and leaves the
+# manifest unchanged when refused.
+enabled_manifest="$tmp_root/provider-enablement-from-env.json"
+run_enabled() { "$sync_cmd" --enabled "$1" --manifest "$enabled_manifest" --policy "$policy" --runtime-output "$runtime_output" --verification-output "$verification_output"; }
+manifest_list() { python3 -c 'import json,sys; print(" ".join(json.load(open(sys.argv[1]))["enabled_providers"]))' "$enabled_manifest"; }
+run_enabled 'gpt-uio-yellow, github-copilot  openai-chatgpt' >/dev/null || fail "--enabled should accept a valid list"
+[ "$(manifest_list)" = 'gpt-uio-yellow github-copilot openai-chatgpt' ] || fail "--enabled should write the list in order"
+for f in "$enabled_manifest" "$runtime_output" "$verification_output"; do
+  [ "$(stat -c %a "$f")" = 444 ] || fail "generated $(basename "$f") must be read-only"
+done
+run_enabled '' >/dev/null || fail "--enabled should accept an empty value"
+[ -z "$(manifest_list)" ] || fail "empty --enabled should enable no providers"
+if run_enabled 'gpt-uio-yellow bogus' >/dev/null 2>&1; then
+  fail "--enabled should refuse unknown providers"
+fi
+[ -z "$(manifest_list)" ] || fail "refused --enabled must leave the manifest unchanged"
 
 invalid_manifest="$tmp_root/provider-enablement-invalid.json"
 cat >"$invalid_manifest" <<'JSON'
