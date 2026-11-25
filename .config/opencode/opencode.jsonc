@@ -7,7 +7,7 @@
   // #3 switch when: UiO pools are constrained.
   // "model": "github-copilot/claude-sonnet-5.5",
   // #4 switch when: the UiO and Copilot pools are both depleted (ChatGPT plan; needs openai-chatgpt and a login).
-  // "model": "openai/gpt-6.1-terra",
+  // "model": "openai/gpt-6-luna",
   "small_model": "gpt-uio-yellow/google/gemma-4-31B-it",
   // #2 switch when: Gemma is unavailable (local).
   // "small_model": "gpt-uio-yellow/Qwen/Qwen3.8-27B-FP8",
@@ -81,7 +81,7 @@
       // #3 switch when: both pools above are unavailable.
       // "model": "github-copilot/gpt-6.2-sol",
       // #4 switch when: the UiO and Copilot pools are both depleted (ChatGPT plan; needs openai-chatgpt and a login).
-      // "model": "openai/gpt-6.2-sol",
+      // "model": "openai/gpt-6.1-terra",
       // Cheaper Claude for routine work when Copilot credits are tight: github-copilot/claude-sonnet-5.5
     },
     "plan": {
@@ -100,7 +100,7 @@
       // #3 switch when: UiO pools are constrained.
       // "model": "github-copilot/claude-sonnet-5.5",
       // #4 switch when: the UiO and Copilot pools are both depleted (ChatGPT plan; needs openai-chatgpt and a login).
-      // "model": "openai/gpt-6.1-terra",
+      // "model": "openai/gpt-6-luna",
     },
     "explore": {
       "model": "gpt-uio-yellow/gpt-6-luna",
@@ -136,7 +136,7 @@
       // #3 switch when: both local models above are unavailable; Qwen has a 262K context (local).
       // "model": "gpt-uio-yellow/Qwen/Qwen3.8-27B-FP8",
       // #4 switch when: the UiO and Copilot pools are both depleted (ChatGPT plan; needs openai-chatgpt and a login).
-      // "model": "openai/gpt-6.1-terra",
+      // "model": "openai/gpt-6-luna",
     }
   },
   "lsp": true

@@ -7,7 +7,7 @@ model: github-copilot/claude-opus-5.5
 # #3 switch when: both pools above are unavailable.
 # model: github-copilot/gpt-6.2-sol
 # #4 switch when: the UiO and Copilot pools are both depleted (ChatGPT plan; needs openai-chatgpt and a login).
-# model: openai/gpt-6.2-sol
+# model: openai/gpt-6.1-terra
 # Cheaper Claude for routine work when Copilot credits are tight: github-copilot/claude-sonnet-5.5
 reasoningEffort: high
 # reasoningEffort: medium

@@ -7,7 +7,7 @@ model: github-copilot/claude-sonnet-5.5
 # #3 switch when: both pools above are unavailable.
 # model: github-copilot/gpt-6.2-sol
 # #4 switch when: the UiO and Copilot pools are both depleted (ChatGPT plan; needs openai-chatgpt and a login).
-# model: openai/gpt-6.1-sol
+# model: openai/gpt-6.1-terra
 reasoningEffort: high
 temperature: 0.6
 tools:

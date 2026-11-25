@@ -48,25 +48,27 @@ Paths are relative to the repository root; the install branch's `.config/opencod
 
 The `openai-chatgpt` enablement token selects OpenCode's `openai` provider, so model references use `openai/<model-id>`. A valid ChatGPT login is required. The provider policy uses `mode: all`, not a fixed model allowlist.
 
-The table lists the models that OpenCode offered under `openai/` for this ChatGPT plan login on 2026-11-25 (the `/models` picker). Prefix each ID with `openai/`. The plan and OpenCode can change the list; check `/models` before relying on a model. Catalog context is from the [models.dev OpenAI catalog](https://models.dev/providers/openai) and is not a verified ChatGPT transport limit; all listed models have 128,000 catalog output. AA Index values are from the Artificial Analysis leaderboard (Intelligence Index v5.0.2, max reasoning setting), checked 2026-11-25; `n/a` = no score on the leaderboard. `gpt-6.1-sol` was not on the leaderboard on 2026-11-25; its value is the 2026-11-19 score used in the tables above. ChatGPT plan usage and credits differ from API pricing; see [Codex pricing](https://developers.openai.com/codex/pricing).
+The table lists the models that OpenCode offered under `openai/` for this ChatGPT plan login on 2026-11-25 (the `/models` picker). Prefix each ID with `openai/`. The plan and OpenCode can change the list; check `/models` before relying on a model. Catalog context is from the [models.dev OpenAI catalog](https://models.dev/providers/openai) and is not a verified ChatGPT transport limit; all listed models have 128,000 catalog output. AA Index values are from the Artificial Analysis leaderboard (Intelligence Index v5.0.2, max reasoning setting), checked 2026-11-25; `n/a` = no score on the leaderboard. `gpt-6.1-sol` was not on the leaderboard on 2026-11-25; its value is the 2026-11-19 score used in the tables above. ChatGPT plan usage and credits differ from API pricing; see [Codex pricing](https://learn.chatgpt.com/docs/pricing).
 
-OpenCode also lists `-fast`, `-flex` and, for some models, `-ultrafast` variants of each ID (for example `openai/gpt-6.2-sol-fast`). Their effect on speed and plan limits is not recorded here; use the plain ID unless you have checked a variant.
+**Plan cost.** This workspace uses the **Plus** plan, which limits messages per five-hour period, and weekly limits may also apply. Pro has no five-hour limit. Credits and Plus message ranges below are from the Codex pricing page, read on 2026-11-25 through a summary, not verbatim; re-check before relying on exact values. `—` = not stated. Within a role's quality tier, pick the cheapest model: Luna costs one tenth of Terra and one twentieth of Sol per token. Sol is for low-volume, quality-critical roles (planning, review); high-volume roles use Terra or Luna.
 
-| Model ID | AA Index | Catalog context | Variants | Notes |
-|---|---|---:|---|---|
-| `gpt-6.2-astra` | 62 | 1,050,000 | fast, ultrafast | Strongest; likely uses plan limits fastest |
-| `gpt-6.2-sol` | 57 | 1,050,000 | fast, ultrafast | Powerful |
-| `gpt-6.1-sol` | 55 (2026-11-19) | 1,050,000 | fast, flex, ultrafast | Powerful |
-| `gpt-6.1-terra` | 51 | 1,050,000 | fast, flex | Balanced |
-| `gpt-6-astra` | n/a | 1,050,000 | fast, flex, ultrafast |  |
-| `gpt-6-sol` | n/a | 1,050,000 | fast, flex |  |
-| `gpt-6-luna` | 28 | 1,050,000 | fast, flex | Lightweight |
-| `gpt-5.6-sol` | n/a | 1,050,000 | fast, flex |  |
-| `gpt-5.6-terra` | n/a | 1,050,000 | fast, flex |  |
-| `gpt-5.6-luna` | n/a | 1,050,000 | fast, flex |  |
-| `gpt-5.5` | n/a | 1,050,000 | fast, flex |  |
-| `gpt-5.4` | n/a | 1,050,000 | fast, flex |  |
-| `gpt-5.4-mini` | n/a | 400,000 | fast, flex |  |
+OpenCode also lists `-fast`, `-flex` and, for some models, `-ultrafast` variants of each ID (for example `openai/gpt-6.2-sol-fast`). `-fast` uses 2-2.5x the included usage and `-ultrafast` 6-8x (Pro $500 and above only); the cost of `-flex` is not stated. Use the plain ID.
+
+| Model ID | AA Index | Credits per 1M (in / out) | Plus messages per 5 h | Catalog context | Variants | Notes |
+|---|---|---:|---:|---:|---|---|
+| `gpt-6.2-astra` | 62 | 200 / 1,000 | 6-50 | 1,050,000 | fast, ultrafast | Strongest; avoid on Plus |
+| `gpt-6.2-sol` | 57 | 50 / 250 | 17-180 | 1,050,000 | fast, ultrafast | Powerful |
+| `gpt-6.1-sol` | 55 (2026-11-19) | 50 / 250 | 15-160 | 1,050,000 | fast, flex, ultrafast | Powerful |
+| `gpt-6.1-terra` | 51 | 25 / 125 | 35-285 | 1,050,000 | fast, flex | Balanced |
+| `gpt-6-astra` | n/a | 250 / 1,250 | 5-45 | 1,050,000 | fast, flex, ultrafast | Avoid on Plus |
+| `gpt-6-sol` | n/a | 50 / 250 | 15-150 | 1,050,000 | fast, flex |  |
+| `gpt-6-luna` | 28 | 2.5 / 12.5 | 350-3,000 | 1,050,000 | fast, flex | Lightweight; cheapest |
+| `gpt-5.6-sol` | n/a | 100 / 500 | — | 1,050,000 | fast, flex |  |
+| `gpt-5.6-terra` | n/a | 50 / 300 | — | 1,050,000 | fast, flex |  |
+| `gpt-5.6-luna` | n/a | 5 / 30 | — | 1,050,000 | fast, flex |  |
+| `gpt-5.5` | n/a | — | — | 1,050,000 | fast, flex |  |
+| `gpt-5.4` | n/a | — | — | 1,050,000 | fast, flex |  |
+| `gpt-5.4-mini` | n/a | — | — | 400,000 | fast, flex |  |
 
 ## GitHub Copilot / fallback models
 
@@ -198,29 +200,29 @@ A depleted pool needs an override for **every** role whose `#1` is that model; s
 
 Target routing as committed. Temporary switches live in the overrides file, not here.
 
-The **#4 ChatGPT** column (the `#4` comments in the agent files and `opencode.jsonc`) is the fallback when both the UiO and Copilot pools are depleted. Write it as `openai/<model>` in an override. It needs `openai-chatgpt` in `HUB_ENABLED_PROVIDERS` and a ChatGPT login (`devspace run-pipeline login --provider chatgpt`). ChatGPT offers only GPT models, so it cannot keep the opposite-family review rule (design rule 4); see "UiO and Copilot both depleted" below.
+The **#4 ChatGPT** column (the `#4` comments in the agent files and `opencode.jsonc`) is the fallback when both the UiO and Copilot pools are depleted. It is chosen for the Plus plan's five-hour limits: Sol only for `planner` and the GPT reviewers, Terra for the other strong roles, and Luna for high-volume and utility roles. Write it as `openai/<model>` in an override. It needs `openai-chatgpt` in `HUB_ENABLED_PROVIDERS` and a ChatGPT login (`devspace run-pipeline login --provider chatgpt`). ChatGPT offers only GPT models, so it cannot keep the opposite-family review rule (design rule 4); see "UiO and Copilot both depleted" below.
 
 ### Team/specialist agents
 
 | Agent | #1 | #2 | #3 | #4 ChatGPT | Notes |
 |---|---|---|---|---|---|
 | `planner` | Copilot `claude-opus-5.5` (59) | UiO `gpt-6.1-sol` (55) | Copilot `gpt-6.2-sol` (57) | `gpt-6.2-sol` (57) | |
-| `senior-implementer` | Copilot `claude-opus-5.5` (59) | UiO `gpt-6.1-sol` (55) | Copilot `gpt-6.2-sol` (57) | `gpt-6.2-sol` (57) | Cheaper Claude when credits are tight: Copilot `claude-sonnet-5.5` (55) |
+| `senior-implementer` | Copilot `claude-opus-5.5` (59) | UiO `gpt-6.1-sol` (55) | Copilot `gpt-6.2-sol` (57) | `gpt-6.1-terra` (51) | Cheaper Claude when credits are tight: Copilot `claude-sonnet-5.5` (55) |
 | `junior-implementer` | Copilot `claude-haiku-5.5` (36) | UiO `Kimi-K2.6` (n/a) | UiO `GLM-5.3-NVFP4` (32) | `gpt-6-luna` (28) | |
 | `code-reviewer` | UiO `gpt-6.1-sol` (55) | Copilot `gpt-6.2-sol` (57) | UiO `gpt-6.1-terra` (51) | `gpt-6.1-sol` (55) | GPT reviews Claude-written code |
-| `docs-writer` | Copilot `claude-sonnet-5.5` (55) | UiO `gpt-6.1-terra` (51) | Copilot `gpt-6.2-sol` (57) | `gpt-6.1-sol` (55) | |
+| `docs-writer` | Copilot `claude-sonnet-5.5` (55) | UiO `gpt-6.1-terra` (51) | Copilot `gpt-6.2-sol` (57) | `gpt-6.1-terra` (51) | |
 | `docs-reviewer-gpt` | UiO `gpt-6.1-sol` (55) | Copilot `gpt-6.2-sol` (57) | UiO `gpt-6.1-terra` (51) | `gpt-6.1-sol` (55) | Reviews Claude-authored specs, plans and docs |
 | `docs-reviewer-claude` | Copilot `claude-opus-5.5` (59) | Copilot `claude-sonnet-5.5` (55) | UiO `GLM-5.3-NVFP4` (32) | none; keep `#3` (GLM) so the reviewer stays non-GPT | Reviews GPT- or other-authored docs; no UiO Claude exists, so `#2` shares the Copilot pool |
 | `maestro` | UiO `gpt-6.1-terra` (51) | Copilot `gpt-6.1-terra` (51) | UiO `gpt-5.4` (n/a) | `gpt-6.1-terra` (51) | |
 | `brainstormer` | UiO `gpt-5.4` (n/a) | Copilot `claude-sonnet-5.5` (55) | UiO `gpt-5.1` (n/a) | `gpt-6.1-terra` (51) | |
 | `policy-implementer` | UiO `gpt-5.4` (n/a) | Copilot `claude-sonnet-5.5` (55) | UiO `gpt-5.1` (n/a) | `gpt-6.1-terra` (51) | |
-| `general` | UiO `GLM-5.3-NVFP4` (32) | UiO `gpt-6.1-terra` (51) | Copilot `claude-sonnet-5.5` (55) | `gpt-6.1-terra` (51) | Also defined under `agent.general` in `opencode.jsonc`; edit both together |
+| `general` | UiO `GLM-5.3-NVFP4` (32) | UiO `gpt-6.1-terra` (51) | Copilot `claude-sonnet-5.5` (55) | `gpt-6-luna` (28) | Also defined under `agent.general` in `opencode.jsonc`; edit both together |
 
 ### OpenCode built-ins and defaults (`opencode.jsonc`)
 
 | Role | #1 | #2 | #3 | #4 ChatGPT | Notes |
 |---|---|---|---|---|---|
-| top-level `model` | UiO `GLM-5.3-NVFP4` (32) | UiO `gpt-6.1-terra` (51) | Copilot `claude-sonnet-5.5` (55) | `gpt-6.1-terra` (51) | Default for any agent without its own `model` |
+| top-level `model` | UiO `GLM-5.3-NVFP4` (32) | UiO `gpt-6.1-terra` (51) | Copilot `claude-sonnet-5.5` (55) | `gpt-6-luna` (28) | Default for any agent without its own `model` |
 | top-level `small_model` | UiO `gemma-4-31B-it` (4) | UiO `Qwen3.8-27B-FP8` (20) | UiO `gpt-oss-120b` (4) | `gpt-6-luna` (28) | Default for light tasks when a role sets no model |
 | `build` | same chain as `senior-implementer` | | | | Not counted for UiO quota spread |
 | `plan` | same chain as `planner` | | | | Not counted for UiO quota spread |
@@ -228,7 +230,7 @@ The **#4 ChatGPT** column (the `#4` comments in the agent files and `opencode.js
 | `explore` | UiO `gpt-6-luna` (28) | Copilot `claude-haiku-5.5` (36) | UiO `gpt-5-mini` (n/a) | `gpt-6-luna` (28) | |
 | `title` | UiO `gemma-4-31B-it` (4) | UiO `Qwen3.8-27B-FP8` (20) | UiO `gpt-oss-120b` (4) | `gpt-6-luna` (28) | |
 | `summary` | UiO `gemma-4-31B-it` (4) | UiO `Qwen3.8-27B-FP8` (20) | UiO `gpt-oss-120b` (4) | `gpt-6-luna` (28) | |
-| `compaction` | UiO `GLM-5.3-NVFP4` (32) | UiO `Mistral-Medium-3.5-128B` (5) | UiO `Qwen3.8-27B-FP8` (20) | `gpt-6.1-terra` (51) | |
+| `compaction` | UiO `GLM-5.3-NVFP4` (32) | UiO `Mistral-Medium-3.5-128B` (5) | UiO `Qwen3.8-27B-FP8` (20) | `gpt-6-luna` (28) | |
 
 Claude-backed roles keep their `temperature` and `reasoningEffort` settings. If a Claude role errors on a request setting, remove that setting for the agent first.
 
