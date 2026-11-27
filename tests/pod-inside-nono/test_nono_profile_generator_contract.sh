@@ -63,6 +63,11 @@ def need(condition, message):
     if not condition:
         raise SystemExit(message)
 
+isolation = profile.get('linux', {}).get('isolate', {})
+need(isolation.get('network') is True, 'generated profile must isolate networking')
+need(isolation.get('loopback') is True, 'generated profile must allow isolated loopback')
+need(not network.get('open_port_range'), 'generated profile must not request host port ranges')
+
 for name in ('OPENAI_CHATGPT_SESSION', 'OPENAI_API_KEY'):
     need(name in deny, f'{name} must be in environment.deny_vars')
 

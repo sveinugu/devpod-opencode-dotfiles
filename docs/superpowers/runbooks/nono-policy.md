@@ -183,6 +183,14 @@ Repo anchors for this contract:
 - `../../../tests/pod-inside-nono/test_opencode_secure_wrapper_contract.sh`
 - `../../../tests/pod-inside-nono/test_nono_identity_integration_contract.sh`
 
+## Isolated loopback
+
+The profile requests a Linux network namespace with private TCP loopback. Processes in the sandbox can bind and connect to its loopback; host localhost services and listeners are not shared. Outbound traffic remains subject to the nono proxy. UDP and raw sockets remain denied. The profile does not request host port ranges.
+
+The pod and its host must permit the user and network namespace setup. In a k3d cluster under Colima, the Colima Linux VM's AppArmor policy can restrict user namespaces even when the pod reports an unconfined profile. A path-based AppArmor exception for nono affects the VM security policy and is not limited to this pod. Arrange and verify that exception separately; a temporary loaded profile does not survive a VM restart. If namespace setup is blocked, nono refuses to launch rather than falling back. See [nono's namespace isolation documentation](https://nono.sh/docs/cli/features/namespace-isolation#local-servers-on-loopback).
+
+The workspace image contains the reviewed profile template. Rebuild and deploy the image to apply template changes, then verify the wrapped OpenCode launch and proxy from the required outside-nono environment.
+
 ## Credential policy
 
 - provider-secret source, env mapping, generated runtime profile filtering

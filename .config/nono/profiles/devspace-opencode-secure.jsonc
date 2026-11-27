@@ -71,9 +71,6 @@
   },
   "network": {
     "allow_domain": ["*"],
-    "open_port_range": [
-      [1, 65535]
-    ],
     "credentials": [
       "openai-chatgpt",
       "anthropic",
@@ -124,6 +121,12 @@
         "inject_header": "Authorization",
         "credential_format": "Bearer {}"
       }
+    }
+  },
+  "linux": {
+    "isolate": {
+      "network": true,
+      "loopback": true
     }
   },
   "credential_capture": {
